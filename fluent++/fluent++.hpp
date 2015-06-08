@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <utility>
+#include <iostream>
 
 #include "functional_unwrap.hpp"
 
@@ -14,13 +15,20 @@ class fluent_step
     void release()
     {
         int i = 0;
+
+        std::cout << "->  release" << std::endl;
     }
 
 public:
-    fluent_step() : released(false) { }
+    fluent_step() : released(false)
+    {
+        std::cout << "+   construct" << std::endl;
+    }
 
     ~fluent_step()
     {
+        std::cout << "-   destruct" << std::endl;
+
         if (!released)
             release();
     }
@@ -28,6 +36,8 @@ public:
     fluent_step(fluent_step const&) = delete;
     fluent_step(fluent_step&& right) : released(false)
     {
+        std::cout << "<-> move" << std::endl;
+
         right.released = true;
     }
 
@@ -39,9 +49,9 @@ public:
     }
 
     template <typename Callback>
-    fluent_step& then(Callback const& callback)
+    fluent_step then(Callback const& callback)
     {
-        return *this;
+        return std::move(*this);
     }
 };
 
