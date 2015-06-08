@@ -95,7 +95,7 @@ namespace fu
         template<typename _RTy, typename... _ATy>
         struct select_best_unwrap<_RTy, _ATy...>
         {
-            typedef typename unwrap_function_impl<_RTy(_ATy...)> type;
+            typedef unwrap_function_impl<_RTy(_ATy...)> type;
         };
 
      } // detail
