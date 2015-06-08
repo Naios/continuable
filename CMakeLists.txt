@@ -35,5 +35,5 @@ set(TEST_SOURCES test.cpp)
 add_executable(fluent_test ${TEST_SOURCES})
 
 target_link_libraries(fluent_test
-  fluent
+  fluent++
 )
