@@ -22,6 +22,7 @@
 #include <utility>
 #include <memory>
 
+#include "functional_unwrap.hpp"
 
 template<typename... Args>
 using Callback = std::function<void(Args...)>;
@@ -32,11 +33,32 @@ using SharedCallback = std::shared_ptr<Callback<Args...>>;
 template<typename... Args>
 using WeakCallback = std::weak_ptr<Callback<Args...>>;
 
-template<typename... Args>
-auto make_shared_callback(Callback<Args...>&& callback)
-    -> SharedCallback<Args...>
+namespace detail
 {
-    return std::make_shared<Callback<Args...>>(std::forward<Callback<Args...>>(callback));
+    template<typename... Args>
+    struct do_unwrap_callback;
+
+    template<typename... Args>
+    struct do_unwrap_callback<std::tuple<Args...>>
+    {
+        typedef Callback<Args...> CallbackType;
+
+        typedef SharedCallback<Args...> SharedCallbackType;
+
+        typedef WeakCallback<Args...> WeakCallbackType;
+    };
+
+    template<typename _CTy>
+    using unwrap_callback = do_unwrap_callback<::fu::argument_type_t<_CTy>>;
+
+} // detail
+
+template<typename _CTy>
+typename detail::unwrap_callback<_CTy>::SharedCallbackType
+    make_shared_callback(_CTy&& callback)
+{
+    return std::make_shared<typename detail::unwrap_callback<_CTy>::CallbackType>
+        (std::forward<typename detail::unwrap_callback<_CTy>::CallbackType>(callback));
 }
 
 #endif /// _TASK_SCHEDULER_H_

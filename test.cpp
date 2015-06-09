@@ -41,7 +41,7 @@ int main(int argc, char** argv)
     cbd2 _cbd2;
     cbd3 _cbd3;
 
-    auto cb = make_shared_callback<bool>([](bool)
+    auto cb = make_shared_callback([](bool)
     {
     
     });
