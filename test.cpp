@@ -2,6 +2,7 @@
 #include "fluent++.hpp"
 
 #include "Callback.h"
+#include "CallbackContainer.h"
 
 void CastSpell(int id, Callback<bool> const& callback)
 {
@@ -47,6 +48,12 @@ int main(int argc, char** argv)
     });
 
     auto cbt = std::make_shared<std::function<void()>>([]()
+    {
+    });
+
+    CallbackContainer callback;
+
+    auto mycb = callback([]
     {
     });
 
