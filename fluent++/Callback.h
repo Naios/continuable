@@ -49,7 +49,7 @@ namespace detail
     };
 
     template<typename _CTy>
-    using unwrap_callback = do_unwrap_callback<::fu::argument_type_t<_CTy>>;
+    using unwrap_callback = do_unwrap_callback<::fu::argument_type_of_t<_CTy>>;
 
 } // detail
 
@@ -63,11 +63,11 @@ template<typename _CTy>
 using weak_callback_of_t = typename detail::unwrap_callback<_CTy>::WeakCallbackType;
 
 template<typename _CTy>
-typename shared_callback_of_t<_CTy>
+inline typename shared_callback_of_t<_CTy>
     make_shared_callback(_CTy&& callback)
 {
     return std::make_shared<typename callback_of_t<_CTy>>
         (std::forward<typename callback_of_t<_CTy>>(callback));
 }
 
-#endif /// _TASK_SCHEDULER_H_
+#endif /// _CALLBACK_H_

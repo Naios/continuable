@@ -114,22 +114,22 @@ namespace fu
 
     /// Trait which defines the return type of the function.
     template<typename... Function>
-    using return_type_t =
+    using return_type_of_t =
         typename detail::select_best_unwrap<Function...>::type::return_type;
 
     /// Trait which defines the argument types of the function packed in std::tuple.
     template<typename... Function>
-    using argument_type_t =
+    using argument_type_of_t =
         typename detail::select_best_unwrap<Function...>::type::argument_type;
 
     /// Trait which defines the std::function type of the function.
     template<typename... Function>
-    using function_type_t =
+    using function_type_of_t =
         typename detail::select_best_unwrap<Function...>::type::function_type;
 
     /// Trait which defines the function pointer type of the function.
     template<typename... Function>
-    using function_ptr_t =
+    using function_ptr_of_t =
         typename detail::select_best_unwrap<Function...>::type::function_ptr;
 
 } // fu
