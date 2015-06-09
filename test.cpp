@@ -4,6 +4,9 @@
 #include "Callback.h"
 #include "CallbackContainer.h"
 
+#include <iostream>
+#include <exception>
+
 void CastSpell(int id, Callback<bool> const& callback)
 {
     std::cout << "Cast " << id << std::endl;
@@ -47,12 +50,47 @@ int main(int argc, char** argv)
     
     });
 
-    CallbackContainer callback;
+    Callback<> weak_cb_test;
 
-    auto mycb = callback([](bool success)
     {
+        CallbackContainer callback;
 
-    });
+        std::shared_ptr<int> dealloc_test(new int{2}, [](int* me)
+        {
+            std::cout << "dealloc ok" << std::endl;
+            delete me;
+        });
+
+        auto const cb_void = callback([dealloc_test]
+        {
+            std::cout << "huhu i'm a..." << std::endl;
+
+            auto const cp = dealloc_test;
+        });
+
+        dealloc_test.reset();
+
+        auto const cb_bool = callback([](bool success)
+        {
+            std::cout << "...weak wrapped callback!" << std::endl;
+        });
+
+        weak_cb_test = callback([]
+        {
+            std::cout << "huhu i'm crashsafe (you wont see me)!" << std::endl;
+            std::logic_error("bad logic");
+        });
+
+        cb_void();
+
+        int i = 0;
+        ++i;
+
+        cb_bool(true);
+    }
+
+    // This will never be executed because the CallbackContainer was deallocated and its weak callback proxies are crash safe.
+    weak_cb_test();
 
     return 0;
 }
