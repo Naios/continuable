@@ -49,7 +49,7 @@ public:
     }
 
     template <typename Callback>
-    fluent_step then(Callback const& callback)
+    fluent_step then(Callback&& callback)
     {
         return std::move(*this);
     }

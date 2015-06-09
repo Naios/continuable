@@ -1,8 +1,7 @@
 
 #include "fluent++.hpp"
 
-template <typename... Args>
-using Callback = std::function<void(Args...)>;
+#include "Callback.h"
 
 void CastSpell(int id, Callback<bool> const& callback)
 {
@@ -33,6 +32,23 @@ int main(int argc, char** argv)
             // Do something final
             std::cout << "finish everything" << std::endl;
         });
+
+    typedef Callback<bool> cbd1;
+    typedef WeakCallback<int> cbd2;
+    typedef SharedCallback<std::string> cbd3;
+
+    cbd1 _cbd1;
+    cbd2 _cbd2;
+    cbd3 _cbd3;
+
+    auto cb = make_shared_callback<bool>([](bool)
+    {
+    
+    });
+
+    auto cbt = std::make_shared<std::function<void()>>([]()
+    {
+    });
 
     return 0;
 }
