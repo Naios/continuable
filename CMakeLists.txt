@@ -25,7 +25,7 @@ if(CMAKE_BUILD_TOOL MATCHES "(msdev|devenv|nmake)")
     add_definitions(-Wall -Wextra)
 endif()
 
-file(GLOB_RECURSE FLUENT_SOURCES fluent++/*.cpp fluent++/*.hpp)
+file(GLOB_RECURSE FLUENT_SOURCES fluent++/*.cpp fluent++/*.hpp fluent++/*.h)
 add_library(fluent++ STATIC ${FLUENT_SOURCES})
 
 include_directories(fluent++)
