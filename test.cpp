@@ -42,19 +42,16 @@ int main(int argc, char** argv)
     cbd2 _cbd2;
     cbd3 _cbd3;
 
-    auto cb = make_shared_callback([](bool)
+    auto _test_make_shared_callback = make_shared_callback([](bool)
     {
     
     });
 
-    auto cbt = std::make_shared<std::function<void()>>([]()
-    {
-    });
-
     CallbackContainer callback;
 
-    auto mycb = callback([]
+    auto mycb = callback([](bool success)
     {
+
     });
 
     return 0;

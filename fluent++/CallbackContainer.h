@@ -24,15 +24,63 @@
 
 class CallbackContainer
 {
-    size_t current_handle;
+    std::shared_ptr<CallbackContainer> self_reference;
 
-    std::unordered_map<decltype(current_handle), void*> container;
+    size_t handle;
+
+    struct InternalReference
+    {
+    };
+
+    std::unordered_map<decltype(handle), InternalReference> container;
+
+    template<typename _CTy, typename... Args>
+    struct ProxyFactory;
+
+    template<typename _CTy, typename... Args>
+    struct ProxyFactory<_CTy, std::tuple<Args...>>
+    {
+        // Creates a weak callback proxy which prevents invoking to an invalid context.
+        static callback_of_t<_CTy> CreateProxy(_CTy&& callback)
+        {
+            return [callback](Args&&... args)
+            {
+
+                // Invoke the original callback
+                callback(std::forward<Args...>(args...));
+            };
+        }
+    };
 
 public:
-    template<typename _CTy>
-    _CTy operator()(_CTy&& callback)
+    CallbackContainer()
+        : self_reference(this, [](decltype(this) me) { }), handle(0L) { }
+
+    ~CallbackContainer() = default;
+
+    CallbackContainer(CallbackContainer const&) = delete;
+    CallbackContainer(CallbackContainer&&) = delete;
+
+    CallbackContainer& operator= (CallbackContainer const&) = delete;
+    CallbackContainer& operator= (CallbackContainer&&) = delete;
+
+    CallbackContainer& Clear()
     {
-        return callback;
+        container.clear();
+        handle = 0L;
+        return *this;
+    }
+
+    template<typename _CTy>
+    auto operator()(_CTy&& callback)
+        -> callback_of_t<_CTy>
+    {
+        // Create a weak proxy callback which removes the callback on execute
+        callback_of_t<_CTy> proxy =
+            ProxyFactory<_CTy, ::fu::argument_type_of_t<_CTy>>::
+                CreateProxy(std::forward<_CTy>(callback));
+
+        return std::move(proxy);
     }
 };
 
