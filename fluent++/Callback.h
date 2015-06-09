@@ -24,21 +24,21 @@
 
 #include "functional_unwrap.hpp"
 
-template<class... Args>
+template<typename... Args>
 using Callback = std::function<void(Args...)>;
 
-template<class... Args>
+template<typename... Args>
 using SharedCallback = std::shared_ptr<Callback<Args...>>;
 
-template<class... Args>
+template<typename... Args>
 using WeakCallback = std::weak_ptr<Callback<Args...>>;
 
 namespace detail
 {
-    template<class... Args>
+    template<typename... Args>
     struct do_unwrap_callback;
 
-    template<class... Args>
+    template<typename... Args>
     struct do_unwrap_callback<std::tuple<Args...>>
     {
         typedef Callback<Args...> CallbackType;
@@ -48,21 +48,21 @@ namespace detail
         typedef WeakCallback<Args...> WeakCallbackType;
     };
 
-    template<class _CTy>
+    template<typename _CTy>
     using unwrap_callback = do_unwrap_callback<::fu::argument_type_of_t<_CTy>>;
 
 } // detail
 
-template<class _CTy>
+template<typename _CTy>
 using callback_of_t = typename detail::unwrap_callback<_CTy>::CallbackType;
 
-template<class _CTy>
+template<typename _CTy>
 using shared_callback_of_t = typename detail::unwrap_callback<_CTy>::SharedCallbackType;
 
-template<class _CTy>
+template<typename _CTy>
 using weak_callback_of_t = typename detail::unwrap_callback<_CTy>::WeakCallbackType;
 
-template<class _CTy>
+template<typename _CTy>
 inline typename shared_callback_of_t<_CTy>
     make_shared_callback(_CTy&& callback)
 {

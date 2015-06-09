@@ -6,7 +6,6 @@
 
 #include <iostream>
 #include <exception>
-#include <type_traits>
 
 void CastSpell(int id, Callback<bool> const& callback)
 {
