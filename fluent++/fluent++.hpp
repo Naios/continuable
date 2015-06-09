@@ -46,6 +46,7 @@ public:
     {
         released = false;
         right.released = true;
+        return *this;
     }
 
     template <typename Callback>
