@@ -18,7 +18,7 @@ enum SpellCastResult
     SPELL_FAILED_ALREADY_BEING_TAMED = 5
 };
 
-ProtoContinueable CastSpell(int id)
+ProtoContinueable ProtoCastSpell(int id)
 {
     std::cout << "Cast " << id << std::endl;
 
@@ -26,7 +26,7 @@ ProtoContinueable CastSpell(int id)
     return ProtoContinueable();
 }
 
-ProtoContinueable MoveTo(int point)
+ProtoContinueable ProtoMoveTo(int point)
 {
     std::cout << "Move to point " << point << std::endl;
 
@@ -34,7 +34,7 @@ ProtoContinueable MoveTo(int point)
     return ProtoContinueable();
 }
 
-void CastSpell(int id, Callback<SpellCastResult> const& callback)
+void ProtoCastSpell(int id, Callback<SpellCastResult> const& callback)
 {
     std::cout << "Cast " << id << std::endl;
 
@@ -42,7 +42,22 @@ void CastSpell(int id, Callback<SpellCastResult> const& callback)
     callback(SPELL_FAILED_SUCCESS);
 }
 
-void MoveTo(int point, Callback<bool> const& callback)
+/*Continuable<SpellCastResult>*/ int CastSpell(int id)
+{
+    auto lam = [=](Callback<SpellCastResult> const& callback)
+    {
+        std::cout << "Cast " << id << std::endl;
+
+        // on success call the callback with SPELL_FAILED_SUCCESS
+        callback(SPELL_FAILED_SUCCESS);
+    };
+
+    auto ct = make_continuable(std::move(lam));
+
+    return detail::ContinuableFactory<decltype(lam), void, std::tuple<Callback<SpellCastResult> const&>>::CreateFrom(std::move(lam));
+}
+
+void ProtoMoveTo(int point, Callback<bool> const& callback)
 {
     std::cout << "Move to point " << point << std::endl;
 
@@ -56,7 +71,7 @@ int main(int argc, char** argv)
         // .then(std::bind(&CastSpell, 71382, std::placeholders::_1))
         .then([](SpellCastResult result, Callback<bool> const& callback)
         {
-            MoveTo(1, callback);
+            ProtoMoveTo(1, callback);
         })
         .then([](bool success)
         {
@@ -64,12 +79,12 @@ int main(int argc, char** argv)
             std::cout << "finish everything" << std::endl;
         });
 
-
+    
 
     auto cabt = []()
     {
         // Do something
-        return MoveTo(2);
+        return ProtoMoveTo(2);
     };
 
     typedef Callback<bool> cbd1;
@@ -91,7 +106,7 @@ int main(int argc, char** argv)
         WeakCallbackContainer callback;
 
         // Some tests
-        CastSpell(22872)
+        ProtoCastSpell(22872)
             .weak(callback)
             .then([](bool success)
             {
@@ -101,7 +116,7 @@ int main(int argc, char** argv)
                 }
 
                 // Do something
-                /*return*/ MoveTo(2);
+                return ProtoMoveTo(2);
             })
             .then([]
             {
@@ -161,8 +176,11 @@ int main(int argc, char** argv)
 
     typedef Continuable<Callback<bool>> cont;
 
-    typedef Continuable<Callback<bool>>::type myty1;
-    typedef Continuable<Callback<bool>, float>::type myty2;
+    // typedef Continuable<Callback<bool>>::type myty1;
+    // typedef Continuable<Callback<bool>, float>::type myty2;
+
+
+    CastSpell(2);
 
     return 0;
 }
