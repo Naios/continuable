@@ -52,7 +52,8 @@ namespace detail
         static auto CreateFrom(_FTy&& functional)
             -> Continuable<_ATy...>
         {
-            return Continuable<_ATy...>(Callback<Callback<_ATy...>&&>(std::forward<_FTy>(functional)));
+            return Continuable<_ATy...>(
+	      typename Continuable<_ATy...>::ForwardFunction(std::forward<_FTy>(functional)));
         }
     };
 
