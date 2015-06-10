@@ -41,8 +41,6 @@ int main(int argc, char** argv)
     CastSpell(63362)
       .then([](SpellCastResult result)
         {
-
-
             return CastSpell(63362);
         })
         .then([](SpellCastResult result)
