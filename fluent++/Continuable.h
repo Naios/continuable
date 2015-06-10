@@ -27,7 +27,15 @@ struct Continuable;
 template <typename... _ATy>
 struct Continuable<Callback<_ATy...>>
 {
+    // Function which expects a callback that is inserted from the Continuable
+    // to chain everything together
+    std::function<void(Callback<_ATy...>)> _callback_insert;
+
 public:
+    Continuable<Callback<_ATy...>>() { }
+    Continuable<Callback<_ATy...>>(std::function<void(Callback<_ATy...>)>&& callback_insert)
+        : _callback_insert(std::forward<std::function<void(Callback<_ATy...>)>>(callback_insert)) { }
+
     template <typename _CTy>
     Continuable<Callback<_ATy...>>& then(_CTy&& callback)
     {
@@ -37,16 +45,16 @@ public:
 
 namespace detail
 {
-    template <typename _FTy, typename _RTy, typename _ATy>
+    template <typename _FTy, typename _RTy, typename... _ATy>
     struct ContinuableFactory;
 
-    template <typename _FTy, typename _RTy, typename _ATy>
-    struct ContinuableFactory<_FTy, _RTy, ::fu::identity<_ATy>>
+    template <typename _FTy, typename _RTy, typename... _ATy>
+    struct ContinuableFactory<_FTy, _RTy, ::fu::identity<Callback<_ATy...>>>
     {
         static auto CreateFrom(_FTy&& functional)
-            -> _FTy// Continuable<_ATy>
+            -> Continuable<Callback<_ATy...>>
         {
-            return _FTy; //  Continuable<_ATy>();
+            return Continuable<Callback<_ATy...>>(std::forward<_FTy>(functional));
         }
     };
 
@@ -58,9 +66,9 @@ namespace detail
 
 template <typename _FTy>
 inline auto make_continuable(_FTy&& functional)
-    -> int// decltype(typename detail::continuable_factory_t<_FTy>::CreateFrom(std::declval<_FTy>()))
+    -> decltype(typename detail::continuable_factory_t<_FTy>::CreateFrom(std::declval<_FTy>()))
 {
-    return 1; //  detail::continuable_factory_t<_FTy>::CreateFrom(std::forward<_FTy>(functional));
+    return detail::continuable_factory_t<_FTy>::CreateFrom(std::forward<_FTy>(functional));
 }
 
 #endif /// _CONTINUABLE_H_

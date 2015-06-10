@@ -65,7 +65,7 @@ class WeakCallbackContainer
 
 public:
     WeakCallbackContainer()
-        : self_reference(this, [](decltype(this) me) { }), handle(0L) { }
+        : self_reference(this, [](decltype(this)) { }), handle(0L) { }
 
     ~WeakCallbackContainer() = default;
 
