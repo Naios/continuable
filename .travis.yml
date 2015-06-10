@@ -9,7 +9,7 @@ before_install:
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo add-apt-repository -y ppa:boost-latest/ppa
 
-  # clang 3.4
+  # clang 3.5
   - if [ "$CXX" == "clang++" ]; then sudo add-apt-repository -y ppa:h-rayflood/llvm; fi
 
   - sudo apt-get -qq update
@@ -21,9 +21,9 @@ install:
   # g++4.8.1
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8"; fi
 
-  # clang 3.4
-  - if [ "$CXX" == "clang++" ]; then sudo apt-get install --allow-unauthenticated -qq clang-3.4; fi
-  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.4"; fi
+  # clang 3.5
+  - if [ "$CXX" == "clang++" ]; then sudo apt-get install --allow-unauthenticated -qq clang-3.5; fi
+  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.5"; fi
 
   - mkdir bin
   - cd bin
