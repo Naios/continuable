@@ -21,7 +21,7 @@
 
 #include "Callback.h"
 
-template <typename _CTy>
+template <typename... _ATy>
 struct Continuable;
 
 template <typename... _ATy>
@@ -39,7 +39,7 @@ public:
         : _callback_insert(std::forward<ForwardFunction>(callback_insert)) { }
 
     template <typename _CTy>
-    Continuable<Callback<_ATy...>>& then(_CTy&& callback)
+    Continuable<Callback<_ATy...>>& then(_CTy&&)
     {
         return *this;
     }
@@ -66,6 +66,14 @@ namespace detail
 
 } // detail
 
+/// Wraps a functional object which expects a r-value callback as argument into a continuable.
+/// The callable is invoked when the continuable shall continue.
+/// For example:
+/// make_continuable([](Callback<int>&& callback)
+/// {
+///     /* Continue here */
+///     callback(5);
+/// });
 template <typename _FTy>
 inline auto make_continuable(_FTy&& functional)
     -> decltype(typename detail::continuable_factory_t<_FTy>::CreateFrom(std::declval<_FTy>()))
