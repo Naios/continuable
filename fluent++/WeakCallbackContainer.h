@@ -54,8 +54,7 @@ class WeakCallbackContainer
                     if (auto const callback = weak_callback.lock())
                     {
                         // Invoke the original callback
-                        // FIXME: std::forward<Args..>(args...) causes errors when void
-                        (*callback)(args...);
+                        (*callback)(args...); // FIXME: use std::forward
 
                         // Unregister the callback
                         owner->InvalidateCallback(handle);
@@ -82,6 +81,7 @@ public:
         return *this;
     }
 
+    /// Weak wraps the given callable.
     template<typename _CTy>
     auto Wrap(_CTy&& callback)
         -> callback_of_t<_CTy>
@@ -99,6 +99,7 @@ public:
         return std::move(proxy);
     }
 
+    /// Calls ::Wrap on the given callable,
     template<typename _CTy>
     inline auto operator()(_CTy&& callback)
         -> decltype(Wrap(std::declval<_CTy>()))

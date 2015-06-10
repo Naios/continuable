@@ -54,13 +54,18 @@ namespace detail
     template<typename... Args>
     struct WeakProxyFactory
     {
-        static Callback<Args...> CreateProxy(WeakCallback<Args...> const& weak_callback)
+        static Callback<Args...> CreateProxyFromWeak(WeakCallback<Args...> const& weak_callback)
         {
             return [=](Args&&... args)
             {
                 if (auto const callback = weak_callback.lock())
-                    (*callback)(args...);
+                    (*callback)(args...); // FIXME: use std::forward
             };
+        }
+
+        static Callback<Args...> CreateProxyFromShared(SharedCallback<Args...> const& shared_callback)
+        {
+            return CreateProxyFromWeak(WeakCallback<Args...>(shared_callback));
         }
     };
 
@@ -87,14 +92,16 @@ template<typename... Args>
 inline auto make_weak_wrapped_callback(WeakCallback<Args...> const& weak_callback)
     -> Callback<Args...>
 {
-    return detail::WeakProxyFactory<Args...>::CreateProxy(weak_callback);
+    // Some workarounds for clang...
+    return detail::WeakProxyFactory<Args...>::CreateProxyFromWeak(weak_callback);
 }
 
 template<typename... Args>
 inline auto make_weak_wrapped_callback(SharedCallback<Args...> const& shared_callback)
     -> Callback<Args...>
 {
-    return detail::WeakProxyFactory<Args...>::CreateProxy(WeakCallback<Args...>(shared_callback));
+    // Some workarounds for clang...
+    return detail::WeakProxyFactory<Args...>::CreateProxyFromShared(shared_callback);
 }
 
 #endif /// _CALLBACK_H_
