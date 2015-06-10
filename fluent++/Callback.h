@@ -63,11 +63,11 @@ template<typename _CTy>
 using weak_callback_of_t = typename detail::unwrap_callback<_CTy>::WeakCallbackType;
 
 template<typename _CTy>
-inline typename shared_callback_of_t<_CTy>
+inline shared_callback_of_t<_CTy>
     make_shared_callback(_CTy&& callback)
 {
-    return std::make_shared<typename callback_of_t<_CTy>>
-        (std::forward<typename callback_of_t<_CTy>>(callback));
+    return std::make_shared<callback_of_t<_CTy>>
+        (std::forward<callback_of_t<_CTy>>(callback));
 }
 
 #endif /// _CALLBACK_H_
