@@ -63,23 +63,23 @@ fluent_step make_waterfall()
 }
 
 
-struct Continueable
+struct ProtoContinueable
 {
     template <typename Callback>
-    Continueable then(Callback&& callback)
+    ProtoContinueable then(Callback&& callback)
     {
-        return Continueable();
+        return ProtoContinueable();
     }
 
     template <typename Container>
-    Continueable weak(Container& container)
+    ProtoContinueable weak(Container& container)
     {
-        return Continueable();
+        return ProtoContinueable();
     }
 
-    Continueable strong()
+    ProtoContinueable strong()
     {
-        return Continueable();
+        return ProtoContinueable();
     }
 };
 

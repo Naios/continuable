@@ -18,6 +18,27 @@
 #ifndef _CONTINUABLE_H_
 #define _CONTINUABLE_H_
 
+#include "Callback.h"
 
+template <typename _MTy>
+class ContinuableBase
+{
+
+};
+
+template <typename _ATy, typename _WTy = void>
+class Continuable;
+
+template <typename... _ATy>
+class Continuable<Callback<_ATy...>, void>
+{
+
+};
+
+template <typename... _ATy, typename _WTy>
+class Continuable<Callback<_ATy...>, _WTy>
+{
+    static_assert(false, "");
+};
 
 #endif /// _CONTINUABLE_H_
