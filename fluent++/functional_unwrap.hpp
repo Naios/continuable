@@ -25,10 +25,14 @@
 #define _FUNCTIONAL_UNWRAP_HPP_
 
 #include <functional>
-#include <tuple>
 
 namespace fu
 {
+    template<typename... Args>
+    struct identity
+    {
+    };
+
     namespace detail
     {
         template<typename Function>
@@ -40,8 +44,8 @@ namespace fu
             /// The return type of the function.
             typedef _RTy return_type;
 
-            /// The argument types of the function as pack in std::tuple.
-            typedef std::tuple<_ATy...> argument_type;
+            /// The argument types of the function as pack in fu::identity.
+            typedef identity<_ATy...> argument_type;
 
             /// The function provided as std::function
             typedef std::function<_RTy(_ATy...)> function_type;
@@ -68,6 +72,11 @@ namespace fu
         /// Class Method pointers
         template<typename _CTy, typename _RTy, typename... _ATy>
         struct unwrap_function_impl<_RTy(_CTy::*)(_ATy...) const>
+            : unwrap_function_impl<_RTy(_ATy...)> { };
+
+        /// Pack in fu::identity
+        template<typename _RTy, typename... _ATy>
+        struct unwrap_function_impl<identity<_RTy, _ATy...>>
             : unwrap_function_impl<_RTy(_ATy...)> { };
 
         /// Unwrap through pointer of functor.

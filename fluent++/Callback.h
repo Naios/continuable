@@ -40,7 +40,7 @@ namespace detail
     struct do_unwrap_callback;
 
     template<typename... Args>
-    struct do_unwrap_callback<std::tuple<Args...>>
+    struct do_unwrap_callback<::fu::identity<Args...>>
     {
         typedef Callback<Args...> CallbackType;
 
