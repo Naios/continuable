@@ -51,6 +51,19 @@ namespace detail
     template<typename _CTy>
     using unwrap_callback = do_unwrap_callback<::fu::argument_type_of_t<_CTy>>;
 
+    template<typename... Args>
+    struct WeakProxyFactory
+    {
+        static Callback<Args...> CreateProxy(WeakCallback<Args...> const& weak_callback)
+        {
+            return [=](Args&&... args)
+            {
+                if (auto const callback = weak_callback.lock())
+                    (*callback)(args...);
+            };
+        }
+    };
+
 } // detail
 
 template<typename _CTy>
@@ -68,6 +81,20 @@ inline shared_callback_of_t<_CTy>
 {
     return std::make_shared<callback_of_t<_CTy>>
         (std::forward<callback_of_t<_CTy>>(callback));
+}
+
+template<typename... Args>
+inline auto make_weak_wrapped_callback(WeakCallback<Args...> const& wrapped_callback)
+    -> Callback<Args...>
+{
+    return detail::WeakProxyFactory<Args...>::CreateProxy(wrapped_callback);
+}
+
+template<typename... Args>
+inline auto make_weak_wrapped_callback(SharedCallback<Args...> const& wrapped_callback)
+    -> Callback<Args...>
+{
+    return make_weak_wrapped_callback<Args...>(WeakCallback<Args...>(wrapped_callback));
 }
 
 #endif /// _CALLBACK_H_

@@ -92,5 +92,12 @@ int main(int argc, char** argv)
     // This will never be executed because the CallbackContainer was deallocated and its weak callback proxies are crash safe.
     weak_cb_test();
 
+    SharedCallback<> weak_2 = make_shared_callback([]
+    {
+
+    });
+
+    auto wrapped = make_weak_wrapped_callback(weak_2);
+
     return 0;
 }
