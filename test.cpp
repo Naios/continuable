@@ -94,11 +94,14 @@ int main(int argc, char** argv)
 
     auto weak_2 = make_shared_callback([]
     {
-
+        std::cout << "huhu" << std::endl;
     });
 
     auto wrapped = make_weak_wrapped_callback(weak_2);
     auto wrapped2 = make_weak_wrapped_callback(WeakCallback<>(weak_2));
+
+    wrapped();
+    wrapped2();
 
     return 0;
 }

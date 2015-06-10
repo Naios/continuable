@@ -84,17 +84,17 @@ inline shared_callback_of_t<_CTy>
 }
 
 template<typename... Args>
-inline auto make_weak_wrapped_callback(WeakCallback<Args...> const& wrapped_callback)
+inline auto make_weak_wrapped_callback(WeakCallback<Args...> const& weak_callback)
     -> Callback<Args...>
 {
-    return detail::WeakProxyFactory<Args...>::CreateProxy(wrapped_callback);
+    return detail::WeakProxyFactory<Args...>::CreateProxy(weak_callback);
 }
 
 template<typename... Args>
-inline auto make_weak_wrapped_callback(SharedCallback<Args...> const& wrapped_callback)
+inline auto make_weak_wrapped_callback(SharedCallback<Args...> const& shared_callback)
     -> Callback<Args...>
 {
-    return make_weak_wrapped_callback<Args...>(WeakCallback<Args...>(wrapped_callback));
+    return make_weak_wrapped_callback<Args...>(WeakCallback<Args...>(shared_callback));
 }
 
 #endif /// _CALLBACK_H_
