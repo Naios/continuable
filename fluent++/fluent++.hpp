@@ -63,8 +63,25 @@ fluent_step make_waterfall()
 }
 
 
+struct Continueable
+{
+    template <typename Callback>
+    Continueable then(Callback&& callback)
+    {
+        return Continueable();
+    }
 
+    template <typename Container>
+    Continueable weak(Container& container)
+    {
+        return Continueable();
+    }
 
+    Continueable strong()
+    {
+        return Continueable();
+    }
+};
 
 void do_export();
 

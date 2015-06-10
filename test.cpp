@@ -7,6 +7,22 @@
 #include <iostream>
 #include <exception>
 
+Continueable CastSpell(int id)
+{
+    std::cout << "Cast " << id << std::endl;
+
+    // on success call true
+    return Continueable();
+}
+
+Continueable MoveTo(int point)
+{
+    std::cout << "Move to point " << point << std::endl;
+
+    // on success call true
+    return Continueable();
+}
+
 void CastSpell(int id, Callback<bool> const& callback)
 {
     std::cout << "Cast " << id << std::endl;
@@ -26,7 +42,7 @@ void MoveTo(int point, Callback<bool> const& callback)
 int main(int argc, char** argv)
 {
     make_waterfall<Callback<bool>>()
-        .then(std::bind(&CastSpell, 71382, std::placeholders::_1))
+        // .then(std::bind(&CastSpell, 71382, std::placeholders::_1))
         .then([](bool success, Callback<bool> const& callback)
         {
             MoveTo(1, callback);
@@ -36,6 +52,14 @@ int main(int argc, char** argv)
             // Do something final
             std::cout << "finish everything" << std::endl;
         });
+
+
+
+    auto cabt = []()
+    {
+        // Do something
+        return MoveTo(2);
+    };
 
     typedef Callback<bool> cbd1;
     typedef WeakCallback<int> cbd2;
@@ -54,6 +78,24 @@ int main(int argc, char** argv)
 
     {
         WeakCallbackContainer callback;
+
+        // Some tests
+        CastSpell(22872)
+            .weak(callback)
+            .then([](bool success)
+            {
+                if (success)
+                {
+                    // do something
+                }
+
+                // Do something
+                /*return*/ MoveTo(2);
+            })
+            .then([]
+            {
+
+            });
 
         std::shared_ptr<int> dealloc_test(new int{2}, [](int* me)
         {
