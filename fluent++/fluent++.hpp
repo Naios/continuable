@@ -8,6 +8,7 @@
 
 #include "functional_unwrap.hpp"
 
+/*
 class fluent_step
 {
     bool released;
@@ -82,6 +83,7 @@ struct ProtoContinueable
         return ProtoContinueable();
     }
 };
+*/
 
 void do_export();
 
