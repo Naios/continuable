@@ -20,25 +20,38 @@
 
 #include "Callback.h"
 
+
+
 template <typename _MTy>
 class ContinuableBase
 {
 
 };
 
-template <typename _ATy, typename _WTy = void>
+template <typename _CTy, typename _WTy = void>
 class Continuable;
 
 template <typename... _ATy>
 class Continuable<Callback<_ATy...>, void>
 {
-
+public:
+    typedef bool type;
 };
 
 template <typename... _ATy, typename _WTy>
 class Continuable<Callback<_ATy...>, _WTy>
 {
-    static_assert(false, "");
+public:
+    typedef int type;
 };
+
+
+/*
+template <typename _CTy>
+auto make_continuable(_CTy&& callback)
+    -> 
+{
+}
+*/
 
 #endif /// _CONTINUABLE_H_

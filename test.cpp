@@ -8,6 +8,16 @@
 #include <iostream>
 #include <exception>
 
+enum SpellCastResult
+{
+    SPELL_FAILED_SUCCESS = 0,
+    SPELL_FAILED_AFFECTING_COMBAT = 1,
+    SPELL_FAILED_ALREADY_AT_FULL_HEALTH = 2,
+    SPELL_FAILED_ALREADY_AT_FULL_MANA = 3,
+    SPELL_FAILED_ALREADY_AT_FULL_POWER = 4,
+    SPELL_FAILED_ALREADY_BEING_TAMED = 5
+};
+
 ProtoContinueable CastSpell(int id)
 {
     std::cout << "Cast " << id << std::endl;
@@ -24,12 +34,12 @@ ProtoContinueable MoveTo(int point)
     return ProtoContinueable();
 }
 
-void CastSpell(int id, Callback<bool> const& callback)
+void CastSpell(int id, Callback<SpellCastResult> const& callback)
 {
     std::cout << "Cast " << id << std::endl;
 
-    // on success call true
-    callback(true);
+    // on success call the callback with SPELL_FAILED_SUCCESS
+    callback(SPELL_FAILED_SUCCESS);
 }
 
 void MoveTo(int point, Callback<bool> const& callback)
@@ -42,9 +52,9 @@ void MoveTo(int point, Callback<bool> const& callback)
 
 int main(int argc, char** argv)
 {
-    make_waterfall<Callback<bool>>()
+    make_waterfall<Callback<SpellCastResult>>()
         // .then(std::bind(&CastSpell, 71382, std::placeholders::_1))
-        .then([](bool success, Callback<bool> const& callback)
+        .then([](SpellCastResult result, Callback<bool> const& callback)
         {
             MoveTo(1, callback);
         })
@@ -141,14 +151,18 @@ int main(int argc, char** argv)
         std::cout << "huhu" << std::endl;
     });
 
+    /*
     auto wrapped = make_weak_wrapped_callback(weak_2);
     auto wrapped2 = make_weak_wrapped_callback(WeakCallback<>(weak_2));
-
     wrapped();
     wrapped2();
+    */
 
 
     typedef Continuable<Callback<bool>> cont;
+
+    typedef Continuable<Callback<bool>>::type myty1;
+    typedef Continuable<Callback<bool>, float>::type myty2;
 
     return 0;
 }
