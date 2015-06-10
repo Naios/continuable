@@ -18,6 +18,7 @@ enum SpellCastResult
     SPELL_FAILED_ALREADY_BEING_TAMED = 5
 };
 
+/*
 ProtoContinueable ProtoCastSpell(int id)
 {
     std::cout << "Cast " << id << std::endl;
@@ -40,23 +41,8 @@ void ProtoCastSpell(int id, Callback<SpellCastResult> const& callback)
 
     // on success call the callback with SPELL_FAILED_SUCCESS
     callback(SPELL_FAILED_SUCCESS);
-}
 
-Continuable<Callback<SpellCastResult>>
-CastSpell(int id)
-{
-    auto tt = 1;
-        /*make_continuable([=](Callback<SpellCastResult> const& callback)
-    {
-        std::cout << "Cast " << id << std::endl;
-
-        // on success call the callback with SPELL_FAILED_SUCCESS
-        callback(SPELL_FAILED_SUCCESS);
-    });*/
-
-    return Continuable<Callback<SpellCastResult>>();
-}
-
+    
 void ProtoMoveTo(int point, Callback<bool> const& callback)
 {
     std::cout << "Move to point " << point << std::endl;
@@ -65,8 +51,23 @@ void ProtoMoveTo(int point, Callback<bool> const& callback)
     callback(true);
 }
 
+}
+*/
+
+Continuable<Callback<SpellCastResult>> CastSpell(int id)
+{
+    return make_continuable([=](Callback<SpellCastResult>&& callback)
+    {
+        std::cout << "Cast " << id << std::endl;
+
+        // on success call the callback with SPELL_FAILED_SUCCESS
+        callback(SPELL_FAILED_SUCCESS);
+    });
+}
+
 int main(int argc, char** argv)
 {
+    /*
     make_waterfall<Callback<SpellCastResult>>()
         // .then(std::bind(&CastSpell, 71382, std::placeholders::_1))
         .then([](SpellCastResult result, Callback<bool> const& callback)
@@ -166,11 +167,12 @@ int main(int argc, char** argv)
         std::cout << "huhu" << std::endl;
     });
 
-    /*
+    
     auto wrapped = make_weak_wrapped_callback(weak_2);
     auto wrapped2 = make_weak_wrapped_callback(WeakCallback<>(weak_2));
     wrapped();
     wrapped2();
+    
     */
 
     typedef Continuable<Callback<bool>> cont123;
@@ -192,7 +194,7 @@ int main(int argc, char** argv)
         });
 
     // Wraps a callback function into a continuable
-    auto cba1 = make_continuable([=](Callback<SpellCastResult> callback)
+    auto cba1 = make_continuable([=](Callback<SpellCastResult>&& callback)
     {
 
 

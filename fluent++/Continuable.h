@@ -27,14 +27,16 @@ struct Continuable;
 template <typename... _ATy>
 struct Continuable<Callback<_ATy...>>
 {
+    typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
+
     // Function which expects a callback that is inserted from the Continuable
     // to chain everything together
-    std::function<void(Callback<_ATy...>)> _callback_insert;
+    ForwardFunction _callback_insert;
 
 public:
     Continuable<Callback<_ATy...>>() { }
-    Continuable<Callback<_ATy...>>(std::function<void(Callback<_ATy...>)>&& callback_insert)
-        : _callback_insert(std::forward<std::function<void(Callback<_ATy...>)>>(callback_insert)) { }
+    Continuable<Callback<_ATy...>>(ForwardFunction&& callback_insert)
+        : _callback_insert(std::forward<ForwardFunction>(callback_insert)) { }
 
     template <typename _CTy>
     Continuable<Callback<_ATy...>>& then(_CTy&& callback)
@@ -49,7 +51,7 @@ namespace detail
     struct ContinuableFactory;
 
     template <typename _FTy, typename _RTy, typename... _ATy>
-    struct ContinuableFactory<_FTy, _RTy, ::fu::identity<Callback<_ATy...>>>
+    struct ContinuableFactory<_FTy, _RTy, ::fu::identity<Callback<_ATy...>&&>>
     {
         static auto CreateFrom(_FTy&& functional)
             -> Continuable<Callback<_ATy...>>
