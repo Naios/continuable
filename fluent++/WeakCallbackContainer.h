@@ -39,7 +39,7 @@ class WeakCallbackContainer
     struct ProxyFactory;
 
     template<typename _CTy, typename... Args>
-    struct ProxyFactory<_CTy, std::tuple<Args...>>
+    struct ProxyFactory<_CTy, ::fu::identity<Args...>>
     {
         // Creates a weak proxy callback which prevents invoking to an invalid context.
         // Removes itself from the owner with the given handler.

@@ -42,19 +42,19 @@ void ProtoCastSpell(int id, Callback<SpellCastResult> const& callback)
     callback(SPELL_FAILED_SUCCESS);
 }
 
-/*Continuable<SpellCastResult>*/ int CastSpell(int id)
+Continuable<Callback<SpellCastResult>>
+CastSpell(int id)
 {
-    auto lam = [=](Callback<SpellCastResult> const& callback)
+    auto tt = 1;
+        /*make_continuable([=](Callback<SpellCastResult> const& callback)
     {
         std::cout << "Cast " << id << std::endl;
 
         // on success call the callback with SPELL_FAILED_SUCCESS
         callback(SPELL_FAILED_SUCCESS);
-    };
+    });*/
 
-    auto ct = make_continuable(std::move(lam));
-
-    return detail::ContinuableFactory<decltype(lam), void, std::tuple<Callback<SpellCastResult> const&>>::CreateFrom(std::move(lam));
+    return Continuable<Callback<SpellCastResult>>();
 }
 
 void ProtoMoveTo(int point, Callback<bool> const& callback)
@@ -173,14 +173,29 @@ int main(int argc, char** argv)
     wrapped2();
     */
 
-
-    typedef Continuable<Callback<bool>> cont;
+    typedef Continuable<Callback<bool>> cont123;
 
     // typedef Continuable<Callback<bool>>::type myty1;
     // typedef Continuable<Callback<bool>, float>::type myty2;
 
+    // Continuable<Callback<SpellCastResult>>
+    CastSpell(63362)
+        .then([](SpellCastResult result)
+        {
 
-    CastSpell(2);
+
+            return CastSpell(63362);
+        })
+        .then([](SpellCastResult result)
+        {
+            // Wraps a callback function into a continuable
+            return make_continuable([=](Callback<SpellCastResult> callback)
+            {
+
+
+
+            });
+        });
 
     return 0;
 }
