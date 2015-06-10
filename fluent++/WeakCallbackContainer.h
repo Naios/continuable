@@ -42,6 +42,7 @@ class WeakCallbackContainer
     struct ProxyFactory<_CTy, std::tuple<Args...>>
     {
         // Creates a weak proxy callback which prevents invoking to an invalid context.
+        // Removes itself from the owner with the given handler.
         static callback_of_t<_CTy> CreateProxy(std::weak_ptr<WeakCallbackContainer> const& weak_owner,
             size_t const handle, weak_callback_of_t<_CTy> const& weak_callback)
         {
@@ -82,7 +83,7 @@ public:
     }
 
     template<typename _CTy>
-    auto operator()(_CTy&& callback)
+    auto Wrap(_CTy&& callback)
         -> callback_of_t<_CTy>
     {
         // Create the shared callback
@@ -96,6 +97,13 @@ public:
 
         container.insert(std::make_pair(this_handle, boost::any(std::move(shared_callback))));
         return std::move(proxy);
+    }
+
+    template<typename _CTy>
+    inline auto operator()(_CTy&& callback)
+        -> decltype(Wrap(std::declval<_CTy>()))
+    {
+        return Wrap(std::forward<_CTy>(callback));
     }
 
     boost::optional<handle_t> GetLastCallbackHandle() const
