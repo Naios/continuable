@@ -80,6 +80,7 @@ using shared_callback_of_t = typename detail::unwrap_callback<_CTy>::SharedCallb
 template<typename _CTy>
 using weak_callback_of_t = typename detail::unwrap_callback<_CTy>::WeakCallbackType;
 
+
 template<typename _CTy>
 inline shared_callback_of_t<_CTy>
     make_shared_callback(_CTy&& callback)
@@ -88,6 +89,7 @@ inline shared_callback_of_t<_CTy>
         (std::forward<callback_of_t<_CTy>>(callback));
 }
 
+/* Disabled due to clang errors
 template<typename... Args>
 inline auto make_weak_wrapped_callback(WeakCallback<Args...> const& weak_callback)
     -> Callback<Args...>
@@ -103,5 +105,6 @@ inline auto make_weak_wrapped_callback(SharedCallback<Args...> const& shared_cal
     // Some workarounds for clang...
     return detail::WeakProxyFactory<Args...>::CreateProxyFromShared(shared_callback);
 }
+*/
 
 #endif /// _CALLBACK_H_
