@@ -188,14 +188,16 @@ int main(int argc, char** argv)
         })
         .then([](SpellCastResult result)
         {
-            // Wraps a callback function into a continuable
-            return make_continuable([=](Callback<SpellCastResult> callback)
-            {
 
-
-
-            });
         });
+
+    // Wraps a callback function into a continuable
+    auto cba1 = make_continuable([=](Callback<SpellCastResult> callback)
+    {
+
+
+
+    });
 
     return 0;
 }
