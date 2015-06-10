@@ -3,24 +3,25 @@
 
 #include "Callback.h"
 #include "WeakCallbackContainer.h"
+#include "Continuable.h"
 
 #include <iostream>
 #include <exception>
 
-Continueable CastSpell(int id)
+ProtoContinueable CastSpell(int id)
 {
     std::cout << "Cast " << id << std::endl;
 
     // on success call true
-    return Continueable();
+    return ProtoContinueable();
 }
 
-Continueable MoveTo(int point)
+ProtoContinueable MoveTo(int point)
 {
     std::cout << "Move to point " << point << std::endl;
 
     // on success call true
-    return Continueable();
+    return ProtoContinueable();
 }
 
 void CastSpell(int id, Callback<bool> const& callback)
@@ -145,6 +146,9 @@ int main(int argc, char** argv)
 
     wrapped();
     wrapped2();
+
+
+    typedef Continuable<Callback<bool>> cont;
 
     return 0;
 }
