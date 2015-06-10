@@ -29,9 +29,12 @@ Continuable<SpellCastResult> CastSpell(int id)
 
 int main(int argc, char** argv)
 {
-    // typedef shared_callback_of_t<Callback<int>> sc1;
-    // typedef weak_callback_of_t<Callback<bool>> sc2;
+    shared_callback_of_t<Callback<int>> sc1;
+    weak_callback_of_t<Callback<bool>> sc2;
   
+    // make_weak_wrapped_callback(sc1);
+    // make_weak_wrapped_callback(sc2);
+    
     typedef Continuable<bool> cont123;
 
     // typedef Continuable<Callback<bool>>::type myty1;

@@ -52,7 +52,6 @@ namespace detail
     template<typename _CTy>
     using unwrap_callback_t = do_unwrap_callback<::fu::function_type_of_t<_CTy>>;
 
-    /*
     template<typename... Args>
     struct WeakProxyFactory
     {
@@ -70,7 +69,7 @@ namespace detail
             return CreateProxyFromWeak(WeakCallback<Args...>(shared_callback));
         }
     };
-    */
+
 
 } // detail
 
@@ -91,7 +90,7 @@ inline shared_callback_of_t<_CTy>
         (std::forward<callback_of_t<_CTy>>(callback));
 };
 
-/* Disabled due to clang errors
+/*
 template<typename... Args>
 inline auto make_weak_wrapped_callback(WeakCallback<Args...> const& weak_callback)
     -> Callback<Args...>
