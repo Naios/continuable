@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _CALLBACK_CONTAINER_H_
-#define _CALLBACK_CONTAINER_H_
+#ifndef _WEAK_CALLBACK_CONTAINER_H_
+#define _WEAK_CALLBACK_CONTAINER_H_
 
 #include <unordered_map>
 
@@ -25,9 +25,9 @@
 
 #include "Callback.h"
 
-class CallbackContainer
+class WeakCallbackContainer
 {
-    std::shared_ptr<CallbackContainer> self_reference;
+    std::shared_ptr<WeakCallbackContainer> self_reference;
 
     typedef size_t handle_t;
 
@@ -42,7 +42,7 @@ class CallbackContainer
     struct ProxyFactory<_CTy, std::tuple<Args...>>
     {
         // Creates a weak proxy callback which prevents invoking to an invalid context.
-        static callback_of_t<_CTy> CreateProxy(std::weak_ptr<CallbackContainer> const& weak_owner,
+        static callback_of_t<_CTy> CreateProxy(std::weak_ptr<WeakCallbackContainer> const& weak_owner,
             size_t const handle, weak_callback_of_t<_CTy> const& weak_callback)
         {
             return [=](Args&&... args)
@@ -64,18 +64,18 @@ class CallbackContainer
     };
 
 public:
-    CallbackContainer()
+    WeakCallbackContainer()
         : self_reference(this, [](decltype(this) me) { }), handle(0L) { }
 
-    ~CallbackContainer() = default;
+    ~WeakCallbackContainer() = default;
 
-    CallbackContainer(CallbackContainer const&) = delete;
-    CallbackContainer(CallbackContainer&&) = delete;
+    WeakCallbackContainer(WeakCallbackContainer const&) = delete;
+    WeakCallbackContainer(WeakCallbackContainer&&) = delete;
 
-    CallbackContainer& operator= (CallbackContainer const&) = delete;
-    CallbackContainer& operator= (CallbackContainer&&) = delete;
+    WeakCallbackContainer& operator= (WeakCallbackContainer const&) = delete;
+    WeakCallbackContainer& operator= (WeakCallbackContainer&&) = delete;
 
-    CallbackContainer& Clear()
+    WeakCallbackContainer& Clear()
     {
         container.clear();
         return *this;
@@ -106,11 +106,11 @@ public:
             return boost::make_optional(handle);
     }
 
-    CallbackContainer& InvalidateCallback(handle_t const handle)
+    WeakCallbackContainer& InvalidateCallback(handle_t const handle)
     {
         container.erase(handle);
         return *this;
     }
 };
 
-#endif /// _CALLBACK_CONTAINER_H_
+#endif /// _WEAK_CALLBACK_CONTAINER_H_

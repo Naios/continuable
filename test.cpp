@@ -2,7 +2,7 @@
 #include "fluent++.hpp"
 
 #include "Callback.h"
-#include "CallbackContainer.h"
+#include "WeakCallbackContainer.h"
 
 #include <iostream>
 #include <exception>
@@ -53,7 +53,7 @@ int main(int argc, char** argv)
     Callback<> weak_cb_test;
 
     {
-        CallbackContainer callback;
+        WeakCallbackContainer callback;
 
         std::shared_ptr<int> dealloc_test(new int{2}, [](int* me)
         {
