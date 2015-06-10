@@ -89,7 +89,7 @@ inline shared_callback_of_t<_CTy>
 {
     return std::make_shared<callback_of_t<_CTy>>
         (std::forward<callback_of_t<_CTy>>(callback));
-}
+};
 
 /* Disabled due to clang errors
 template<typename... Args>

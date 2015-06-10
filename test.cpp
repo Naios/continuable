@@ -16,11 +16,9 @@ enum SpellCastResult
     SPELL_FAILED_ALREADY_BEING_TAMED = 5
 };
 
-// Continuable<Callback<SpellCastResult>>
-int CastSpell(int id)
+Continuable<SpellCastResult> CastSpell(int id)
 {
-    return 1;
-    make_continuable([=](Callback<SpellCastResult>&& callback)
+    return make_continuable([=](Callback<SpellCastResult>&& callback)
     {
         std::cout << "Cast " << id << std::endl;
 
@@ -31,16 +29,14 @@ int CastSpell(int id)
 
 int main(int argc, char** argv)
 {
-    typedef Continuable<Callback<bool>> cont123;
+    typedef Continuable<bool> cont123;
 
     // typedef Continuable<Callback<bool>>::type myty1;
     // typedef Continuable<Callback<bool>, float>::type myty2;
 
-    // Continuable<Callback<SpellCastResult>>
-    CastSpell(63362);
-
-    Continuable<Callback<SpellCastResult>> spell;
-        spell.then([](SpellCastResult result)
+    // Continuable<Callback<SpellCastResult>> spell
+    CastSpell(63362)
+      .then([](SpellCastResult result)
         {
 
 
