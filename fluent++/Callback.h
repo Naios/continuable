@@ -94,7 +94,7 @@ template<typename... Args>
 inline auto make_weak_wrapped_callback(SharedCallback<Args...> const& shared_callback)
     -> Callback<Args...>
 {
-    return make_weak_wrapped_callback<Args...>(WeakCallback<Args...>(shared_callback));
+    return detail::WeakProxyFactory<Args...>::CreateProxy(WeakCallback<Args...>(shared_callback));
 }
 
 #endif /// _CALLBACK_H_
