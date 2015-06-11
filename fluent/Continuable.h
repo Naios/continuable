@@ -102,6 +102,13 @@ public:
         // TODO Transmute the returned callback here.
         return Continuable<Callback<_ATy...>>(std::move(*this));
     }
+
+    /// Invalidates the Continuable
+    Continuable& invalidate()
+    {
+        _released = true;
+        return *this;
+    }
 };
 
 namespace detail
