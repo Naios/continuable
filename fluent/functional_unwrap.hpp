@@ -160,6 +160,15 @@ namespace fu
     struct is_unwrappable
         : decltype(detail::test_unwrappable<Function...>(0)) { };
 
+    template<typename T>
+    struct requires_functional_constructible
+    {
+        static_assert(is_unwrappable<typename std::decay<T>::type>::value,
+            "Given type is not functional unwrappable, did you try to use a std::bind expression or a non functional type?");
+
+        typedef T type;
+    };
+
 } // fu
 
 #endif // _FUNCTIONAL_UNWRAP_HPP_
