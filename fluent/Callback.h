@@ -109,10 +109,10 @@ inline auto make_shared_callback(_CTy&& callback)
 /// If the given managed callback expires the callback is not invoked anymore.
 template<typename _CTy>
 inline auto make_weak_wrapped_callback(_CTy&& callback)
-    -> decltype(detail::WeakProxyFactory<_CTy, std::decay<_CTy>::type>::
+    -> decltype(detail::WeakProxyFactory<_CTy, typename std::decay<_CTy>::type>::
         CreateProxy(std::declval<_CTy>()))
 {
-    return detail::WeakProxyFactory<_CTy, std::decay<_CTy>::type>::
+    return detail::WeakProxyFactory<_CTy, typename std::decay<_CTy>::type>::
         CreateProxy(std::forward<_CTy>(callback));
 }
 
