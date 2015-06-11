@@ -25,7 +25,7 @@
 
 #include "functional_unwrap.hpp"
 
-/// A general purpose Callback type (Callable/Invokeable)
+/// A general purpose Callback type (Callable/ Invokeable)
 template<typename... Args>
 using Callback = std::function<void(Args...)>;
 
@@ -66,8 +66,8 @@ namespace detail
 	        return [=](Args&&... args)
             {
                 if (auto const callback = weak.lock())
-		        // FIXME: use std::forward
-                (*callback)(args...);
+		            // FIXME: use std::forward
+                    (*callback)(args...);
             };
 	    }
     };
@@ -113,4 +113,4 @@ inline auto make_weak_wrapped_callback(_CTy const& callback)
     return detail::WeakProxyFactory<_CTy>::CreateProxy(callback);
 }
 
-#endif /// _CALLBACK_H_
+#endif // _CALLBACK_H_

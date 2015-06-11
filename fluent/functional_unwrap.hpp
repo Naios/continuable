@@ -28,10 +28,9 @@
 
 namespace fu
 {
+    /// Identity class which is used to carry parameter packs.
     template<typename... Args>
-    struct identity
-    {
-    };
+    struct identity { };
 
     namespace detail
     {

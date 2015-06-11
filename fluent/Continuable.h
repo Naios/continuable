@@ -78,4 +78,4 @@ inline auto make_continuable(_FTy&& functional)
     return detail::continuable_factory_t<_FTy>::CreateFrom(std::forward<_FTy>(functional));
 }
 
-#endif /// _CONTINUABLE_H_
+#endif // _CONTINUABLE_H_
