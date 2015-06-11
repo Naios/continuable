@@ -27,7 +27,10 @@ namespace detail
 } // detail
 
 template <typename... Args>
-struct ContinuableState
+struct ContinuableState;
+
+template <typename... Args>
+struct ContinuableState<Args...>
 {
 };
 
@@ -41,12 +44,11 @@ public:
     typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
 
 private:
-
-    // Function which expects a callback that is inserted from the Continuable
+    // Functional which expects a callback that is inserted from the Continuable
     // to chain everything together
     ForwardFunction _callback_insert;
 
-    bool released;
+    bool _released;
 
     void Dispatch()
     {
@@ -55,26 +57,27 @@ private:
 public:
     /// Deleted copy construct
     template <typename _RCTy, typename _RState>
-    Continuable(Continuable<_RCTy, _RState> const&) = delete;
+    explicit Continuable(Continuable<_RCTy, _RState> const&) = delete;
 
     /// Move construct
     template <typename _RCTy, typename _RState>
-    Continuable(Continuable<_RCTy, _RState>&& right) : released(right.released)
+    explicit Continuable(Continuable<_RCTy, _RState>&& right)
+        : _released(right._released)
     {
-        right.released = true;
+        right._released = true;
     }
 
     // Construct through a ForwardFunction
     template<typename _FTy>
     Continuable(_FTy&& callback_insert)
-        : _callback_insert(std::forward<_FTy>(callback_insert)), released(false) { }
+        : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false) { }
 
     /// Destructor which calls the dispatch chain if needed.
     ~Continuable()
     {
-        if (!released)
+        if (!_released)
         {
-            released = true;
+            _released = true;
             Dispatch();
         }
     }
@@ -87,8 +90,8 @@ public:
     template <typename _RCTy, typename _RState>
     Continuable& operator= (Continuable<_RCTy, _RState>&& right)
     {
-        released = right.released;
-        right.released = true;
+        _released = right._released;
+        right._released = true;
         return *this;
     }
 
