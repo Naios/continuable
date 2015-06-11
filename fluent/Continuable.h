@@ -59,10 +59,15 @@ public:
 
     /// Move construct
     template <typename _RCTy, typename _RState>
-    Continuable(Continuable<_RCTy, _RState>&& right) : released(false)
+    Continuable(Continuable<_RCTy, _RState>&& right) : released(right.released)
     {
         right.released = true;
     }
+
+    // Construct through a ForwardFunction
+    template<typename _FTy>
+    Continuable(_FTy&& callback_insert)
+        : _callback_insert(std::forward<_FTy>(callback_insert)), released(false) { }
 
     /// Destructor which calls the dispatch chain if needed.
     ~Continuable()
@@ -87,13 +92,11 @@ public:
         return *this;
     }
 
-    template<typename _FTy>
-    Continuable(_FTy&& callback_insert)
-        : _callback_insert(std::forward<_FTy>(callback_insert)) { }
-
+    // TODO Accept only correct callbacks
     template <typename _CTy>
     Continuable<Callback<_ATy...>> then(_CTy&&)
     {
+        // TODO Transmute the returned callback here.
         return Continuable<Callback<_ATy...>>(std::move(*this));
     }
 };
