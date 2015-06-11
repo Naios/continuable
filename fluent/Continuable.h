@@ -80,7 +80,7 @@ public:
 
     /// Move construct assign
     template <typename _RCTy, typename _RState>
-    Continuable& operator= (Continuable<_RCTy, _RState>&&)
+    Continuable& operator= (Continuable<_RCTy, _RState>&& right)
     {
         released = right.released;
         right.released = true;
