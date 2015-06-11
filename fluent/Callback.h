@@ -52,25 +52,32 @@ namespace detail
     template<typename _CTy>
     using unwrap_callback_t = do_unwrap_callback<::fu::function_type_of_t<_CTy>>;
 
-    /*
     template<typename... Args>
-    struct WeakProxyFactory
-    {
-        static Callback<Args...> CreateProxyFromWeak(WeakCallback<Args...> const& weak_callback)
-        {
-            return [=](Args&&... args)
-            {
-                if (auto const callback = weak_callback.lock())
-                    (*callback)(args...); // FIXME: use std::forward
-            };
-        }
+    struct WeakProxyFactory;
 
-        static Callback<Args...> CreateProxyFromShared(SharedCallback<Args...> const& shared_callback)
-        {
-            return CreateProxyFromWeak(WeakCallback<Args...>(shared_callback));
-        }
+    template<typename... Args>
+    struct WeakProxyFactory<std::weak_ptr<std::function<void(Args...)>>>
+    {
+	static Callback<Args...> CreateProxy(WeakCallback<Args...> const& weak)
+	{
+	    return [=](Args&&... args)
+            {
+                if (auto const callback = weak.lock())
+		    // FIXME: use std::forward
+                    (*callback)(args...);
+            };
+	}
     };
-    **/
+
+    template<typename... Args>
+    struct WeakProxyFactory<std::shared_ptr<std::function<void(Args...)>>>
+    {
+	static Callback<Args...> CreateProxy(SharedCallback<Args...> const& shared)
+	{
+	    return WeakProxyFactory<std::weak_ptr<std::function<void(Args...)>>>::CreateProxy(shared);
+	}
+    };
+
 } // detail
 
 template<typename _CTy>
@@ -90,22 +97,13 @@ inline shared_callback_of_t<_CTy>
         (std::forward<callback_of_t<_CTy>>(callback));
 };
 
-/*
-template<typename... Args>
-inline auto make_weak_wrapped_callback(WeakCallback<Args...> const& weak_callback)
-    -> Callback<Args...>
-{
-    // Some workarounds for clang...
-    return detail::WeakProxyFactory<Args...>::CreateProxyFromWeak(weak_callback);
+/// Creates a weak callback which wrapps the given shared or weak callback.
+/// If the given managed callback expires the callback is not invoked anymore.
+template<typename _CTy>
+inline auto make_weak_wrapped_callback(_CTy const& callback)
+    -> decltype(detail::WeakProxyFactory<_CTy>::CreateProxy(callback))
+{   
+    return detail::WeakProxyFactory<_CTy>::CreateProxy(callback);
 }
-
-template<typename... Args>
-inline auto make_weak_wrapped_callback(SharedCallback<Args...> const& shared_callback)
-    -> Callback<Args...>
-{
-    // Some workarounds for clang...
-    return detail::WeakProxyFactory<Args...>::CreateProxyFromShared(shared_callback);
-}
-*/
 
 #endif /// _CALLBACK_H_
