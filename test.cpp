@@ -42,10 +42,13 @@ int main(int /*argc*/, char** /*argv*/)
     test_unwrap<std::function<void()>>("std::function<void()>");
     test_unwrap<std::vector<std::string>>("std::vector<std::string>");
 
-    auto voidcontinue = make_continuable([=](Callback<>&& /*callback*/)
+    make_continuable([=](Callback<>&& /*callback*/)
     {
 
     });
+
+    int i = 0;
+    ++i;
 
     auto lam = [=](Callback<SpellCastResult>&& /*callback*/)
     {
@@ -94,6 +97,8 @@ int main(int /*argc*/, char** /*argv*/)
 
 
     });
+
+    CastSpell(63362);
 
     std::vector<int> myvec;
 
