@@ -11,13 +11,13 @@
 /*
 struct ProtoContinueable
 {
-    template <typename Callback>
+    template<typename Callback>
     ProtoContinueable then(Callback&& callback)
     {
         return ProtoContinueable();
     }
 
-    template <typename Container>
+    template<typename Container>
     ProtoContinueable weak(Container& container)
     {
         return ProtoContinueable();
