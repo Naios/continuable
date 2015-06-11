@@ -39,8 +39,8 @@ namespace detail
     template<typename Function>
     struct do_unwrap_callback;
 
-    template<typename _RTy, typename... _ATy>
-    struct do_unwrap_callback<std::function<_RTy(_ATy...)>>
+    template<typename... _ATy>
+    struct do_unwrap_callback<std::function<void(_ATy...)>>
     {
         typedef Callback<_ATy...> CallbackType;
 
@@ -52,6 +52,7 @@ namespace detail
     template<typename _CTy>
     using unwrap_callback_t = do_unwrap_callback<::fu::function_type_of_t<_CTy>>;
 
+    /*
     template<typename... Args>
     struct WeakProxyFactory
     {
@@ -69,8 +70,7 @@ namespace detail
             return CreateProxyFromWeak(WeakCallback<Args...>(shared_callback));
         }
     };
-
-
+    **/
 } // detail
 
 template<typename _CTy>

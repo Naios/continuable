@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <exception>
+#include <type_traits>
 
 enum SpellCastResult
 {
@@ -29,9 +30,23 @@ Continuable<SpellCastResult> CastSpell(int id)
 
 int main(int argc, char** argv)
 {
-    shared_callback_of_t<Callback<int>> sc1;
-    weak_callback_of_t<Callback<bool>> sc2;
-  
+    auto lam = [=](Callback<SpellCastResult>&& callback)
+    {
+        // on success call the callback with SPELL_FAILED_SUCCESS
+        callback(SPELL_FAILED_SUCCESS);
+    };
+
+    // static_assert(std::is_void<decltype(lam)>::value, "blub");
+    
+    fu::function_type_of_t<decltype(lam)> fun1;
+    fun1 = lam;
+    fun1(Callback<SpellCastResult>());
+
+    fu::function_type_of_t<Callback<int>> fun2;
+    
+    shared_callback_of_t<Callback<int>> fun3;
+    weak_callback_of_t<Callback<int>> fun4;
+    
     // make_weak_wrapped_callback(sc1);
     // make_weak_wrapped_callback(sc2);
     
