@@ -22,6 +22,7 @@
 #include <functional>
 #include <utility>
 #include <memory>
+#include <type_traits>
 
 #include "functional_unwrap.hpp"
 
@@ -53,31 +54,31 @@ namespace detail
     };
 
     template<typename _CTy>
-    using unwrap_callback_t = do_unwrap_callback<::fu::function_type_of_t<_CTy>>;
+    using unwrap_callback_t = do_unwrap_callback<::fu::function_type_of_t<typename std::decay<_CTy>::type>>;
 
-    template<typename... Args>
+    template<typename _CTy, typename... Args>
     struct WeakProxyFactory;
 
-    template<typename... Args>
-    struct WeakProxyFactory<std::weak_ptr<std::function<void(Args...)>>>
+    template<typename _CTy, typename... Args>
+    struct WeakProxyFactory<_CTy, std::weak_ptr<std::function<void(Args...)>>>
     {
-	    static Callback<Args...> CreateProxy(WeakCallback<Args...> const& weak)
+	    static Callback<Args...> CreateProxy(_CTy&& weak)
 	    {
 	        return [=](Args&&... args)
             {
                 if (auto const callback = weak.lock())
-		            // FIXME: use std::forward
-                    (*callback)(args...);
+                    (*callback)(std::forward<Args>(args)...);
             };
 	    }
     };
 
-    template<typename... Args>
-    struct WeakProxyFactory<std::shared_ptr<std::function<void(Args...)>>>
+    template<typename _CTy, typename... Args>
+    struct WeakProxyFactory<_CTy, std::shared_ptr<std::function<void(Args...)>>>
     {
-	    static Callback<Args...> CreateProxy(SharedCallback<Args...> const& shared)
+	    static Callback<Args...> CreateProxy(_CTy&& shared)
 	    {
-	        return WeakProxyFactory<std::weak_ptr<std::function<void(Args...)>>>::CreateProxy(shared);
+	        return WeakProxyFactory<std::weak_ptr<std::function<void(Args...)>>&&,
+                std::weak_ptr<std::function<void(Args...)>>>::CreateProxy(std::forward<_CTy>(shared));
 	    }
     };
 
@@ -107,10 +108,12 @@ inline auto make_shared_callback(_CTy&& callback)
 /// Creates a weak callback which wraps the given shared or weak callback.
 /// If the given managed callback expires the callback is not invoked anymore.
 template<typename _CTy>
-inline auto make_weak_wrapped_callback(_CTy const& callback)
-    -> decltype(detail::WeakProxyFactory<_CTy>::CreateProxy(std::declval<_CTy>()))
+inline auto make_weak_wrapped_callback(_CTy&& callback)
+    -> decltype(detail::WeakProxyFactory<_CTy, std::decay<_CTy>::type>::
+        CreateProxy(std::declval<_CTy>()))
 {
-    return detail::WeakProxyFactory<_CTy>::CreateProxy(callback);
+    return detail::WeakProxyFactory<_CTy, std::decay<_CTy>::type>::
+        CreateProxy(std::forward<_CTy>(callback));
 }
 
 #endif // _CALLBACK_H_

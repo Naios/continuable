@@ -54,7 +54,7 @@ class WeakCallbackContainer
                     if (auto const callback = weak_callback.lock())
                     {
                         // Invoke the original callback
-                        (*callback)(args...); // FIXME: use std::forward
+                        (*callback)(std::forward<Args>(args)...);
 
                         // Unregister the callback
                         owner->InvalidateCallback(handle);
