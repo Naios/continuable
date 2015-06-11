@@ -25,12 +25,15 @@
 
 #include "functional_unwrap.hpp"
 
+/// A general purpose Callback type (Callable/Invokeable)
 template<typename... Args>
 using Callback = std::function<void(Args...)>;
 
+/// A Callback wrapped in a std::shared_ptr
 template<typename... Args>
 using SharedCallback = std::shared_ptr<Callback<Args...>>;
 
+/// A Callback wrapped in a std::weak_ptr
 template<typename... Args>
 using WeakCallback = std::weak_ptr<Callback<Args...>>;
 
@@ -80,18 +83,22 @@ namespace detail
 
 } // detail
 
+/// Unwraps the callback type of the given functional object.
 template<typename _CTy>
 using callback_of_t = typename detail::unwrap_callback_t<_CTy>::CallbackType;
 
+/// Unwraps the shared callback type of the given functional object.
 template<typename _CTy>
 using shared_callback_of_t = typename detail::unwrap_callback_t<_CTy>::SharedCallbackType;
 
+/// Unwraps the weak callback type of the given functional object.
 template<typename _CTy>
 using weak_callback_of_t = typename detail::unwrap_callback_t<_CTy>::WeakCallbackType;
 
+/// Creates a callback wrapped in a std::shared_ptr.
 template<typename _CTy>
-inline shared_callback_of_t<_CTy>
-    make_shared_callback(_CTy&& callback)
+inline auto make_shared_callback(_CTy&& callback)
+    -> shared_callback_of_t<_CTy>
 {
     return std::make_shared<callback_of_t<_CTy>>
         (std::forward<callback_of_t<_CTy>>(callback));
@@ -101,8 +108,8 @@ inline shared_callback_of_t<_CTy>
 /// If the given managed callback expires the callback is not invoked anymore.
 template<typename _CTy>
 inline auto make_weak_wrapped_callback(_CTy const& callback)
-    -> decltype(detail::WeakProxyFactory<_CTy>::CreateProxy(callback))
-{   
+    -> decltype(detail::WeakProxyFactory<_CTy>::CreateProxy(std::declval<_CTy>()))
+{
     return detail::WeakProxyFactory<_CTy>::CreateProxy(callback);
 }
 
