@@ -107,7 +107,7 @@ namespace fu
             typedef unwrap_function_impl<_RTy(_ATy...)> type;
         };
 
-        template <typename>
+        template<typename>
         struct to_true
             : std::true_type { };
 

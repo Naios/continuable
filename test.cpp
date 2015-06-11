@@ -53,8 +53,6 @@ int main(int /*argc*/, char** /*argv*/)
         // callback(SPELL_FAILED_SUCCESS);
     };
 
-    // static_assert(std::is_void<decltype(lam)>::value, "blub");
-    
     fu::function_type_of_t<decltype(lam)> fun1;
     fun1 = lam;
     fun1(Callback<SpellCastResult>());
@@ -66,7 +64,13 @@ int main(int /*argc*/, char** /*argv*/)
     
     make_weak_wrapped_callback(sc1);
     make_weak_wrapped_callback(sc2);
+
+    WeakCallbackContainer callback;
     
+    auto weakCallback = callback([]
+    {
+    });
+
     typedef Continuable<bool> cont123;
 
     typedef Continuable<Callback<bool>> myty1;
