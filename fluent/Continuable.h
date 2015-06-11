@@ -21,6 +21,11 @@
 
 #include "Callback.h"
 
+namespace detail
+{
+
+} // detail
+
 template <typename... _ATy>
 struct Continuable
 {
@@ -37,9 +42,9 @@ struct Continuable
         : _callback_insert(std::forward<_FTy>(callback_insert)) { }
 
     template <typename _CTy>
-    Continuable<_ATy...>& then(_CTy&&)
+    Continuable<_ATy...> then(_CTy&&)
     {
-        return *this;
+        return Continuable<_ATy...>();
     }
 };
 

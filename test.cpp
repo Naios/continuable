@@ -78,7 +78,7 @@ int main(int /*argc*/, char** /*argv*/)
 
     // Continuable<Callback<SpellCastResult>> spell
     CastSpell(63362)
-      .then([](SpellCastResult result)
+        .then([](SpellCastResult result)
         {
             return CastSpell(63362);
         })
@@ -94,6 +94,13 @@ int main(int /*argc*/, char** /*argv*/)
 
 
     });
+
+    std::vector<int> myvec;
+
+    typedef fu::requires_functional_constructible<std::function<void()>>::type test_assert1;
+    // typedef fu::requires_functional_constructible<std::vector<int>>::type test_assert2;
+
+    // auto cba2 = make_continuable(myvec);
 
     std::cout << "ok" << std::endl;
     return 0;
