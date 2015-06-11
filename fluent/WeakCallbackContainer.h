@@ -122,4 +122,4 @@ public:
     }
 };
 
-#endif /// _WEAK_CALLBACK_CONTAINER_H_
+#endif // _WEAK_CALLBACK_CONTAINER_H_
