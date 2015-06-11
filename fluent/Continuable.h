@@ -23,31 +23,46 @@
 
 namespace detail
 {
+    template<typename _Cain, typename _Proxy>
+    struct ContinuableState;
+
+    template<typename... _Cain, typename _Proxy>
+    struct ContinuableState<std::tuple<_Cain...>, _Proxy>
+    {
+    };
+
+    typedef ContinuableState<std::tuple<>, void> EmptyContinuableState;
 
 } // detail
 
-template <typename... Args>
-struct ContinuableState
-/*
-;
-template <typename... Args>
-struct ContinuableState<Args...>
-*/
-{
-};
-
-template <typename _CTy, typename _State = ContinuableState<>>
+template<typename _CTy, typename _State = detail::EmptyContinuableState>
 class Continuable;
 
-template <typename... _ATy, typename _State>
+template<typename... _ATy, typename _State>
 class Continuable<std::function<void(_ATy...)>, _State>
 {
+    /// Corrects void return types from functional types which should be Continuable<Callback<>>
+    template<typename _RTy>
+    struct convert_void_to_continuable;
+
+    template<>
+    struct convert_void_to_continuable<void>
+    {
+        typedef Continuable<Callback<>> type;
+    };
+
+    template<typename... _CArgs>
+    struct convert_void_to_continuable<Continuable<_CArgs...>>
+    {
+        typedef Continuable<_CArgs...> type;
+    };
+
 public:
     typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
 
 private:
-    // Functional which expects a callback that is inserted from the Continuable
-    // to chain everything together
+    /// Functional which expects a callback that is inserted from the Continuable
+    /// to chain everything together
     ForwardFunction _callback_insert;
 
     bool _released;
@@ -58,11 +73,11 @@ private:
 
 public:
     /// Deleted copy construct
-    template <typename _RCTy, typename _RState>
+    template<typename _RCTy, typename _RState>
     Continuable(Continuable<_RCTy, _RState> const&) = delete;
 
     /// Move construct
-    template <typename _RCTy, typename _RState>
+    template<typename _RCTy, typename _RState>
     Continuable(Continuable<_RCTy, _RState>&& right)
         : _released(right._released)
     {
@@ -85,11 +100,11 @@ public:
     }
 
     /// Deleted copy assign
-    template <typename _RCTy, typename _RState>
+    template<typename _RCTy, typename _RState>
     Continuable& operator= (Continuable<_RCTy, _RState> const&) = delete;
 
     /// Move construct assign
-    template <typename _RCTy, typename _RState>
+    template<typename _RCTy, typename _RState>
     Continuable& operator= (Continuable<_RCTy, _RState>&& right)
     {
         _released = right._released;
@@ -98,12 +113,22 @@ public:
     }
 
     // TODO Accept only correct callbacks
-    template <typename _CTy>
+    template<typename _CTy>
     Continuable<Callback<_ATy...>> then(_CTy&&)
     {
         // TODO Transmute the returned callback here.
         return Continuable<Callback<_ATy...>>(std::move(*this));
     }
+
+    /*
+    // TODO Accept only correct callbacks
+    template<typename... _CTy>
+    Continuable<Callback<_ATy...>> all(_CTy&&...)
+    {
+        // TODO Transmute the returned callback here.
+        return Continuable<Callback<_ATy...>>(std::move(*this));
+    }
+    */
 
     /// Invalidates the Continuable
     Continuable& invalidate()
@@ -115,10 +140,10 @@ public:
 
 namespace detail
 {
-    template <typename _FTy, typename _RTy, typename... _ATy>
+    template<typename _FTy, typename _RTy, typename... _ATy>
     struct ContinuableFactory;
 
-    template <typename _FTy, typename _RTy, typename... _ATy>
+    template<typename _FTy, typename _RTy, typename... _ATy>
     struct ContinuableFactory<_FTy, _RTy, ::fu::identity<std::function<void(_ATy...)>&&>>
     {
         static auto CreateFrom(_FTy&& functional)
@@ -129,7 +154,7 @@ namespace detail
         }
     };
 
-    template <typename _FTy>
+    template<typename _FTy>
     using continuable_factory_t = ContinuableFactory<
         _FTy, ::fu::return_type_of_t<_FTy>, ::fu::argument_type_of_t<_FTy>>;
 
@@ -143,7 +168,7 @@ namespace detail
 ///     /* Continue here */
 ///     callback(5);
 /// });
-template <typename _FTy>
+template<typename _FTy>
 inline auto make_continuable(_FTy&& functional)
     -> decltype(detail::continuable_factory_t<_FTy>::CreateFrom(std::declval<_FTy>()))
 {
