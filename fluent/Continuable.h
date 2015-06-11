@@ -47,7 +47,7 @@ namespace detail
     struct ContinuableFactory;
 
     template <typename _FTy, typename _RTy, typename... _ATy>
-    struct ContinuableFactory<_FTy, _RTy, ::fu::identity<Callback<_ATy...>&&>>
+    struct ContinuableFactory<_FTy, _RTy, ::fu::identity<std::function<void(_ATy...)>&&>>
     {
         static auto CreateFrom(_FTy&& functional)
             -> Continuable<_ATy...>
