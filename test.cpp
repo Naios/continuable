@@ -19,7 +19,7 @@ enum SpellCastResult
     SPELL_FAILED_ALREADY_BEING_TAMED = 5
 };
 
-Continuable<SpellCastResult> CastSpell(int id)
+Continuable<Callback<SpellCastResult>> CastSpell(int id)
 {
     return make_continuable([=](Callback<SpellCastResult>&& callback)
     {
