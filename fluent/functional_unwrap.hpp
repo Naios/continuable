@@ -25,6 +25,7 @@
 #define _FUNCTIONAL_UNWRAP_HPP_
 
 #include <functional>
+#include <type_traits>
 
 namespace fu
 {
@@ -106,6 +107,20 @@ namespace fu
             typedef unwrap_function_impl<_RTy(_ATy...)> type;
         };
 
+        template <typename>
+        struct to_true
+            : std::true_type { };
+
+        /// std::true_type if unwrappable
+        template<typename... Function>
+        static auto test_unwrappable(int)
+            -> to_true<typename select_best_unwrap<Function...>::type::function_type>;
+
+        /// std::false_type if not unwrappable
+        template<typename... Function>
+        static auto test_unwrappable(long)
+            -> std::false_type;
+
      } // detail
 
     /// Trait to unwrap function parameters of various types:
@@ -139,6 +154,11 @@ namespace fu
     template<typename... Function>
     using function_ptr_of_t =
         typename detail::select_best_unwrap<Function...>::type::function_ptr;
+
+    /// Trait which defines if the given function is unwrappable or not.
+    template<typename... Function>
+    struct is_unwrappable
+        : decltype(detail::test_unwrappable<Function...>(0)) { };
 
 } // fu
 

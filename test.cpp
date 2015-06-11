@@ -6,6 +6,8 @@
 #include <iostream>
 #include <exception>
 #include <type_traits>
+#include <string>
+#include <vector>
 
 enum SpellCastResult
 {
@@ -28,9 +30,24 @@ Continuable<SpellCastResult> CastSpell(int id)
     });
 }
 
-int main(int argc, char** argv)
+template <typename... T>
+void test_unwrap(std::string const& msg)
 {
-    auto lam = [=](Callback<SpellCastResult>&& callback)
+    std::cout << msg << " is unwrappable: " << (fu::is_unwrappable<T...>::value ? "true" : "false") << std::endl;
+}
+
+int main(int /*argc*/, char** /*argv*/)
+{
+    test_unwrap<void()>("void()");
+    test_unwrap<std::function<void()>>("std::function<void()>");
+    test_unwrap<std::vector<std::string>>("std::vector<std::string>");
+
+    auto voidcontinue = make_continuable([=](Callback<>&& /*callback*/)
+    {
+
+    });
+
+    auto lam = [=](Callback<SpellCastResult>&& /*callback*/)
     {
         // on success call the callback with SPELL_FAILED_SUCCESS
         // callback(SPELL_FAILED_SUCCESS);

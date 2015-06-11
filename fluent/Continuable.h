@@ -31,8 +31,10 @@ struct Continuable
     ForwardFunction _callback_insert;
 
     Continuable<_ATy...>() { }
-    Continuable<_ATy...>(ForwardFunction&& callback_insert)
-        : _callback_insert(std::forward<ForwardFunction>(callback_insert)) { }
+
+    template<typename _FTy>
+    Continuable<_ATy...>(_FTy&& callback_insert)
+        : _callback_insert(std::forward<_FTy>(callback_insert)) { }
 
     template <typename _CTy>
     Continuable<_ATy...>& then(_CTy&&)
