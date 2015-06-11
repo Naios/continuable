@@ -27,10 +27,12 @@ namespace detail
 } // detail
 
 template <typename... Args>
-struct ContinuableState;
-
+struct ContinuableState
+/*
+;
 template <typename... Args>
 struct ContinuableState<Args...>
+*/
 {
 };
 
@@ -57,11 +59,11 @@ private:
 public:
     /// Deleted copy construct
     template <typename _RCTy, typename _RState>
-    explicit Continuable(Continuable<_RCTy, _RState> const&) = delete;
+    Continuable(Continuable<_RCTy, _RState> const&) = delete;
 
     /// Move construct
     template <typename _RCTy, typename _RState>
-    explicit Continuable(Continuable<_RCTy, _RState>&& right)
+    Continuable(Continuable<_RCTy, _RState>&& right)
         : _released(right._released)
     {
         right._released = true;
