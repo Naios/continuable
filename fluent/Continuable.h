@@ -32,18 +32,60 @@ struct ContinuableState
 };
 
 template <typename _CTy, typename _State = ContinuableState<>>
-struct Continuable;
+class Continuable;
 
 template <typename... _ATy, typename _State>
-struct Continuable<std::function<void(_ATy...)>, _State>
+class Continuable<std::function<void(_ATy...)>, _State>
 {
+public:
     typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
+
+private:
 
     // Function which expects a callback that is inserted from the Continuable
     // to chain everything together
     ForwardFunction _callback_insert;
 
-    Continuable() { }
+    bool released;
+
+    void Dispatch()
+    {
+    }
+
+public:
+    /// Deleted copy construct
+    template <typename _RCTy, typename _RState>
+    Continuable(Continuable<_RCTy, _RState> const&) = delete;
+
+    /// Move construct
+    template <typename _RCTy, typename _RState>
+    Continuable(Continuable<_RCTy, _RState>&& right) : released(false)
+    {
+        right.released = true;
+    }
+
+    /// Destructor which calls the dispatch chain if needed.
+    ~Continuable()
+    {
+        if (!released)
+        {
+            released = true;
+            Dispatch();
+        }
+    }
+
+    /// Deleted copy assign
+    template <typename _RCTy, typename _RState>
+    Continuable& operator= (Continuable<_RCTy, _RState> const&) = delete;
+
+    /// Move construct assign
+    template <typename _RCTy, typename _RState>
+    Continuable& operator= (Continuable<_RCTy, _RState>&&)
+    {
+        released = right.released;
+        right.released = true;
+        return *this;
+    }
 
     template<typename _FTy>
     Continuable(_FTy&& callback_insert)
@@ -52,7 +94,7 @@ struct Continuable<std::function<void(_ATy...)>, _State>
     template <typename _CTy>
     Continuable<Callback<_ATy...>> then(_CTy&&)
     {
-        return Continuable<Callback<_ATy...>>();
+        return Continuable<Callback<_ATy...>>(std::move(*this));
     }
 };
 
