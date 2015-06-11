@@ -33,7 +33,7 @@ int main(int argc, char** argv)
     auto lam = [=](Callback<SpellCastResult>&& callback)
     {
         // on success call the callback with SPELL_FAILED_SUCCESS
-        callback(SPELL_FAILED_SUCCESS);
+        // callback(SPELL_FAILED_SUCCESS);
     };
 
     // static_assert(std::is_void<decltype(lam)>::value, "blub");
@@ -44,16 +44,16 @@ int main(int argc, char** argv)
 
     fu::function_type_of_t<Callback<int>> fun2;
     
-    shared_callback_of_t<Callback<int>> fun3;
-    weak_callback_of_t<Callback<int>> fun4;
+    shared_callback_of_t<std::function<void(int)>> sc1;
+    weak_callback_of_t<Callback<int>> sc2;
     
-    // make_weak_wrapped_callback(sc1);
-    // make_weak_wrapped_callback(sc2);
+    make_weak_wrapped_callback(sc1);
+    make_weak_wrapped_callback(sc2);
     
     typedef Continuable<bool> cont123;
 
-    // typedef Continuable<Callback<bool>>::type myty1;
-    // typedef Continuable<Callback<bool>, float>::type myty2;
+    typedef Continuable<Callback<bool>> myty1;
+    typedef Continuable<Callback<bool>, float> myty2;
 
     // Continuable<Callback<SpellCastResult>> spell
     CastSpell(63362)
