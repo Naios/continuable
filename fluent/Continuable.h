@@ -38,8 +38,7 @@ namespace detail
 template<typename _CTy, typename _State = detail::EmptyContinuableState>
 class Continuable;
 
-template<typename... _ATy, typename _State>
-class Continuable<std::function<void(_ATy...)>, _State>
+namespace detail
 {
     /// Corrects void return types from functional types which should be Continuable<Callback<>>
     template<typename _RTy>
@@ -56,7 +55,11 @@ class Continuable<std::function<void(_ATy...)>, _State>
     {
         typedef Continuable<_CArgs...> type;
     };
+}
 
+template<typename... _ATy, typename _State>
+class Continuable<std::function<void(_ATy...)>, _State>
+{
 public:
     typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
 
