@@ -98,6 +98,8 @@ int main(int /*argc*/, char** /*argv*/)
 
     });
 
+    cba1.invalidate();
+
     CastSpell(63362);
 
     std::vector<int> myvec;
