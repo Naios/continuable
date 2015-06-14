@@ -38,22 +38,6 @@ namespace detail
     // ContinuableImpl Forward definition
     template<typename _STy, typename _CTy>
     class _ContinuableImpl;
-   
-    /// Corrects void return types from functional types which should be Continuable<DefaultContinuableState, Callback<>>
-    template<typename _RTy>
-    struct convert_void_to_continuable;
-
-    template<>
-    struct convert_void_to_continuable<void>
-    {
-        typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
-    };
-
-    template<typename _State, typename _CTy>
-    struct convert_void_to_continuable<_ContinuableImpl<_State, _CTy>>
-    {
-        typedef _ContinuableImpl<_State, _CTy> type;
-    };
 
     template<typename... _STy, typename... _ATy>
     class _ContinuableImpl<ContinuableState<_STy...>, std::function<void(_ATy...)>>
@@ -119,18 +103,34 @@ namespace detail
             return *this;
         }
 
+        /// Corrects void return types from functional types which should be Continuable<DefaultContinuableState, Callback<>>
+        template<typename _RTy>
+        struct convert_void_to_continuable;
+
+        template<>
+        struct convert_void_to_continuable<void>
+        {
+            typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
+        };
+
+        template<typename _State, typename _CTy>
+        struct convert_void_to_continuable<_ContinuableImpl<_State, _CTy>>
+        {
+            typedef _ContinuableImpl<_State, _CTy> type;
+        };
+
         template<typename _NextRTy, typename... _NextATy>
         struct unary_chainer;
 
+        // MSVC 12 has issues to detect the parameter pack otherwise.
         template<typename _NextRTy, typename... _NextATy>
         struct unary_chainer<_NextRTy, fu::identity<_NextATy...>>
         {
             template<typename _CTy>
-            static auto chain(_CTy&& /*functional*/, _ContinuableImpl&& /*me*/)
-                -> typename convert_void_to_continuable<_NextRTy>::type
+            static auto chain(_CTy&& /*functional*//*, _MTy&& me*/)
+                -> _ContinuableImpl<DefaultContinuableState, Callback<>> // typename convert_void_to_continuable<void>::type
             {
-                return convert_void_to_continuable<_NextRTy>::type();
-                    // _ContinuableImpl<ContinuableState<_STy...>, Callback<_NextATy...>>();
+                return _ContinuableImpl<DefaultContinuableState, Callback<>>();
             }
         };
 
@@ -141,9 +141,11 @@ namespace detail
 
         template<typename _CTy>
         auto then(_CTy&& functional)
-            -> decltype(unary_chainer_t<_CTy>::chain(std::declval<_CTy>(), std::declval<_ContinuableImpl&&>))
+            -> decltype(unary_chainer_t<_CTy>::chain(std::declval<_CTy>()
+                    // std::declval<_ContinuableImpl<ContinuableState<_STy...>, std::function<void(_ATy...)>>>())
+                    ))
         {
-            return unary_chainer_t<_CTy>::chain(std::forward<_CTy>(), std::move(*this));
+            return unary_chainer_t<_CTy>::chain(std::forward<_CTy>(functional)/*, std::move(*this)*/);
         }
 
         /*
