@@ -113,11 +113,6 @@ int main(int /*argc*/, char** /*argv*/)
     typedef fu::requires_functional_constructible<std::function<void()>>::type test_assert1;
     // typedef fu::requires_functional_constructible<std::vector<int>>::type test_assert2;
 
-    detail::convert_void_to_continuable<void>::type* _test5 = nullptr;
-    _test5 = nullptr;
-
-    detail::convert_void_to_continuable<Continuable<Callback<SpellCastResult>>>::type* _test6 = nullptr;
-    _test6 = nullptr;
 
     std::cout << "ok" << std::endl;
     return 0;
