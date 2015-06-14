@@ -39,7 +39,7 @@ namespace detail
     template<typename _STy, typename _CTy>
     class _ContinuableImpl;
    
-    /// Corrects void return types from functional types which should be Continuable<Callback<>>
+    /// Corrects void return types from functional types which should be Continuable<DefaultContinuableState, Callback<>>
     template<typename _RTy>
     struct convert_void_to_continuable;
 
@@ -77,14 +77,16 @@ namespace detail
         }
 
     public:
+        // Empty for debugging
+        _ContinuableImpl()
+            : _released(false) { }
+
         /// Deleted copy construct
-        template<typename _RState, typename _RCTy>
-        _ContinuableImpl(_ContinuableImpl<_RState, _RCTy> const&) = delete;
+        _ContinuableImpl(_ContinuableImpl const&) = delete;
 
         /// Move construct
-        template<typename _RState, typename _RCTy>
-        _ContinuableImpl(_ContinuableImpl<_RState, _RCTy>&& right)
-            : _released(right._released)
+        _ContinuableImpl(_ContinuableImpl&& right)
+            : _released(right._released), _callback_insert(std::move(right._callback_insert))
         {
             right._released = true;
         }
@@ -106,23 +108,38 @@ namespace detail
 
         /// Deleted copy assign
         template<typename _RState, typename _RCTy>
-        _ContinuableImpl& operator= (_ContinuableImpl<_RState, _RCTy> const&) = delete;
+        _ContinuableImpl& operator= (_ContinuableImpl const&) = delete;
 
         /// Move construct assign
-        template<typename _RState, typename _RCTy>
-        _ContinuableImpl& operator= (_ContinuableImpl<_RState, _RCTy>&& right)
+        _ContinuableImpl& operator= (_ContinuableImpl&& right)
         {
             _released = right._released;
             right._released = true;
+            _callback_insert = std::move(right._callback_insert);
             return *this;
         }
 
-        // TODO Accept only correct callbacks
-        template<typename _CTy>
-        _ContinuableImpl<DefaultContinuableState, Callback<_ATy...>> then(_CTy&&)
+        template<typename T>
+        struct unary_chainer;
+
+        template<typename _NewRTy, typename... _NewATy>
+        struct unary_chainer<std::function<_NewRTy(_NewATy...)>>
         {
-            // TODO Transmute the returned callback here.
-            return _ContinuableImpl<DefaultContinuableState, Callback<_ATy...>>(std::move(*this));
+            template<typename _CTy>
+            static auto chain(_CTy&& functional, _ContinuableImpl&& me)
+                -> typename convert_void_to_continuable<_NewRTy>::type
+            {
+                return _ContinuableImpl<ContinuableState<_STy...>, Callback<_NewATy...>>();
+            }
+        };
+
+        template<typename _CTy>
+        auto then(_CTy&& functional)
+            -> decltype(unary_chainer<fu::function_type_of_t<typename std::decay<_CTy>::type>::
+                chain(std::declval<_CTy>()))
+        {
+            return unary_chainer<fu::function_type_of_t<_CTy>>::
+                chain(std::forward<_CTy>(functional), std::move(*this));
         }
 
         /*
