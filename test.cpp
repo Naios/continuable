@@ -19,7 +19,7 @@ enum SpellCastResult
     SPELL_FAILED_ALREADY_BEING_TAMED = 5
 };
 
-Continuable<Callback<SpellCastResult>> CastSpell(int id)
+Continuable<SpellCastResult> CastSpell(int id)
 {
     return make_continuable([=](Callback<SpellCastResult>&& callback)
     {
@@ -38,11 +38,17 @@ void test_unwrap(std::string const& msg)
 
 int main(int /*argc*/, char** /*argv*/)
 {
+    Continuable<bool> cb = make_continuable([](Callback<bool>&& callback)
+    {
+
+        callback(true);
+    });
+
     test_unwrap<void()>("void()");
     test_unwrap<std::function<void()>>("std::function<void()>");
     test_unwrap<std::vector<std::string>>("std::vector<std::string>");
 
-    make_continuable([=](Callback<>&& /*callback*/)
+    make_continuable([=](Callback<>&&)
     {
 
     });
@@ -50,7 +56,7 @@ int main(int /*argc*/, char** /*argv*/)
     int i = 0;
     ++i;
 
-    auto lam = [=](Callback<SpellCastResult>&& /*callback*/)
+    auto lam = [=](Callback<SpellCastResult>&&)
     {
         // on success call the callback with SPELL_FAILED_SUCCESS
         // callback(SPELL_FAILED_SUCCESS);
@@ -76,8 +82,8 @@ int main(int /*argc*/, char** /*argv*/)
 
     typedef Continuable<bool> cont123;
 
-    typedef Continuable<Callback<bool>> myty1;
-    typedef Continuable<Callback<bool>, float> myty2;
+    typedef Continuable<bool> myty1;
+    typedef Continuable<bool, float> myty2;
 
     // Continuable<Callback<SpellCastResult>> spell
     CastSpell(63362)
@@ -107,9 +113,9 @@ int main(int /*argc*/, char** /*argv*/)
     typedef fu::requires_functional_constructible<std::function<void()>>::type test_assert1;
     // typedef fu::requires_functional_constructible<std::vector<int>>::type test_assert2;
 
-    detail::convert_void_to_continuable<void>::type* _test5 = nullptr;
+    // detail::convert_void_to_continuable<void>::type* _test5 = nullptr;
 
-    detail::convert_void_to_continuable<Continuable<Callback<SpellCastResult>>>::type* _test6 = nullptr;
+    // detail::convert_void_to_continuable<Continuable<Callback<SpellCastResult>>>::type* _test6 = nullptr;
 
     // auto cba2 = make_continuable(myvec);
 

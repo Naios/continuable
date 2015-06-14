@@ -62,24 +62,24 @@ namespace detail
     template<typename _CTy, typename... Args>
     struct WeakProxyFactory<_CTy, std::weak_ptr<std::function<void(Args...)>>>
     {
-	    static Callback<Args...> CreateProxy(_CTy&& weak)
-	    {
-	        return [=](Args&&... args)
+        static Callback<Args...> CreateProxy(_CTy&& weak)
+        {
+            return [=](Args&&... args)
             {
                 if (auto const callback = weak.lock())
                     (*callback)(std::forward<Args>(args)...);
             };
-	    }
+        }
     };
 
     template<typename _CTy, typename... Args>
     struct WeakProxyFactory<_CTy, std::shared_ptr<std::function<void(Args...)>>>
     {
-	    static Callback<Args...> CreateProxy(_CTy&& shared)
-	    {
-	        return WeakProxyFactory<std::weak_ptr<std::function<void(Args...)>>&&,
+        static Callback<Args...> CreateProxy(_CTy&& shared)
+        {
+            return WeakProxyFactory<std::weak_ptr<std::function<void(Args...)>>&&,
                 std::weak_ptr<std::function<void(Args...)>>>::CreateProxy(std::forward<_CTy>(shared));
-	    }
+        }
     };
 
 } // detail
