@@ -35,27 +35,25 @@ namespace detail
 
     typedef ContinuableState<std::tuple<>, void> DefaultContinuableState;
 
+    // ContinuableImpl Forward definition
+    template<typename _STy, typename _CTy>
+    class _ContinuableImpl;
+   
     /// Corrects void return types from functional types which should be Continuable<Callback<>>
-    /*
     template<typename _RTy>
     struct convert_void_to_continuable;
 
     template<>
     struct convert_void_to_continuable<void>
     {
-        typedef Continuable<Callback<>> type;
+        typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
     };
 
-    template<typename... _CArgs>
-    struct convert_void_to_continuable<Continuable<_CArgs...>>
+    template<typename _State, typename _CTy>
+    struct convert_void_to_continuable<_ContinuableImpl<_State, _CTy>>
     {
-        typedef Continuable<_CArgs...> type;
+        typedef _ContinuableImpl<_State, _CTy> type;
     };
-    */
-
-    // ContinuableImpl Forward definition
-    template<typename _STy, typename _CTy>
-    class _ContinuableImpl;
 
     template<typename... _STy, typename... _ATy>
     class _ContinuableImpl<ContinuableState<_STy...>, std::function<void(_ATy...)>>
@@ -63,9 +61,6 @@ namespace detail
         // Make all instances of _ContinuableImpl to a friend.
         template<typename, typename>
         friend class _ContinuableImpl;
-
-        typedef ContinuableState<_STy...> MyState;
-        typedef Callback<_ATy...> MyCallback;
 
     public:
         typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;

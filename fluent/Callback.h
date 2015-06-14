@@ -26,15 +26,15 @@
 
 #include "functional_unwrap.hpp"
 
-/// A general purpose Callback type (Callable/ Invokeable)
+/// A general purpose void returing callback type (`std::function<void(Args...)>`).
 template<typename... Args>
 using Callback = std::function<void(Args...)>;
 
-/// A Callback wrapped in a std::shared_ptr
+/// A callback wrapped in a std::shared_ptr
 template<typename... Args>
 using SharedCallback = std::shared_ptr<Callback<Args...>>;
 
-/// A Callback wrapped in a std::weak_ptr
+/// A callback wrapped in a std::weak_ptr
 template<typename... Args>
 using WeakCallback = std::weak_ptr<Callback<Args...>>;
 
