@@ -47,6 +47,7 @@ namespace detail
         friend class _ContinuableImpl;
 
     public:
+        typedef Callback<_ATy...> CallbackFunction;
         typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
 
     private:
@@ -54,23 +55,35 @@ namespace detail
         /// to chain everything together
         ForwardFunction _callback_insert;
 
+        boost::optional<std::function<void()>> _entry_point;
+
         bool _released;
+
+        std::function<void()> MakeEmptyEntryPoint()
+        {
+            return []
+            {
+            };
+        }
 
         void Dispatch()
         {
+            if (_entry_point)
+                _entry_point.value()();
         }
 
     public:
         // Empty for debugging
         _ContinuableImpl()
-            : _released(false), _callback_insert() { }
+            : _released(false), _callback_insert(), _entry_point() { }
 
         /// Deleted copy construct
         _ContinuableImpl(_ContinuableImpl const&) = delete;
 
         /// Move construct
         _ContinuableImpl(_ContinuableImpl&& right)
-            : _released(right._released), _callback_insert(std::move(right._callback_insert))
+            : _released(right._released), _callback_insert(std::move(right._callback_insert)),
+             _entry_point(std::move(right._entry_point))
         {
             right._released = true;
         }
@@ -78,7 +91,13 @@ namespace detail
         // Construct through a ForwardFunction
         template<typename _FTy>
         _ContinuableImpl(_FTy&& callback_insert)
-            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false) { }
+            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false), _entry_point() { }
+
+        /*
+        template<typename _RCTy, typename _FTy>
+        _ContinuableImpl(_ContinuableImpl<ContinuableState<_STy...>, _RCTy>&& right, _FTy&& callback_insert)
+            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false), _entry_point() { }
+    */
 
         /// Destructor which calls the dispatch chain if needed.
         ~_ContinuableImpl()
@@ -126,12 +145,20 @@ namespace detail
         template<typename _NextRTy, typename... _NextATy>
         struct unary_chainer<_NextRTy, fu::identity<_NextATy...>>
         {
+            typedef typename convert_void_to_continuable<_NextRTy>::type result_t;
+
+            typedef typename result_t::CallbackFunction callback_t;
+
+            /*
             template<typename _CTy>
-            static auto chain(_CTy&& /*functional*//*, _MTy&& me*/)
-                -> _ContinuableImpl<DefaultContinuableState, Callback<>> // typename convert_void_to_continuable<void>::type
+            static auto chain(_CTy&&)
+                -> typename convert_void_to_continuable<_NextRTy>::type
+                // _ContinuableImpl<DefaultContinuableState, Callback<_NextATy...>>
             {
-                return _ContinuableImpl<DefaultContinuableState, Callback<>>();
+                return typename convert_void_to_continuable<_NextRTy>::type();
+                    // _ContinuableImpl<DefaultContinuableState, Callback<_NextATy...>>();
             }
+            */
         };
 
         template <typename _CTy>
@@ -141,11 +168,27 @@ namespace detail
 
         template<typename _CTy>
         auto then(_CTy&& functional)
-            -> decltype(unary_chainer_t<_CTy>::chain(std::declval<_CTy>()
-                    // std::declval<_ContinuableImpl<ContinuableState<_STy...>, std::function<void(_ATy...)>>>())
-                    ))
+            -> typename unary_chainer_t<_CTy>::result_t
         {
-            return unary_chainer_t<_CTy>::chain(std::forward<_CTy>(functional)/*, std::move(*this)*/);
+            // Next callback insert
+            auto next = [=](typename unary_chainer_t<_CTy>::callback_t&& next_insert_callback)
+            {
+                _callback_insert([=](_ATy... args)
+                {
+                    // typename unary_chainer_t<_CTy>::result_t next =
+                        functional(std::forward<_ATy>(args)...);
+
+                    // next_insert_callback(result.);
+                    // next._insert_callback(next_insert_callback);
+                });
+            };
+
+            // Debugging
+            // next(unary_chainer_t<_CTy>::callback_t());
+
+            // decltype(unary_chainer_t<_CTy>::chain(std::declval<_CTy>()))
+            return typename unary_chainer_t<_CTy>::result_t();
+                // unary_chainer_t<_CTy>::chain(std::forward<_CTy>(functional));
         }
 
         /*
