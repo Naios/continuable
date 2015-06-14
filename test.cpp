@@ -87,17 +87,17 @@ int main(int /*argc*/, char** /*argv*/)
 
     // Continuable<Callback<SpellCastResult>> spell
     CastSpell(63362)
-        .then([](SpellCastResult result)
+        .then([](SpellCastResult)
         {
             return CastSpell(63362);
         })
-        .then([](SpellCastResult result)
+        .then([](SpellCastResult)
         {
 
         });
 
     // Wraps a callback function into a continuable
-    auto cba1 = make_continuable([=](Callback<SpellCastResult>&& callback)
+    auto cba1 = make_continuable([=](Callback<SpellCastResult>&&)
     {
 
 
@@ -113,11 +113,11 @@ int main(int /*argc*/, char** /*argv*/)
     typedef fu::requires_functional_constructible<std::function<void()>>::type test_assert1;
     // typedef fu::requires_functional_constructible<std::vector<int>>::type test_assert2;
 
-    // detail::convert_void_to_continuable<void>::type* _test5 = nullptr;
+    detail::convert_void_to_continuable<void>::type* _test5 = nullptr;
+    _test5 = nullptr;
 
-    // detail::convert_void_to_continuable<Continuable<Callback<SpellCastResult>>>::type* _test6 = nullptr;
-
-    // auto cba2 = make_continuable(myvec);
+    detail::convert_void_to_continuable<Continuable<Callback<SpellCastResult>>>::type* _test6 = nullptr;
+    _test6 = nullptr;
 
     std::cout << "ok" << std::endl;
     return 0;
