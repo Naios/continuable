@@ -153,12 +153,13 @@ using Continuable = detail::_ContinuableImpl<
 
 namespace detail
 {
-    template<typename _FTy, typename _RTy, typename... _ATy>
+    template<typename _RTy, typename... _ATy>
     struct ContinuableFactory;
 
-    template<typename _FTy, typename _RTy, typename... _ATy>
-    struct ContinuableFactory<_FTy, _RTy, ::fu::identity<std::function<void(_ATy...)>&&>>
+    template<typename _RTy, typename... _ATy>
+    struct ContinuableFactory<_RTy, ::fu::identity<std::function<void(_ATy...)>&&>>
     {
+        template<typename _FTy>
         static auto CreateFrom(_FTy&& functional)
             -> Continuable<_ATy...>
         {
@@ -169,7 +170,7 @@ namespace detail
 
     template<typename _FTy>
     using continuable_factory_t = ContinuableFactory<
-        _FTy, ::fu::return_type_of_t<_FTy>, ::fu::argument_type_of_t<_FTy>>;
+        ::fu::return_type_of_t<_FTy>, ::fu::argument_type_of_t<_FTy>>;
 
 } // detail
 
