@@ -79,7 +79,7 @@ namespace detail
     public:
         // Empty for debugging
         _ContinuableImpl()
-            : _released(false) { }
+            : _released(false), _callback_insert() { }
 
         /// Deleted copy construct
         _ContinuableImpl(_ContinuableImpl const&) = delete;
@@ -129,16 +129,17 @@ namespace detail
             static auto chain(_CTy&& functional, _ContinuableImpl&& me)
                 -> typename convert_void_to_continuable<_NewRTy>::type
             {
-                return _ContinuableImpl<ContinuableState<_STy...>, Callback<_NewATy...>>();
+                return typename convert_void_to_continuable<_NewRTy>::type();
+                    // _ContinuableImpl<ContinuableState<_STy...>, Callback<_NewATy...>>();
             }
         };
 
         template<typename _CTy>
         auto then(_CTy&& functional)
-            -> decltype(unary_chainer<fu::function_type_of_t<typename std::decay<_CTy>::type>::
-                chain(std::declval<_CTy>()))
+            -> decltype(unary_chainer<fu::function_type_of_t<typename std::decay<_CTy>::type>>::
+                chain(std::declval<_CTy>(), std::declval<_ContinuableImpl&&>()))
         {
-            return unary_chainer<fu::function_type_of_t<_CTy>>::
+            return unary_chainer<fu::function_type_of_t<typename std::decay<_CTy>::type>>::
                 chain(std::forward<_CTy>(functional), std::move(*this));
         }
 
