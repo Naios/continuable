@@ -50,7 +50,7 @@ namespace detail
     };
 
     template<typename _State, typename _CTy>
-    struct convert_void_to_continuable < _ContinuableImpl<_State, _CTy> >
+    struct convert_void_to_continuable<_ContinuableImpl<_State, _CTy>>
     {
         typedef _ContinuableImpl<_State, _CTy> type;
     };
@@ -60,22 +60,11 @@ namespace detail
 
     // MSVC 12 has issues to detect the parameter pack otherwise.
     template<typename _NextRTy, typename... _NextATy>
-    struct unary_chainer< _NextRTy, fu::identity<_NextATy...>>
+    struct unary_chainer<_NextRTy, fu::identity<_NextATy...>>
     {
         typedef typename convert_void_to_continuable<_NextRTy>::type result_t;
 
         typedef typename result_t::CallbackFunction callback_t;
-
-        /*
-        template<typename _CTy>
-        static auto chain(_CTy&&)
-        -> typename convert_void_to_continuable<_NextRTy>::type
-        // _ContinuableImpl<DefaultContinuableState, Callback<_NextATy...>>
-        {
-        return typename convert_void_to_continuable<_NextRTy>::type();
-        // _ContinuableImpl<DefaultContinuableState, Callback<_NextATy...>>();
-        }
-        */
     };
 
     template <typename _CTy>
@@ -137,11 +126,12 @@ namespace detail
         _ContinuableImpl(_FTy&& callback_insert)
             : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false), _entry_point() { }
 
-        /*
-        template<typename _RCTy, typename _FTy>
-        _ContinuableImpl(_ContinuableImpl<ContinuableState<_STy...>, _RCTy>&& right, _FTy&& callback_insert)
-            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false), _entry_point() { }
-    */
+        template<typename _RSTy, typename _RCTy, typename _FTy>
+        _ContinuableImpl(_ContinuableImpl<_RSTy, _RCTy>&& right, _FTy&& callback_insert)
+            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(right._released), _entry_point()
+        {
+            right._released = true;
+        }
 
         /// Destructor which calls the dispatch chain if needed.
         ~_ContinuableImpl()
@@ -171,7 +161,11 @@ namespace detail
             -> typename unary_chainer_t<_CTy>::result_t
         {
             // Next callback insert
-            auto next = [=](typename unary_chainer_t<_CTy>::callback_t&& next_insert_callback)
+            // Debugging
+            // next(unary_chainer_t<_CTy>::callback_t());
+
+            return typename unary_chainer_t<_CTy>::result_t
+                (std::move(*this), [=](typename unary_chainer_t<_CTy>::callback_t&& /*next_insert_callback*/)
             {
                 _callback_insert([=](_ATy... args)
                 {
@@ -181,14 +175,7 @@ namespace detail
                     // next_insert_callback(result.);
                     // next._insert_callback(next_insert_callback);
                 });
-            };
-
-            // Debugging
-            // next(unary_chainer_t<_CTy>::callback_t());
-
-            // decltype(unary_chainer_t<_CTy>::chain(std::declval<_CTy>()))
-            return typename unary_chainer_t<_CTy>::result_t();
-                // unary_chainer_t<_CTy>::chain(std::forward<_CTy>(functional));
+            });
         }
 
         /*

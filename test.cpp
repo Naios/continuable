@@ -120,36 +120,51 @@ int main(int /*argc*/, char** /*argv*/)
         callback(SPELL_FAILED_AFFECTING_COMBAT);
     };
 
-
     // Implemented by user
     std::function<std::function<void(Callback<bool>&&)>(SpellCastResult)> cn1 = [](SpellCastResult)
     {
         // Given by continuable
+        // Fn2
         return [](Callback<bool>&& callback)
         {
             callback(true);
         };
     };
 
+    // Implemented by user
+    std::function<std::function<void(Callback<>&&)>(bool)> cn2 = [](bool val)
+    {
+        // Finished
+        std::cout << "Callback chain finished! -> " << val << std::endl;
+
+        // Given by continuable (auto end)
+        return [](Callback<>&&)
+        {
+            // Empty callback
+        };
+    };
+
     // Auto created wrapper by the continuable
-    std::function<void(SpellCastResult)> wr1 = [&cn1](SpellCastResult result)
+    std::function<void(SpellCastResult)> wr1 = [&](SpellCastResult result)
     {
         // Wrapper functional to process unary or multiple promised callbacks
         // Returned from the user
         std::function<void(Callback<bool>&&)> fn2 = cn1(result);
 
-        fn2([](bool val)
+        // Auto wrapper
+        fn2([&](bool value)
         {
-            // Finished
-            std::cout << "Callback chain finished! -> " << val << std::endl;
+            cn2(value);
         });
     };
 
+    // Call this to start the chain
     Callback<> entry = [&]
     {
         fn1(std::move(wr1));
     };
 
+    // Here we go
     entry();
 
     std::cout << "ok" << std::endl;
