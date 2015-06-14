@@ -39,6 +39,50 @@ namespace detail
     template<typename _STy, typename _CTy>
     class _ContinuableImpl;
 
+    /// Corrects void return types from functional types which should be Continuable<DefaultContinuableState, Callback<>>
+    template<typename _RTy>
+    struct convert_void_to_continuable;
+
+    template<>
+    struct convert_void_to_continuable<void>
+    {
+        typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
+    };
+
+    template<typename _State, typename _CTy>
+    struct convert_void_to_continuable < _ContinuableImpl<_State, _CTy> >
+    {
+        typedef _ContinuableImpl<_State, _CTy> type;
+    };
+
+    template<typename _NextRTy, typename... _NextATy>
+    struct unary_chainer;
+
+    // MSVC 12 has issues to detect the parameter pack otherwise.
+    template<typename _NextRTy, typename... _NextATy>
+    struct unary_chainer< _NextRTy, fu::identity<_NextATy...>>
+    {
+        typedef typename convert_void_to_continuable<_NextRTy>::type result_t;
+
+        typedef typename result_t::CallbackFunction callback_t;
+
+        /*
+        template<typename _CTy>
+        static auto chain(_CTy&&)
+        -> typename convert_void_to_continuable<_NextRTy>::type
+        // _ContinuableImpl<DefaultContinuableState, Callback<_NextATy...>>
+        {
+        return typename convert_void_to_continuable<_NextRTy>::type();
+        // _ContinuableImpl<DefaultContinuableState, Callback<_NextATy...>>();
+        }
+        */
+    };
+
+    template <typename _CTy>
+    using unary_chainer_t = unary_chainer<
+        fu::return_type_of_t<typename std::decay<_CTy>::type>,
+        fu::argument_type_of_t<typename std::decay<_CTy>::type>>;
+
     template<typename... _STy, typename... _ATy>
     class _ContinuableImpl<ContinuableState<_STy...>, std::function<void(_ATy...)>>
     {
@@ -121,50 +165,6 @@ namespace detail
             _callback_insert = std::move(right._callback_insert);
             return *this;
         }
-
-        /// Corrects void return types from functional types which should be Continuable<DefaultContinuableState, Callback<>>
-        template<typename _RTy>
-        struct convert_void_to_continuable;
-
-        template<>
-        struct convert_void_to_continuable<void>
-        {
-            typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
-        };
-
-        template<typename _State, typename _CTy>
-        struct convert_void_to_continuable<_ContinuableImpl<_State, _CTy>>
-        {
-            typedef _ContinuableImpl<_State, _CTy> type;
-        };
-
-        template<typename _NextRTy, typename... _NextATy>
-        struct unary_chainer;
-
-        // MSVC 12 has issues to detect the parameter pack otherwise.
-        template<typename _NextRTy, typename... _NextATy>
-        struct unary_chainer<_NextRTy, fu::identity<_NextATy...>>
-        {
-            typedef typename convert_void_to_continuable<_NextRTy>::type result_t;
-
-            typedef typename result_t::CallbackFunction callback_t;
-
-            /*
-            template<typename _CTy>
-            static auto chain(_CTy&&)
-                -> typename convert_void_to_continuable<_NextRTy>::type
-                // _ContinuableImpl<DefaultContinuableState, Callback<_NextATy...>>
-            {
-                return typename convert_void_to_continuable<_NextRTy>::type();
-                    // _ContinuableImpl<DefaultContinuableState, Callback<_NextATy...>>();
-            }
-            */
-        };
-
-        template <typename _CTy>
-        using unary_chainer_t = unary_chainer<
-            fu::return_type_of_t<typename std::decay<_CTy>::type>,
-            fu::argument_type_of_t<typename std::decay<_CTy>::type>>;
 
         template<typename _CTy>
         auto then(_CTy&& functional)
