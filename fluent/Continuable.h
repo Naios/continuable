@@ -119,28 +119,31 @@ namespace detail
             return *this;
         }
 
-        template<typename T>
+        template<typename _NextRTy, typename... _NextATy>
         struct unary_chainer;
 
-        template<typename _NewRTy, typename... _NewATy>
-        struct unary_chainer<std::function<_NewRTy(_NewATy...)>>
+        template<typename _NextRTy, typename... _NextATy>
+        struct unary_chainer<_NextRTy, fu::identity<_NextATy...>>
         {
             template<typename _CTy>
-            static auto chain(_CTy&& functional, _ContinuableImpl&& me)
-                -> typename convert_void_to_continuable<_NewRTy>::type
+            static auto chain(_CTy&& /*functional*/, _ContinuableImpl&& /*me*/)
+                -> typename convert_void_to_continuable<_NextRTy>::type
             {
-                return typename convert_void_to_continuable<_NewRTy>::type();
-                    // _ContinuableImpl<ContinuableState<_STy...>, Callback<_NewATy...>>();
+                return convert_void_to_continuable<_NextRTy>::type();
+                    // _ContinuableImpl<ContinuableState<_STy...>, Callback<_NextATy...>>();
             }
         };
 
+        template <typename _CTy>
+        using unary_chainer_t = unary_chainer<
+            fu::return_type_of_t<typename std::decay<_CTy>::type>,
+            fu::argument_type_of_t<typename std::decay<_CTy>::type>>;
+
         template<typename _CTy>
         auto then(_CTy&& functional)
-            -> decltype(unary_chainer<fu::function_type_of_t<typename std::decay<_CTy>::type>>::
-                chain(std::declval<_CTy>(), std::declval<_ContinuableImpl&&>()))
+            -> decltype(unary_chainer_t<_CTy>::chain(std::declval<_CTy>(), std::declval<_ContinuableImpl&&>))
         {
-            return unary_chainer<fu::function_type_of_t<typename std::decay<_CTy>::type>>::
-                chain(std::forward<_CTy>(functional), std::move(*this));
+            return unary_chainer_t<_CTy>::chain(std::forward<_CTy>(), std::move(*this));
         }
 
         /*
