@@ -35,24 +35,6 @@ namespace detail
 
     typedef ContinuableState<std::tuple<>, void> DefaultContinuableState;
 
-    /// The unwrap which is used to extract continuable parameter types.
-    template<typename... Args>
-    struct continuable_unwrap;
-
-    // First parameter is the state.
-    template<typename... _SArgs, typename... _CArgs>
-    struct continuable_unwrap<ContinuableState<_SArgs...>, _CArgs...>
-    {
-        typedef ContinuableState<_SArgs...> state_t;
-
-        typedef Callback<_CArgs...> callback_t;
-    };
-
-    // No state is given use an empty one.
-    template<typename... _CArgs>
-    struct continuable_unwrap<_CArgs...>
-        : public continuable_unwrap<DefaultContinuableState, _CArgs...> { };
-
     /// Corrects void return types from functional types which should be Continuable<Callback<>>
     /*
     template<typename _RTy>
