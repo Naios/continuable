@@ -97,7 +97,7 @@ int main(int /*argc*/, char** /*argv*/)
         });
 
     // Wraps a callback function into a continuable
-    auto cba1 = make_continuable([=](Callback<SpellCastResult>&&)
+    Continuable<SpellCastResult> cba1 = make_continuable([=](Callback<SpellCastResult>&&)
     {
 
 
@@ -119,6 +119,7 @@ int main(int /*argc*/, char** /*argv*/)
     {
         callback(SPELL_FAILED_AFFECTING_COMBAT);
     };
+
 
     // Implemented by user
     std::function<std::function<void(Callback<bool>&&)>(SpellCastResult)> cn1 = [](SpellCastResult)
