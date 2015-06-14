@@ -113,6 +113,43 @@ int main(int /*argc*/, char** /*argv*/)
     typedef fu::requires_functional_constructible<std::function<void()>>::type test_assert1;
     // typedef fu::requires_functional_constructible<std::vector<int>>::type test_assert2;
 
+    // Brainstorming: this shows an example callback chain
+    // Given by continuable
+    std::function<void(Callback<SpellCastResult>&&)> fn1 = [](Callback<SpellCastResult>&& callback)
+    {
+        callback(SPELL_FAILED_AFFECTING_COMBAT);
+    };
+
+    // Implemented by user
+    std::function<std::function<void(Callback<bool>&&)>(SpellCastResult)> cn1 = [](SpellCastResult)
+    {
+        // Given by continuable
+        return [](Callback<bool>&& callback)
+        {
+            callback(true);
+        };
+    };
+
+    // Auto created wrapper by the continuable
+    std::function<void(SpellCastResult)> wr1 = [&cn1](SpellCastResult result)
+    {
+        // Wrapper functional to process unary or multiple promised callbacks
+        // Returned from the user
+        std::function<void(Callback<bool>&&)> fn2 = cn1(result);
+
+        fn2([](bool val)
+        {
+            // Finished
+            std::cout << "Callback chain finished! -> " << val << std::endl;
+        });
+    };
+
+    Callback<> entry = [&]
+    {
+        fn1(std::move(wr1));
+    };
+
+    entry();
 
     std::cout << "ok" << std::endl;
     return 0;
