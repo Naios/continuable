@@ -113,7 +113,7 @@ namespace detail
         void Dispatch()
         {
             if (_entry_point)
-                _entry_point.value()();
+                (*_entry_point)();
         }
 
     public:
