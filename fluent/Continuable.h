@@ -48,16 +48,17 @@ namespace detail
     {
         typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
 
+        template<typename Fn, typename... Args>
+        static type invoke(Fn functional, Args... args)
+        {
+            // Invoke the void returning functional
+            functional(std::forward<Args>(args)...);
 
-        //template<typename Fn, typename... Args>
-        //static type InvokeAndReturn(std::function<Fn> const& functional, std::forward<Args>... args)
-        //{
-        //    functional(std::forward<Args>(args)...);
-        //    return type(); /*[](Callback<>&& callback)
-        //    {
-        //        callback();
-        //    });*/
-        //}
+            // Return a fake void continuable
+            return type([](Callback<>&&)
+            {
+            });
+        }
     };
 
     template<typename _State, typename _CTy>
@@ -65,11 +66,11 @@ namespace detail
     {
         typedef _ContinuableImpl<_State, _CTy> type;
 
-        //template<typename Fn, typename... Args>
-        //static type InvokeAndReturn(std::function<Fn> const& functional, std::forward<Args>... args)
-        //{
-        //    return functional(std::forward<Args>(args)...);
-        //}
+        template<typename Fn, typename... Args>
+        static type invoke(Fn functional, Args... args)
+        {
+            return functional(std::forward<Args>(args)...);
+        }
     };
 
     template<typename _NextRTy, typename... _NextATy>
@@ -79,6 +80,8 @@ namespace detail
     template<typename _NextRTy, typename... _NextATy>
     struct unary_chainer<_NextRTy, fu::identity<_NextATy...>>
     {
+        typedef convert_void_to_continuable<_NextRTy> base;
+
         typedef typename convert_void_to_continuable<_NextRTy>::type result_t;
 
         typedef typename result_t::CallbackFunction callback_t;
@@ -182,14 +185,14 @@ namespace detail
             ForwardFunction&& callback = std::move(_callback_insert);
 
             return typename unary_chainer_t<_CTy>::result_t(
-                [functional, callback](typename unary_chainer_t<_CTy>::callback_t&& next)
+                [functional, callback](unary_chainer_t<_CTy>::callback_t&& call_next)
             {
-                callback([functional, next](_ATy... args)
+                callback([functional, call_next](_ATy&&... args)
                 {
-                    typename unary_chainer_t<_CTy>::result_t continuable;
-                    //=     next(std::forward<_ATy>(args)...);
+                    unary_chainer_t<_CTy>::result_t continuable =
+                        unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...);
 
-                    // continuable();
+                    // continuable._callback_insert(std::move(call_next));
                 });
 
             }, std::move(*this));
