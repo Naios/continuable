@@ -115,13 +115,13 @@ int main(int /*argc*/, char** /*argv*/)
 
     // Brainstorming: this shows an example callback chain
     // Given by continuable
-    std::function<void(Callback<SpellCastResult>&&)> fn1 = [](Callback<SpellCastResult>&& callback)
+    std::function<void(Callback<SpellCastResult>&&)> continuable_1 = [](Callback<SpellCastResult>&& callback)
     {
         callback(SPELL_FAILED_AFFECTING_COMBAT);
     };
 
     // Implemented by user
-    std::function<std::function<void(Callback<bool>&&)>(SpellCastResult)> cn1 = [](SpellCastResult)
+    std::function<std::function<void(Callback<bool>&&)>(SpellCastResult)> callback_by_user_1 = [](SpellCastResult)
     {
         // Given by continuable
         // Fn2
@@ -144,26 +144,20 @@ int main(int /*argc*/, char** /*argv*/)
         };
     };
 
-    // Auto created wrapper by the continuable
-    std::function<void(SpellCastResult)> wr1 = [&](SpellCastResult result)
+    // Entry point
+    std::function<void(Callback<bool>&&>)> entry = [continuable_1 /*= move*/, callback_by_user_1 /*given by the user (::then(...))*/]
+        (std::function<void(Callback<bool>&&)>)
     {
-        // Wrapper functional to process unary or multiple promised callbacks
-        // Returned from the user
-        std::function<void(Callback<bool>&&)> fn2 = cn1(result);
-
-        // Auto wrapper
-        fn2([&](bool value)
+        // Call with auto created wrapper by the continuable
+        continuable_1([&](SpellCastResult result /*forward args*/)
         {
-            cn2(value);
+            // Wrapper functional to process unary or multiple promised callbacks
+            // Returned from the user
+            std::function<void(Callback<bool>&&)> fn2 = callback_by_user_1(/*forward args*/ result);
+            return std::move(fn2);
         });
     };
-
-    // Call this to start the chain
-    Callback<> entry = [&]
-    {
-        fn1(std::move(wr1));
-    };
-
+ 
     // Here we go
     entry();
 
