@@ -47,12 +47,28 @@ namespace detail
     struct convert_void_to_continuable<void>
     {
         typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
+
+        template<typename Fn, typename... Args>
+        static type InvokeAndReturn(std::function<Fn> const& functional, std::forward<Args>... args)
+        {
+            functional(std::forward<Args>(args)...);
+            return type(); /*[](Callback<>&& callback)
+            {
+                callback();
+            });*/
+        }
     };
 
     template<typename _State, typename _CTy>
     struct convert_void_to_continuable<_ContinuableImpl<_State, _CTy>>
     {
         typedef _ContinuableImpl<_State, _CTy> type;
+
+        template<typename Fn, typename... Args>
+        static type InvokeAndReturn(std::function<Fn> const& functional, std::forward<Args>... args)
+        {
+            return functional(std::forward<Args>(args)...);
+        }
     };
 
     template<typename _NextRTy, typename... _NextATy>
@@ -156,6 +172,8 @@ namespace detail
             return *this;
         }
 
+
+
         template<typename _CTy>
         auto then(_CTy&& functional)
             -> typename unary_chainer_t<_CTy>::result_t
@@ -165,15 +183,17 @@ namespace detail
             // next(unary_chainer_t<_CTy>::callback_t());
 
             return typename unary_chainer_t<_CTy>::result_t
-                (std::move(*this), [=](typename unary_chainer_t<_CTy>::callback_t&& /*next_insert_callback*/)
+                (std::move(*this), [=](typename unary_chainer_t<_CTy>::callback_t&& next_insert_callback)
             {
                 _callback_insert([=](_ATy... args)
                 {
-                    // typename unary_chainer_t<_CTy>::result_t next =
+                    typename unary_chainer_t<_CTy>::result_t next =
                         functional(std::forward<_ATy>(args)...);
 
                     // next_insert_callback(result.);
                     // next._insert_callback(next_insert_callback);
+
+                    // FIXME Call next callback
                 });
             });
         }
