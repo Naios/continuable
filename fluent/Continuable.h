@@ -48,15 +48,16 @@ namespace detail
     {
         typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
 
-        template<typename Fn, typename... Args>
-        static type InvokeAndReturn(std::function<Fn> const& functional, std::forward<Args>... args)
-        {
-            functional(std::forward<Args>(args)...);
-            return type(); /*[](Callback<>&& callback)
-            {
-                callback();
-            });*/
-        }
+
+        //template<typename Fn, typename... Args>
+        //static type InvokeAndReturn(std::function<Fn> const& functional, std::forward<Args>... args)
+        //{
+        //    functional(std::forward<Args>(args)...);
+        //    return type(); /*[](Callback<>&& callback)
+        //    {
+        //        callback();
+        //    });*/
+        //}
     };
 
     template<typename _State, typename _CTy>
@@ -64,11 +65,11 @@ namespace detail
     {
         typedef _ContinuableImpl<_State, _CTy> type;
 
-        template<typename Fn, typename... Args>
-        static type InvokeAndReturn(std::function<Fn> const& functional, std::forward<Args>... args)
-        {
-            return functional(std::forward<Args>(args)...);
-        }
+        //template<typename Fn, typename... Args>
+        //static type InvokeAndReturn(std::function<Fn> const& functional, std::forward<Args>... args)
+        //{
+        //    return functional(std::forward<Args>(args)...);
+        //}
     };
 
     template<typename _NextRTy, typename... _NextATy>
@@ -143,7 +144,7 @@ namespace detail
             : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false), _entry_point() { }
 
         template<typename _RSTy, typename _RCTy, typename _FTy>
-        _ContinuableImpl(_ContinuableImpl<_RSTy, _RCTy>&& right, _FTy&& callback_insert)
+        _ContinuableImpl(_FTy&& callback_insert, _ContinuableImpl<_RSTy, _RCTy>&& right)
             : _callback_insert(std::forward<_FTy>(callback_insert)), _released(right._released), _entry_point()
         {
             right._released = true;
@@ -172,30 +173,34 @@ namespace detail
             return *this;
         }
 
-
-
         template<typename _CTy>
         auto then(_CTy&& functional)
             -> typename unary_chainer_t<_CTy>::result_t
         {
-            // Next callback insert
-            // Debugging
-            // next(unary_chainer_t<_CTy>::callback_t());
+            // Transfer the insert function to the local scope.
+            // Also use it as an r-value reference to try to get move semantics with c++11.
+            ForwardFunction&& callback = std::move(_callback_insert);
 
+            return typename unary_chainer_t<_CTy>::result_t(
+                [functional, callback](typename unary_chainer_t<_CTy>::callback_t&& next)
+            {
+                callback([functional, next](_ATy... args)
+                {
+                    typename unary_chainer_t<_CTy>::result_t continuable;
+                    //=     next(std::forward<_ATy>(args)...);
+
+                    // continuable();
+                });
+
+            }, std::move(*this));
+
+            /*
             return typename unary_chainer_t<_CTy>::result_t
                 (std::move(*this), [=](typename unary_chainer_t<_CTy>::callback_t&& next_insert_callback)
             {
-                _callback_insert([=](_ATy... args)
-                {
-                    typename unary_chainer_t<_CTy>::result_t next =
-                        functional(std::forward<_ATy>(args)...);
-
-                    // next_insert_callback(result.);
-                    // next._insert_callback(next_insert_callback);
-
-                    // FIXME Call next callback
-                });
+                
             });
+            */
         }
 
         /*
