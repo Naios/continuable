@@ -23,10 +23,25 @@
 
 namespace detail
 {
+    // ContinuableState forward declaration.
     /// The internal state of the continuable
     /// which is used to save certain internal types.
     template<typename... Args>
     struct ContinuableState;
+
+    // ContinuableImpl forward declaration.
+    template<typename _STy, typename _CTy>
+    class _ContinuableImpl;
+
+    // convert_void_to_continuable forward declaration.
+    /// Corrects void return types from functional types which should be
+    /// Continuable<DefaultContinuableState, Callback<>>
+    template<typename _RTy>
+    struct convert_void_to_continuable;
+
+    // unary_chainer forward declaration.
+    template<typename _NextRTy, typename... _NextATy>
+    struct unary_chainer;
 
     template<typename... _Cain, typename _Proxy>
     struct ContinuableState<std::tuple<_Cain...>, _Proxy>
@@ -34,17 +49,6 @@ namespace detail
     };
 
     typedef ContinuableState<std::tuple<>, void> DefaultContinuableState;
-
-    // ContinuableImpl Forward definition
-    template<typename _STy, typename _CTy>
-    class _ContinuableImpl;
-
-    /// Corrects void return types from functional types which should be Continuable<DefaultContinuableState, Callback<>>
-    template<typename _RTy>
-    struct convert_void_to_continuable;
-
-    template<typename _NextRTy, typename... _NextATy>
-    struct unary_chainer;
 
     // MSVC 12 has issues to detect the parameter pack otherwise.
     template<typename _NextRTy, typename... _NextATy>
