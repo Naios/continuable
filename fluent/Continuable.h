@@ -43,6 +43,10 @@ namespace detail
     template<typename _NextRTy, typename... _NextATy>
     struct unary_chainer;
 
+    // creates an empty callback.
+    template<typename _FTy>
+    struct create_empty_callback_factory;
+
     template<typename... _Cain, typename _Proxy>
     struct ContinuableState<std::tuple<_Cain...>, _Proxy>
     {
@@ -66,6 +70,18 @@ namespace detail
         fu::return_type_of_t<typename std::decay<_CTy>::type>,
         fu::argument_type_of_t<typename std::decay<_CTy>::type>>;
 
+    template<typename... Args>
+    struct create_empty_callback_factory<std::function<void(std::function<void(Args...)>&&)>>
+    {
+        static auto create()
+            -> Callback<Args...>
+        {
+            return [](Args...)
+            {
+            };
+        }
+    };
+
     template<typename... _STy, typename... _ATy>
     class _ContinuableImpl<ContinuableState<_STy...>, std::function<void(_ATy...)>>
     {
@@ -82,35 +98,28 @@ namespace detail
         /// to chain everything together
         ForwardFunction _callback_insert;
 
-        boost::optional<std::function<void()>> _entry_point;
-
         bool _released;
-
-        std::function<void()> MakeEmptyEntryPoint()
-        {
-            return []
-            {
-            };
-        }
 
         void Dispatch()
         {
-            if (_entry_point)
-                (*_entry_point)();
+            // Set released to true to prevent multiple calls
+            _released = true;
+
+            // Invoke everything with an empty callback
+            _callback_insert(create_empty_callback_factory<ForwardFunction>::create());
         }
 
     public:
         // Empty for debugging
         _ContinuableImpl()
-            : _released(false), _callback_insert(), _entry_point() { }
+            : _released(false), _callback_insert() { }
 
         /// Deleted copy construct
         _ContinuableImpl(_ContinuableImpl const&) = delete;
 
         /// Move construct
         _ContinuableImpl(_ContinuableImpl&& right)
-            : _released(right._released), _callback_insert(std::move(right._callback_insert)),
-             _entry_point(std::move(right._entry_point))
+            : _released(right._released), _callback_insert(std::move(right._callback_insert))
         {
             right._released = true;
         }
@@ -118,11 +127,11 @@ namespace detail
         // Construct through a ForwardFunction
         template<typename _FTy>
         _ContinuableImpl(_FTy&& callback_insert)
-            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false), _entry_point() { }
+            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false) { }
 
         template<typename _RSTy, typename _RCTy, typename _FTy>
         _ContinuableImpl(_FTy&& callback_insert, _ContinuableImpl<_RSTy, _RCTy>&& right)
-            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(right._released), _entry_point()
+            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(right._released)
         {
             right._released = true;
         }
@@ -170,14 +179,6 @@ namespace detail
                 });
 
             }, std::move(*this));
-
-            /*
-            return typename unary_chainer_t<_CTy>::result_t
-                (std::move(*this), [=](typename unary_chainer_t<_CTy>::callback_t&& next_insert_callback)
-            {
-                
-            });
-            */
         }
 
         /*
