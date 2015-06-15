@@ -30,6 +30,14 @@ Continuable<SpellCastResult> CastSpell(int id)
     });
 }
 
+Continuable<bool> Validate()
+{
+    return make_continuable([=](Callback<bool>&& callback)
+    {
+        callback(true);
+    });
+}
+
 template <typename... T>
 void test_unwrap(std::string const& msg)
 {
@@ -85,16 +93,23 @@ int main(int /*argc*/, char** /*argv*/)
     typedef Continuable<bool> myty1;
     typedef Continuable<bool, float> myty2;
 
+    // Convertible test
+    
     // Continuable<Callback<SpellCastResult>> spell
-    CastSpell(63362)
-        .then([](SpellCastResult)
-        {
-            return CastSpell(63362);
-        })
-        .then([](SpellCastResult)
-        {
+    {
+        auto stack = CastSpell(63362)
+            .then([](SpellCastResult)
+            {
+                return CastSpell(35254);
+            })
+            .then([](SpellCastResult)
+            {
+                return Validate();
+            });
 
-        });
+        int iii = 0;
+        iii = 1;
+    }
 
     // Wraps a callback function into a continuable
     Continuable<SpellCastResult> cba1 = make_continuable([=](Callback<SpellCastResult>&&)
@@ -144,22 +159,22 @@ int main(int /*argc*/, char** /*argv*/)
         };
     };
 
-    // Entry point
-    std::function<void(Callback<bool>&&>)> entry = [continuable_1 /*= move*/, callback_by_user_1 /*given by the user (::then(...))*/]
-        (std::function<void(Callback<bool>&&)>)
-    {
-        // Call with auto created wrapper by the continuable
-        continuable_1([&](SpellCastResult result /*forward args*/)
-        {
-            // Wrapper functional to process unary or multiple promised callbacks
-            // Returned from the user
-            std::function<void(Callback<bool>&&)> fn2 = callback_by_user_1(/*forward args*/ result);
-            return std::move(fn2);
-        });
-    };
+    //// Entry point
+    //std::function<void(Callback<bool>&&>)> entry = [continuable_1 /*= move*/, callback_by_user_1 /*given by the user (::then(...))*/]
+    //    (std::function<void(Callback<bool>&&)>)
+    //{
+    //    // Call with auto created wrapper by the continuable
+    //    continuable_1([&](SpellCastResult result /*forward args*/)
+    //    {
+    //        // Wrapper functional to process unary or multiple promised callbacks
+    //        // Returned from the user
+    //        std::function<void(Callback<bool>&&)> fn2 = callback_by_user_1(/*forward args*/ result);
+    //        return std::move(fn2);
+    //    });
+    //};
  
-    // Here we go
-    entry();
+    //// Here we go
+    //entry();
 
     std::cout << "ok" << std::endl;
     return 0;
