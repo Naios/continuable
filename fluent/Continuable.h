@@ -43,36 +43,6 @@ namespace detail
     template<typename _RTy>
     struct convert_void_to_continuable;
 
-    template<>
-    struct convert_void_to_continuable<void>
-    {
-        typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
-
-        template<typename Fn, typename... Args>
-        static type invoke(Fn functional, Args... args)
-        {
-            // Invoke the void returning functional
-            functional(std::forward<Args>(args)...);
-
-            // Return a fake void continuable
-            return type([](Callback<>&&)
-            {
-            });
-        }
-    };
-
-    template<typename _State, typename _CTy>
-    struct convert_void_to_continuable<_ContinuableImpl<_State, _CTy>>
-    {
-        typedef _ContinuableImpl<_State, _CTy> type;
-
-        template<typename Fn, typename... Args>
-        static type invoke(Fn functional, Args... args)
-        {
-            return functional(std::forward<Args>(args)...);
-        }
-    };
-
     template<typename _NextRTy, typename... _NextATy>
     struct unary_chainer;
 
@@ -185,11 +155,11 @@ namespace detail
             ForwardFunction&& callback = std::move(_callback_insert);
 
             return typename unary_chainer_t<_CTy>::result_t(
-                [functional, callback](unary_chainer_t<_CTy>::callback_t&& call_next)
+                [functional, callback](typename unary_chainer_t<_CTy>::callback_t&& call_next)
             {
                 callback([functional, call_next](_ATy&&... args)
                 {
-                    unary_chainer_t<_CTy>::result_t continuable =
+                    auto continuable =
                         unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...);
 
                     // continuable._callback_insert(std::move(call_next));
@@ -223,6 +193,37 @@ namespace detail
             return *this;
         }
     };
+
+    template<>
+    struct convert_void_to_continuable<void>
+    {
+        typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
+
+        template<typename Fn, typename... Args>
+        static type invoke(Fn functional, Args... args)
+        {
+            // Invoke the void returning functional
+            functional(std::forward<Args>(args)...);
+
+            // Return a fake void continuable
+            return type([](Callback<>&&)
+            {
+            });
+        }
+    };
+
+    template<typename _State, typename _CTy>
+    struct convert_void_to_continuable<_ContinuableImpl<_State, _CTy>>
+    {
+        typedef _ContinuableImpl<_State, _CTy> type;
+
+        template<typename Fn, typename... Args>
+        static type invoke(Fn functional, Args... args)
+        {
+            return functional(std::forward<Args>(args)...);
+        }
+    };
+
 }
 
 /// A continuable provides useful methods to react on the result of callbacks
