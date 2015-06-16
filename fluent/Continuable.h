@@ -125,14 +125,16 @@ namespace detail
         bool _released;
 
         template <typename _CTy>
-        _ContinuableImpl& operator()(_CTy callback)
+        void invoke(_CTy&& callback)
         {
-            // Invalidate this
-            _released = true;
+            if (!_released)
+            {
+                // Invalidate this
+                _released = true;
 
-            // Invoke this
-            _callback_insert(std::forward<_CTy>(callback));
-            return *this;
+                // Invoke this
+                _callback_insert(std::forward<_CTy>(callback));
+            }
         }
 
         // Pack a continuable into the continuable returning functional type.
@@ -233,7 +235,7 @@ namespace detail
                 {
                     // Invoke the next callback
                     unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...)
-                        (std::move(call_next));
+                        .invoke(std::move(call_next));
                 });
 
             }, std::move(*this));
@@ -375,7 +377,7 @@ inline auto make_continuable(_FTy&& functional)
 ///     .all(...)
 ///     .some(...)
 ///     .any(...)
-inline auto empty_continuable()
+inline auto make_continuable()
     -> Continuable<>
 {
     return make_continuable([](Callback<>&& callback)

@@ -92,7 +92,7 @@ int main(int /*argc*/, char** /*argv*/)
         });
 
     // Mockup of aggregate methods
-    empty_continuable()
+    make_continuable()
         .all(
             [] { return TrivialPromise(); },
             [] { return TrivialPromise(); },
