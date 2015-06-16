@@ -192,12 +192,8 @@ namespace detail
             // Dispatch everything.
             if (!_released)
             {
-                // log_type(_callback_insert, "invoke chain");
-
                 // Set released to true to prevent multiple calls
                 _released = true;
-
-                debug("invoking (once)");
 
                 // Invoke everything with an empty callback
                 _callback_insert(create_empty_callback<ForwardFunction>::create());
