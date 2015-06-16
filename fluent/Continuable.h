@@ -192,7 +192,7 @@ namespace detail
             return typename unary_chainer_t<_CTy>::result_t(
                 [functional, callback](typename unary_chainer_t<_CTy>::callback_t&& call_next)
             {
-                callback([functional, call_next](_ATy... args) mutable
+                callback([functional, call_next](_ATy&&... args) mutable
                 {
                     typename unary_chainer_t<_CTy>::result_t continuable =
                         unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...);
@@ -228,14 +228,15 @@ namespace detail
         typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
 
         template<typename Fn, typename... Args>
-        static type invoke(Fn functional, Args... args)
+        static type invoke(Fn functional, Args&&... args)
         {
             // Invoke the void returning functional
             functional(std::forward<Args>(args)...);
 
             // Return a fake void continuable
-            return type([](Callback<>&&)
+            return type([](Callback<>&& callback)
             {
+                callback();
             });
         }
     };
@@ -246,7 +247,7 @@ namespace detail
         typedef _ContinuableImpl<_State, _CTy> type;
 
         template<typename Fn, typename... Args>
-        static type invoke(Fn functional, Args... args)
+        static type invoke(Fn functional, Args&&... args)
         {
             return functional(std::forward<Args>(args)...);
         }

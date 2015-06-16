@@ -56,9 +56,9 @@ int main(int /*argc*/, char** /*argv*/)
         })
         .then([](SpellCastResult)
         {
-            return Validate();
+            std::cout << "Pause a callback (void test) " << std::endl;
         })
-        .then([](bool)
+        .then([]
         {
             return CastSpell(3);
         })
