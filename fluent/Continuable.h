@@ -21,6 +21,20 @@
 
 #include "Callback.h"
 
+#include <iostream>
+#include <typeinfo>
+#include <string>
+template <typename T>
+void log_type(T t, std::string const& msg = "")
+{
+    std::cout << msg << ": " << typeid(t).name() << std::endl;
+}
+void debug(std::string const& m)
+{
+    std::cout << m << std::endl;
+}
+
+
 namespace detail
 {
     // ContinuableState forward declaration.
@@ -82,123 +96,6 @@ namespace detail
         }
     };
 
-    template<typename... _STy, typename... _ATy>
-    class _ContinuableImpl<ContinuableState<_STy...>, std::function<void(_ATy...)>>
-    {
-        // Make all instances of _ContinuableImpl to a friend.
-        template<typename, typename>
-        friend class _ContinuableImpl;
-
-    public:
-        typedef Callback<_ATy...> CallbackFunction;
-        typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
-
-    private:
-        /// Functional which expects a callback that is inserted from the Continuable
-        /// to chain everything together
-        ForwardFunction _callback_insert;
-
-        bool _released;
-
-        void Dispatch()
-        {
-            // Set released to true to prevent multiple calls
-            _released = true;
-
-            // Invoke everything with an empty callback
-            _callback_insert(create_empty_callback_factory<ForwardFunction>::create());
-        }
-
-    public:
-        // Empty for debugging
-        _ContinuableImpl()
-            : _released(false), _callback_insert() { }
-
-        /// Deleted copy construct
-        _ContinuableImpl(_ContinuableImpl const&) = delete;
-
-        /// Move construct
-        _ContinuableImpl(_ContinuableImpl&& right)
-            : _released(right._released), _callback_insert(std::move(right._callback_insert))
-        {
-            right._released = true;
-        }
-
-        // Construct through a ForwardFunction
-        template<typename _FTy>
-        _ContinuableImpl(_FTy&& callback_insert)
-            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false) { }
-
-        template<typename _RSTy, typename _RCTy, typename _FTy>
-        _ContinuableImpl(_FTy&& callback_insert, _ContinuableImpl<_RSTy, _RCTy>&& right)
-            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(right._released)
-        {
-            right._released = true;
-        }
-
-        /// Destructor which calls the dispatch chain if needed.
-        ~_ContinuableImpl()
-        {
-            if (!_released)
-            {
-                _released = true;
-                Dispatch();
-            }
-        }
-
-        /// Deleted copy assign
-        template<typename _RState, typename _RCTy>
-        _ContinuableImpl& operator= (_ContinuableImpl const&) = delete;
-
-        /// Move construct assign
-        _ContinuableImpl& operator= (_ContinuableImpl&& right)
-        {
-            _released = right._released;
-            right._released = true;
-            _callback_insert = std::move(right._callback_insert);
-            return *this;
-        }
-
-        template<typename _CTy>
-        auto then(_CTy&& functional)
-            -> typename unary_chainer_t<_CTy>::result_t
-        {
-            // Transfer the insert function to the local scope.
-            // Also use it as an r-value reference to try to get move semantics with c++11.
-            ForwardFunction&& callback = std::move(_callback_insert);
-
-            return typename unary_chainer_t<_CTy>::result_t(
-                [functional, callback](typename unary_chainer_t<_CTy>::callback_t&& call_next)
-            {
-                callback([functional, call_next](_ATy&&... args)
-                {
-                    auto continuable =
-                        unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...);
-
-                    // continuable._callback_insert(std::move(call_next));
-                });
-
-            }, std::move(*this));
-        }
-
-        /*
-        // TODO Accept only correct callbacks
-        template<typename... _CTy>
-        Continuable<Callback<_ATy...>> all(_CTy&&...)
-        {
-            // TODO Transmute the returned callback here.
-            return Continuable<Callback<_ATy...>>(std::move(*this));
-        }
-        */
-
-        /// Invalidates the Continuable
-        _ContinuableImpl& invalidate()
-        {
-            _released = true;
-            return *this;
-        }
-    };
-
     template<>
     struct convert_void_to_continuable<void>
     {
@@ -229,6 +126,131 @@ namespace detail
         }
     };
 
+    template<typename... _STy, typename... _ATy>
+    class _ContinuableImpl<ContinuableState<_STy...>, std::function<void(_ATy...)>>
+    {
+        // Make all instances of _ContinuableImpl to a friend.
+        template<typename, typename>
+        friend class _ContinuableImpl;
+
+    public:
+        typedef Callback<_ATy...> CallbackFunction;
+        typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
+
+    private:
+        /// Functional which expects a callback that is inserted from the Continuable
+        /// to chain everything together
+        ForwardFunction _callback_insert;
+
+        bool _released;
+
+    public:
+        // Empty for debugging
+        /*_ContinuableImpl()
+            : _released(true), _callback_insert() { }*/
+
+        /// Deleted copy construct
+        _ContinuableImpl(_ContinuableImpl const&) = delete;
+
+        /// Move construct
+        _ContinuableImpl(_ContinuableImpl&& right)
+            : _released(right._released), _callback_insert(std::move(right._callback_insert))
+        {
+            right._released = true;
+        }
+
+        // Construct through a ForwardFunction
+        template<typename _FTy>
+        _ContinuableImpl(_FTy&& callback_insert)
+            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false) { }
+
+        template<typename _RSTy, typename _RCTy, typename _FTy>
+        _ContinuableImpl(_FTy&& callback_insert, _ContinuableImpl<_RSTy, _RCTy>&& right)
+            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(right._released)
+        {
+            right._released = true;
+        }
+
+        /// Destructor which calls the dispatch chain if needed.
+        ~_ContinuableImpl()
+        {
+            // Dispatch everything.
+            if (!_released)
+            {
+                log_type(_callback_insert, "invoke chain");
+
+                // Set released to true to prevent multiple calls
+                _released = true;
+
+                // Invoke everything with an empty callback
+                _callback_insert(create_empty_callback_factory<ForwardFunction>::create());
+            }
+        }
+
+        /// Deleted copy assign
+        template<typename _RState, typename _RCTy>
+        _ContinuableImpl& operator= (_ContinuableImpl const&) = delete;
+
+        /// Move construct assign
+        _ContinuableImpl& operator= (_ContinuableImpl&& right)
+        {
+            _released = right._released;
+            right._released = true;
+            _callback_insert = std::move(right._callback_insert);
+            return *this;
+        }
+
+        template<typename _CTy>
+        auto then(_CTy&& functional)
+            -> typename unary_chainer_t<_CTy>::result_t
+        {
+            // Transfer the insert function to the local scope.
+            // Also use it as an r-value reference to try to get move semantics with c++11.
+            ForwardFunction callback = std::move(_callback_insert);
+
+            return typename unary_chainer_t<_CTy>::result_t(
+                [functional, callback](typename unary_chainer_t<_CTy>::callback_t&&)
+            {
+                log_type(callback, "calling");
+
+                callback([functional](_ATy... args)
+                {
+                    // log_type(functional, "invoking");
+
+                    auto continuable =
+                        unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...);
+
+                    // log_type(continuable, "result");
+
+                    // auto cc = continuable;
+
+                    int i = 0;
+
+
+                    // TODO
+                    // continuable._callback_insert(std::move(call_next));
+                });
+
+            }, std::move(*this));
+        }
+
+        /*
+        // TODO Accept only correct callbacks
+        template<typename... _CTy>
+        Continuable<Callback<_ATy...>> all(_CTy&&...)
+        {
+            // TODO Transmute the returned callback here.
+            return Continuable<Callback<_ATy...>>(std::move(*this));
+        }
+        */
+
+        /// Invalidates the Continuable
+        _ContinuableImpl& invalidate()
+        {
+            _released = true;
+            return *this;
+        }
+    };
 }
 
 /// A continuable provides useful methods to react on the result of callbacks

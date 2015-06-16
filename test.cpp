@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <string>
 #include <vector>
+#include <typeinfo>
 
 enum SpellCastResult
 {
@@ -56,6 +57,10 @@ int main(int /*argc*/, char** /*argv*/)
         .then([](SpellCastResult)
         {
             return CastSpell(3);
+        })
+        .then([](SpellCastResult)
+        {
+            return CastSpell(4);
         })
         .then([](SpellCastResult)
         {
