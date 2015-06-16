@@ -62,6 +62,15 @@ namespace detail
     template<typename _FTy>
     struct create_empty_callback;
 
+    // trait to identify continuable types
+    template<typename _CTy>
+    struct is_continuable
+        : public std::false_type { };
+
+    template<typename _STy, typename _CTy>
+    struct is_continuable<_ContinuableImpl<_STy, _CTy>>
+        : public std::true_type { };
+
     template<typename... _Cain, typename _Proxy>
     struct ContinuableState<std::tuple<_Cain...>, _Proxy>
     {
@@ -126,6 +135,28 @@ namespace detail
             return *this;
         }
 
+        // Then implementation of eval functionals.
+        template<typename _CTy>
+        auto _then(_CTy&& functional)
+            -> typename unary_chainer_t<_CTy>::result_t
+        {
+            // Transfer the insert function to the local scope.
+            // Also use it as an r-value reference to try to get move semantics with c++11 lambdas.
+            ForwardFunction&& callback = std::move(_callback_insert);
+
+            return typename unary_chainer_t<_CTy>::result_t(
+                [functional, callback](typename unary_chainer_t<_CTy>::callback_t&& call_next)
+            {
+                callback([functional, call_next](_ATy&&... args) mutable
+                {
+                    // Invoke the next callback
+                    unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...)
+                        (std::move(call_next));
+                });
+
+            }, std::move(*this));
+        }
+
     public:
         /// Deleted copy construct
         _ContinuableImpl(_ContinuableImpl const&) = delete;
@@ -183,23 +214,9 @@ namespace detail
 
         template<typename _CTy>
         auto then(_CTy&& functional)
-            -> typename unary_chainer_t<_CTy>::result_t
+            -> decltype(_then(std::declval<_CTy>()))
         {
-            // Transfer the insert function to the local scope.
-            // Also use it as an r-value reference to try to get move semantics with c++11 lambdas.
-            ForwardFunction&& callback = std::move(_callback_insert);
-
-            return typename unary_chainer_t<_CTy>::result_t(
-                [functional, callback](typename unary_chainer_t<_CTy>::callback_t&& call_next)
-            {
-                callback([functional, call_next](_ATy&&... args) mutable
-                {
-                    // Invoke the next callback
-                    unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...)
-                        (std::move(call_next));
-                });
-
-            }, std::move(*this));
+            return _then(std::forward<_CTy>(functional));
         }
 
         /// Placeholder
@@ -222,7 +239,7 @@ namespace detail
             -> _ContinuableImpl& // FIXME gcc build &-> decltype(some(1, std::declval<_CTy>()...))
         {
             // Equivalent to invoke `some` with count 1.
-            return some<_CTy...>(1, std::forward<_CTy>(functionals)...);
+            return some(1, std::forward<_CTy>(functionals)...);
         }
 
         /*
