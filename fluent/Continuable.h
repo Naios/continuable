@@ -21,6 +21,7 @@
 
 #include "Callback.h"
 
+// Debug includes
 #include <iostream>
 #include <typeinfo>
 #include <string>
@@ -33,7 +34,7 @@ void debug(std::string const& m)
 {
     std::cout << m << std::endl;
 }
-
+/// Debug end
 
 namespace detail
 {
@@ -59,7 +60,7 @@ namespace detail
 
     // creates an empty callback.
     template<typename _FTy>
-    struct create_empty_callback_factory;
+    struct create_empty_callback;
 
     template<typename... _Cain, typename _Proxy>
     struct ContinuableState<std::tuple<_Cain...>, _Proxy>
@@ -85,7 +86,7 @@ namespace detail
         fu::argument_type_of_t<typename std::decay<_CTy>::type>>;
 
     template<typename... Args>
-    struct create_empty_callback_factory<std::function<void(std::function<void(Args...)>&&)>>
+    struct create_empty_callback<std::function<void(std::function<void(Args...)>&&)>>
     {
         static auto create()
             -> Callback<Args...>
@@ -114,11 +115,18 @@ namespace detail
 
         bool _released;
 
-    public:
-        // Empty for debugging
-        /*_ContinuableImpl()
-            : _released(true), _callback_insert() { }*/
+        template <typename _CTy>
+        _ContinuableImpl& operator()(_CTy callback)
+        {
+            // Invalidate this
+            _released = true;
 
+            // Invoke this
+            _callback_insert(std::forward<_CTy>(callback));
+            return *this;
+        }
+
+    public:
         /// Deleted copy construct
         _ContinuableImpl(_ContinuableImpl const&) = delete;
 
@@ -147,13 +155,15 @@ namespace detail
             // Dispatch everything.
             if (!_released)
             {
-                log_type(_callback_insert, "invoke chain");
+                // log_type(_callback_insert, "invoke chain");
 
                 // Set released to true to prevent multiple calls
                 _released = true;
 
+                debug("invoking (once)");
+
                 // Invoke everything with an empty callback
-                _callback_insert(create_empty_callback_factory<ForwardFunction>::create());
+                _callback_insert(create_empty_callback<ForwardFunction>::create());
             }
         }
 
@@ -166,6 +176,7 @@ namespace detail
         {
             _released = right._released;
             right._released = true;
+
             _callback_insert = std::move(right._callback_insert);
             return *this;
         }
@@ -176,35 +187,18 @@ namespace detail
         {
             // Transfer the insert function to the local scope.
             // Also use it as an r-value reference to try to get move semantics with c++11.
-            ForwardFunction callback = std::move(_callback_insert);
+            ForwardFunction&& callback = std::move(_callback_insert);
 
             return typename unary_chainer_t<_CTy>::result_t(
                 [functional, callback](typename unary_chainer_t<_CTy>::callback_t&& call_next)
             {
-                log_type(callback, "calling");
-
-                callback([functional, call_next](_ATy... args)
+                callback([functional, call_next](_ATy... args) mutable
                 {
-                    log_type(functional, "invoking");
-
-                    auto continuable =
+                    typename unary_chainer_t<_CTy>::result_t continuable =
                         unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...);
 
-                    // log_type(continuable, "result");
-
-                    // auto cc = continuable;
-
-                    auto src_tttt = std::move(call_next);
-
-                    auto tar_tttt = std::move(continuable._callback_insert);
-
-                    tar_tttt(std::move(src_tttt));
-
-                    int i = 0;
-
-
-                    // TODO
-                    // continuable._callback_insert(std::move(call_next));
+                    // Invoke the next callback
+                    continuable(std::move(call_next));
                 });
 
             }, std::move(*this));
