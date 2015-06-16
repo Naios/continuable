@@ -186,7 +186,7 @@ namespace detail
             -> typename unary_chainer_t<_CTy>::result_t
         {
             // Transfer the insert function to the local scope.
-            // Also use it as an r-value reference to try to get move semantics with c++11.
+            // Also use it as an r-value reference to try to get move semantics with c++11 lambdas.
             ForwardFunction&& callback = std::move(_callback_insert);
 
             return typename unary_chainer_t<_CTy>::result_t(
@@ -194,11 +194,9 @@ namespace detail
             {
                 callback([functional, call_next](_ATy&&... args) mutable
                 {
-                    typename unary_chainer_t<_CTy>::result_t continuable =
-                        unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...);
-
                     // Invoke the next callback
-                    continuable(std::move(call_next));
+                    unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...)
+                        (std::move(call_next));
                 });
 
             }, std::move(*this));
