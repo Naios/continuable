@@ -56,6 +56,10 @@ int main(int /*argc*/, char** /*argv*/)
         })
         .then([](SpellCastResult)
         {
+            return Validate();
+        })
+        .then([](bool)
+        {
             return CastSpell(3);
         })
         .then([](SpellCastResult)
