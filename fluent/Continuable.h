@@ -219,10 +219,10 @@ namespace detail
         /// Placeholder
         template<typename... _CTy>
         auto any(_CTy&&... functionals)
-            -> decltype(some(1, std::declval<_CTy>()...))
+            -> _ContinuableImpl& // FIXME gcc build &-> decltype(some(1, std::declval<_CTy>()...))
         {
             // Equivalent to invoke `some` with count 1.
-            return some(1, std::forward<_CTy>(functionals)...);
+            return some<_CTy...>(1, std::forward<_CTy>(functionals)...);
         }
 
         /*
