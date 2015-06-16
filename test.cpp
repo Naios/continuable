@@ -83,14 +83,9 @@ int main(int /*argc*/, char** /*argv*/)
         {
             std::cout << "Pause a callback (void test) " << std::endl;
         })
-        .then([]
-        {
-            return CastSpellPromise(3);
-        })
-        .then([](SpellCastResult)
-        {
-            return CastSpellPromise(4);
-        })
+        .then(CastSpellPromise(3))
+        .then(CastSpellPromise(4))
+        .then(CastSpellPromise(5))
         .then([](SpellCastResult)
         {
             return Validate();
