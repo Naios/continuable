@@ -64,14 +64,24 @@ namespace fu
         struct unwrap_function_impl<std::tuple<_RTy, _ATy...>>
             : unwrap_function_impl<_RTy(_ATy...)> { };
 
-        /// Function pointers
+        /// Const function pointers
         template<typename _RTy, typename... _ATy>
         struct unwrap_function_impl<_RTy(*const)(_ATy...)>
             : unwrap_function_impl<_RTy(_ATy...)> { };
 
-        /// Class Method pointers
+        /// Mutable function pointers
+        template<typename _RTy, typename... _ATy>
+        struct unwrap_function_impl<_RTy(*)(_ATy...)>
+            : unwrap_function_impl<_RTy(_ATy...)> { };
+
+        /// Const class method pointers
         template<typename _CTy, typename _RTy, typename... _ATy>
         struct unwrap_function_impl<_RTy(_CTy::*)(_ATy...) const>
+            : unwrap_function_impl<_RTy(_ATy...)> { };
+
+        /// Mutable class method pointers
+        template<typename _CTy, typename _RTy, typename... _ATy>
+        struct unwrap_function_impl<_RTy(_CTy::*)(_ATy...)>
             : unwrap_function_impl<_RTy(_ATy...)> { };
 
         /// Pack in fu::identity
