@@ -214,12 +214,21 @@ namespace detail
         }
         */
 
+        /*
+        /// Validates the Continuable
+        inline _ContinuableImpl& Validate()
+        {
+            _released = false;
+            return *this;
+        }
+
         /// Invalidates the Continuable
-        _ContinuableImpl& invalidate()
+        inline _ContinuableImpl& Invalidate()
         {
             _released = true;
             return *this;
         }
+        */
     };
 
     template<>
@@ -249,6 +258,7 @@ namespace detail
         template<typename Fn, typename... Args>
         static type invoke(Fn functional, Args&&... args)
         {
+            // Invoke the functional as usual.
             return functional(std::forward<Args>(args)...);
         }
     };

@@ -10,6 +10,8 @@
 #include <vector>
 #include <typeinfo>
 
+#include <boost/optional.hpp>
+
 enum SpellCastResult
 {
     SPELL_FAILED_SUCCESS = 0,
@@ -20,14 +22,25 @@ enum SpellCastResult
     SPELL_FAILED_ALREADY_BEING_TAMED = 5
 };
 
-Continuable<SpellCastResult> CastSpell(int id)
+template<typename T>
+using Optional = boost::optional<T>;
+
+// Original method taking an optional callback.
+void CastSpell(int id, Optional<Callback<SpellCastResult>> const& callback = boost::none)
+{
+    std::cout << "Casting " << id << std::endl;
+
+    // on success call the callback with SPELL_FAILED_SUCCESS
+    if (callback)
+        (*callback)(SPELL_FAILED_SUCCESS);
+}
+
+// Promise wrapped callback decorator.
+Continuable<SpellCastResult> CastSpellPromise(int id)
 {
     return make_continuable([=](Callback<SpellCastResult>&& callback)
     {
-        std::cout << "Cast " << id << std::endl;
-
-        // on success call the callback with SPELL_FAILED_SUCCESS
-        callback(SPELL_FAILED_SUCCESS);
+        CastSpell(id, callback);
     });
 }
 
@@ -49,10 +62,10 @@ void test_unwrap(std::string const& msg)
 
 int main(int /*argc*/, char** /*argv*/)
 {
-    CastSpell(1)
+    CastSpellPromise(1)
         .then([](SpellCastResult)
         {
-            return CastSpell(2);
+            return CastSpellPromise(2);
         })
         .then([](SpellCastResult)
         {
@@ -60,11 +73,11 @@ int main(int /*argc*/, char** /*argv*/)
         })
         .then([]
         {
-            return CastSpell(3);
+            return CastSpellPromise(3);
         })
         .then([](SpellCastResult)
         {
-            return CastSpell(4);
+            return CastSpellPromise(4);
         })
         .then([](SpellCastResult)
         {
