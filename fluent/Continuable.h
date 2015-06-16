@@ -135,6 +135,32 @@ namespace detail
             return *this;
         }
 
+        // Pack a continuable into the continuable returning functional type.
+        template<typename _CTy>
+        static auto box_continuable(_CTy&& continuable)
+            -> typename std::enable_if<is_continuable<typename std::decay<_CTy>::type>::value,
+                    std::function<typename std::decay<_CTy>::type(_ATy...)>>::type
+        {
+            // Trick C++11 lambda capture rules for non copyable but moveable continuables.
+            std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
+                std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
+
+            // Create a fake function which returns the value on invoke.
+            return [shared_continuable](_ATy...)
+            {
+                return std::move(*shared_continuable);
+            };
+        }
+
+        // Do nothing if already a non continuable type
+        template<typename _CTy>
+        static auto box_continuable(_CTy&& continuable)
+            -> typename std::enable_if<!is_continuable<typename std::decay<_CTy>::type>::value,
+                    typename std::decay<_CTy>::type>::type
+        {
+            return continuable;
+        }
+
     public:
         /// Deleted copy construct
         _ContinuableImpl(_ContinuableImpl const&) = delete;
@@ -190,8 +216,7 @@ namespace detail
             return *this;
         }
 
-// Then implementation of eval functionals.
-        // Enable if the given type isn't a continuable.
+        /// Waits for this continuable and invokes the given callback.
         template<typename _CTy>
         auto then(_CTy&& functional)
             -> typename std::enable_if<!is_continuable<typename std::decay<_CTy>::type>::value,
@@ -214,7 +239,7 @@ namespace detail
             }, std::move(*this));
         }
 
-        // The continuable itself
+        /// Waits for this continuable and continues with the given one.
         template<typename _CTy>
         auto then(_CTy&& continuable)
             -> typename std::enable_if<is_continuable<typename std::decay<_CTy>::type>::value,
@@ -223,15 +248,7 @@ namespace detail
             static_assert(std::is_rvalue_reference<_CTy&&>::value,
                 "Given continuable must be passed as r-value!");
 
-            // Trick C++11 lambda capture rules for non copyable but moveable continuables.
-            std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
-                std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
-
-            // Create a fake function which returns the value on invoke.
-            return then([shared_continuable](_ATy...)
-            {
-                return std::move(*shared_continuable);
-            });
+            return then(box_continuable(std::forward<_CTy>(continuable)));
         }
 
         /// Placeholder
