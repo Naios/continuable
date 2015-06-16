@@ -202,15 +202,28 @@ namespace detail
             }, std::move(*this));
         }
 
-        /*
-        // TODO Accept only correct callbacks
+        /// Placeholder
         template<typename... _CTy>
-        Continuable<Callback<_ATy...>> all(_CTy&&...)
+        _ContinuableImpl& all(_CTy&&...)
         {
-            // TODO Transmute the returned callback here.
-            return Continuable<Callback<_ATy...>>(std::move(*this));
+            return *this;
         }
-        */
+
+        /// Placeholder
+        template<typename... _CTy>
+        _ContinuableImpl& some(size_t const count, _CTy&&...)
+        {
+            return *this;
+        }
+
+        /// Placeholder
+        template<typename... _CTy>
+        auto any(_CTy&&... functionals)
+            -> decltype(some(1, std::declval<_CTy>()...))
+        {
+            // Equivalent to invoke `some` with count 1.
+            return some(1, std::forward<_CTy>(functionals)...);
+        }
 
         /*
         /// Validates the Continuable
@@ -305,6 +318,21 @@ inline auto make_continuable(_FTy&& functional)
     -> decltype(detail::continuable_factory_t<_FTy>::CreateFrom(std::declval<_FTy>()))
 {
     return detail::continuable_factory_t<_FTy>::CreateFrom(std::forward<_FTy>(functional));
+}
+
+/// Creates an empty continuable.
+/// Can be used to start a chain with aggregate methods.
+/// empty_continuable()
+///     .all(...)
+///     .some(...)
+///     .any(...)
+inline auto empty_continuable()
+    -> Continuable<>
+{
+    return make_continuable([](Callback<>&& callback)
+    {
+        callback();
+    });
 }
 
 #endif // _CONTINUABLE_H_
