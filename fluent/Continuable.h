@@ -135,50 +135,6 @@ namespace detail
             return *this;
         }
 
-        // Then implementation of eval functionals.
-        // Enable if the given type isn't a continuable.
-        template<typename _CTy>
-        auto _then(_CTy&& functional)
-            -> typename std::enable_if<!is_continuable<typename std::decay<_CTy>::type>::value,
-                    typename unary_chainer_t<_CTy>::result_t>::type
-        {
-            // Transfer the insert function to the local scope.
-            // Also use it as an r-value reference to try to get move semantics with c++11 lambdas.
-            ForwardFunction&& callback = std::move(_callback_insert);
-
-            return typename unary_chainer_t<_CTy>::result_t(
-                [functional, callback](typename unary_chainer_t<_CTy>::callback_t&& call_next)
-            {
-                callback([functional, call_next](_ATy&&... args) mutable
-                {
-                    // Invoke the next callback
-                    unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...)
-                        (std::move(call_next));
-                });
-
-            }, std::move(*this));
-        }
-
-        // The continuable itself
-        template<typename _CTy>
-        auto _then(_CTy&& continuable)
-            -> typename std::enable_if<is_continuable<typename std::decay<_CTy>::type>::value,
-                    typename std::decay<_CTy>::type>::type
-        {
-            static_assert(std::is_rvalue_reference<_CTy&&>::value,
-                "Given continuable must be passed as r-value!");
-
-            // Trick C++11 lambda capture rules for non copyable but moveable continuables.
-            std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
-                std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
-
-            // Create a fake function which returns the value on invoke.
-            return _then([shared_continuable](_ATy...)
-            {
-                return std::move(*shared_continuable);
-            });
-        }
-
     public:
         /// Deleted copy construct
         _ContinuableImpl(_ContinuableImpl const&) = delete;
@@ -234,11 +190,48 @@ namespace detail
             return *this;
         }
 
+// Then implementation of eval functionals.
+        // Enable if the given type isn't a continuable.
         template<typename _CTy>
         auto then(_CTy&& functional)
-            -> decltype(_then(std::declval<_CTy>()))
+            -> typename std::enable_if<!is_continuable<typename std::decay<_CTy>::type>::value,
+                    typename unary_chainer_t<_CTy>::result_t>::type
         {
-            return _then(std::forward<_CTy>(functional));
+            // Transfer the insert function to the local scope.
+            // Also use it as an r-value reference to try to get move semantics with c++11 lambdas.
+            ForwardFunction&& callback = std::move(_callback_insert);
+
+            return typename unary_chainer_t<_CTy>::result_t(
+                [functional, callback](typename unary_chainer_t<_CTy>::callback_t&& call_next)
+            {
+                callback([functional, call_next](_ATy&&... args) mutable
+                {
+                    // Invoke the next callback
+                    unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...)
+                        (std::move(call_next));
+                });
+
+            }, std::move(*this));
+        }
+
+        // The continuable itself
+        template<typename _CTy>
+        auto then(_CTy&& continuable)
+            -> typename std::enable_if<is_continuable<typename std::decay<_CTy>::type>::value,
+                    typename std::decay<_CTy>::type>::type
+        {
+            static_assert(std::is_rvalue_reference<_CTy&&>::value,
+                "Given continuable must be passed as r-value!");
+
+            // Trick C++11 lambda capture rules for non copyable but moveable continuables.
+            std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
+                std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
+
+            // Create a fake function which returns the value on invoke.
+            return then([shared_continuable](_ATy...)
+            {
+                return std::move(*shared_continuable);
+            });
         }
 
         /// Placeholder
