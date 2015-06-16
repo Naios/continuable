@@ -96,36 +96,6 @@ namespace detail
         }
     };
 
-    template<>
-    struct convert_void_to_continuable<void>
-    {
-        typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
-
-        template<typename Fn, typename... Args>
-        static type invoke(Fn functional, Args... args)
-        {
-            // Invoke the void returning functional
-            functional(std::forward<Args>(args)...);
-
-            // Return a fake void continuable
-            return type([](Callback<>&&)
-            {
-            });
-        }
-    };
-
-    template<typename _State, typename _CTy>
-    struct convert_void_to_continuable<_ContinuableImpl<_State, _CTy>>
-    {
-        typedef _ContinuableImpl<_State, _CTy> type;
-
-        template<typename Fn, typename... Args>
-        static type invoke(Fn functional, Args... args)
-        {
-            return functional(std::forward<Args>(args)...);
-        }
-    };
-
     template<typename... _STy, typename... _ATy>
     class _ContinuableImpl<ContinuableState<_STy...>, std::function<void(_ATy...)>>
     {
@@ -249,6 +219,36 @@ namespace detail
         {
             _released = true;
             return *this;
+        }
+    };
+
+    template<>
+    struct convert_void_to_continuable<void>
+    {
+        typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
+
+        template<typename Fn, typename... Args>
+        static type invoke(Fn functional, Args... args)
+        {
+            // Invoke the void returning functional
+            functional(std::forward<Args>(args)...);
+
+            // Return a fake void continuable
+            return type([](Callback<>&&)
+            {
+            });
+        }
+    };
+
+    template<typename _State, typename _CTy>
+    struct convert_void_to_continuable<_ContinuableImpl<_State, _CTy>>
+    {
+        typedef _ContinuableImpl<_State, _CTy> type;
+
+        template<typename Fn, typename... Args>
+        static type invoke(Fn functional, Args... args)
+        {
+            return functional(std::forward<Args>(args)...);
         }
     };
 }
