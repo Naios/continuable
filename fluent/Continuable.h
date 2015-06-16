@@ -179,13 +179,13 @@ namespace detail
             ForwardFunction callback = std::move(_callback_insert);
 
             return typename unary_chainer_t<_CTy>::result_t(
-                [functional, callback](typename unary_chainer_t<_CTy>::callback_t&&)
+                [functional, callback](typename unary_chainer_t<_CTy>::callback_t&& call_next)
             {
                 log_type(callback, "calling");
 
-                callback([functional](_ATy... args)
+                callback([functional, call_next](_ATy... args)
                 {
-                    // log_type(functional, "invoking");
+                    log_type(functional, "invoking");
 
                     auto continuable =
                         unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...);
@@ -193,6 +193,12 @@ namespace detail
                     // log_type(continuable, "result");
 
                     // auto cc = continuable;
+
+                    auto src_tttt = std::move(call_next);
+
+                    auto tar_tttt = std::move(continuable._callback_insert);
+
+                    tar_tttt(std::move(src_tttt));
 
                     int i = 0;
 
