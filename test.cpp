@@ -44,6 +44,18 @@ Continuable<SpellCastResult> CastSpellPromise(int id)
     });
 }
 
+// Void instant returning continuable promise for testing purposes
+Continuable<> TrivialPromise(std::string const& msg = "")
+{
+    return make_continuable([=](Callback<>&& callback)
+    {
+        if (!msg.empty())
+            std::cout << msg << std::endl;
+
+        callback();
+    });
+}
+
 Continuable<bool> Validate()
 {
     return make_continuable([=](Callback<bool>&& callback)
@@ -82,6 +94,26 @@ int main(int /*argc*/, char** /*argv*/)
         .then([](SpellCastResult)
         {
             return Validate();
+        });
+
+    // Mockup of aggregate methods
+    empty_continuable()
+        .all(
+            [] { return TrivialPromise(); },
+            [] { return TrivialPromise(); },
+            [] { return TrivialPromise(); }
+        )
+        .some(2, // Only 2 of 3 must complete
+            [] { return TrivialPromise(); },
+            [] { return TrivialPromise(); },
+            [] { return TrivialPromise(); }
+        )
+        .any(    // Any of 2.
+            [] { return TrivialPromise(); },
+            [] { return TrivialPromise(); }
+        )
+        .then([]
+        {
         });
 
     //Continuable<bool> cb = make_continuable([](Callback<bool>&& callback)
