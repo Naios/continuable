@@ -1,4 +1,4 @@
-project(fluent++ C CXX)
+project(Continue.cpp C CXX)
 cmake_minimum_required(VERSION 2.8)
 
 include(CheckCXXCompilerFlag)
@@ -28,15 +28,15 @@ if(CMAKE_BUILD_TOOL MATCHES "(msdev|devenv|nmake)")
     add_definitions(-Wall -Wextra)
 endif()
 
-file(GLOB_RECURSE FLUENT_SOURCES fluent/*.cpp fluent/*.hpp fluent/*.h)
-add_library(fluent STATIC ${FLUENT_SOURCES})
+file(GLOB_RECURSE LIB_SOURCES include/*.cpp include/*.hpp include/*.h)
+add_library(continue STATIC ${LIB_SOURCES})
 
-include_directories(fluent)
+include_directories(continue)
 
 set(TEST_SOURCES test.cpp)
 
-add_executable(fluent_test ${TEST_SOURCES})
+add_executable(continue_test ${TEST_SOURCES})
 
-target_link_libraries(fluent_test
-  fluent
+target_link_libraries(continue_test
+  continue
 )

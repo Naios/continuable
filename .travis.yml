@@ -32,4 +32,4 @@ install:
 script:
   - $CXX --version
   - make -j 4
-  - ./fluent_test
+  - ./continue_test
