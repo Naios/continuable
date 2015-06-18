@@ -42,7 +42,7 @@ namespace detail
     /// The internal state of the continuable
     /// which is used to save certain internal types.
     template<typename... Args>
-    struct ContinuableState;
+    class ContinuableState;
 
     // ContinuableImpl forward declaration.
     template<typename _STy, typename _CTy>
@@ -71,12 +71,18 @@ namespace detail
     struct is_continuable<_ContinuableImpl<_STy, _CTy>>
         : public std::true_type { };
 
-    template<typename... _Cain, typename _Proxy>
-    struct ContinuableState<std::tuple<_Cain...>, _Proxy>
+    template<typename _WeakContextType>
+    class ContinuableState<_WeakContextType>
     {
+        template<typename, typename>
+        friend class _ContinuableImpl;
+
+        typedef std::weak_ptr<_WeakContextType> weak_reference_t;
     };
 
-    typedef ContinuableState<std::tuple<>, void> DefaultContinuableState;
+    struct WeakContext { };
+
+    typedef ContinuableState<WeakContext> DefaultContinuableState;
 
     // MSVC 12 has issues to detect the parameter pack otherwise.
     template<typename _NextRTy, typename... _NextATy>
@@ -117,12 +123,16 @@ namespace detail
         typedef Callback<_ATy...> CallbackFunction;
         typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
 
+        typedef typename ContinuableState<_STy...>::weak_reference_t WeakReference;
+
     private:
         /// Functional which expects a callback that is inserted from the Continuable
         /// to chain everything together
         ForwardFunction _callback_insert;
 
         bool _released;
+
+        WeakReference _reference;
 
         template <typename _CTy>
         void invoke(_CTy&& callback)
@@ -168,7 +178,8 @@ namespace detail
         _ContinuableImpl(_ContinuableImpl const&) = delete;
 
         /// Move construct
-        _ContinuableImpl(_ContinuableImpl&& right)
+        template<typename _RSTy>
+        _ContinuableImpl(_ContinuableImpl<_RSTy, Callback<_ATy...>>&& right)
             : _released(right._released), _callback_insert(std::move(right._callback_insert))
         {
             right._released = true;
@@ -205,7 +216,8 @@ namespace detail
         _ContinuableImpl& operator= (_ContinuableImpl const&) = delete;
 
         /// Move construct assign
-        _ContinuableImpl& operator= (_ContinuableImpl&& right)
+        template<typename _RSTy>
+        _ContinuableImpl& operator= (_ContinuableImpl<_RSTy, Callback<_ATy...>>&& right)
         {
             _released = right._released;
             right._released = true;
