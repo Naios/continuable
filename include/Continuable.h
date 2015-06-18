@@ -58,6 +58,10 @@ namespace detail
     template<typename _NextRTy, typename... _NextATy>
     struct unary_chainer;
 
+    // multiple_all_chainer forward declaration.
+    template<typename... _CTy>
+    struct multiple_all_chainer;
+
     // creates an empty callback.
     template<typename _FTy>
     struct create_empty_callback;
@@ -93,6 +97,11 @@ namespace detail
         typedef typename convert_void_to_continuable<_NextRTy>::type result_t;
 
         typedef typename result_t::CallbackFunction callback_t;
+    };
+
+    template<typename... _CTy>
+    struct multiple_all_chainer<_CTy...>
+    {
     };
 
     template <typename _CTy>
@@ -261,10 +270,20 @@ namespace detail
             return then(box_continuable(std::forward<_CTy>(continuable)));
         }
 
+        template<typename... _CTy>
+        static void _all(_CTy&&...)
+        {
+            typedef multiple_all_chainer<_CTy...> type;
+
+        }
+
         /// Placeholder
         template<typename... _CTy>
-        _ContinuableImpl& all(_CTy&&...)
+        _ContinuableImpl& all(_CTy&&... functionals)
         {
+            typedef multiple_all_chainer<_CTy...> type;
+
+            _all(box_continuable(std::forward<_CTy>(functionals))...);
             return *this;
         }
 
