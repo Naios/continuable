@@ -58,10 +58,6 @@ namespace detail
     template<typename _NextRTy, typename... _NextATy>
     struct unary_chainer;
 
-    // multiple_all_chainer forward declaration.
-    template<typename... _CTy>
-    struct multiple_all_chainer;
-
     // creates an empty callback.
     template<typename _FTy>
     struct create_empty_callback;
@@ -99,9 +95,25 @@ namespace detail
         typedef typename result_t::CallbackFunction callback_t;
     };
 
-    template<typename... _CTy>
-    struct multiple_all_chainer<_CTy...>
+    // Void returning functionals
+    template <typename _CTy>
+    auto remove_void(_CTy&& functional)
+        -> typename std::enable_if<typename std::is_void<typename std::result_of<_CTy>::type>::value,
+                typename convert_void_to_continuable<typename std::result_of<_CTy>::type>::type>::type
     {
+    }
+
+    // Non void returning functionals (route through)
+    template <typename _CTy>
+    auto remove_void(_CTy&& functional)
+        -> typename std::enable_if<!typename std::is_void<typename std::result_of<_CTy>::type>::value, _CTy>::type
+    {
+    }
+
+    template<typename... _CTy>
+    struct multiple_all_chainer
+    {
+
     };
 
     template <typename _CTy>
@@ -271,7 +283,7 @@ namespace detail
         }
 
         template<typename... _CTy>
-        _ContinuableImpl& _all(_CTy&&...)
+        _ContinuableImpl& _wrap_all(_CTy&&...)
         {
             typedef multiple_all_chainer<_CTy...> type;
 
@@ -281,10 +293,9 @@ namespace detail
         /// Placeholder
         template<typename... _CTy>
         auto all(_CTy&&... functionals)
-            -> decltype((_ContinuableImpl*)(nullptr)->
-                    _all(box_continuable(std::forward<_CTy>(std::declval<_CTy>))...))
+            -> _ContinuableImpl&
         {
-            return _all(box_continuable(std::forward<_CTy>(functionals))...);
+            return *this;
         }
 
         /// Placeholder
