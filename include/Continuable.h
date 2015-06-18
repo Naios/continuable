@@ -271,20 +271,20 @@ namespace detail
         }
 
         template<typename... _CTy>
-        static void _all(_CTy&&...)
+        _ContinuableImpl& _all(_CTy&&...)
         {
             typedef multiple_all_chainer<_CTy...> type;
 
+            return *this;
         }
 
         /// Placeholder
         template<typename... _CTy>
-        _ContinuableImpl& all(_CTy&&... functionals)
+        auto all(_CTy&&... functionals)
+            -> decltype((_ContinuableImpl*)(nullptr)->
+                    _all(box_continuable(std::forward<_CTy>(std::declval<_CTy>))...))
         {
-            typedef multiple_all_chainer<_CTy...> type;
-
-            _all(box_continuable(std::forward<_CTy>(functionals))...);
-            return *this;
+            return _all(box_continuable(std::forward<_CTy>(functionals))...);
         }
 
         /// Placeholder
