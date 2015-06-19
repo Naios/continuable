@@ -26,6 +26,7 @@
 
 #include <functional>
 #include <type_traits>
+#include <utility>
 
 namespace fu
 {
@@ -169,6 +170,14 @@ namespace fu
     template<typename... Function>
     struct is_unwrappable
         : decltype(detail::test_unwrappable<Function...>(0)) { };
+
+    /// Converts any functional type in std::function.
+    template<typename Functional>
+    auto functionfy(Functional&& functional)
+        -> function_type_of_t<typename std::decay<Functional>::type>
+    {
+        return function_type_of_t<typename std::decay<Functional>::type>(std::forward<Functional>(functional));
+    }
 
     template<typename T>
     struct requires_functional_constructible
