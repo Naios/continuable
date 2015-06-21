@@ -95,19 +95,24 @@ namespace detail
         typedef typename result_t::CallbackFunction callback_t;
     };
 
-    // Void returning functionals
+    /// Wrap void returning functionals to returns an empty continuable.
     template <typename _CTy>
-    auto remove_void(_CTy&& functional)
-        -> typename std::enable_if<typename std::is_void<typename std::result_of<_CTy>::type>::value,
-                typename convert_void_to_continuable<typename std::result_of<_CTy>::type>::type>::type
+    auto remove_void_trait(_CTy&& functional)
+        -> typename std::enable_if<std::is_void<fu::return_type_of_t<
+                typename std::decay<_CTy>::type>>::value,
+                    int>::type
     {
+        return 1;
     }
 
-    // Non void returning functionals (route through)
+    /// Route continuable returning functionals through.
     template <typename _CTy>
-    auto remove_void(_CTy&& functional)
-        -> typename std::enable_if<!typename std::is_void<typename std::result_of<_CTy>::type>::value, _CTy>::type
+    auto remove_void_trait(_CTy&& functional)
+        -> typename std::enable_if<!std::is_void<fu::return_type_of_t<
+                typename std::decay<_CTy>::type>>::value,
+                    _CTy&&>::type
     {
+        return std::forward<_CTy>(functional);
     }
 
     template<typename... _CTy>
