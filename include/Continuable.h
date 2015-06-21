@@ -36,7 +36,6 @@ void debug(std::string const& m)
 }
 /// Debug end
 
-// Continuable forward declaration.
 template<typename...>
 class Continuable;
 
@@ -107,6 +106,8 @@ namespace detail
 
 } // detail
 
+/// A continuable provides useful methods to react on the result of callbacks
+/// and allows to chain multiple callback calls to a chain.
 template<typename... _ATy>
 class Continuable
 {
@@ -345,71 +346,6 @@ public:
 
 namespace detail
 {
-    template <typename _CTy>
-    struct functional_corrector
-    {
-        static int correct(_CTy&&)
-        {
-            return 1;
-        }
-    };
-
-    template<typename... Args>
-    struct void_wrap_trait<fu::identity<Args...>>
-    {
-        template<typename _CTy>
-        static std::function<Continuable<>(Args...)> wrap(_CTy&& functional)
-        {
-            return [functional](Args... args)
-            {
-                // Invoke the original callback
-                functional(std::forward<Args>(args)...);
-
-                // FIXME return make_empty_continuable()
-                // Return a fake continuable
-                return Continuable<>([](Callback<>&& callback)
-                {
-                    callback();
-                });
-            };
-        }
-    };
-
-    
-    template<>
-    struct convert_void_to_continuable<void>
-    {
-        typedef Continuable<> type;
-
-        template<typename Fn, typename... Args>
-        static type invoke(Fn functional, Args&&... args)
-        {
-            // Invoke the void returning functional
-            functional(std::forward<Args>(args)...);
-
-            // Return a fake void continuable
-            return type([](Callback<>&& callback)
-            {
-                callback();
-            });
-        }
-    };
-
-    template<typename... _CTy>
-    struct convert_void_to_continuable<Continuable<_CTy...>>
-    {
-        typedef Continuable<_CTy...> type;
-
-        template<typename Fn, typename... Args>
-        static type invoke(Fn functional, Args&&... args)
-        {
-            // Invoke the functional as usual.
-            return functional(std::forward<Args>(args)...);
-        }
-    };
-    /// A continuable provides useful methods to react on the result of callbacks
-    /// and allows to chain multiple callback calls to a chain.
-
     template<typename _RTy, typename... _ATy>
     struct ContinuableFactory;
 
@@ -458,6 +394,71 @@ inline auto make_continuable()
     {
         callback();
     });
+}
+
+namespace detail
+{
+    template <typename _CTy>
+    struct functional_corrector
+    {
+        static int correct(_CTy&&)
+        {
+            return 1;
+        }
+    };
+
+    template<typename... Args>
+    struct void_wrap_trait<fu::identity<Args...>>
+    {
+        template<typename _CTy>
+        static std::function<Continuable<>(Args...)> wrap(_CTy&& functional)
+        {
+            return [functional](Args... args)
+            {
+                // Invoke the original callback
+                functional(std::forward<Args>(args)...);
+
+                // FIXME return make_empty_continuable()
+                // Return a fake continuable
+                return Continuable<>([](Callback<>&& callback)
+                {
+                    callback();
+                });
+            };
+        }
+    };
+
+    template<>
+    struct convert_void_to_continuable<void>
+    {
+        typedef Continuable<> type;
+
+        template<typename Fn, typename... Args>
+        static type invoke(Fn functional, Args&&... args)
+        {
+            // Invoke the void returning functional
+            functional(std::forward<Args>(args)...);
+
+            // Return a fake void continuable
+            return type([](Callback<>&& callback)
+            {
+                callback();
+            });
+        }
+    };
+
+    template<typename... _CTy>
+    struct convert_void_to_continuable<Continuable<_CTy...>>
+    {
+        typedef Continuable<_CTy...> type;
+
+        template<typename Fn, typename... Args>
+        static type invoke(Fn functional, Args&&... args)
+        {
+            // Invoke the functional as usual.
+            return functional(std::forward<Args>(args)...);
+        }
+    };
 }
 
 #endif // _CONTINUABLE_H_
