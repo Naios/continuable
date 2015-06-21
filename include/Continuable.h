@@ -36,12 +36,12 @@ void debug(std::string const& m)
 }
 /// Debug end
 
+// Continuable forward declaration.
+template<typename...>
+class Continuable;
+
 namespace detail
 {
-    // Continuable forward declaration.
-    template<typename...>
-    class Continuable;
-
     // convert_void_to_continuable forward declaration.
     /// Corrects void return types from functional types which should be
     /// Continuable<DefaultContinuableState, Callback<>>
@@ -119,197 +119,6 @@ namespace detail
         }
     };
 
-    template<typename... _ATy>
-    class Continuable
-    {
-        // Make all templates of Continuable to a friend.
-        template<typename...>
-        friend class Continuable;
-
-    public:
-        typedef Callback<_ATy...> CallbackFunction;
-        typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
-
-    private:
-        /// Functional which expects a callback that is inserted from the Continuable
-        /// to chain everything together
-        ForwardFunction _callback_insert;
-
-        bool _released;
-
-        template <typename _CTy>
-        void invoke(_CTy&& callback)
-        {
-            if (!_released)
-            {
-                // Invalidate this
-                _released = true;
-
-                // Invoke this
-                _callback_insert(std::forward<_CTy>(callback));
-            }
-        }
-
-        // Pack a continuable into the continuable returning functional type.
-        template<typename _CTy>
-        static auto box_continuable(_CTy&& continuable)
-            -> typename std::enable_if<is_continuable<typename std::decay<_CTy>::type>::value,
-                    std::function<typename std::decay<_CTy>::type(_ATy...)>>::type
-        {
-            // Trick C++11 lambda capture rules for non copyable but moveable continuables.
-            std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
-                std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
-
-            // Create a fake function which returns the value on invoke.
-            return [shared_continuable](_ATy...)
-            {
-                return std::move(*shared_continuable);
-            };
-        }
-
-        // Do nothing if already a non continuable type
-        template<typename _CTy>
-        static auto box_continuable(_CTy&& continuable)
-            -> typename std::enable_if<!is_continuable<typename std::decay<_CTy>::type>::value,
-                    typename std::decay<_CTy>::type>::type
-        {
-            return continuable;
-        }
-
-    public:
-        /// Deleted copy construct
-        Continuable(Continuable const&) = delete;
-
-        /// Move construct
-        Continuable(Continuable&& right)
-            : _released(right._released), _callback_insert(std::move(right._callback_insert))
-        {
-            right._released = true;
-        }
-
-        // Construct through a ForwardFunction
-        template<typename _FTy>
-        Continuable(_FTy&& callback_insert)
-            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false) { }
-
-        template<typename... _RATy, typename _FTy>
-        Continuable(_FTy&& callback_insert, Continuable<_RATy...>&& right)
-            : _callback_insert(std::forward<_FTy>(callback_insert)), _released(right._released)
-        {
-            right._released = true;
-        }
-
-        /// Destructor which calls the dispatch chain if needed.
-        ~Continuable()
-        {
-            // Dispatch everything.
-            if (!_released)
-            {
-                // Set released to true to prevent multiple calls
-                _released = true;
-
-                // Invoke everything with an empty callback
-                _callback_insert(create_empty_callback<ForwardFunction>::create());
-            }
-        }
-
-        /// Deleted copy assign
-        Continuable& operator= (Continuable const&) = delete;
-
-        /// Move construct assign
-        Continuable& operator= (Continuable&& right)
-        {
-            _released = right._released;
-            right._released = true;
-
-            _callback_insert = std::move(right._callback_insert);
-            return *this;
-        }
-
-        /// Waits for this continuable and invokes the given callback.
-        template<typename _CTy>
-        auto then(_CTy&& functional)
-            -> typename std::enable_if<!is_continuable<typename std::decay<_CTy>::type>::value,
-                    typename unary_chainer_t<_CTy>::result_t>::type
-        {
-            // Transfer the insert function to the local scope.
-            // Also use it as an r-value reference to try to get move semantics with c++11 lambdas.
-            ForwardFunction&& callback = std::move(_callback_insert);
-
-            return typename unary_chainer_t<_CTy>::result_t(
-                [functional, callback](typename unary_chainer_t<_CTy>::callback_t&& call_next)
-            {
-                callback([functional, call_next](_ATy&&... args) mutable
-                {
-                    // Invoke the next callback
-                    unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...)
-                        .invoke(std::move(call_next));
-                });
-
-            }, std::move(*this));
-        }
-
-        /// Waits for this continuable and continues with the given one.
-        template<typename _CTy>
-        auto then(_CTy&& continuable)
-            -> typename std::enable_if<is_continuable<typename std::decay<_CTy>::type>::value,
-                    typename std::decay<_CTy>::type>::type
-        {
-            static_assert(std::is_rvalue_reference<_CTy&&>::value,
-                "Given continuable must be passed as r-value!");
-
-            return then(box_continuable(std::forward<_CTy>(continuable)));
-        }
-
-        template<typename... _CTy>
-        Continuable& _wrap_all(_CTy&&...)
-        {
-            typedef multiple_all_chainer<_CTy...> type;
-
-            return *this;
-        }
-
-        /// Placeholder
-        template<typename... _CTy>
-        auto all(_CTy&&... functionals)
-            -> Continuable&
-        {
-            return *this;
-        }
-
-        /// Placeholder
-        template<typename... _CTy>
-        Continuable& some(size_t const count, _CTy&&...)
-        {
-            return *this;
-        }
-
-        /// Placeholder
-        template<typename... _CTy>
-        auto any(_CTy&&... functionals)
-            -> Continuable& // FIXME gcc build &-> decltype(some(1, std::declval<_CTy>()...))
-        {
-            // Equivalent to invoke `some` with count 1.
-            return some(1, std::forward<_CTy>(functionals)...);
-        }
-
-        /*
-        /// Validates the Continuable
-        inline Continuable& Validate()
-        {
-            _released = false;
-            return *this;
-        }
-
-        /// Invalidates the Continuable
-        inline Continuable& Invalidate()
-        {
-            _released = true;
-            return *this;
-        }
-        */
-    };
-
     template<>
     struct convert_void_to_continuable<void>
     {
@@ -366,8 +175,196 @@ namespace detail
 
 } // detail
 
-template<typename... Args>
-using Continuable = detail::Continuable<Args...>;
+template<typename... _ATy>
+class Continuable
+{
+    // Make all templates of Continuable to a friend.
+    template<typename...>
+    friend class Continuable;
+
+public:
+    typedef Callback<_ATy...> CallbackFunction;
+    typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
+
+private:
+    /// Functional which expects a callback that is inserted from the Continuable
+    /// to chain everything together
+    ForwardFunction _callback_insert;
+
+    bool _released;
+
+    template <typename _CTy>
+    void invoke(_CTy&& callback)
+    {
+        if (!_released)
+        {
+            // Invalidate this
+            _released = true;
+
+            // Invoke this
+            _callback_insert(std::forward<_CTy>(callback));
+        }
+    }
+
+    // Pack a continuable into the continuable returning functional type.
+    template<typename _CTy>
+    static auto box_continuable(_CTy&& continuable)
+        -> typename std::enable_if<detail::is_continuable<typename std::decay<_CTy>::type>::value,
+                std::function<typename std::decay<_CTy>::type(_ATy...)>>::type
+    {
+        // Trick C++11 lambda capture rules for non copyable but moveable continuables.
+        std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
+            std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
+
+        // Create a fake function which returns the value on invoke.
+        return [shared_continuable](_ATy...)
+        {
+            return std::move(*shared_continuable);
+        };
+    }
+
+    // Do nothing if already a non continuable type
+    template<typename _CTy>
+    static auto box_continuable(_CTy&& continuable)
+        -> typename std::enable_if<!detail::is_continuable<typename std::decay<_CTy>::type>::value,
+                typename std::decay<_CTy>::type>::type
+    {
+        return continuable;
+    }
+
+public:
+    /// Deleted copy construct
+    Continuable(Continuable const&) = delete;
+
+    /// Move construct
+    Continuable(Continuable&& right)
+        : _released(right._released), _callback_insert(std::move(right._callback_insert))
+    {
+        right._released = true;
+    }
+
+    // Construct through a ForwardFunction
+    template<typename _FTy>
+    Continuable(_FTy&& callback_insert)
+        : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false) { }
+
+    template<typename... _RATy, typename _FTy>
+    Continuable(_FTy&& callback_insert, Continuable<_RATy...>&& right)
+        : _callback_insert(std::forward<_FTy>(callback_insert)), _released(right._released)
+    {
+        right._released = true;
+    }
+
+    /// Destructor which calls the dispatch chain if needed.
+    ~Continuable()
+    {
+        // Dispatch everything.
+        if (!_released)
+        {
+            // Set released to true to prevent multiple calls
+            _released = true;
+
+            // Invoke everything with an empty callback
+            _callback_insert(detail::create_empty_callback<ForwardFunction>::create());
+        }
+    }
+
+    /// Deleted copy assign
+    Continuable& operator= (Continuable const&) = delete;
+
+    /// Move construct assign
+    Continuable& operator= (Continuable&& right)
+    {
+        _released = right._released;
+        right._released = true;
+
+        _callback_insert = std::move(right._callback_insert);
+        return *this;
+    }
+
+    /// Waits for this continuable and invokes the given callback.
+    template<typename _CTy>
+    auto then(_CTy&& functional)
+        -> typename std::enable_if<!detail::is_continuable<typename std::decay<_CTy>::type>::value,
+                typename detail::unary_chainer_t<_CTy>::result_t>::type
+    {
+        // Transfer the insert function to the local scope.
+        // Also use it as an r-value reference to try to get move semantics with c++11 lambdas.
+        ForwardFunction&& callback = std::move(_callback_insert);
+
+        return typename detail::unary_chainer_t<_CTy>::result_t(
+            [functional, callback](typename detail::unary_chainer_t<_CTy>::callback_t&& call_next)
+        {
+            callback([functional, call_next](_ATy&&... args) mutable
+            {
+                // Invoke the next callback
+                detail::unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...)
+                    .invoke(std::move(call_next));
+            });
+
+        }, std::move(*this));
+    }
+
+    /// Waits for this continuable and continues with the given one.
+    template<typename _CTy>
+    auto then(_CTy&& continuable)
+        -> typename std::enable_if<detail::is_continuable<typename std::decay<_CTy>::type>::value,
+                typename std::decay<_CTy>::type>::type
+    {
+        static_assert(std::is_rvalue_reference<_CTy&&>::value,
+            "Given continuable must be passed as r-value!");
+
+        return then(box_continuable(std::forward<_CTy>(continuable)));
+    }
+
+    template<typename... _CTy>
+    Continuable& _wrap_all(_CTy&&...)
+    {
+        typedef multiple_all_chainer<_CTy...> type;
+
+        return *this;
+    }
+
+    /// Placeholder
+    template<typename... _CTy>
+    auto all(_CTy&&... functionals)
+        -> Continuable&
+    {
+        return *this;
+    }
+
+    /// Placeholder
+    template<typename... _CTy>
+    Continuable& some(size_t const count, _CTy&&...)
+    {
+        return *this;
+    }
+
+    /// Placeholder
+    template<typename... _CTy>
+    auto any(_CTy&&... functionals)
+        -> Continuable& // FIXME gcc build &-> decltype(some(1, std::declval<_CTy>()...))
+    {
+        // Equivalent to invoke `some` with count 1.
+        return some(1, std::forward<_CTy>(functionals)...);
+    }
+
+    /*
+    /// Validates the Continuable
+    inline Continuable& Validate()
+    {
+        _released = false;
+        return *this;
+    }
+
+    /// Invalidates the Continuable
+    inline Continuable& Invalidate()
+    {
+        _released = true;
+        return *this;
+    }
+    */
+};
 
 /// Wraps a functional object which expects a r-value callback as argument into a continuable.
 /// The callable is invoked when the continuable shall continue.
