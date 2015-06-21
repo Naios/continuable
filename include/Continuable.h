@@ -76,26 +76,6 @@ namespace detail
         typedef typename result_t::CallbackFunction callback_t;
     };
 
-    /// Wrap void returning functionals to returns an empty continuable.
-    template <typename _CTy>
-    auto remove_void_trait(_CTy&& functional)
-        -> typename std::enable_if<std::is_void<fu::return_type_of_t<
-                typename std::decay<_CTy>::type>>::value,
-                    int>::type
-    {
-        return 1;
-    }
-
-    /// Route continuable returning functionals through.
-    template <typename _CTy>
-    auto remove_void_trait(_CTy&& functional)
-        -> typename std::enable_if<!std::is_void<fu::return_type_of_t<
-                typename std::decay<_CTy>::type>>::value,
-                    _CTy&&>::type
-    {
-        return std::forward<_CTy>(functional);
-    }
-
     template<typename... _CTy>
     struct multiple_all_chainer
     {
@@ -173,6 +153,30 @@ namespace detail
     using continuable_factory_t = ContinuableFactory<
         ::fu::return_type_of_t<_FTy>, ::fu::argument_type_of_t<_FTy>>;
 
+    template<typename Args>
+    struct void_wrap_trait;
+
+    template<typename... Args>
+    struct void_wrap_trait<fu::identity<Args...>>
+    {
+        template<typename _CTy>
+        static std::function<Continuable<>(Args...)> wrap(_CTy&& functional)
+        {
+            return [functional](Args... args)
+            {
+                // Invoke the original callback
+                functional(std::forward<Args>(args)...);
+
+                // FIXME return make_empty_continuable()
+                // Return a fake continuable
+                return Continuable<>([](Callback<>&& callback)
+                {
+                    callback();
+                });
+            };
+        }
+    };
+
 } // detail
 
 template<typename... _ATy>
@@ -186,7 +190,7 @@ public:
     typedef Callback<_ATy...> CallbackFunction;
     typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
 
-private:
+// private:
     /// Functional which expects a callback that is inserted from the Continuable
     /// to chain everything together
     ForwardFunction _callback_insert;
@@ -206,9 +210,48 @@ private:
         }
     }
 
-    // Pack a continuable into the continuable returning functional type.
+    /// Wrap void returning functionals to returns an empty continuable.
+    template <typename _CTy>
+    static auto remove_void_trait(_CTy&& functional)
+        -> typename std::enable_if<
+                std::is_void<
+                    fu::return_type_of_t<
+                        typename std::decay<_CTy>::type
+                    >
+                >::value,
+                decltype(
+                    void_wrap_trait<
+                        fu::return_type_of_t<
+                            typename std::decay<_CTy>::type
+                        >
+                    >::wrap(std::declval<_CTy>())
+                )
+            >::type
+    {
+        return detail::void_wrap_trait<
+            fu::return_type_of_t<
+                typename std::decay<_CTy>::type
+            >
+        >::wrap(std::forward<_CTy>(functional));
+    }
+
+    /// Route continuable returning functionals through.
+    /*template <typename _CTy>
+    static auto remove_void_trait(_CTy&& functional)
+        -> typename std::enable_if<
+                !std::is_void<
+                    fu::return_type_of_t<
+                        typename std::decay<_CTy>::type
+                    >
+                >::value,
+                _CTy>::type
+    {
+        return std::forward<_CTy>(functional);
+    }*/
+
+    /// Wrap continuables into the continuable returning functional type.
     template<typename _CTy>
-    static auto box_continuable(_CTy&& continuable)
+    static auto box_continuable_trait(_CTy&& continuable)
         -> typename std::enable_if<detail::is_continuable<typename std::decay<_CTy>::type>::value,
                 std::function<typename std::decay<_CTy>::type(_ATy...)>>::type
     {
@@ -223,9 +266,9 @@ private:
         };
     }
 
-    // Do nothing if already a non continuable type
+    /// Route functionals through and forward to remove_void_trait
     template<typename _CTy>
-    static auto box_continuable(_CTy&& continuable)
+    static auto box_continuable_trait(_CTy&& continuable)
         -> typename std::enable_if<!detail::is_continuable<typename std::decay<_CTy>::type>::value,
                 typename std::decay<_CTy>::type>::type
     {
@@ -314,7 +357,7 @@ public:
         static_assert(std::is_rvalue_reference<_CTy&&>::value,
             "Given continuable must be passed as r-value!");
 
-        return then(box_continuable(std::forward<_CTy>(continuable)));
+        return then(box_continuable_trait(std::forward<_CTy>(continuable)));
     }
 
     template<typename... _CTy>
@@ -365,6 +408,11 @@ public:
     }
     */
 };
+
+namespace detail
+{
+
+}
 
 /// Wraps a functional object which expects a r-value callback as argument into a continuable.
 /// The callable is invoked when the continuable shall continue.
