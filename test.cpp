@@ -222,7 +222,17 @@ int main(int /*argc*/, char** /*argv*/)
     //// Here we go
     //entry();
 
-    
+/*
+    auto testaiasj = remove_void_trait([]
+    {
+        
+    });
+
+    */
+
+    Continuable<>::remove_void_trait([]
+    {
+    });
 
     std::cout << "ok" << std::endl;
     return 0;
