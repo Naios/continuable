@@ -38,15 +38,9 @@ void debug(std::string const& m)
 
 namespace detail
 {
-    // ContinuableState forward declaration.
-    /// The internal state of the continuable
-    /// which is used to save certain internal types.
-    template<typename... Args>
-    class ContinuableState;
-
-    // ContinuableImpl forward declaration.
-    template<typename _STy, typename _CTy>
-    class _ContinuableImpl;
+    // Continuable forward declaration.
+    template<typename...>
+    class Continuable;
 
     // convert_void_to_continuable forward declaration.
     /// Corrects void return types from functional types which should be
@@ -67,22 +61,9 @@ namespace detail
     struct is_continuable
         : public std::false_type { };
 
-    template<typename _STy, typename _CTy>
-    struct is_continuable<_ContinuableImpl<_STy, _CTy>>
+    template<typename... Args>
+    struct is_continuable<Continuable<Args...>>
         : public std::true_type { };
-
-    template<typename _WeakContextType>
-    class ContinuableState<_WeakContextType>
-    {
-        template<typename, typename>
-        friend class _ContinuableImpl;
-
-        typedef std::weak_ptr<_WeakContextType> weak_reference_t;
-    };
-
-    struct WeakContext { };
-
-    typedef ContinuableState<WeakContext> DefaultContinuableState;
 
     // MSVC 12 has issues to detect the parameter pack otherwise.
     template<typename _NextRTy, typename... _NextATy>
@@ -138,18 +119,16 @@ namespace detail
         }
     };
 
-    template<typename... _STy, typename... _ATy>
-    class _ContinuableImpl<ContinuableState<_STy...>, std::function<void(_ATy...)>>
+    template<typename... _ATy>
+    class Continuable
     {
-        // Make all instances of _ContinuableImpl to a friend.
-        template<typename, typename>
-        friend class _ContinuableImpl;
+        // Make all templates of Continuable to a friend.
+        template<typename...>
+        friend class Continuable;
 
     public:
         typedef Callback<_ATy...> CallbackFunction;
         typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
-
-        typedef typename ContinuableState<_STy...>::weak_reference_t WeakReference;
 
     private:
         /// Functional which expects a callback that is inserted from the Continuable
@@ -157,8 +136,6 @@ namespace detail
         ForwardFunction _callback_insert;
 
         bool _released;
-
-        WeakReference _reference;
 
         template <typename _CTy>
         void invoke(_CTy&& callback)
@@ -201,11 +178,10 @@ namespace detail
 
     public:
         /// Deleted copy construct
-        _ContinuableImpl(_ContinuableImpl const&) = delete;
+        Continuable(Continuable const&) = delete;
 
         /// Move construct
-        template<typename _RSTy>
-        _ContinuableImpl(_ContinuableImpl<_RSTy, Callback<_ATy...>>&& right)
+        Continuable(Continuable&& right)
             : _released(right._released), _callback_insert(std::move(right._callback_insert))
         {
             right._released = true;
@@ -213,18 +189,18 @@ namespace detail
 
         // Construct through a ForwardFunction
         template<typename _FTy>
-        _ContinuableImpl(_FTy&& callback_insert)
+        Continuable(_FTy&& callback_insert)
             : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false) { }
 
-        template<typename _RSTy, typename _RCTy, typename _FTy>
-        _ContinuableImpl(_FTy&& callback_insert, _ContinuableImpl<_RSTy, _RCTy>&& right)
+        template<typename... _RATy, typename _FTy>
+        Continuable(_FTy&& callback_insert, Continuable<_RATy...>&& right)
             : _callback_insert(std::forward<_FTy>(callback_insert)), _released(right._released)
         {
             right._released = true;
         }
 
         /// Destructor which calls the dispatch chain if needed.
-        ~_ContinuableImpl()
+        ~Continuable()
         {
             // Dispatch everything.
             if (!_released)
@@ -238,12 +214,10 @@ namespace detail
         }
 
         /// Deleted copy assign
-        template<typename _RState, typename _RCTy>
-        _ContinuableImpl& operator= (_ContinuableImpl const&) = delete;
+        Continuable& operator= (Continuable const&) = delete;
 
         /// Move construct assign
-        template<typename _RSTy>
-        _ContinuableImpl& operator= (_ContinuableImpl<_RSTy, Callback<_ATy...>>&& right)
+        Continuable& operator= (Continuable&& right)
         {
             _released = right._released;
             right._released = true;
@@ -288,7 +262,7 @@ namespace detail
         }
 
         template<typename... _CTy>
-        _ContinuableImpl& _wrap_all(_CTy&&...)
+        Continuable& _wrap_all(_CTy&&...)
         {
             typedef multiple_all_chainer<_CTy...> type;
 
@@ -298,14 +272,14 @@ namespace detail
         /// Placeholder
         template<typename... _CTy>
         auto all(_CTy&&... functionals)
-            -> _ContinuableImpl&
+            -> Continuable&
         {
             return *this;
         }
 
         /// Placeholder
         template<typename... _CTy>
-        _ContinuableImpl& some(size_t const count, _CTy&&...)
+        Continuable& some(size_t const count, _CTy&&...)
         {
             return *this;
         }
@@ -313,7 +287,7 @@ namespace detail
         /// Placeholder
         template<typename... _CTy>
         auto any(_CTy&&... functionals)
-            -> _ContinuableImpl& // FIXME gcc build &-> decltype(some(1, std::declval<_CTy>()...))
+            -> Continuable& // FIXME gcc build &-> decltype(some(1, std::declval<_CTy>()...))
         {
             // Equivalent to invoke `some` with count 1.
             return some(1, std::forward<_CTy>(functionals)...);
@@ -321,14 +295,14 @@ namespace detail
 
         /*
         /// Validates the Continuable
-        inline _ContinuableImpl& Validate()
+        inline Continuable& Validate()
         {
             _released = false;
             return *this;
         }
 
         /// Invalidates the Continuable
-        inline _ContinuableImpl& Invalidate()
+        inline Continuable& Invalidate()
         {
             _released = true;
             return *this;
@@ -339,7 +313,7 @@ namespace detail
     template<>
     struct convert_void_to_continuable<void>
     {
-        typedef _ContinuableImpl<DefaultContinuableState, Callback<>> type;
+        typedef Continuable<> type;
 
         template<typename Fn, typename... Args>
         static type invoke(Fn functional, Args&&... args)
@@ -355,10 +329,10 @@ namespace detail
         }
     };
 
-    template<typename _State, typename _CTy>
-    struct convert_void_to_continuable<_ContinuableImpl<_State, _CTy>>
+    template<typename... _CTy>
+    struct convert_void_to_continuable<Continuable<_CTy...>>
     {
-        typedef _ContinuableImpl<_State, _CTy> type;
+        typedef Continuable<_CTy...> type;
 
         template<typename Fn, typename... Args>
         static type invoke(Fn functional, Args&&... args)
@@ -367,17 +341,10 @@ namespace detail
             return functional(std::forward<Args>(args)...);
         }
     };
-}
 
-/// A continuable provides useful methods to react on the result of callbacks
-/// and allows to chain multiple callback calls to a chain.
-template<typename... Args>
-using Continuable = detail::_ContinuableImpl<
-    detail::DefaultContinuableState,
-    Callback<Args...>>;
+    /// A continuable provides useful methods to react on the result of callbacks
+    /// and allows to chain multiple callback calls to a chain.
 
-namespace detail
-{
     template<typename _RTy, typename... _ATy>
     struct ContinuableFactory;
 
@@ -398,6 +365,9 @@ namespace detail
         ::fu::return_type_of_t<_FTy>, ::fu::argument_type_of_t<_FTy>>;
 
 } // detail
+
+template<typename... Args>
+using Continuable = detail::Continuable<Args...>;
 
 /// Wraps a functional object which expects a r-value callback as argument into a continuable.
 /// The callable is invoked when the continuable shall continue.
