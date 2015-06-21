@@ -99,83 +99,11 @@ namespace detail
         }
     };
 
-    template<>
-    struct convert_void_to_continuable<void>
-    {
-        typedef Continuable<> type;
-
-        template<typename Fn, typename... Args>
-        static type invoke(Fn functional, Args&&... args)
-        {
-            // Invoke the void returning functional
-            functional(std::forward<Args>(args)...);
-
-            // Return a fake void continuable
-            return type([](Callback<>&& callback)
-            {
-                callback();
-            });
-        }
-    };
-
-    template<typename... _CTy>
-    struct convert_void_to_continuable<Continuable<_CTy...>>
-    {
-        typedef Continuable<_CTy...> type;
-
-        template<typename Fn, typename... Args>
-        static type invoke(Fn functional, Args&&... args)
-        {
-            // Invoke the functional as usual.
-            return functional(std::forward<Args>(args)...);
-        }
-    };
-
-    /// A continuable provides useful methods to react on the result of callbacks
-    /// and allows to chain multiple callback calls to a chain.
-
-    template<typename _RTy, typename... _ATy>
-    struct ContinuableFactory;
-
-    template<typename _RTy, typename... _ATy>
-    struct ContinuableFactory<_RTy, ::fu::identity<std::function<void(_ATy...)>&&>>
-    {
-        template<typename _FTy>
-        static auto CreateFrom(_FTy&& functional)
-            -> Continuable<_ATy...>
-        {
-            return Continuable<_ATy...>(
-                typename Continuable<_ATy...>::ForwardFunction(std::forward<_FTy>(functional)));
-        }
-    };
-
-    template<typename _FTy>
-    using continuable_factory_t = ContinuableFactory<
-        ::fu::return_type_of_t<_FTy>, ::fu::argument_type_of_t<_FTy>>;
-
     template<typename Args>
     struct void_wrap_trait;
 
-    template<typename... Args>
-    struct void_wrap_trait<fu::identity<Args...>>
-    {
-        template<typename _CTy>
-        static std::function<Continuable<>(Args...)> wrap(_CTy&& functional)
-        {
-            return [functional](Args... args)
-            {
-                // Invoke the original callback
-                functional(std::forward<Args>(args)...);
-
-                // FIXME return make_empty_continuable()
-                // Return a fake continuable
-                return Continuable<>([](Callback<>&& callback)
-                {
-                    callback();
-                });
-            };
-        }
-    };
+    template <typename _CTy>
+    struct functional_corrector;
 
 } // detail
 
@@ -219,20 +147,26 @@ public:
                         typename std::decay<_CTy>::type
                     >
                 >::value,
-                decltype(
-                    void_wrap_trait<
+                /*decltype(
+                    detail::void_wrap_trait<
                         fu::return_type_of_t<
                             typename std::decay<_CTy>::type
                         >
                     >::wrap(std::declval<_CTy>())
                 )
+                */
+                decltype(
+                    detail::functional_corrector<_CTy>::correct(std::declval<_CTy>())
+                )
+                // std::function<Continuable<>()>
             >::type
     {
-        return detail::void_wrap_trait<
+        /*return detail::void_wrap_trait<
             fu::return_type_of_t<
                 typename std::decay<_CTy>::type
             >
-        >::wrap(std::forward<_CTy>(functional));
+        >::wrap(std::forward<_CTy>(functional));*/
+        return detail::functional_corrector<_CTy>::correct(std::forward<_CTy>(functional));
     }
 
     /// Route continuable returning functionals through.
@@ -363,7 +297,7 @@ public:
     template<typename... _CTy>
     Continuable& _wrap_all(_CTy&&...)
     {
-        typedef multiple_all_chainer<_CTy...> type;
+        typedef detail::multiple_all_chainer<_CTy...> type;
 
         return *this;
     }
@@ -411,7 +345,89 @@ public:
 
 namespace detail
 {
+    template <typename _CTy>
+    struct functional_corrector
+    {
+        static int correct(_CTy&&)
+        {
+            return 1;
+        }
+    };
 
+    template<typename... Args>
+    struct void_wrap_trait<fu::identity<Args...>>
+    {
+        template<typename _CTy>
+        static std::function<Continuable<>(Args...)> wrap(_CTy&& functional)
+        {
+            return [functional](Args... args)
+            {
+                // Invoke the original callback
+                functional(std::forward<Args>(args)...);
+
+                // FIXME return make_empty_continuable()
+                // Return a fake continuable
+                return Continuable<>([](Callback<>&& callback)
+                {
+                    callback();
+                });
+            };
+        }
+    };
+
+    
+    template<>
+    struct convert_void_to_continuable<void>
+    {
+        typedef Continuable<> type;
+
+        template<typename Fn, typename... Args>
+        static type invoke(Fn functional, Args&&... args)
+        {
+            // Invoke the void returning functional
+            functional(std::forward<Args>(args)...);
+
+            // Return a fake void continuable
+            return type([](Callback<>&& callback)
+            {
+                callback();
+            });
+        }
+    };
+
+    template<typename... _CTy>
+    struct convert_void_to_continuable<Continuable<_CTy...>>
+    {
+        typedef Continuable<_CTy...> type;
+
+        template<typename Fn, typename... Args>
+        static type invoke(Fn functional, Args&&... args)
+        {
+            // Invoke the functional as usual.
+            return functional(std::forward<Args>(args)...);
+        }
+    };
+    /// A continuable provides useful methods to react on the result of callbacks
+    /// and allows to chain multiple callback calls to a chain.
+
+    template<typename _RTy, typename... _ATy>
+    struct ContinuableFactory;
+
+    template<typename _RTy, typename... _ATy>
+    struct ContinuableFactory<_RTy, ::fu::identity<std::function<void(_ATy...)>&&>>
+    {
+        template<typename _FTy>
+        static auto CreateFrom(_FTy&& functional)
+            -> Continuable<_ATy...>
+        {
+            return Continuable<_ATy...>(
+                typename Continuable<_ATy...>::ForwardFunction(std::forward<_FTy>(functional)));
+        }
+    };
+
+    template<typename _FTy>
+    using continuable_factory_t = ContinuableFactory<
+        ::fu::return_type_of_t<_FTy>, ::fu::argument_type_of_t<_FTy>>;
 }
 
 /// Wraps a functional object which expects a r-value callback as argument into a continuable.
