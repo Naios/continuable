@@ -236,11 +236,11 @@ int main(int /*argc*/, char** /*argv*/)
     });
     */
 
-    auto test1 = detail::functional_traits<>::remove_void_trait([]
+    auto test1 = detail::functional_traits<>::correct([]
     {
     });
 
-    auto test2 = detail::functional_traits<>::remove_void_trait([]
+    auto test2 = detail::functional_traits<>::correct([]
     {
         return make_continuable([](Callback<int, int>&& callback)
         {
@@ -248,6 +248,8 @@ int main(int /*argc*/, char** /*argv*/)
             callback(1, 2);
         });
     });
+
+    auto test3 = detail::functional_traits<>::correct(make_continuable());
 
     std::cout << "ok" << std::endl;
     return 0;
