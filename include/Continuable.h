@@ -192,8 +192,12 @@ public:
     /// Waits for this continuable and invokes the given callback.
     template<typename _CTy>
     auto then(_CTy&& functional)
-        -> typename std::enable_if<!detail::is_continuable<typename std::decay<_CTy>::type>::value,
-                typename detail::unary_chainer_t<_CTy>::result_t>::type
+        -> typename std::enable_if<
+                !detail::is_continuable<
+                    typename std::decay<_CTy>::type
+                >::value,
+                typename detail::unary_chainer_t<_CTy>::result_t
+            >::type
     {
         // Transfer the insert function to the local scope.
         // Also use it as an r-value reference to try to get move semantics with c++11 lambdas.
@@ -215,8 +219,12 @@ public:
     /// Waits for this continuable and continues with the given one.
     template<typename _CTy>
     auto then(_CTy&& continuable)
-        -> typename std::enable_if<detail::is_continuable<typename std::decay<_CTy>::type>::value,
-                typename std::decay<_CTy>::type>::type
+        -> typename std::enable_if<
+                detail::is_continuable<
+                    typename std::decay<_CTy>::type
+                >::value,
+                typename std::decay<_CTy>::type
+            >::type
     {
         static_assert(std::is_rvalue_reference<_CTy&&>::value,
             "Given continuable must be passed as r-value!");
@@ -371,6 +379,9 @@ namespace detail
             >::wrap(std::forward<_CTy>(functional));
             return detail::functional_corrector<_CTy>::correct(std::forward<_CTy>(functional));
         }
+        */
+
+        /*
 
         /// Route continuable returning functionals through.
         template <typename _CTy>
@@ -389,8 +400,14 @@ namespace detail
         /// Wrap continuables into the continuable returning functional type.
         template<typename _CTy>
         static auto box_continuable_trait(_CTy&& continuable)
-            -> typename std::enable_if<detail::is_continuable<typename std::decay<_CTy>::type>::value,
-                    std::function<typename std::decay<_CTy>::type(_ATy...)>>::type
+            -> typename std::enable_if<
+                    detail::is_continuable<
+                        typename std::decay<_CTy>::type
+                    >::value,
+                    std::function<
+                        typename std::decay<_CTy>::type(_ATy...)
+                    >
+                >::type
         {
             // Trick C++11 lambda capture rules for non copyable but moveable continuables.
             std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
@@ -406,8 +423,12 @@ namespace detail
         /// Route functionals through and forward to remove_void_trait
         template<typename _CTy>
         static auto box_continuable_trait(_CTy&& continuable)
-            -> typename std::enable_if<!detail::is_continuable<typename std::decay<_CTy>::type>::value,
-                    typename std::decay<_CTy>::type>::type
+            -> typename std::enable_if<
+                    !detail::is_continuable<
+                        typename std::decay<_CTy>::type
+                    >::value,
+                    typename std::decay<_CTy>::type
+                >::type
         {
             return continuable;
         }
