@@ -101,8 +101,8 @@ namespace detail
     template<typename Args>
     struct void_wrap_trait;
 
-    template <typename _CTy>
-    struct functional_corrector;
+    template <typename... _ATy>
+    struct functional_traits;
 
 } // detail
 
@@ -221,7 +221,7 @@ public:
         static_assert(std::is_rvalue_reference<_CTy&&>::value,
             "Given continuable must be passed as r-value!");
 
-        return then(box_continuable_trait(std::forward<_CTy>(continuable)));
+        return then(detail::functional_traits<_ATy...>::box_continuable_trait(std::forward<_CTy>(continuable)));
     }
 
     template<typename... _CTy>
@@ -327,83 +327,91 @@ inline auto make_continuable()
 
 namespace detail
 {
-    /// Wrap void returning functionals to returns an empty continuable.
     template <typename _CTy>
-    static auto remove_void_trait(_CTy&& functional)
-        -> typename std::enable_if<
-                std::is_void<
-                    fu::return_type_of_t<
-                        typename std::decay<_CTy>::type
-                    >
-                >::value,
-                /*decltype(
-                    detail::void_wrap_trait<
+    struct continuable_traits;
+
+    template <typename _RTy, typename... _ATy>
+    struct continuable_traits<std::function<_RTy(_ATy...)>>
+    {
+        
+    };
+
+    /// Continuable processing detail implementation
+    template <typename... _ATy>
+    struct functional_traits
+    {
+        /// Wrap void returning functionals to returns an empty continuable.
+        template <typename _CTy>
+        static auto remove_void_trait(_CTy&& functional)
+            -> typename std::enable_if<
+                    std::is_void<
                         fu::return_type_of_t<
                             typename std::decay<_CTy>::type
                         >
-                    >::wrap(std::declval<_CTy>())
-                )
-                */
-                decltype(
-                    detail::functional_corrector<_CTy>::correct(std::declval<_CTy>())
-                )
-                // std::function<Continuable<>()>
-            >::type
-    {
-        /*return detail::void_wrap_trait<
-            fu::return_type_of_t<
-                typename std::decay<_CTy>::type
-            >
-        >::wrap(std::forward<_CTy>(functional));*/
-        return detail::functional_corrector<_CTy>::correct(std::forward<_CTy>(functional));
-    }
-
-    /// Route continuable returning functionals through.
-    /*template <typename _CTy>
-    static auto remove_void_trait(_CTy&& functional)
-        -> typename std::enable_if<
-                !std::is_void<
-                    fu::return_type_of_t<
-                        typename std::decay<_CTy>::type
-                    >
-                >::value,
-                _CTy>::type
-    {
-        return std::forward<_CTy>(functional);
-    }*/
-
-    /// Wrap continuables into the continuable returning functional type.
-    template<typename _CTy>
-    auto box_continuable_trait(_CTy&& continuable)
-        -> typename std::enable_if<detail::is_continuable<typename std::decay<_CTy>::type>::value,
-                std::function<typename std::decay<_CTy>::type(_ATy...)>>::type
-    {
-        // Trick C++11 lambda capture rules for non copyable but moveable continuables.
-        std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
-            std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
-
-        // Create a fake function which returns the value on invoke.
-        return [shared_continuable](_ATy...)
+                    >::value,
+                    /*decltype(
+                        detail::void_wrap_trait<
+                            fu::return_type_of_t<
+                                typename std::decay<_CTy>::type
+                            >
+                        >::wrap(std::declval<_CTy>())
+                    )
+                    */
+                    decltype(
+                        detail::functional_corrector<_CTy>::correct(std::declval<_CTy>())
+                    )
+                    // std::function<Continuable<>()>
+                >::type
         {
-            return std::move(*shared_continuable);
-        };
-    }
+            /*return detail::void_wrap_trait<
+                fu::return_type_of_t<
+                    typename std::decay<_CTy>::type
+                >
+            >::wrap(std::forward<_CTy>(functional));*/
+            return detail::functional_corrector<_CTy>::correct(std::forward<_CTy>(functional));
+        }
 
-    /// Route functionals through and forward to remove_void_trait
-    template<typename _CTy>
-    auto box_continuable_trait(_CTy&& continuable)
-        -> typename std::enable_if<!detail::is_continuable<typename std::decay<_CTy>::type>::value,
-                typename std::decay<_CTy>::type>::type
-    {
-        return continuable;
-    }
+        /// Route continuable returning functionals through.
+        /*template <typename _CTy>
+        static auto remove_void_trait(_CTy&& functional)
+            -> typename std::enable_if<
+                    !std::is_void<
+                        fu::return_type_of_t<
+                            typename std::decay<_CTy>::type
+                        >
+                    >::value,
+                    _CTy>::type
+        {
+            return std::forward<_CTy>(functional);
+        }*/
 
-    template <typename _CTy>
-    struct functional_corrector
-    {
-        typedef fu::return_type_of_t<_CTy> return_t;
-        typedef fu::argument_type_of_t<_CTy> arg_t;
+        /// Wrap continuables into the continuable returning functional type.
+        template<typename _CTy>
+        static auto box_continuable_trait(_CTy&& continuable)
+            -> typename std::enable_if<detail::is_continuable<typename std::decay<_CTy>::type>::value,
+                    std::function<typename std::decay<_CTy>::type(_ATy...)>>::type
+        {
+            // Trick C++11 lambda capture rules for non copyable but moveable continuables.
+            std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
+                std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
 
+            // Create a fake function which returns the value on invoke.
+            return [shared_continuable](_ATy...)
+            {
+                return std::move(*shared_continuable);
+            };
+        }
+
+        /// Route functionals through and forward to remove_void_trait
+        template<typename _CTy>
+        static auto box_continuable_trait(_CTy&& continuable)
+            -> typename std::enable_if<!detail::is_continuable<typename std::decay<_CTy>::type>::value,
+                    typename std::decay<_CTy>::type>::type
+        {
+            return continuable;
+        }
+
+        template<typename _CTy>
         static int correct(_CTy&&)
         {
             return 1;
