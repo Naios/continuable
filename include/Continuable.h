@@ -340,6 +340,7 @@ namespace detail
     template <typename... _ATy>
     struct functional_traits
     {
+        /*
         /// Wrap void returning functionals to returns an empty continuable.
         template <typename _CTy>
         static auto remove_void_trait(_CTy&& functional)
@@ -349,30 +350,30 @@ namespace detail
                             typename std::decay<_CTy>::type
                         >
                     >::value,
-                    /*decltype(
+                    decltype(
                         detail::void_wrap_trait<
                             fu::return_type_of_t<
                                 typename std::decay<_CTy>::type
                             >
                         >::wrap(std::declval<_CTy>())
                     )
-                    */
+
                     decltype(
                         detail::functional_corrector<_CTy>::correct(std::declval<_CTy>())
                     )
                     // std::function<Continuable<>()>
                 >::type
         {
-            /*return detail::void_wrap_trait<
+            return detail::void_wrap_trait<
                 fu::return_type_of_t<
                     typename std::decay<_CTy>::type
                 >
-            >::wrap(std::forward<_CTy>(functional));*/
+            >::wrap(std::forward<_CTy>(functional));
             return detail::functional_corrector<_CTy>::correct(std::forward<_CTy>(functional));
         }
 
         /// Route continuable returning functionals through.
-        /*template <typename _CTy>
+        template <typename _CTy>
         static auto remove_void_trait(_CTy&& functional)
             -> typename std::enable_if<
                     !std::is_void<
