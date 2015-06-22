@@ -236,6 +236,10 @@ int main(int /*argc*/, char** /*argv*/)
     });
     */
 
+    auto test = detail::functional_traits<>::remove_void_trait([]
+    {
+    });
+
     std::cout << "ok" << std::endl;
     return 0;
 }
