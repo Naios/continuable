@@ -289,6 +289,21 @@ inline auto make_continuable()
 
 namespace detail
 {
+    template<typename Left, typename Right>
+    struct concat_identities;
+
+    template<typename... Left, typename... Right>
+    struct concat_identities<fu::identity<Left...>, fu::identity<Right...>>
+    {
+        typedef fu::identity<Left..., Right...> type;
+    };
+
+    template<typename... _CTy>
+    struct multiple_chainer_test
+    {
+        
+    };
+
     template<typename _ATy>
     struct void_wrap_trait;
 
@@ -404,6 +419,36 @@ namespace detail
         {
             return remove_void_trait(box_continuable_trait(std::forward<_CTy>(functional)));
         }
+
+        template<typename Current, typename First, typename... Rest>
+        struct multiple_result_maker;
+
+        template<typename... Previous, typename Last>
+        struct multiple_result_maker<fu::identity<Previous...>, Last>
+        {
+            // typedef decltype(correct(std::declval<typename std::decay<Last>::type>())) corrected_t;
+
+            /*
+            typedef typename concat_identities<
+                fu::identity<Previous...>,
+                fu::argument_type_of_t<Last>
+            > type;
+            */
+        };
+
+        template<typename... Previous, typename First, typename... Rest>
+        struct multiple_result_maker<fu::identity<Previous...>, First, Rest...>
+        {
+            /*
+            typedef typename multiple_result_maker<
+                typename concat_identities<
+                    fu::identity<Previous...>,
+                    fu::argument_type_of_t<First>
+                >,
+                Rest...
+            > type;
+            */
+        };
     };
 }
 
