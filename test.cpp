@@ -25,6 +25,15 @@ enum SpellCastResult
 template<typename T>
 using Optional = boost::optional<T>;
 
+Continuable<> Log(std::string const& message)
+{
+    return make_continuable([=](Callback<>&& callback)
+    {
+        std::cout << message << std::endl;
+        callback();
+    });
+}
+
 // Original method taking an optional callback.
 void CastSpell(int id, Optional<Callback<SpellCastResult>> const& callback = boost::none)
 {
@@ -47,13 +56,10 @@ Continuable<SpellCastResult> CastSpellPromise(int id)
 // Void instant returning continuable promise for testing purposes
 Continuable<> TrivialPromise(std::string const& msg = "")
 {
-    return make_continuable([=](Callback<>&& callback)
+    return Log(msg).then(make_continuable([=](Callback<>&& callback)
     {
-        if (!msg.empty())
-            std::cout << msg << std::endl;
-
         callback();
-    });
+    }));
 }
 
 Continuable<bool> Validate()
@@ -84,6 +90,7 @@ int main(int /*argc*/, char** /*argv*/)
             std::cout << "Pause a callback (void test) " << std::endl;
         })
         .then(Validate())
+        .then(TrivialPromise("huhu"))
         .then(CastSpellPromise(3))
         .then(CastSpellPromise(4))
         .then(CastSpellPromise(5))
@@ -110,6 +117,7 @@ int main(int /*argc*/, char** /*argv*/)
         )
         .then([]
         {
+            std::cout << "Finished" << std::endl;
         });
 
     //Continuable<bool> cb = make_continuable([](Callback<bool>&& callback)
@@ -222,34 +230,12 @@ int main(int /*argc*/, char** /*argv*/)
     //// Here we go
     //entry();
 
-/*
-    auto testaiasj = remove_void_trait([]
-    {
-        
-    });
+    detail::functional_traits<>::multiple_result_maker<
+        fu::identity<>,
 
-    */
+        std::function<Continuable<int>>
 
-/*
-    auto testres = Continuable<>::remove_void_trait([]
-    {
-    });
-    */
-
-    auto test1 = detail::functional_traits<>::correct([]
-    {
-    });
-
-    auto test2 = detail::functional_traits<>::correct([]
-    {
-        return make_continuable([](Callback<int, int>&& callback)
-        {
-            
-            callback(1, 2);
-        });
-    });
-
-    auto test3 = detail::functional_traits<>::correct(make_continuable());
+    > test282;
 
     std::cout << "ok" << std::endl;
     return 0;
