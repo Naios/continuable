@@ -98,9 +98,6 @@ namespace detail
         }
     };
 
-    template<typename Args>
-    struct void_wrap_trait;
-
     template <typename... _ATy>
     struct functional_traits;
 
@@ -335,20 +332,31 @@ inline auto make_continuable()
 
 namespace detail
 {
-    template <typename _CTy>
-    struct continuable_traits;
+    template<typename _ATy>
+    struct void_wrap_trait;
 
-    template <typename _RTy, typename... _ATy>
-    struct continuable_traits<std::function<_RTy(_ATy...)>>
+    /// Trait needed for functional_traits::remove_void_trait
+    template<typename... _ATy>
+    struct void_wrap_trait<fu::identity<_ATy...>>
     {
-        
+        template<typename _CTy>
+        static std::function<Continuable<>(_ATy...)> wrap(_CTy&& functional)
+        {
+            return [functional](_ATy... args)
+            {
+                // Invoke the original callback
+                functional(std::forward<_ATy>(args)...);
+
+                // Return an empty continuable
+                return make_continuable();
+            };
+        }
     };
 
     /// Continuable processing detail implementation
     template <typename... _ATy>
     struct functional_traits
     {
-        /*
         /// Wrap void returning functionals to returns an empty continuable.
         template <typename _CTy>
         static auto remove_void_trait(_CTy&& functional)
@@ -360,26 +368,19 @@ namespace detail
                     >::value,
                     decltype(
                         detail::void_wrap_trait<
-                            fu::return_type_of_t<
+                            fu::argument_type_of_t<
                                 typename std::decay<_CTy>::type
                             >
                         >::wrap(std::declval<_CTy>())
                     )
-
-                    decltype(
-                        detail::functional_corrector<_CTy>::correct(std::declval<_CTy>())
-                    )
-                    // std::function<Continuable<>()>
                 >::type
         {
             return detail::void_wrap_trait<
-                fu::return_type_of_t<
+                fu::argument_type_of_t<
                     typename std::decay<_CTy>::type
                 >
             >::wrap(std::forward<_CTy>(functional));
-            return detail::functional_corrector<_CTy>::correct(std::forward<_CTy>(functional));
         }
-        */
 
         /*
 
@@ -420,9 +421,9 @@ namespace detail
             };
         }
 
-        /// Route functionals through and forward to remove_void_trait
+        /// Route functionals through
         template<typename _CTy>
-        static auto box_continuable_trait(_CTy&& continuable)
+        inline static auto box_continuable_trait(_CTy&& continuable)
             -> typename std::enable_if<
                     !detail::is_continuable<
                         typename std::decay<_CTy>::type
@@ -430,34 +431,13 @@ namespace detail
                     typename std::decay<_CTy>::type
                 >::type
         {
-            return continuable;
+            return std::forward<_CTy>(continuable);
         }
 
         template<typename _CTy>
         static int correct(_CTy&&)
         {
             return 1;
-        }
-    };
-
-    template<typename... Args>
-    struct void_wrap_trait<fu::identity<Args...>>
-    {
-        template<typename _CTy>
-        static std::function<Continuable<>(Args...)> wrap(_CTy&& functional)
-        {
-            return [functional](Args... args)
-            {
-                // Invoke the original callback
-                functional(std::forward<Args>(args)...);
-
-                // FIXME return make_empty_continuable()
-                // Return a fake continuable
-                return Continuable<>([](Callback<>&& callback)
-                {
-                    callback();
-                });
-            };
         }
     };
 
