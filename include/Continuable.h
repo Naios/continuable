@@ -41,12 +41,6 @@ class Continuable;
 
 namespace detail
 {
-    // convert_void_to_continuable forward declaration.
-    /// Corrects void return types from functional types which should be
-    /// Continuable<DefaultContinuableState, Callback<>>
-    template<typename _RTy>
-    struct convert_void_to_continuable;
-
     // unary_chainer forward declaration.
     template<typename _NextRTy, typename... _NextATy>
     struct unary_chainer;
@@ -64,27 +58,11 @@ namespace detail
     struct is_continuable<Continuable<Args...>>
         : public std::true_type { };
 
-    // MSVC 12 has issues to detect the parameter pack otherwise.
-    template<typename _NextRTy, typename... _NextATy>
-    struct unary_chainer<_NextRTy, fu::identity<_NextATy...>>
-    {
-        typedef convert_void_to_continuable<_NextRTy> base;
-
-        typedef typename convert_void_to_continuable<_NextRTy>::type result_t;
-
-        typedef typename result_t::CallbackFunction callback_t;
-    };
-
     template<typename... _CTy>
     struct multiple_all_chainer
     {
 
     };
-
-    template <typename _CTy>
-    using unary_chainer_t = unary_chainer<
-        fu::return_type_of_t<typename std::decay<_CTy>::type>,
-        fu::argument_type_of_t<typename std::decay<_CTy>::type>>;
 
     template<typename... Args>
     struct create_empty_callback<std::function<void(std::function<void(Args...)>&&)>>
@@ -186,49 +164,50 @@ public:
         return *this;
     }
 
+    template <typename _CTy>
+    struct unary_chainer_t
+    {
+        // Corrected user given functional
+        typedef decltype(detail::functional_traits<_ATy...>::
+            correct(std::declval<typename std::decay<_CTy>::type>())) corrected_t;
+
+        typedef fu::return_type_of_t<corrected_t> continuable_t;
+
+        typedef fu::argument_type_of_t<corrected_t> arguments_t;
+
+        typedef typename continuable_t::CallbackFunction callback_t;
+    };
+
     /// Waits for this continuable and invokes the given callback.
     template<typename _CTy>
     auto then(_CTy&& functional)
-        -> typename std::enable_if<
-                !detail::is_continuable<
-                    typename std::decay<_CTy>::type
-                >::value,
-                typename detail::unary_chainer_t<_CTy>::result_t
-            >::type
+        -> typename unary_chainer_t<_CTy>::continuable_t
     {
+        static_assert(std::is_same<fu::identity<_ATy...>,
+            typename unary_chainer_t<_CTy>::arguments_t>::value,
+                "Given function signature isn't correct, for now it must match strictly!");
+
         // Transfer the insert function to the local scope.
         // Also use it as an r-value reference to try to get move semantics with c++11 lambdas.
         ForwardFunction&& callback = std::move(_callback_insert);
 
-        return typename detail::unary_chainer_t<_CTy>::result_t(
-            [functional, callback](typename detail::unary_chainer_t<_CTy>::callback_t&& call_next)
+        auto&& corrected = detail::functional_traits<_ATy...>::
+            correct(std::forward<_CTy>(functional));
+
+        return typename unary_chainer_t<_CTy>::continuable_t(
+            [corrected, callback](typename unary_chainer_t<_CTy>::callback_t&& call_next)
         {
-            callback([functional, call_next](_ATy&&... args) mutable
+            callback([corrected, call_next](_ATy&&... args) mutable
             {
                 // Invoke the next callback
-                detail::unary_chainer_t<_CTy>::base::invoke(functional, std::forward<_ATy>(args)...)
+                corrected(std::forward<_ATy>(args)...)
                     .invoke(std::move(call_next));
             });
 
         }, std::move(*this));
     }
 
-    /// Waits for this continuable and continues with the given one.
-    template<typename _CTy>
-    auto then(_CTy&& continuable)
-        -> typename std::enable_if<
-                detail::is_continuable<
-                    typename std::decay<_CTy>::type
-                >::value,
-                typename std::decay<_CTy>::type
-            >::type
-    {
-        static_assert(std::is_rvalue_reference<_CTy&&>::value,
-            "Given continuable must be passed as r-value!");
-
-        return then(detail::functional_traits<_ATy...>::box_continuable_trait(std::forward<_CTy>(continuable)));
-    }
-
+    /*
     template<typename... _CTy>
     Continuable& _wrap_all(_CTy&&...)
     {
@@ -236,6 +215,7 @@ public:
 
         return *this;
     }
+    */
 
     /// Placeholder
     template<typename... _CTy>
@@ -408,6 +388,9 @@ namespace detail
                     >
                 >::type
         {
+            static_assert(std::is_rvalue_reference<_CTy&&>::value,
+                "Given continuable must be passed as r-value!");
+
             // Trick C++11 lambda capture rules for non copyable but moveable continuables.
             std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
                 std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
@@ -429,6 +412,9 @@ namespace detail
                     typename std::decay<_CTy>::type
                 >::type
         {
+            static_assert(std::is_rvalue_reference<_CTy&&>::value,
+                "Given continuable must be passed as r-value!");
+
             return std::forward<_CTy>(continuable);
         }
 
@@ -440,38 +426,6 @@ namespace detail
             -> decltype(remove_void_trait(box_continuable_trait(std::declval<_CTy>())))
         {
             return remove_void_trait(box_continuable_trait(std::forward<_CTy>(functional)));
-        }
-    };
-
-    template<>
-    struct convert_void_to_continuable<void>
-    {
-        typedef Continuable<> type;
-
-        template<typename Fn, typename... Args>
-        static type invoke(Fn functional, Args&&... args)
-        {
-            // Invoke the void returning functional
-            functional(std::forward<Args>(args)...);
-
-            // Return a fake void continuable
-            return type([](Callback<>&& callback)
-            {
-                callback();
-            });
-        }
-    };
-
-    template<typename... _CTy>
-    struct convert_void_to_continuable<Continuable<_CTy...>>
-    {
-        typedef Continuable<_CTy...> type;
-
-        template<typename Fn, typename... Args>
-        static type invoke(Fn functional, Args&&... args)
-        {
-            // Invoke the functional as usual.
-            return functional(std::forward<Args>(args)...);
         }
     };
 }
