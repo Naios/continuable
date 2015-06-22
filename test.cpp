@@ -230,9 +230,11 @@ int main(int /*argc*/, char** /*argv*/)
 
     */
 
+/*
     auto testres = Continuable<>::remove_void_trait([]
     {
     });
+    */
 
     std::cout << "ok" << std::endl;
     return 0;
