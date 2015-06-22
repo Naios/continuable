@@ -432,10 +432,14 @@ namespace detail
             return std::forward<_CTy>(continuable);
         }
 
+        /// Correct user given continuable functionals.
+        /// Converts plan continuables to continuable retuning functions.
+        /// Converts void return to empty continuable.
         template<typename _CTy>
-        static int correct(_CTy&&)
+        static auto correct(_CTy&& functional)
+            -> decltype(remove_void_trait(box_continuable_trait(std::declval<_CTy>())))
         {
-            return 1;
+            return remove_void_trait(box_continuable_trait(std::forward<_CTy>(functional)));
         }
     };
 
