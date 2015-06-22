@@ -236,8 +236,17 @@ int main(int /*argc*/, char** /*argv*/)
     });
     */
 
-    auto test = detail::functional_traits<>::remove_void_trait([]
+    auto test1 = detail::functional_traits<>::remove_void_trait([]
     {
+    });
+
+    auto test2 = detail::functional_traits<>::remove_void_trait([]
+    {
+        return make_continuable([](Callback<int, int>&& callback)
+        {
+            
+            callback(1, 2);
+        });
     });
 
     std::cout << "ok" << std::endl;

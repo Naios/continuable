@@ -382,8 +382,6 @@ namespace detail
             >::wrap(std::forward<_CTy>(functional));
         }
 
-        /*
-
         /// Route continuable returning functionals through.
         template <typename _CTy>
         static auto remove_void_trait(_CTy&& functional)
@@ -396,7 +394,7 @@ namespace detail
                     _CTy>::type
         {
             return std::forward<_CTy>(functional);
-        }*/
+        }
 
         /// Wrap continuables into the continuable returning functional type.
         template<typename _CTy>
