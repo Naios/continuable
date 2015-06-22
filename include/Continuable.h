@@ -21,35 +21,12 @@
 
 #include "Callback.h"
 
-// Debug includes
-#include <iostream>
-#include <typeinfo>
-#include <string>
-template <typename T>
-void log_type(T t, std::string const& msg = "")
-{
-    std::cout << msg << ": " << typeid(t).name() << std::endl;
-}
-void debug(std::string const& m)
-{
-    std::cout << m << std::endl;
-}
-/// Debug end
-
 template<typename...>
 class Continuable;
 
 namespace detail
 {
-    // unary_chainer forward declaration.
-    template<typename _NextRTy, typename... _NextATy>
-    struct unary_chainer;
-
-    // creates an empty callback.
-    template<typename _FTy>
-    struct create_empty_callback;
-
-    // trait to identify continuable types
+    /// Trait to identify continuable types
     template<typename _CTy>
     struct is_continuable
         : public std::false_type { };
@@ -58,11 +35,9 @@ namespace detail
     struct is_continuable<Continuable<Args...>>
         : public std::true_type { };
 
-    template<typename... _CTy>
-    struct multiple_all_chainer
-    {
-
-    };
+    /// Creates an empty callback.
+    template<typename _FTy>
+    struct create_empty_callback;
 
     template<typename... Args>
     struct create_empty_callback<std::function<void(std::function<void(Args...)>&&)>>
@@ -76,6 +51,7 @@ namespace detail
         }
     };
 
+    /// Functional traits forward declaration.
     template <typename... _ATy>
     struct functional_traits;
 
@@ -94,7 +70,7 @@ public:
     typedef Callback<_ATy...> CallbackFunction;
     typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
 
-// private:
+private:
     /// Functional which expects a callback that is inserted from the Continuable
     /// to chain everything together
     ForwardFunction _callback_insert;
@@ -113,6 +89,21 @@ public:
             _callback_insert(std::forward<_CTy>(callback));
         }
     }
+
+    /// Helper trait for unary chains like `Continuable::then`
+    template <typename _CTy>
+    struct unary_chainer_t
+    {
+        // Corrected user given functional
+        typedef decltype(detail::functional_traits<_ATy...>::
+            correct(std::declval<typename std::decay<_CTy>::type>())) corrected_t;
+
+        typedef fu::return_type_of_t<corrected_t> continuable_t;
+
+        typedef fu::argument_type_of_t<corrected_t> arguments_t;
+
+        typedef typename continuable_t::CallbackFunction callback_t;
+    };
 
 public:
     /// Deleted copy construct
@@ -163,20 +154,6 @@ public:
         _callback_insert = std::move(right._callback_insert);
         return *this;
     }
-
-    template <typename _CTy>
-    struct unary_chainer_t
-    {
-        // Corrected user given functional
-        typedef decltype(detail::functional_traits<_ATy...>::
-            correct(std::declval<typename std::decay<_CTy>::type>())) corrected_t;
-
-        typedef fu::return_type_of_t<corrected_t> continuable_t;
-
-        typedef fu::argument_type_of_t<corrected_t> arguments_t;
-
-        typedef typename continuable_t::CallbackFunction callback_t;
-    };
 
     /// Waits for this continuable and invokes the given callback.
     template<typename _CTy>
