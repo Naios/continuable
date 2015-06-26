@@ -233,9 +233,12 @@ int main(int /*argc*/, char** /*argv*/)
     detail::functional_traits<>::multiple_result_maker<
         fu::identity<>,
 
-        std::function<Continuable<int>>
+        std::function<Continuable<int>()>,
+        std::function<Continuable<float>()>
 
-    > test282;
+    >::arguments_t test282;
+
+    detail::concat_identities<fu::identity<int, bool, char>, fu::identity<float, double>>::type myt;
 
     std::cout << "ok" << std::endl;
     return 0;
