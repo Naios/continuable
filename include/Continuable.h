@@ -51,6 +51,9 @@ namespace detail
         }
     };
 
+    template <typename _CTy, typename... _ATy>
+    struct unary_chainer_t;
+
     /// Functional traits forward declaration.
     template <typename... _ATy>
     struct functional_traits;
@@ -89,21 +92,6 @@ private:
             _callback_insert(std::forward<_CTy>(callback));
         }
     }
-
-    /// Helper trait for unary chains like `Continuable::then`
-    template <typename _CTy>
-    struct unary_chainer_t
-    {
-        // Corrected user given functional
-        typedef decltype(detail::functional_traits<_ATy...>::
-            correct(std::declval<typename std::decay<_CTy>::type>())) corrected_t;
-
-        typedef fu::return_type_of_t<corrected_t> continuable_t;
-
-        typedef fu::argument_type_of_t<corrected_t> arguments_t;
-
-        typedef typename continuable_t::CallbackFunction callback_t;
-    };
 
 public:
     /// Deleted copy construct
@@ -158,10 +146,10 @@ public:
     /// Waits for this continuable and invokes the given callback.
     template<typename _CTy>
     auto then(_CTy&& functional)
-        -> typename unary_chainer_t<_CTy>::continuable_t
+        -> typename detail::unary_chainer_t<_CTy, _ATy...>::continuable_t
     {
         static_assert(std::is_same<fu::identity<_ATy...>,
-            typename unary_chainer_t<_CTy>::arguments_t>::value,
+            typename detail::unary_chainer_t<_CTy, _ATy...>::arguments_t>::value,
                 "Given function signature isn't correct, for now it must match strictly!");
 
         // Transfer the insert function to the local scope.
@@ -171,8 +159,8 @@ public:
         auto&& corrected = detail::functional_traits<_ATy...>::
             correct(std::forward<_CTy>(functional));
 
-        return typename unary_chainer_t<_CTy>::continuable_t(
-            [corrected, callback](typename unary_chainer_t<_CTy>::callback_t&& call_next)
+        return typename detail::unary_chainer_t<_CTy, _ATy...>::continuable_t(
+            [corrected, callback](typename detail::unary_chainer_t<_CTy, _ATy...>::callback_t&& call_next)
         {
             callback([corrected, call_next](_ATy&&... args) mutable
             {
@@ -289,6 +277,22 @@ inline auto make_continuable()
 
 namespace detail
 {
+
+    /// Helper trait for unary chains like `Continuable::then`
+    template <typename _CTy, typename... _ATy>
+    struct unary_chainer_t
+    {
+        // Corrected user given functional
+        typedef decltype(detail::functional_traits<_ATy...>::
+            correct(std::declval<typename std::decay<_CTy>::type>())) corrected_t;
+
+        typedef fu::return_type_of_t<corrected_t> continuable_t;
+
+        typedef fu::argument_type_of_t<corrected_t> arguments_t;
+
+        typedef typename continuable_t::CallbackFunction callback_t;
+    };
+
     template<typename Left, typename Right>
     struct concat_identities;
 
