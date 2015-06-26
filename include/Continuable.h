@@ -277,7 +277,6 @@ inline auto make_continuable()
 
 namespace detail
 {
-
     /// Helper trait for unary chains like `Continuable::then`
     template <typename _CTy, typename... _ATy>
     struct unary_chainer_t
@@ -424,34 +423,26 @@ namespace detail
             return remove_void_trait(box_continuable_trait(std::forward<_CTy>(functional)));
         }
 
-        template<typename Current, typename First, typename... Rest>
+        template<typename Current, typename... Rest>
         struct multiple_result_maker;
 
-        template<typename... Previous, typename Last>
-        struct multiple_result_maker<fu::identity<Previous...>, Last>
+        template<typename Previous, typename Last>
+        struct multiple_result_maker<Previous, Last>
         {
-            // typedef decltype(correct(std::declval<typename std::decay<Last>::type>())) corrected_t;
-
-            /*
             typedef typename concat_identities<
-                fu::identity<Previous...>,
-                fu::argument_type_of_t<Last>
-            > type;
-            */
+                Previous, typename unary_chainer_t<Last, _ATy...>::arguments_t
+            >::type arguments_t;
         };
 
-        template<typename... Previous, typename First, typename... Rest>
-        struct multiple_result_maker<fu::identity<Previous...>, First, Rest...>
+        template<typename Previous, typename Next, typename... Rest>
+        struct multiple_result_maker<Previous, Next, Rest...>
         {
-            /*
             typedef typename multiple_result_maker<
                 typename concat_identities<
-                    fu::identity<Previous...>,
-                    fu::argument_type_of_t<First>
-                >,
+                    Previous, typename unary_chainer_t<Next, _ATy...>::arguments_t
+                >::type,
                 Rest...
-            > type;
-            */
+            >::arguments_t arguments_t;
         };
     };
 }
