@@ -230,14 +230,20 @@ int main(int /*argc*/, char** /*argv*/)
     //// Here we go
     //entry();
 
+    detail::unary_chainer_t<std::function<Continuable<bool>()>>::callback_arguments_t args213987;
+
     detail::functional_traits<>::multiple_result_maker<
         fu::identity<>,
 
-        std::function<Continuable<int>()>,
-        std::function<Continuable<float>()>
+        std::function<Continuable<bool>()>,
+        decltype(CastSpellPromise(2)),
+        decltype(TrivialPromise()),
+        std::function<Continuable<float, double>()>
 
     >::arguments_t test282;
 
+    // static_assert(std::is_same<>::value,
+    
     detail::concat_identities<fu::identity<int, bool, char>, fu::identity<float, double>>::type myt;
 
     std::cout << "ok" << std::endl;

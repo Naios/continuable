@@ -290,6 +290,8 @@ namespace detail
         typedef fu::argument_type_of_t<corrected_t> arguments_t;
 
         typedef typename continuable_t::CallbackFunction callback_t;
+
+        typedef fu::argument_type_of_t<callback_t> callback_arguments_t;
     };
 
     template<typename Left, typename Right>
@@ -391,7 +393,7 @@ namespace detail
                 std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
 
             // Create a fake function which returns the value on invoke.
-            return [shared_continuable](_ATy...)
+            return [shared_continuable](_ATy&&...)
             {
                 return std::move(*shared_continuable);
             };
@@ -426,24 +428,21 @@ namespace detail
         template<typename Current, typename... Rest>
         struct multiple_result_maker;
 
-        template<typename Previous, typename Last>
-        struct multiple_result_maker<Previous, Last>
+        template<typename Previous, typename Next>
+        struct multiple_result_maker<Previous, Next>
         {
             typedef typename concat_identities<
-                Previous, typename unary_chainer_t<Last, _ATy...>::arguments_t
+                Previous, typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
             >::type arguments_t;
         };
 
         template<typename Previous, typename Next, typename... Rest>
         struct multiple_result_maker<Previous, Next, Rest...>
-        {
-            typedef typename multiple_result_maker<
+            : public multiple_result_maker<
                 typename concat_identities<
-                    Previous, typename unary_chainer_t<Next, _ATy...>::arguments_t
+                Previous, typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
                 >::type,
-                Rest...
-            >::arguments_t arguments_t;
-        };
+                Rest...> { };
     };
 }
 
