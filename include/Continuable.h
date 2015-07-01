@@ -434,20 +434,23 @@ namespace detail
             return remove_void_trait(box_continuable_trait(std::forward<_CTy>(functional)));
         }
 
-        template<typename Args, typename Pack, typename... Rest>
+        template<size_t Count, typename Args, typename Pack, typename... Rest>
         struct multiple_result_maker;
 
-        template<typename... Args, typename... Pack>
-        struct multiple_result_maker<fu::identity<Args...>, fu::identity<Pack...>>
+        template<size_t Count, typename... Args, typename... Pack>
+        struct multiple_result_maker<Count, fu::identity<Args...>, fu::identity<Pack...>>
         {
             typedef fu::identity<Args...> arguments_t;
 
             typedef fu::identity<Pack...> arguments_storage_t;
+
+            static size_t const size = Count;
         };
 
-        template<typename Args, typename Pack, typename Next>
-        struct multiple_result_maker<Args, Pack, Next>
+        template<size_t Count, typename Args, typename Pack, typename Next>
+        struct multiple_result_maker<Count, Args, Pack, Next>
             : public multiple_result_maker<
+                Count + 1,
                 typename concat_identities<
                     Args,
                     typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
@@ -458,9 +461,10 @@ namespace detail
                 >::type
               > { };
 
-        template<typename Args, typename Pack, typename Next, typename... Rest>
-        struct multiple_result_maker<Args, Pack, Next, Rest...>
+        template<size_t Count, typename Args, typename Pack, typename Next, typename... Rest>
+        struct multiple_result_maker<Count, Args, Pack, Next, Rest...>
             : public multiple_result_maker<
+                Count + 1,
                 typename concat_identities<
                     Args,
                     typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
@@ -474,7 +478,7 @@ namespace detail
 
         template<typename... Args>
         using result_maker_of_t =
-            multiple_result_maker<fu::identity<>, fu::identity<>, Args...>;
+            multiple_result_maker<0, fu::identity<>, fu::identity<>, Args...>;
     };
 }
 
