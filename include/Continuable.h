@@ -94,6 +94,10 @@ private:
     }
 
 public:
+
+    /// Developing
+    Continuable() : _released(true) { }
+
     /// Deleted copy construct
     Continuable(Continuable const&) = delete;
 
@@ -487,7 +491,7 @@ namespace detail
     template<typename... Args>
     struct multiple_when_all_chainer_t_make_result<fu::identity<Args...>>
     {
-        typedef std::function<Continuable</*Args...*/>()> type;
+        typedef Continuable<Args...> type;
 
         // type create()
     };
@@ -507,11 +511,7 @@ namespace detail
         static auto make_when_all(_CTy&&... args)
             -> typename multiple_when_all_chainer_t_make_result<arguments_t>::type
         {
-            return make_continuable([]()
-            {
-                
-
-            });
+            return multiple_when_all_chainer_t_make_result<arguments_t>::type();
         }
     };
 }

@@ -221,8 +221,8 @@ namespace fu
         struct invoker<sequence<Sequence...>>
         {
             template<typename _FTy, typename _TTy>
-            static auto invoke(_FTy&& functional, _TTy&& tuple)
-                -> ::fu::return_type_of_t<typename std::decay<_FTy>::type>
+            inline static auto invoke(_FTy&& functional, _TTy&& tuple)
+                -> return_type_of_t<typename std::decay<_FTy>::type>
             {
                 return std::forward<_FTy>(functional)(std::get<Sequence>(std::forward<_TTy>(tuple))...);
             }

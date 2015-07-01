@@ -345,10 +345,11 @@ int main(int /*argc*/, char** /*argv*/)
         >
     >::result_maker::partial_results_t myres123345;
 
-    detail::multiple_when_all_chainer_t<
+    auto firstType = detail::multiple_when_all_chainer_t<
         fu::identity<>,
         fu::identity<
             std::function<Continuable<>()>,
+            std::function<Continuable<SpellCastResult>()>,
             std::function<Continuable<SpellCastResult>()>
         >
     >::make_when_all(
@@ -358,7 +359,15 @@ int main(int /*argc*/, char** /*argv*/)
     },
     []
     {
-        return CastSpellPromise(2);
+        return CastSpellPromise(10);
+    },
+    []
+    {
+        return CastSpellPromise(20);
+    })
+    .then([](SpellCastResult, SpellCastResult)
+    {
+        
     });
 
     std::cout << "ok" << std::endl;
