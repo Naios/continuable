@@ -343,7 +343,7 @@ namespace detail
     template<size_t Position, typename Tuple>
     struct partial_result
     {
-        static size_t const position = Count;
+        static size_t const position = Position;
 
         typedef Tuple tuple;
     };
