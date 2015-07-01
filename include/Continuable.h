@@ -451,7 +451,7 @@ namespace detail
         {
             typedef fu::identity<Args...> arguments_t;
 
-            typedef fu::identity<Pack...> arguments_storage_t;
+            typedef fu::identity<Pack...> partial_results_t;
 
             static size_t const size = Position;
         };
@@ -464,7 +464,7 @@ namespace detail
                     Args,
                     typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
                 >::type,
-                typename concat_identities <
+                typename concat_identities<
                     Pack,
                     fu::identity<
                         partial_result<
