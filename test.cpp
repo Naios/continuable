@@ -72,6 +72,22 @@ Continuable<bool> Validate()
     });
 }
 
+Continuable<std::unique_ptr<int>&&> MoveTest()
+{
+    return make_continuable([=](Callback<std::unique_ptr<int>&&>&& callback)
+    {
+        // Move the unique ptr out to test moveability
+        std::unique_ptr<int> ptr(new int(5));
+        callback(std::move(ptr));
+    });
+}
+
+void testMoveAbleNormal(std::function<void(std::unique_ptr<int>&&)> callback)
+{
+    std::unique_ptr<int> ptr(new int(5));
+    callback(std::move(ptr));   
+}
+
 template <typename... T>
 void test_unwrap(std::string const& msg)
 {
@@ -97,6 +113,15 @@ int main(int /*argc*/, char** /*argv*/)
         .then([](SpellCastResult)
         {
             return Validate();
+        });
+
+    MoveTest()
+        .then([](std::unique_ptr<int>&& ptr)
+        {
+            static_assert(std::is_rvalue_reference<decltype(ptr)>::value, "no rvalue");
+
+            // Error here
+            std::unique_ptr<int> other = std::move(ptr);
         });
 
     // Mockup of aggregate methods
