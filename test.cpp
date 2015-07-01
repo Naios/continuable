@@ -82,6 +82,8 @@ Continuable<std::unique_ptr<int>&&> MoveTest()
     });
 }
 
+typedef std::unique_ptr<int> Moveable;
+
 void testMoveAbleNormal(std::function<void(std::unique_ptr<int>&&)> callback)
 {
     std::unique_ptr<int> ptr(new int(5));
@@ -93,6 +95,43 @@ void test_unwrap(std::string const& msg)
 {
     std::cout << msg << " is unwrappable: " << (fu::is_unwrappable<T...>::value ? "true" : "false") << std::endl;
 }
+/*
+template<size_t N>
+struct Apply {
+    template<typename F, typename T, typename... A>
+    static inline auto apply(F && f, T && t, A &&... a)
+        -> decltype(Apply<N-1>::apply(
+            ::std::forward<F>(f), ::std::forward<T>(t),
+            ::std::get<N-1>(::std::forward<T>(t)), ::std::forward<A>(a)...
+        ))
+    {
+        return Apply<N-1>::apply(::std::forward<F>(f), ::std::forward<T>(t),
+            ::std::get<N-1>(::std::forward<T>(t)), ::std::forward<A>(a)...
+        );
+    }
+};
+
+template<>
+struct Apply<0> {
+    template<typename F, typename T, typename... A>
+    static inline auto apply(F && f, T &&, A &&... a)
+        -> decltype(::std::forward<F>(f)(::std::forward<A>(a)...))
+    {
+        return ::std::forward<F>(f)(::std::forward<A>(a)...);
+    }
+};
+
+template<typename F, typename T>
+inline auto apply(F && f, T && t)
+    -> decltype(Apply< ::std::tuple_size<
+        typename ::std::decay<T>::type
+    >::value>::apply(::std::forward<F>(f), ::std::forward<T>(t)))
+{
+    return Apply< ::std::tuple_size<
+        typename ::std::decay<T>::type
+    >::value>::apply(::std::forward<F>(f), ::std::forward<T>(t));
+}
+*/
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -280,6 +319,23 @@ int main(int /*argc*/, char** /*argv*/)
     // fu::identity<detail::functional_traits<>::position<1>> i;
 
     std::tuple<int, std::vector<int>> tup;
+
+    Moveable moveable(new int(7));
+
+    auto myargs = std::make_tuple(7, std::vector<int>({ 1, 2, 3 }), std::move(moveable));
+
+    std::function<int(int, std::vector<int>, Moveable&&)> lam = [](int given_i, std::vector<int> given_vec, Moveable&& moveable)
+    {
+        Moveable other = std::move(moveable);
+
+        ++given_i;
+        return 1;
+    };
+
+    fu::invoke_with_tuple(lam, std::move(myargs));
+
+    fu::sequence_generator<2>::type seqtype;
+    fu::sequence_generator<1>::type zero_seqtype;
 
     std::cout << "ok" << std::endl;
     return 0;
