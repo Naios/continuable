@@ -239,7 +239,8 @@ int main(int /*argc*/, char** /*argv*/)
         std::function<Continuable<bool>()>,
         decltype(CastSpellPromise(2)),
         decltype(TrivialPromise()),
-        std::function<Continuable<float, double>()>
+        std::function<Continuable<float, double>()>,
+        std::function<Continuable<>()>
 
     > maker;
     

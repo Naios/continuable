@@ -447,20 +447,6 @@ namespace detail
             static size_t const size = Count;
         };
 
-        template<size_t Count, typename Args, typename Pack, typename Next>
-        struct multiple_result_maker<Count, Args, Pack, Next>
-            : public multiple_result_maker<
-                Count + 1,
-                typename concat_identities<
-                    Args,
-                    typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
-                >::type,
-                typename concat_identities_as_pack<
-                    Pack,
-                    typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
-                >::type
-              > { };
-
         template<size_t Count, typename Args, typename Pack, typename Next, typename... Rest>
         struct multiple_result_maker<Count, Args, Pack, Next, Rest...>
             : public multiple_result_maker<
