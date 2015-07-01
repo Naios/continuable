@@ -230,9 +230,11 @@ int main(int /*argc*/, char** /*argv*/)
     //// Here we go
     //entry();
 
-    detail::unary_chainer_t<std::function<Continuable<bool>()>>::callback_arguments_t args213987;
+    detail::unary_chainer_t<
+        std::function<Continuable<bool>()>
+    >::callback_arguments_t args213987;
 
-    typedef detail::result_maker_of_t<
+    typedef detail::functional_traits<>::result_maker_of_t<
 
         std::function<Continuable<bool>()>,
         decltype(CastSpellPromise(2)),
@@ -243,7 +245,7 @@ int main(int /*argc*/, char** /*argv*/)
     
     maker::arguments_t test282_args;
     maker::arguments_storage_t test282_pack;
-
+ 
     // static_assert(std::is_same<>::value,
     
     detail::concat_identities<fu::identity<int, bool, char>, fu::identity<float, double>>::type myt;
