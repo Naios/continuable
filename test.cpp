@@ -252,6 +252,8 @@ int main(int /*argc*/, char** /*argv*/)
     
     detail::concat_identities<fu::identity<int, bool, char>, fu::identity<float, double>>::type myt;
 
+    // fu::identity<detail::functional_traits<>::position<1>> i;
+
     std::tuple<int, std::vector<int>> tup;
 
     std::cout << "ok" << std::endl;
