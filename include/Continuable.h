@@ -481,15 +481,20 @@ namespace detail
             multiple_result_maker<0, fu::identity<>, fu::identity<>, Args...>;
     };
 
+    template<typename Args>
+    struct multiple_when_all_chainer_t_make_result;
 
+    template<typename... Args>
+    struct multiple_when_all_chainer_t_make_result<fu::identity<Args...>>
+    {
+        typedef std::function<Continuable</*Args...*/>()> type;
+
+        // type create()
+    };
 
     template <typename... _ATy, typename... _CTy>
     struct multiple_when_all_chainer_t<fu::identity<_ATy...>, fu::identity<_CTy...>>
     {
-        struct helper
-        {
-        };
-
         typedef typename functional_traits<_ATy...>::result_maker_of_t<_CTy...> result_maker;
 
         typedef typename result_maker::arguments_t arguments_t;
@@ -499,10 +504,14 @@ namespace detail
         static std::size_t const size = result_maker::size;
 
         // Creates one continuable from multiple ones
-        static auto make_when_all()
-            -> int
+        static auto make_when_all(_CTy&&... args)
+            -> typename multiple_when_all_chainer_t_make_result<arguments_t>::type
         {
-            return 1;
+            return make_continuable([]()
+            {
+                
+
+            });
         }
     };
 }

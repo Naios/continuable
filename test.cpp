@@ -345,6 +345,22 @@ int main(int /*argc*/, char** /*argv*/)
         >
     >::result_maker::partial_results_t myres123345;
 
+    detail::multiple_when_all_chainer_t<
+        fu::identity<>,
+        fu::identity<
+            std::function<Continuable<>()>,
+            std::function<Continuable<SpellCastResult>()>
+        >
+    >::make_when_all(
+    []
+    {
+        return make_continuable();
+    },
+    []
+    {
+        return CastSpellPromise(2);
+    });
+
     std::cout << "ok" << std::endl;
     return 0;
 }
