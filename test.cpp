@@ -245,7 +245,7 @@ int main(int /*argc*/, char** /*argv*/)
     > maker;
     
     maker::arguments_t test282_args;
-    maker::arguments_storage_t test282_pack;
+    maker::partial_results_t test282_pack;
     auto test282_size = maker::size;
  
     // static_assert(std::is_same<>::value,
