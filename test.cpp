@@ -337,6 +337,14 @@ int main(int /*argc*/, char** /*argv*/)
     fu::sequence_generator<2>::type seqtype;
     fu::sequence_generator<1>::type zero_seqtype;
 
+    detail::multiple_when_all_chainer_t<
+        fu::identity<>,
+        fu::identity<
+            std::function<Continuable<>()>,
+            std::function<Continuable<std::string>()>
+        >
+    >::result_maker::partial_results_t myres123345;
+
     std::cout << "ok" << std::endl;
     return 0;
 }

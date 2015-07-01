@@ -294,6 +294,10 @@ namespace detail
         typedef fu::argument_type_of_t<callback_t> callback_arguments_t;
     };
 
+    /// Helper trait for multiple chains like `Continuable::all`
+    template <typename...>
+    struct multiple_when_all_chainer_t;
+
     template<typename Left, typename Right>
     struct concat_identities;
 
@@ -310,12 +314,6 @@ namespace detail
     struct identity_to_tuple<fu::identity<Args...>>
     {
         typedef std::tuple<Args...> type;
-    };
-
-    template<typename... _CTy>
-    struct multiple_chainer_test
-    {
-        
     };
 
     template<typename _ATy>
@@ -481,6 +479,31 @@ namespace detail
         template<typename... Args>
         using result_maker_of_t =
             multiple_result_maker<0, fu::identity<>, fu::identity<>, Args...>;
+    };
+
+
+
+    template <typename... _ATy, typename... _CTy>
+    struct multiple_when_all_chainer_t<fu::identity<_ATy...>, fu::identity<_CTy...>>
+    {
+        struct helper
+        {
+        };
+
+        typedef typename functional_traits<_ATy...>::result_maker_of_t<_CTy...> result_maker;
+
+        typedef typename result_maker::arguments_t arguments_t;
+
+        typedef typename result_maker::partial_results_t partial_results_t;
+
+        static std::size_t const size = result_maker::size;
+
+        // Creates one continuable from multiple ones
+        static auto make_when_all()
+            -> int
+        {
+            return 1;
+        }
     };
 }
 
