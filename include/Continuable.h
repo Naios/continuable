@@ -328,7 +328,7 @@ namespace detail
         template<typename _CTy>
         static std::function<Continuable<>(_ATy...)> wrap(_CTy&& functional)
         {
-            return [functional](_ATy... args)
+            return [functional](_ATy&&... args)
             {
                 // Invoke the original callback
                 functional(std::forward<_ATy>(args)...);
