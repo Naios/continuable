@@ -96,7 +96,7 @@ void test_unwrap(std::string const& msg)
     std::cout << msg << " is unwrappable: " << (fu::is_unwrappable<T...>::value ? "true" : "false") << std::endl;
 }
 /*
-template<size_t N>
+template<std::size_t N>
 struct Apply {
     template<typename F, typename T, typename... A>
     static inline auto apply(F && f, T && t, A &&... a)

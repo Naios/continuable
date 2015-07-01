@@ -27,6 +27,7 @@
 #include <functional>
 #include <type_traits>
 #include <utility>
+#include <cstddef>
 
 namespace fu
 {
@@ -35,25 +36,25 @@ namespace fu
     struct identity { };
 
     /// Sequence class which is used to carry parameter packs of unsigned integers.
-    template<size_t...>
+    template<std::size_t...>
     struct sequence { };
 
-    /// The Sequence generator generates a sequence of numbers with the given size.
-    template<size_t...>
+    /// The Sequence generator generates a sequence of ascending numbers with the given size.
+    template<std::size_t...>
     struct sequence_generator;
 
-    template<size_t... Stack>
+    template<std::size_t... Stack>
     struct sequence_generator<0, Stack...>
     {
         typedef sequence<Stack...> type;
     };
 
-    template<size_t Position, size_t... Stack>
+    template<std::size_t Position, std::size_t... Stack>
     struct sequence_generator<Position, Stack...>
         : public sequence_generator<Position - 1, Position - 1, Stack...> { };
 
     /// Sequence generator alias
-    template<size_t Size>
+    template<std::size_t Size>
     using sequence_of_t = typename sequence_generator<Size>::type;
 
     namespace detail
@@ -216,7 +217,7 @@ namespace fu
         template<typename Sequence>
         struct invoker;
 
-        template<size_t... Sequence>
+        template<std::size_t... Sequence>
         struct invoker<sequence<Sequence...>>
         {
             template<typename _FTy, typename _TTy>

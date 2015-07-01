@@ -192,7 +192,7 @@ public:
 
     /// Placeholder
     template<typename... _CTy>
-    Continuable& some(size_t const count, _CTy&&...)
+    Continuable& some(std::size_t const count, _CTy&&...)
     {
         return *this;
     }
@@ -340,10 +340,10 @@ namespace detail
     };
 
     /// Position wrapper class to pass ints as type
-    template<size_t Position, typename Tuple>
+    template<std::size_t Position, typename Tuple>
     struct partial_result
     {
-        static size_t const position = Position;
+        static std::size_t const position = Position;
 
         typedef Tuple tuple;
     };
@@ -443,20 +443,20 @@ namespace detail
             return remove_void_trait(box_continuable_trait(std::forward<_CTy>(functional)));
         }
 
-        template<size_t Position, typename Args, typename Pack, typename... Rest>
+        template<std::size_t Position, typename Args, typename Pack, typename... Rest>
         struct multiple_result_maker;
 
-        template<size_t Position, typename... Args, typename... Pack>
+        template<std::size_t Position, typename... Args, typename... Pack>
         struct multiple_result_maker<Position, fu::identity<Args...>, fu::identity<Pack...>>
         {
             typedef fu::identity<Args...> arguments_t;
 
             typedef fu::identity<Pack...> partial_results_t;
 
-            static size_t const size = Position;
+            static std::size_t const size = Position;
         };
 
-        template<size_t Position, typename Args, typename Pack, typename Next, typename... Rest>
+        template<std::size_t Position, typename Args, typename Pack, typename Next, typename... Rest>
         struct multiple_result_maker<Position, Args, Pack, Next, Rest...>
             : public multiple_result_maker<
                 Position + 1,

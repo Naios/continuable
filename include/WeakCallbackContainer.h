@@ -29,9 +29,9 @@ class WeakCallbackContainer
 {
     std::shared_ptr<WeakCallbackContainer> self_reference;
 
-    typedef size_t handle_t;
+    typedef std::size_t handle_t;
 
-    size_t handle;
+    std::size_t handle;
 
     std::unordered_map<decltype(handle), boost::any> container;
 
@@ -44,7 +44,7 @@ class WeakCallbackContainer
         // Creates a weak proxy callback which prevents invoking to an invalid context.
         // Removes itself from the owner with the given handler.
         static callback_of_t<_CTy> CreateProxy(std::weak_ptr<WeakCallbackContainer> const& weak_owner,
-            size_t const handle, weak_callback_of_t<_CTy> const& weak_callback)
+            std::size_t const handle, weak_callback_of_t<_CTy> const& weak_callback)
         {
             return [=](Args&&... args)
             {
