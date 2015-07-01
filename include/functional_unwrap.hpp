@@ -51,7 +51,7 @@ namespace fu
 
     template<std::size_t Position, std::size_t... Stack>
     struct sequence_generator<Position, Stack...>
-        : public sequence_generator<Position - 1, Position - 1, Stack...> { };
+        : sequence_generator<Position - 1, Position - 1, Stack...> { };
 
     /// Sequence generator alias
     template<std::size_t Size>

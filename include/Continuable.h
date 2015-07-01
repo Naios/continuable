@@ -29,11 +29,11 @@ namespace detail
     /// Trait to identify continuable types
     template<typename _CTy>
     struct is_continuable
-        : public std::false_type { };
+        : std::false_type { };
 
     template<typename... Args>
     struct is_continuable<Continuable<Args...>>
-        : public std::true_type { };
+        : std::true_type { };
 
     /// Creates an empty callback.
     template<typename _FTy>
@@ -458,7 +458,7 @@ namespace detail
 
         template<std::size_t Position, typename Args, typename Pack, typename Next, typename... Rest>
         struct multiple_result_maker<Position, Args, Pack, Next, Rest...>
-            : public multiple_result_maker<
+            : multiple_result_maker<
                 Position + 1,
                 typename concat_identities<
                     Args,
