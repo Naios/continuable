@@ -454,11 +454,9 @@ namespace detail
                 >::type,
                 typename concat_identities_as_pack<
                     Pack,
-                    // typename wrap_in_tuple<
-                        typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
-                    // >::type
+                    typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
                 >::type
-              > { }
+              > { };
 
         template<typename Args, typename Pack, typename Next, typename... Rest>
         struct multiple_result_maker<Args, Pack, Next, Rest...>
