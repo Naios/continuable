@@ -30,9 +30,31 @@
 
 namespace fu
 {
-    /// Identity class which is used to carry parameter packs.
+    /// Identity class which is used to carry parameter packs of types.
     template<typename... Args>
     struct identity { };
+
+    /// Sequence class which is used to carry parameter packs of unsigned integers.
+    template<size_t...>
+    struct sequence { };
+
+    /// The Sequence generator generates a sequence of numbers with the given size.
+    template<size_t...>
+    struct sequence_generator;
+
+    template<size_t... Stack>
+    struct sequence_generator<0, Stack...>
+    {
+        typedef sequence<Stack...> type;
+    };
+
+    template<size_t Position, size_t... Stack>
+    struct sequence_generator<Position, Stack...>
+        : public sequence_generator<Position - 1, Position - 1, Stack...> { };
+
+    /// Sequence generator alias
+    template<size_t Size>
+    using sequence_of_t = typename sequence_generator<Size>::type;
 
     namespace detail
     {
@@ -54,6 +76,11 @@ namespace fu
             /// The function provided as function_ptr
             typedef _RTy(*function_ptr)(_ATy...);
         };
+
+        /// Pack in fu::identity
+        template<typename _RTy, typename... _ATy>
+        struct unwrap_function_impl<identity<_RTy, _ATy...>>
+            : unwrap_function_impl<_RTy(_ATy...)> { };
 
         /// STL: std::function
         template<typename _RTy, typename... _ATy>
@@ -83,11 +110,6 @@ namespace fu
         /// Mutable class method pointers
         template<typename _CTy, typename _RTy, typename... _ATy>
         struct unwrap_function_impl<_RTy(_CTy::*)(_ATy...)>
-            : unwrap_function_impl<_RTy(_ATy...)> { };
-
-        /// Pack in fu::identity
-        template<typename _RTy, typename... _ATy>
-        struct unwrap_function_impl<identity<_RTy, _ATy...>>
             : unwrap_function_impl<_RTy(_ATy...)> { };
 
         /// Unwrap through pointer of functor.
@@ -187,6 +209,38 @@ namespace fu
 
         typedef T type;
     };
+
+    namespace detail
+    {
+        /// Implementation of invoke_with_tuple
+        template<typename Sequence>
+        struct invoker;
+
+        template<size_t... Sequence>
+        struct invoker<sequence<Sequence...>>
+        {
+            template<typename _FTy, typename _TTy>
+            static auto invoke(_FTy&& functional, _TTy&& tuple)
+                -> ::fu::return_type_of_t<typename std::decay<_FTy>::type>
+            {
+                return std::forward<_FTy>(functional)(std::get<Sequence>(std::forward<_TTy>(tuple))...);
+            }
+        };
+    }
+
+    /// Invokes a function type with the given tuple arguments.
+    template<typename _FTy, typename _TTy>
+    inline auto invoke_with_tuple(_FTy&& functional, _TTy&& tuple)
+        -> return_type_of_t<typename std::decay<_FTy>::type>
+    {
+        return detail::invoker<
+            sequence_of_t<
+                std::tuple_size<
+                    typename std::decay<_TTy>::type
+                >::value
+            >
+        >::invoke(std::forward<_FTy>(functional), std::forward<_TTy>(tuple));
+    }
 
 } // fu
 
