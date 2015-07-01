@@ -232,19 +232,23 @@ int main(int /*argc*/, char** /*argv*/)
 
     detail::unary_chainer_t<std::function<Continuable<bool>()>>::callback_arguments_t args213987;
 
-    detail::functional_traits<>::multiple_result_maker<
-        fu::identity<>,
+    typedef detail::result_maker_of_t<
 
         std::function<Continuable<bool>()>,
         decltype(CastSpellPromise(2)),
         decltype(TrivialPromise()),
         std::function<Continuable<float, double>()>
 
-    >::arguments_t test282;
+    > maker;
+    
+    maker::arguments_t test282_args;
+    maker::arguments_storage_t test282_pack;
 
     // static_assert(std::is_same<>::value,
     
     detail::concat_identities<fu::identity<int, bool, char>, fu::identity<float, double>>::type myt;
+
+    std::tuple<int, std::vector<int>> tup;
 
     std::cout << "ok" << std::endl;
     return 0;

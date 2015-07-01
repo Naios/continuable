@@ -303,6 +303,15 @@ namespace detail
         typedef fu::identity<Left..., Right...> type;
     };
 
+    template<typename Left, typename Right>
+    struct concat_identities_as_pack;
+
+    template<typename... Left, typename... Right>
+    struct concat_identities_as_pack<fu::identity<Left...>, fu::identity<Right...>>
+    {
+        typedef fu::identity<Left..., std::tuple<Right...>> type;
+    };
+
     template<typename... _CTy>
     struct multiple_chainer_test
     {
@@ -425,24 +434,49 @@ namespace detail
             return remove_void_trait(box_continuable_trait(std::forward<_CTy>(functional)));
         }
 
-        template<typename Current, typename... Rest>
+        template<typename Args, typename Pack, typename... Rest>
         struct multiple_result_maker;
 
-        template<typename Previous, typename Next>
-        struct multiple_result_maker<Previous, Next>
+        template<typename... Args, typename... Pack>
+        struct multiple_result_maker<fu::identity<Args...>, fu::identity<Pack...>>
         {
-            typedef typename concat_identities<
-                Previous, typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
-            >::type arguments_t;
+            typedef fu::identity<Args...> arguments_t;
+
+            typedef fu::identity<Pack...> arguments_storage_t;
         };
 
-        template<typename Previous, typename Next, typename... Rest>
-        struct multiple_result_maker<Previous, Next, Rest...>
+        template<typename Args, typename Pack, typename Next>
+        struct multiple_result_maker<Args, Pack, Next>
             : public multiple_result_maker<
                 typename concat_identities<
-                Previous, typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
+                    Args,
+                    typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
                 >::type,
-                Rest...> { };
+                typename concat_identities_as_pack<
+                    Pack,
+                    // typename wrap_in_tuple<
+                        typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
+                    // >::type
+                >::type
+              > { }
+
+        template<typename Args, typename Pack, typename Next, typename... Rest>
+        struct multiple_result_maker<Args, Pack, Next, Rest...>
+            : public multiple_result_maker<
+                typename concat_identities<
+                    Args,
+                    typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
+                >::type,
+                typename concat_identities_as_pack <
+                    Pack,
+                    typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
+                >::type,
+                Rest...
+            > { };
+
+        template<typename... Args>
+        using result_maker_of_t =
+            multiple_result_maker<fu::identity<>, fu::identity<>, Args...>;
     };
 }
 
