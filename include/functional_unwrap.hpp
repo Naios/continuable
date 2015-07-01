@@ -212,7 +212,7 @@ namespace fu
 
     namespace detail
     {
-        /// Implementation of invoke_with_tuple
+        /// Implementation of invoke_from_tuple
         template<typename Sequence>
         struct invoker;
 
@@ -230,7 +230,7 @@ namespace fu
 
     /// Invokes a function type with the given tuple arguments.
     template<typename _FTy, typename _TTy>
-    inline auto invoke_with_tuple(_FTy&& functional, _TTy&& tuple)
+    inline auto invoke_from_tuple(_FTy&& functional, _TTy&& tuple)
         -> return_type_of_t<typename std::decay<_FTy>::type>
     {
         return detail::invoker<

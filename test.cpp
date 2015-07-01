@@ -332,7 +332,7 @@ int main(int /*argc*/, char** /*argv*/)
         return 1;
     };
 
-    fu::invoke_with_tuple(lam, std::move(myargs));
+    fu::invoke_from_tuple(lam, std::move(myargs));
 
     fu::sequence_generator<2>::type seqtype;
     fu::sequence_generator<1>::type zero_seqtype;

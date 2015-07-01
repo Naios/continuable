@@ -45,7 +45,7 @@ namespace detail
         static auto create()
             -> Callback<Args...>
         {
-            return [](Args...)
+            return [](Args&&...)
             {
             };
         }
