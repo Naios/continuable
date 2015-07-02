@@ -73,10 +73,7 @@ Continuable<SpellCastResult> CastSpellPromise(int id)
 // Void instant returning continuable promise for testing purposes
 Continuable<> TrivialPromise(std::string const& msg = "")
 {
-    return Log(msg).then(make_continuable([=](Callback<>&& callback)
-    {
-        callback();
-    }));
+    return Log(msg);
 }
 
 Continuable<bool> Validate()
@@ -416,21 +413,22 @@ int main(int /*argc*/, char** /*argv*/)
                 return CastSpellPromise(20);
             },
             [] {
-                return make_continuable([](Callback<bool, bool>&& callback)
+                return make_continuable([](Callback<bool, bool, double, std::string>&& callback)
                 {
-                    callback(true, false);
+                    callback(true, false, 0.3f, std::string("huhu all work is done!"));
                 });
             },
             TrivialPromise())
-        .then([](SpellCastResult, SpellCastResult, bool, bool)
+        .then([](SpellCastResult r0, SpellCastResult r1, bool r2, bool r3, double r4, std::string message)
         {
-        
+
+
+            return Log(message);
         })
         .then([]
         {
 
-        })
-        .then(TrivialPromise());
+        });
 
     std::cout << "ok" << std::endl;
     return 0;
