@@ -12,7 +12,15 @@
 
 #include <boost/optional.hpp>
 
-
+enum SpellCastResult
+{
+    SPELL_FAILED_SUCCESS = 0,
+    SPELL_FAILED_AFFECTING_COMBAT = 1,
+    SPELL_FAILED_ALREADY_AT_FULL_HEALTH = 2,
+    SPELL_FAILED_ALREADY_AT_FULL_MANA = 3,
+    SPELL_FAILED_ALREADY_AT_FULL_POWER = 4,
+    SPELL_FAILED_ALREADY_BEING_TAMED = 5
+};
 
 template<typename T>
 using Optional = boost::optional<T>;
