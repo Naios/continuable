@@ -46,10 +46,10 @@ Continuable<ResultSet> AsyncQuery(std::string const& query)
 {
     return make_continuable([=](Callback<ResultSet>&& callback)
     {
+        std::cout << query << std::endl;
         callback(ResultSet(2));
     });
 }
-
 
 // Original method taking an optional callback.
 void CastSpell(int id, Optional<Callback<SpellCastResult>> const& callback = boost::none)
@@ -371,6 +371,8 @@ int main(int /*argc*/, char** /*argv*/)
             std::function<Continuable<std::string>()>
         >
     >::result_maker::partial_results_t myres123345;
+
+    
 
     /*
     auto firstType = detail::multiple_when_all_chainer_t<
