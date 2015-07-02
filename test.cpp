@@ -413,15 +413,15 @@ int main(int /*argc*/, char** /*argv*/)
                 return CastSpellPromise(20);
             },
             [] {
-                return make_continuable([](Callback<bool, bool, double, std::string>&& callback)
+                return make_continuable([](Callback<bool, bool, double, std::unique_ptr<std::string>>&& callback)
                 {
-                    callback(true, false, 0.3f, std::string("oh, all work is done!"));
+                    callback(true, false, 0.3f, std::make_unique<std::string>("oh, all work is done!"));
                 });
             },
             TrivialPromise())
-        .then([](SpellCastResult r0, SpellCastResult r1, bool r2, bool r3, double r4, std::string message)
+        .then([](SpellCastResult r0, SpellCastResult r1, bool r2, bool r3, double r4, std::unique_ptr<std::string> message)
         {
-            return TrivialPromise("Lets see... ").then(Log(message));
+            return TrivialPromise("Lets see... ").then(Log(*message));
         })
         .then([]
         {
