@@ -555,12 +555,13 @@ namespace detail
             // TODO Improve the lock here
             std::lock_guard<std::mutex> guard(lock);
             {
-                std::cout << "storing..." << std::endl;
+                // Never call callbacks twice!
+                assert(partitions_left);
 
                 // If all partitions have completed invoke the final callback.
                 if (--partitions_left == 0)
                 {
-                    fu::invoke_from_tuple(callback, result);
+                    fu::invoke_from_tuple(std::move(callback), std::move(result));
                 }
             }
         }
