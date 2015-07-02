@@ -19,6 +19,9 @@
 #ifndef _CONTINUABLE_H_
 #define _CONTINUABLE_H_
 
+// debug
+#include <typeinfo>
+
 #include <atomic>
 #include <mutex>
 
@@ -522,7 +525,9 @@ namespace detail
             template <typename _CTy, typename Arguments>
             inline static void invoke(shared_result_t storage, Arguments&& args, _CTy&& current)
             {
-                std::cout << "invoking: " << Position << std::endl;
+                auto&& corrected = functional_traits<_ATy...>::correct(std::forward<_CTy>(current));
+
+                std::cout << "invoking: " << Position << "   " << typeid(corrected).name() << std::endl;
             }
 
             /// Invoke and pass recursive to itself
@@ -535,29 +540,50 @@ namespace detail
             }
         };
 
+        template <typename Sequence>
+        struct sequenced_invoke;
+
+        template <std::size_t... Sequence>
+        struct sequenced_invoke<fu::sequence<Sequence...>>
+        {
+            template <typename Arguments, typename TupleFunctional>
+            inline static void invoke(shared_result_t result, Arguments&& arguments, TupleFunctional&& functional)
+            {              
+                distributor<_PTy...>::invoke(
+                    result,
+                    std::forward<Arguments>(arguments),
+                    std::get<Sequence>(std::forward<TupleFunctional>(functional))...
+                );
+            }
+        };
+
         /// Creates a faked function which invokes all sub continuables
         template <typename... _CTy>
         static return_t create(_CTy&&... functionals)
         {
+            // C++11 workaround for move semantics of non copyable types
+            auto shared_functionals = std::make_shared<std::tuple<_CTy...>>(
+                std::make_tuple(std::forward<_CTy>(functionals)...)
+            );
+
             return [=](_ATy&&... args) mutable
             {
+                auto shared_args = std::make_shared<std::tuple<_ATy...>>(std::make_tuple(std::forward<_ATy>(args)...));
+
                 // Fake continuable which wraps all continuables together
                 return make_continuable([=](Callback<_RTy...>&& callback) mutable
                 {
                     shared_result_t result(new ResultStorage(sizeof...(_CTy)));
 
-                    distributor<_PTy...>::invoke(
+                    sequenced_invoke<
+                        fu::sequence_of_t<
+                            sizeof...(_CTy)
+                        >
+                    >::invoke(
                         result,
-                        std::make_tuple(std::forward<_ATy>(args)...),
-                        std::forward<_CTy>(functionals)...);
-
-                    // distributor_from_identity
-
-                    // invoke(result, std::forward<_CTy>(functionals)...);
-
-                    // functional_traits<_ATy...>::correct(std::forward<_CTy>(functionals))
-
-                    // auto shared = std::make_shared(ResultStorage());
+                        std::move(*shared_args),
+                        std::move(*shared_functionals)
+                    );
 
                     int i = 0;
                     ++i;
