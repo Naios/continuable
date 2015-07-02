@@ -495,9 +495,13 @@ namespace detail
         {
             return [=](_ATy&&... args)
             {
-                
-                // Fake continuable
-                return continuable_t();
+                // Fake continuable which wraps all continuables together
+                return make_continuable([](Callback<Args...>&& callback)
+                {
+
+
+
+                });
             };
         }
     };
