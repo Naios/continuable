@@ -509,6 +509,26 @@ namespace detail
 
             Callback<_RTy...> callback;
 
+            std::mutex lock;
+
+            template <typename Sequence, std::size_t Offset>
+            struct result_store_sequencer;
+
+            template <std::size_t... Sequence, std::size_t Offset>
+            struct result_store_sequencer<fu::sequence<Sequence...>, Offset>
+            {
+                // Do nothing
+                inline static void store(std::tuple<_RTy...>& result)
+                {
+                }
+
+                // Store the args in the result tuple
+                template<typename... Args>
+                inline static void store(std::tuple<_RTy...>& result, Args&&... args)
+                {
+                }
+            };
+
         public:
             ResultStorage(std::size_t partitions, Callback<_RTy...> callback_)
                 : partitions_left(partitions), callback(callback_) { }
@@ -516,8 +536,21 @@ namespace detail
             template<std::size_t Position, typename... Args>
             void store_result(Args&&... args)
             {
+                result_store_sequencer<
+                    fu::sequence_of_t<sizeof...(Args)>,
+                    Position
+                >::store(result, std::forward<Args>(args)...);
 
-            }           
+                // TODO Improve the lock here
+                std::lock_guard<std::mutex> guard(lock);
+                {
+                    // If all partitions have completed invoke the final callback.
+                    if (--partitions_left == 0)
+                    {
+                    
+                    }
+                }
+            }
         };
 
         typedef std::shared_ptr<ResultStorage> shared_result_t;
