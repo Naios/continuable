@@ -33,7 +33,7 @@ class Continuable;
 namespace detail
 {
     /// Trait to identify continuable types
-    template<typename _CTy>
+    template<typename>
     struct is_continuable
         : std::false_type { };
 
@@ -42,7 +42,7 @@ namespace detail
         : std::true_type { };
 
     /// Creates an empty callback.
-    template<typename _FTy>
+    template<typename>
     struct create_empty_callback;
 
     template<typename... Args>
@@ -57,14 +57,17 @@ namespace detail
         }
     };
 
-    template <typename _CTy, typename... _ATy>
+    template <typename, typename...>
     struct unary_chainer_t;
 
     template <typename...>
     struct multiple_when_all_chainer_t;
 
+    template<typename, typename, typename>
+    class multiple_result_storage_t;
+
     /// Functional traits forward declaration.
-    template <typename... _ATy>
+    template <typename...>
     struct functional_traits;
 
 } // detail
@@ -77,6 +80,9 @@ class Continuable
     // Make all templates of Continuable to a friend.
     template<typename...>
     friend class Continuable;
+
+    template<typename, typename, typename>
+    friend class detail::multiple_result_storage_t;
 
 public:
     typedef Callback<_ATy...> CallbackFunction;
@@ -231,7 +237,7 @@ public:
 
 namespace detail
 {
-    template<typename _RTy, typename... _ATy>
+    template<typename, typename...>
     struct ContinuableFactory;
 
     template<typename _RTy, typename... _ATy>
@@ -300,7 +306,7 @@ namespace detail
         typedef fu::argument_type_of_t<callback_t> callback_arguments_t;
     };
 
-    template<typename Left, typename Right>
+    template<typename, typename>
     struct concat_identities;
 
     template<typename... Left, typename... Right>
@@ -309,7 +315,7 @@ namespace detail
         typedef fu::identity<Left..., Right...> type;
     };
 
-    template<typename Tuple>
+    template<typename>
     struct identity_to_tuple;
 
     template<typename... Args>
@@ -318,7 +324,7 @@ namespace detail
         typedef std::tuple<Args...> type;
     };
 
-    template<typename _ATy>
+    template<typename>
     struct void_wrap_trait;
 
     /// Trait needed for functional_traits::remove_void_trait
@@ -489,6 +495,59 @@ namespace detail
             multiple_result_maker<0, fu::identity<>, fu::identity<>, Args...>;
     };
 
+    template<typename... _ATy, typename... _RTy, typename... _PTy>
+    class multiple_result_storage_t<fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>
+    {
+        std::size_t partitions_left;
+
+        std::tuple<_RTy...> result;
+
+        Callback<_RTy...> callback;
+
+        std::mutex lock;
+
+        template <typename Sequence, std::size_t Offset>
+        struct result_store_sequencer;
+
+        template <std::size_t... Sequence, std::size_t Offset>
+        struct result_store_sequencer < fu::sequence<Sequence...>, Offset >
+        {
+            // Do nothing
+            inline static void store(std::tuple<_RTy...>& result)
+            {
+            }
+
+            // Store the args in the result tuple
+            template<typename... Args>
+            inline static void store(std::tuple<_RTy...>& result, Args&&... args)
+            {
+            }
+        };
+
+    public:
+        multiple_result_storage_t(std::size_t partitions, Callback<_RTy...> callback_)
+            : partitions_left(partitions), callback(callback_) { }
+
+        template<std::size_t Position, typename... Args>
+        void store_result(Args&&... args)
+        {
+            result_store_sequencer<
+                fu::sequence_of_t<sizeof...(Args)>,
+                Position
+            >::store(result, std::forward<Args>(args)...);
+
+            // TODO Improve the lock here
+            std::lock_guard<std::mutex> guard(lock);
+            {
+                // If all partitions have completed invoke the final callback.
+                if (--partitions_left == 0)
+                {
+
+                }
+            }
+        }
+    };
+
     template<typename _ATy, typename _RTy, typename _PTy>
     struct multiple_when_all_chainer_t_make_result;
 
@@ -501,57 +560,7 @@ namespace detail
 
         typedef functional_traits<_ATy...> traits_t;
 
-        class ResultStorage
-        {
-            std::size_t partitions_left;
-
-            std::tuple<_RTy...> result;
-
-            Callback<_RTy...> callback;
-
-            std::mutex lock;
-
-            template <typename Sequence, std::size_t Offset>
-            struct result_store_sequencer;
-
-            template <std::size_t... Sequence, std::size_t Offset>
-            struct result_store_sequencer<fu::sequence<Sequence...>, Offset>
-            {
-                // Do nothing
-                inline static void store(std::tuple<_RTy...>& result)
-                {
-                }
-
-                // Store the args in the result tuple
-                template<typename... Args>
-                inline static void store(std::tuple<_RTy...>& result, Args&&... args)
-                {
-                }
-            };
-
-        public:
-            ResultStorage(std::size_t partitions, Callback<_RTy...> callback_)
-                : partitions_left(partitions), callback(callback_) { }
-
-            template<std::size_t Position, typename... Args>
-            void store_result(Args&&... args)
-            {
-                result_store_sequencer<
-                    fu::sequence_of_t<sizeof...(Args)>,
-                    Position
-                >::store(result, std::forward<Args>(args)...);
-
-                // TODO Improve the lock here
-                std::lock_guard<std::mutex> guard(lock);
-                {
-                    // If all partitions have completed invoke the final callback.
-                    if (--partitions_left == 0)
-                    {
-                    
-                    }
-                }
-            }
-        };
+        typedef multiple_result_storage_t<fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>> ResultStorage;
 
         typedef std::shared_ptr<ResultStorage> shared_result_t;
 
