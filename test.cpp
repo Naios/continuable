@@ -374,8 +374,6 @@ int main(int /*argc*/, char** /*argv*/)
         >
     >::result_maker::partial_results_t myres123345;
 
-    
-
     /*
     auto firstType = detail::multiple_when_all_chainer_t<
         fu::identity<>,
