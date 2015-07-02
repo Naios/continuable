@@ -506,7 +506,7 @@ namespace detail
     template <typename... _ATy, typename... _CTy>
     struct multiple_when_all_chainer_t<fu::identity<_ATy...>, fu::identity<_CTy...>>
     {
-        typedef typename functional_traits<_ATy...>::result_maker_of_t<_CTy...> result_maker;
+        typedef typename functional_traits<_ATy...>::template result_maker_of_t<_CTy...> result_maker;
 
         typedef typename result_maker::arguments_t arguments_t;
 
@@ -514,7 +514,7 @@ namespace detail
 
         static std::size_t const size = result_maker::size;
 
-        typedef typename multiple_when_all_chainer_t_make_result<arguments_t> make_result;
+        typedef multiple_when_all_chainer_t_make_result<arguments_t> make_result;
 
         // Creates one continuable from multiple ones
         static auto make_when_all(_CTy&&... args)
