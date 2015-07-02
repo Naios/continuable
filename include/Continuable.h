@@ -488,11 +488,11 @@ namespace detail
             multiple_result_maker<0, fu::identity<>, fu::identity<>, Args...>;
     };
 
-    template<typename _ATy, typename _RTy>
+    template<typename _ATy, typename _RTy, typename _PTy>
     struct multiple_when_all_chainer_t_make_result;
 
-    template<typename... _ATy, typename... _RTy>
-    struct multiple_when_all_chainer_t_make_result<fu::identity<_ATy...>, fu::identity<_RTy...>>
+    template<typename... _ATy, typename... _RTy, typename... _PTy>
+    struct multiple_when_all_chainer_t_make_result<fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>
     {
         typedef Continuable<_RTy...> continuable_t;
 
@@ -508,27 +508,32 @@ namespace detail
             std::tuple<_RTy...> result;
         };
 
-        typedef std::shared_ptr<ResultStorage> SharedResult;
+        typedef std::shared_ptr<ResultStorage> shared_result_t;
 
-        template <typename _CTy>
-        static void invoke(SharedResult storage, _CTy&& functional)
-        {
-        }
+        typedef std::tuple<_ATy...> shared_args_t;
 
-        // Invoke last
-        template <typename _CTy>
-        static void distribute_invoke(SharedResult storage, _CTy&& current)
-        {
-            invoke(storage, std::forward<_CTy>(current));
-        }
+        template <typename... Stack>
+        struct distributor;
 
-        // Invoke and pass recursive to next
-        template <typename _CTy, typename... Rest>
-        static void distribute_invoke(SharedResult storage, _CTy&& current, Rest&&... rest)
+        template <std::size_t Position, typename Tuple, typename... Stack>
+        struct distributor<partial_result<Position, Tuple>, Stack...>
         {
-            invoke(storage, std::forward<_CTy>(current));
-            distribute_invoke(storage, std::forward<Rest>(rest)...);
-        }
+            /// Real function invocation
+            template <typename _CTy, typename Arguments>
+            inline static void invoke(shared_result_t storage, Arguments&& args, _CTy&& current)
+            {
+                std::cout << "invoking: " << Position << std::endl;
+            }
+
+            /// Invoke and pass recursive to itself
+            template <typename _CTy, typename Arguments, typename... Rest>
+            inline static void invoke(shared_result_t storage, Arguments&& args, _CTy&& current, Rest&&... rest)
+            {
+                invoke(storage, std::forward<Arguments>(args), std::forward<_CTy>(current));
+
+                distributor<Stack...>::invoke(storage, std::forward<Arguments>(args), std::forward<Rest>(rest)...);
+            }
+        };
 
         /// Creates a faked function which invokes all sub continuables
         template <typename... _CTy>
@@ -539,9 +544,16 @@ namespace detail
                 // Fake continuable which wraps all continuables together
                 return make_continuable([=](Callback<_RTy...>&& callback) mutable
                 {
-                    SharedResult result(new ResultStorage(sizeof...(_CTy)));
+                    shared_result_t result(new ResultStorage(sizeof...(_CTy)));
 
-                    distribute_invoke(result, std::forward<_CTy>(functionals)...);
+                    distributor<_PTy...>::invoke(
+                        result,
+                        std::make_tuple(std::forward<_ATy>(args)...),
+                        std::forward<_CTy>(functionals)...);
+
+                    // distributor_from_identity
+
+                    // invoke(result, std::forward<_CTy>(functionals)...);
 
                     // functional_traits<_ATy...>::correct(std::forward<_CTy>(functionals))
 
@@ -568,7 +580,7 @@ namespace detail
 
         static std::size_t const size = result_maker::size;
 
-        typedef multiple_when_all_chainer_t_make_result<fu::identity<_ATy...>, arguments_t> make_result;
+        typedef multiple_when_all_chainer_t_make_result<fu::identity<_ATy...>, arguments_t, partial_results_t> make_result;
 
         // Creates one continuable from multiple ones
         static auto make_when_all(_CTy&&... args)
