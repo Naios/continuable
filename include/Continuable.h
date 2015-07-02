@@ -66,6 +66,9 @@ namespace detail
     template<typename, typename, typename>
     class multiple_result_storage_t;
 
+    template<std::size_t, typename, typename, typename>
+    struct multiple_result_storage_invoker_t;
+
     /// Functional traits forward declaration.
     template <typename...>
     struct functional_traits;
@@ -81,8 +84,8 @@ class Continuable
     template<typename...>
     friend class Continuable;
 
-    template<typename, typename, typename>
-    friend class detail::multiple_result_storage_t;
+    template<std::size_t, typename, typename, typename>
+    friend struct detail::multiple_result_storage_invoker_t;
 
 public:
     typedef Callback<_ATy...> CallbackFunction;
@@ -506,13 +509,13 @@ namespace detail
 
         std::mutex lock;
 
-        template <typename Sequence, std::size_t Offset>
+        template <typename, std::size_t>
         struct result_store_sequencer;
 
         template <std::size_t... Sequence, std::size_t Offset>
-        struct result_store_sequencer < fu::sequence<Sequence...>, Offset >
+        struct result_store_sequencer<fu::sequence<Sequence...>, Offset>
         {
-            // Do nothing
+            // Do nothing when trying to store empty packs...
             inline static void store(std::tuple<_RTy...>& result)
             {
             }
@@ -528,23 +531,40 @@ namespace detail
         multiple_result_storage_t(std::size_t partitions, Callback<_RTy...> callback_)
             : partitions_left(partitions), callback(callback_) { }
 
-        template<std::size_t Position, typename... Args>
-        void store_result(Args&&... args)
+        template<std::size_t Offset, typename... Args>
+        void store(Args&&... args)
         {
             result_store_sequencer<
                 fu::sequence_of_t<sizeof...(Args)>,
-                Position
+                Offset
             >::store(result, std::forward<Args>(args)...);
 
             // TODO Improve the lock here
             std::lock_guard<std::mutex> guard(lock);
             {
+                std::cout << "storing..." << std::endl;
+
                 // If all partitions have completed invoke the final callback.
                 if (--partitions_left == 0)
                 {
 
                 }
             }
+        }
+    };
+
+    template<std::size_t Offset, typename... _ATy, typename... _RTy, typename... _PTy>
+    struct multiple_result_storage_invoker_t<Offset, fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>
+    {
+        template<typename... Args>
+        static void invoke(
+            std::shared_ptr<multiple_result_storage_t<fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>> storage,
+            Continuable<Args...>&& continuable)
+        {
+            continuable.invoke([storage](Args&&... args)
+            {
+                storage->store<Offset, Args...>(std::forward<Args>(args)...);
+            });
         }
     };
 
@@ -562,6 +582,9 @@ namespace detail
 
         typedef multiple_result_storage_t<fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>> ResultStorage;
 
+        template <std::size_t Offset>
+        using invoker_at = multiple_result_storage_invoker_t<Offset, fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>;
+
         typedef std::shared_ptr<ResultStorage> shared_result_t;
 
         typedef std::tuple<_ATy...> shared_args_t;
@@ -576,15 +599,14 @@ namespace detail
             template <typename _CTy, typename Arguments>
             inline static void invoke(shared_result_t storage, Arguments&& args, _CTy&& current)
             {
-                auto ret =
-                    fu::invoke_from_tuple(
-                        traits_t::correct(std::forward<_CTy>(current)),
-                        std::forward<Arguments>(args)
-                    );
+                // Invoke the continuable from the result storage
+                invoker_at<Position>::invoke(
+                        storage,
+                        fu::invoke_from_tuple(
+                            traits_t::correct(std::forward<_CTy>(current)),
+                            std::forward<Arguments>(args)));
 
-                // TODO invalidate tuple
-
-                std::cout << "invoking: " << Position << "   " << typeid(ret).name() << std::endl;
+                // std::cout << "invoking: " << Position << "   " << typeid(ret).name() << std::endl;
             }
 
             /// Invoke and pass recursive to itself
