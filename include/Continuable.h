@@ -488,13 +488,13 @@ namespace detail
             multiple_result_maker<0, fu::identity<>, fu::identity<>, Args...>;
     };
 
-    template<typename Args>
+    template<typename _ATy, typename _RTy>
     struct multiple_when_all_chainer_t_make_result;
 
-    template<typename... Args>
-    struct multiple_when_all_chainer_t_make_result<fu::identity<Args...>>
+    template<typename... _ATy, typename... _RTy>
+    struct multiple_when_all_chainer_t_make_result<fu::identity<_ATy...>, fu::identity<_RTy...>>
     {
-        typedef Continuable<Args...> continuable_t;
+        typedef Continuable<_RTy...> continuable_t;
 
         typedef std::function<continuable_t()> return_t;
 
@@ -505,19 +505,45 @@ namespace detail
 
             std::size_t count;
 
-            std::tuple<Args...> result;
+            std::tuple<_RTy...> result;
         };
 
-        template <typename... _ATy, typename... _CTy>
+        typedef std::shared_ptr<ResultStorage> SharedResult;
+
+        template <typename _CTy>
+        static void invoke(SharedResult storage, _CTy&& functional)
+        {
+        }
+
+        // Invoke last
+        template <typename _CTy>
+        static void distribute_invoke(SharedResult storage, _CTy&& current)
+        {
+            invoke(storage, std::forward<_CTy>(current));
+        }
+
+        // Invoke and pass recursive to next
+        template <typename _CTy, typename... Rest>
+        static void distribute_invoke(SharedResult storage, _CTy&& current, Rest&&... rest)
+        {
+            invoke(storage, std::forward<_CTy>(current));
+            distribute_invoke(storage, std::forward<Rest>(rest)...);
+        }
+
+        /// Creates a faked function which invokes all sub continuables
+        template <typename... _CTy>
         static return_t create(_CTy&&... functionals)
         {
-            return [=](_ATy&&... args)
+            return [=](_ATy&&... args) mutable
             {
                 // Fake continuable which wraps all continuables together
-                return make_continuable([](Callback<Args...>&& callback)
+                return make_continuable([=](Callback<_RTy...>&& callback) mutable
                 {
-                    std::shared_ptr<ResultStorage> result(
-                        new ResultStorage(sizeof...(_CTy)));
+                    SharedResult result(new ResultStorage(sizeof...(_CTy)));
+
+                    distribute_invoke(result, std::forward<_CTy>(functionals)...);
+
+                    // functional_traits<_ATy...>::correct(std::forward<_CTy>(functionals))
 
                     // auto shared = std::make_shared(ResultStorage());
 
@@ -542,7 +568,7 @@ namespace detail
 
         static std::size_t const size = result_maker::size;
 
-        typedef multiple_when_all_chainer_t_make_result<arguments_t> make_result;
+        typedef multiple_when_all_chainer_t_make_result<fu::identity<_ATy...>, arguments_t> make_result;
 
         // Creates one continuable from multiple ones
         static auto make_when_all(_CTy&&... args)
