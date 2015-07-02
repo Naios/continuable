@@ -415,15 +415,13 @@ int main(int /*argc*/, char** /*argv*/)
             [] {
                 return make_continuable([](Callback<bool, bool, double, std::string>&& callback)
                 {
-                    callback(true, false, 0.3f, std::string("huhu all work is done!"));
+                    callback(true, false, 0.3f, std::string("oh, all work is done!"));
                 });
             },
             TrivialPromise())
         .then([](SpellCastResult r0, SpellCastResult r1, bool r2, bool r3, double r4, std::string message)
         {
-
-
-            return Log(message);
+            return TrivialPromise("Lets see... ").then(Log(message));
         })
         .then([]
         {
