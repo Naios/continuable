@@ -189,9 +189,26 @@ public:
     /// Placeholder
     template<typename... _CTy>
     auto all(_CTy&&... functionals)
-        -> Continuable&
+        -> Continuable<SpellCastResult, SpellCastResult>
+        /*typename detail::multiple_when_all_chainer_t<
+                fu::identity<_ATy...>,
+                fu::identity<_CTy...>
+            >::make_result::continuable_t
+            */
     {
-        return *this;
+        return then([]()
+        {
+            return Continuable<SpellCastResult, SpellCastResult>();
+        });
+
+            /*
+
+            return then(
+            detail::multiple_when_all_chainer_t<
+                fu::identity<_ATy...>,
+                fu::identity<_CTy...>
+            >::make_when_all(std::forward<_CTy>(functionals)...))
+        */        
     }
 
     /// Placeholder
@@ -491,9 +508,20 @@ namespace detail
     template<typename... Args>
     struct multiple_when_all_chainer_t_make_result<fu::identity<Args...>>
     {
-        typedef Continuable<Args...> type;
+        typedef Continuable<Args...> continuable_t;
 
-        // type create()
+        typedef std::function<continuable_t()> return_t;
+
+        template <typename... _ATy, typename... _CTy>
+        static return_t create(_CTy&&... functionals)
+        {
+            return [=](_ATy&&... args)
+            {
+                
+
+                return continuable_t();
+            };
+        }
     };
 
     template <typename... _ATy, typename... _CTy>
@@ -507,11 +535,13 @@ namespace detail
 
         static std::size_t const size = result_maker::size;
 
+        typedef typename multiple_when_all_chainer_t_make_result<arguments_t> make_result;
+
         // Creates one continuable from multiple ones
         static auto make_when_all(_CTy&&... args)
-            -> typename multiple_when_all_chainer_t_make_result<arguments_t>::type
+            -> typename make_result::return_t
         {
-            return multiple_when_all_chainer_t_make_result<arguments_t>::type();
+            return make_result::create(std::forward<_CTy>(args)...);
         }
     };
 }
