@@ -34,6 +34,23 @@ Continuable<> Log(std::string const& message)
     });
 }
 
+struct ResultSet
+{
+    ResultSet(std::size_t affected_) :
+        affected(affected_) { };
+
+    std::size_t affected;
+};
+
+Continuable<ResultSet> AsyncQuery(std::string const& query)
+{
+    return make_continuable([=](Callback<ResultSet>&& callback)
+    {
+        callback(ResultSet(2));
+    });
+}
+
+
 // Original method taking an optional callback.
 void CastSpell(int id, Optional<Callback<SpellCastResult>> const& callback = boost::none)
 {
@@ -135,7 +152,6 @@ inline auto apply(F && f, T && t)
 
 int main(int /*argc*/, char** /*argv*/)
 {
-    
     CastSpellPromise(1)
         .then([](SpellCastResult)
         {
@@ -146,10 +162,20 @@ int main(int /*argc*/, char** /*argv*/)
             std::cout << "Pause a callback (void test) " << std::endl;
         })
         .then(Validate())
+        .then(AsyncQuery("SELECT * FROM `users`")
+                .then([](ResultSet result)
+                {
+                    // Evaluate result
+                    std::size_t const affected = result.affected;
+                    return Log(std::to_string(affected) + " rows affected\n");
+                })
+        )
         .then(TrivialPromise("huhu"))
         .then(CastSpellPromise(3))
-        .then(CastSpellPromise(4))
-        .then(CastSpellPromise(5))
+        .then(CastSpellPromise(4)
+              .then(CastSpellPromise(5))
+        )
+        .then(CastSpellPromise(6))
         .then([](SpellCastResult)
         {
             return Validate();
@@ -380,27 +406,22 @@ int main(int /*argc*/, char** /*argv*/)
 
     auto promise = make_continuable()
         .all(
-        []
-        {
-
-            // void
-            return CastSpellPromise(10);
-        },
-        []
-        {
-
-            return CastSpellPromise(20);
-        })
+            [] {
+                return CastSpellPromise(10)
+                        .then(CastSpellPromise(15));
+            },
+            [] {
+                return CastSpellPromise(20);
+            })
         .then([](SpellCastResult, SpellCastResult)
         {
         
-
         })
         .then([]
         {
-        
 
-        });
+        })
+        .then(TrivialPromise());
 
     std::cout << "ok" << std::endl;
     return 0;
