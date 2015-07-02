@@ -54,6 +54,9 @@ namespace detail
     template <typename _CTy, typename... _ATy>
     struct unary_chainer_t;
 
+    template <typename...>
+    struct multiple_when_all_chainer_t;
+
     /// Functional traits forward declaration.
     template <typename... _ATy>
     struct functional_traits;
@@ -176,39 +179,18 @@ public:
         }, std::move(*this));
     }
 
-    /*
-    template<typename... _CTy>
-    Continuable& _wrap_all(_CTy&&...)
-    {
-        typedef detail::multiple_all_chainer<_CTy...> type;
-
-        return *this;
-    }
-    */
-
-    /// Placeholder
     template<typename... _CTy>
     auto all(_CTy&&... functionals)
-        -> Continuable<SpellCastResult, SpellCastResult>
-        /*typename detail::multiple_when_all_chainer_t<
+        -> typename detail::multiple_when_all_chainer_t<
                 fu::identity<_ATy...>,
                 fu::identity<_CTy...>
             >::make_result::continuable_t
-            */
     {
-        return then([]()
-        {
-            return Continuable<SpellCastResult, SpellCastResult>();
-        });
-
-            /*
-
-            return then(
+        return then(
             detail::multiple_when_all_chainer_t<
                 fu::identity<_ATy...>,
                 fu::identity<_CTy...>
-            >::make_when_all(std::forward<_CTy>(functionals)...))
-        */        
+            >::make_when_all(std::forward<_CTy>(functionals)...));
     }
 
     /// Placeholder
@@ -314,10 +296,6 @@ namespace detail
 
         typedef fu::argument_type_of_t<callback_t> callback_arguments_t;
     };
-
-    /// Helper trait for multiple chains like `Continuable::all`
-    template <typename...>
-    struct multiple_when_all_chainer_t;
 
     template<typename Left, typename Right>
     struct concat_identities;
@@ -518,12 +496,13 @@ namespace detail
             return [=](_ATy&&... args)
             {
                 
-
+                // Fake continuable
                 return continuable_t();
             };
         }
     };
 
+    /// Helper trait for multiple chains like `Continuable::all`
     template <typename... _ATy, typename... _CTy>
     struct multiple_when_all_chainer_t<fu::identity<_ATy...>, fu::identity<_CTy...>>
     {
