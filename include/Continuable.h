@@ -565,7 +565,7 @@ namespace detail
                 // If all partitions have completed invoke the final callback.
                 if (--partitions_left == 0)
                 {
-
+                    fu::invoke_from_tuple(callback, result);
                 }
             }
         }
