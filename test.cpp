@@ -423,10 +423,8 @@ int main(int /*argc*/, char** /*argv*/)
                     callback(true, false);
                 });
             },
-            [] {
-                return CastSpellPromise(25);
-            })
-        .then([](SpellCastResult, SpellCastResult, bool, bool, SpellCastResult)
+            TrivialPromise())
+        .then([](SpellCastResult, SpellCastResult, bool, bool)
         {
         
         })
