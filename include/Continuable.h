@@ -515,6 +515,23 @@ namespace detail
         template <std::size_t... Sequence, std::size_t Offset>
         struct result_store_sequencer<fu::sequence<Sequence...>, Offset>
         {
+            template<std::size_t Position, typename Tuple, typename Current>
+            inline static void partial_set(Tuple& result, Current&& current)
+            {
+                // Store the callback result in the tuple
+                std::get<Position>(result) = std::forward<Current>(current);
+            }
+
+            template<std::size_t Position, typename Tuple, typename Current, typename... Rest>
+            inline static void partial_set(Tuple& result, Current&& current, Rest&&... rest)
+            {
+                // Set the result...
+                partial_set<Position, Tuple, Current>(result, std::forward<Current>(current));
+
+                // ...and continue with the next parameter.
+                partial_set<Position + 1, Tuple, Rest...>(result, std::forward<Rest>(rest)...);
+            }
+
             // Do nothing when trying to store empty packs...
             inline static void store(std::tuple<_RTy...>& result)
             {
@@ -524,6 +541,7 @@ namespace detail
             template<typename... Args>
             inline static void store(std::tuple<_RTy...>& result, Args&&... args)
             {
+                partial_set<Offset, std::tuple<_RTy...>, Args...>(result, std::forward<Args>(args)...);
             }
         };
 
@@ -601,12 +619,10 @@ namespace detail
             {
                 // Invoke the continuable from the result storage
                 invoker_at<Position>::invoke(
-                        storage,
-                        fu::invoke_from_tuple(
-                            traits_t::correct(std::forward<_CTy>(current)),
-                            std::forward<Arguments>(args)));
-
-                // std::cout << "invoking: " << Position << "   " << typeid(ret).name() << std::endl;
+                    storage,
+                    fu::invoke_from_tuple(
+                        traits_t::correct(std::forward<_CTy>(current)),
+                        std::forward<Arguments>(args)));
             }
 
             /// Invoke and pass recursive to itself
@@ -631,8 +647,7 @@ namespace detail
                 distributor<_PTy...>::invoke(
                     result,
                     std::forward<Arguments>(arguments),
-                    std::get<Sequence>(std::forward<TupleFunctional>(functional))...
-                );
+                    std::get<Sequence>(std::forward<TupleFunctional>(functional))...);
             }
         };
 
@@ -651,8 +666,7 @@ namespace detail
                 // TODO Use the stack instead of heap variables.
                 auto shared_args =
                     std::make_shared<std::tuple<_ATy...>>(
-                        std::make_tuple(std::forward<_ATy>(args)...)
-                    );
+                        std::make_tuple(std::forward<_ATy>(args)...));
 
                 // Fake continuable which wraps all continuables together
                 return make_continuable([=](Callback<_RTy...>&& callback) mutable
