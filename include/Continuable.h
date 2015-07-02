@@ -195,15 +195,15 @@ public:
 
     /// Placeholder
     template<typename... _CTy>
-    Continuable& some(std::size_t const count, _CTy&&...)
+    Continuable some(std::size_t const count, _CTy&&...)
     {
-        return *this;
+        return std::move(*this);
     }
 
     /// Placeholder
     template<typename... _CTy>
     auto any(_CTy&&... functionals)
-        -> Continuable& // FIXME gcc build &-> decltype(some(1, std::declval<_CTy>()...))
+        -> Continuable // FIXME gcc build &-> decltype(some(1, std::declval<_CTy>()...))
     {
         // Equivalent to invoke `some` with count 1.
         return some(1, std::forward<_CTy>(functionals)...);

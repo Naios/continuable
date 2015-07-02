@@ -135,7 +135,7 @@ inline auto apply(F && f, T && t)
 
 int main(int /*argc*/, char** /*argv*/)
 {
-    /*
+    
     CastSpellPromise(1)
         .then([](SpellCastResult)
         {
@@ -184,7 +184,7 @@ int main(int /*argc*/, char** /*argv*/)
         {
             std::cout << "Finished" << std::endl;
         });
-    */
+
     //Continuable<bool> cb = make_continuable([](Callback<bool>&& callback)
     //{
 
@@ -378,17 +378,29 @@ int main(int /*argc*/, char** /*argv*/)
     });
     */
 
-    auto promise = std::move(make_continuable()
+    auto promise = make_continuable()
         .all(
         []
         {
+
             // void
             return CastSpellPromise(10);
         },
         []
         {
+
             return CastSpellPromise(20);
-        }));
+        })
+        .then([](SpellCastResult, SpellCastResult)
+        {
+        
+
+        })
+        .then([]
+        {
+        
+
+        });
 
     std::cout << "ok" << std::endl;
     return 0;
