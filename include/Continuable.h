@@ -217,7 +217,7 @@ public:
 
     /*
     /// Validates the Continuable
-    inline Continuable& Validate()
+    inline Continuable Validate()
     {
         _released = false;
         return *this;
@@ -501,6 +501,8 @@ namespace detail
 
         typedef std::function<continuable_t()> return_t;
 
+        typedef functional_traits<_ATy...> traits_t;
+
         struct ResultStorage
         {
             ResultStorage(std::size_t count_)
@@ -525,9 +527,15 @@ namespace detail
             template <typename _CTy, typename Arguments>
             inline static void invoke(shared_result_t storage, Arguments&& args, _CTy&& current)
             {
-                auto&& corrected = functional_traits<_ATy...>::correct(std::forward<_CTy>(current));
+                auto ret =
+                    fu::invoke_from_tuple(
+                        traits_t::correct(std::forward<_CTy>(current)),
+                        std::forward<Arguments>(args)
+                    );
 
-                std::cout << "invoking: " << Position << "   " << typeid(corrected).name() << std::endl;
+                // TODO invalidate tuple
+
+                std::cout << "invoking: " << Position << "   " << typeid(ret).name() << std::endl;
             }
 
             /// Invoke and pass recursive to itself
