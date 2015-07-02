@@ -12,15 +12,7 @@
 
 #include <boost/optional.hpp>
 
-enum SpellCastResult
-{
-    SPELL_FAILED_SUCCESS = 0,
-    SPELL_FAILED_AFFECTING_COMBAT = 1,
-    SPELL_FAILED_ALREADY_AT_FULL_HEALTH = 2,
-    SPELL_FAILED_ALREADY_AT_FULL_MANA = 3,
-    SPELL_FAILED_ALREADY_AT_FULL_POWER = 4,
-    SPELL_FAILED_ALREADY_BEING_TAMED = 5
-};
+
 
 template<typename T>
 using Optional = boost::optional<T>;
@@ -135,6 +127,7 @@ inline auto apply(F && f, T && t)
 
 int main(int /*argc*/, char** /*argv*/)
 {
+    /*
     CastSpellPromise(1)
         .then([](SpellCastResult)
         {
@@ -183,7 +176,7 @@ int main(int /*argc*/, char** /*argv*/)
         {
             std::cout << "Finished" << std::endl;
         });
-
+    */
     //Continuable<bool> cb = make_continuable([](Callback<bool>&& callback)
     //{
 
@@ -345,21 +338,23 @@ int main(int /*argc*/, char** /*argv*/)
         >
     >::result_maker::partial_results_t myres123345;
 
+    /*
     auto firstType = detail::multiple_when_all_chainer_t<
         fu::identity<>,
         fu::identity<
+            std::function<Continuable<SpellCastResult>()>,    
             std::function<Continuable<>()>,
-            std::function<Continuable<SpellCastResult>()>,
             std::function<Continuable<SpellCastResult>()>
         >
     >::make_when_all(
     []
     {
-        return make_continuable();
+        // void
+        return CastSpellPromise(10);
     },
     []
     {
-        return CastSpellPromise(10);
+        return make_continuable();
     },
     []
     {
@@ -368,7 +363,24 @@ int main(int /*argc*/, char** /*argv*/)
     .then([](SpellCastResult, SpellCastResult)
     {
         
+    })
+    .then([]
+    {
+
     });
+    */
+
+    auto promise = std::move(make_continuable()
+        .all(
+        []
+        {
+            // void
+            return CastSpellPromise(10);
+        },
+        []
+        {
+            return CastSpellPromise(20);
+        }));
 
     std::cout << "ok" << std::endl;
     return 0;
