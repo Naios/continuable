@@ -104,9 +104,6 @@ private:
 
 public:
 
-    /// Developing
-    Continuable() : _released(true) { }
-
     /// Deleted copy construct
     Continuable(Continuable const&) = delete;
 
@@ -410,6 +407,7 @@ namespace detail
                 "Given continuable must be passed as r-value!");
 
             // Trick C++11 lambda capture rules for non copyable but moveable continuables.
+            // TODO Use the stack instead of heap variables.
             std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
                 std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
 
@@ -503,14 +501,23 @@ namespace detail
 
         typedef functional_traits<_ATy...> traits_t;
 
-        struct ResultStorage
+        class ResultStorage
         {
-            ResultStorage(std::size_t count_)
-                : count(count_) { }
-
-            std::size_t count;
+            std::size_t partitions_left;
 
             std::tuple<_RTy...> result;
+
+            Callback<_RTy...> callback;
+
+        public:
+            ResultStorage(std::size_t partitions, Callback<_RTy...> callback_)
+                : partitions_left(partitions), callback(callback_) { }
+
+            template<std::size_t Position, typename... Args>
+            void store_result(Args&&... args)
+            {
+
+            }           
         };
 
         typedef std::shared_ptr<ResultStorage> shared_result_t;
@@ -570,33 +577,31 @@ namespace detail
         static return_t create(_CTy&&... functionals)
         {
             // C++11 workaround for move semantics of non copyable types
+            // TODO Use the stack instead of heap variables.
             auto shared_functionals = std::make_shared<std::tuple<_CTy...>>(
                 std::make_tuple(std::forward<_CTy>(functionals)...)
             );
 
             return [=](_ATy&&... args) mutable
             {
-                auto shared_args = std::make_shared<std::tuple<_ATy...>>(std::make_tuple(std::forward<_ATy>(args)...));
+                // TODO Use the stack instead of heap variables.
+                auto shared_args =
+                    std::make_shared<std::tuple<_ATy...>>(
+                        std::make_tuple(std::forward<_ATy>(args)...)
+                    );
 
                 // Fake continuable which wraps all continuables together
                 return make_continuable([=](Callback<_RTy...>&& callback) mutable
                 {
-                    shared_result_t result(new ResultStorage(sizeof...(_CTy)));
-
                     sequenced_invoke<
                         fu::sequence_of_t<
                             sizeof...(_CTy)
                         >
                     >::invoke(
-                        result,
+                        std::make_shared<ResultStorage>(sizeof...(_CTy), callback),
                         std::move(*shared_args),
                         std::move(*shared_functionals)
                     );
-
-                    int i = 0;
-                    ++i;
-
-                    std::cout << "hey all was called!" << std::endl;
                 });
             };
         }
