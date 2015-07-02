@@ -19,6 +19,9 @@
 #ifndef _CONTINUABLE_H_
 #define _CONTINUABLE_H_
 
+#include <atomic>
+#include <mutex>
+
 #include "Callback.h"
 
 template<typename...>
@@ -456,7 +459,12 @@ namespace detail
         template<std::size_t Position, typename Args, typename Pack, typename Next, typename... Rest>
         struct multiple_result_maker<Position, Args, Pack, Next, Rest...>
             : multiple_result_maker<
-                Position + 1,
+                Position +
+                std::tuple_size<
+                    typename identity_to_tuple<
+                        typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
+                    >::type
+                >::value,
                 typename concat_identities<
                     Args,
                     typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
@@ -490,6 +498,16 @@ namespace detail
 
         typedef std::function<continuable_t()> return_t;
 
+        struct ResultStorage
+        {
+            ResultStorage(std::size_t count_)
+                : count(count_) { }
+
+            std::size_t count;
+
+            std::tuple<Args...> result;
+        };
+
         template <typename... _ATy, typename... _CTy>
         static return_t create(_CTy&&... functionals)
         {
@@ -498,9 +516,15 @@ namespace detail
                 // Fake continuable which wraps all continuables together
                 return make_continuable([](Callback<Args...>&& callback)
                 {
+                    std::shared_ptr<ResultStorage> result(
+                        new ResultStorage(sizeof...(_CTy)));
 
+                    // auto shared = std::make_shared(ResultStorage());
 
+                    int i = 0;
+                    ++i;
 
+                    std::cout << "hey all was called!" << std::endl;
                 });
             };
         }

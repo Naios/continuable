@@ -152,6 +152,7 @@ inline auto apply(F && f, T && t)
 
 int main(int /*argc*/, char** /*argv*/)
 {
+    /*
     CastSpellPromise(1)
         .then([](SpellCastResult)
         {
@@ -210,7 +211,7 @@ int main(int /*argc*/, char** /*argv*/)
         {
             std::cout << "Finished" << std::endl;
         });
-
+        */
     //Continuable<bool> cb = make_continuable([](Callback<bool>&& callback)
     //{
 
@@ -331,7 +332,8 @@ int main(int /*argc*/, char** /*argv*/)
         decltype(CastSpellPromise(2)),
         decltype(TrivialPromise()),
         std::function<Continuable<float, double>()>,
-        std::function<Continuable<>()>
+        std::function<Continuable<>()>,
+        std::function<Continuable<bool>()>
 
     > maker;
     
@@ -406,7 +408,7 @@ int main(int /*argc*/, char** /*argv*/)
     });
     */
 
-    auto promise = make_continuable()
+    make_continuable()
         .all(
             [] {
                 return CastSpellPromise(10)
@@ -414,8 +416,17 @@ int main(int /*argc*/, char** /*argv*/)
             },
             [] {
                 return CastSpellPromise(20);
+            },
+            [] {
+                return make_continuable([](Callback<bool, bool>&& callback)
+                {
+                    callback(true, false);
+                });
+            },
+            [] {
+                return CastSpellPromise(25);
             })
-        .then([](SpellCastResult, SpellCastResult)
+        .then([](SpellCastResult, SpellCastResult, bool, bool, SpellCastResult)
         {
         
         })
