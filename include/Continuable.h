@@ -509,11 +509,8 @@ namespace detail
 
         std::mutex lock;
 
-        template <typename, std::size_t>
-        struct result_store_sequencer;
-
-        template <std::size_t... Sequence, std::size_t Offset>
-        struct result_store_sequencer<fu::sequence<Sequence...>, Offset>
+        template <std::size_t Offset>
+        struct result_store_sequencer
         {
             template<std::size_t Position, typename Tuple, typename Current>
             inline static void partial_set(Tuple& result, Current&& current)
@@ -552,10 +549,8 @@ namespace detail
         template<std::size_t Offset, typename... Args>
         void store(Args&&... args)
         {
-            result_store_sequencer<
-                fu::sequence_of_t<sizeof...(Args)>,
-                Offset
-            >::store(result, std::forward<Args>(args)...);
+            result_store_sequencer<Offset>::
+                store(result, std::forward<Args>(args)...);
 
             // TODO Improve the lock here
             std::lock_guard<std::mutex> guard(lock);
@@ -666,7 +661,7 @@ namespace detail
                 // TODO Use the stack instead of heap variables.
                 auto shared_args =
                     std::make_shared<std::tuple<_ATy...>>(
-                        std::make_tuple(std::forward<_ATy>(args)...));
+                        std::forward_as_tuple(std::forward<_ATy>(args)...));
 
                 // Fake continuable which wraps all continuables together
                 return make_continuable([=](Callback<_RTy...>&& callback) mutable
