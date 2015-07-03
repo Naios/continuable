@@ -576,7 +576,8 @@ namespace detail
         {
             continuable.invoke([storage](Args&&... args)
             {
-                storage->store<Offset, Args...>(std::forward<Args>(args)...);
+                // FIXME
+                // storage->store<Offset, Args...>(std::forward<Args>(args)...);
             });
         }
     };
