@@ -501,6 +501,9 @@ namespace detail
     template<typename... _ATy, typename... _RTy, typename... _PTy>
     class multiple_result_storage_t<fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>
     {
+        template<std::size_t, typename, typename, typename>
+        friend struct multiple_result_storage_invoker_t;
+
         std::size_t partitions_left;
 
         std::tuple<_RTy...> result;
@@ -509,52 +512,16 @@ namespace detail
 
         std::mutex lock;
 
-        template <std::size_t Offset>
-        struct result_store_sequencer
-        {
-            template<std::size_t Position, typename Tuple, typename Current>
-            inline static void partial_set(Tuple& result, Current&& current)
-            {
-                // Store the callback result in the tuple
-                std::get<Position>(result) = std::forward<Current>(current);
-            }
-
-            template<std::size_t Position, typename Tuple, typename Current, typename... Rest>
-            inline static void partial_set(Tuple& result, Current&& current, Rest&&... rest)
-            {
-                // Set the result...
-                partial_set<Position, Tuple, Current>(result, std::forward<Current>(current));
-
-                // ...and continue with the next parameter.
-                partial_set<Position + 1, Tuple, Rest...>(result, std::forward<Rest>(rest)...);
-            }
-
-            // Do nothing when trying to store empty packs...
-            inline static void store(std::tuple<_RTy...>& result)
-            {
-            }
-
-            // Store the args in the result tuple
-            template<typename... Args>
-            inline static void store(std::tuple<_RTy...>& result, Args&&... args)
-            {
-                partial_set<Offset, std::tuple<_RTy...>, Args...>(result, std::forward<Args>(args)...);
-            }
-        };
-
     public:
         multiple_result_storage_t(std::size_t partitions, Callback<_RTy...> callback_)
             : partitions_left(partitions), callback(callback_) { }
 
-        template<std::size_t Offset, typename... Args>
-        void store(Args&&... args)
+        void try_invoke()
         {
-            result_store_sequencer<Offset>::
-                store(result, std::forward<Args>(args)...);
-
             // TODO Improve the lock here
             std::lock_guard<std::mutex> guard(lock);
-            {                // Never call callbacks twice!
+            {
+                // Never call callbacks twice!
                 // assert(partitions_left);
 
                 // If all partitions have completed invoke the final callback.
@@ -569,6 +536,38 @@ namespace detail
     template<std::size_t Offset, typename... _ATy, typename... _RTy, typename... _PTy>
     struct multiple_result_storage_invoker_t<Offset, fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>
     {
+        template <std::size_t NextOffset>
+        using move_position_to = multiple_result_storage_invoker_t<NextOffset, fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>;
+
+        template<typename Tuple, typename Current>
+        inline static void partial_set(Tuple& result, Current&& current)
+        {
+            // Store the callback result in the tuple
+            std::get<Offset>(result) = std::forward<Current>(current);
+        }
+
+        template<typename Tuple, typename Current, typename... Rest>
+        inline static void partial_set(Tuple& result, Current&& current, Rest&&... rest)
+        {
+            // Set the result...
+            partial_set(result, std::forward<Current>(current));
+
+            // ...and continue with the next parameter.
+            move_position_to<Offset + 1>::partial_set(result, std::forward<Rest>(rest)...);
+        }
+
+        // Do nothing when trying to store empty packs...
+        inline static void store(std::tuple<_RTy...>& result)
+        {
+        }
+
+        // Store the args in the result tuple
+        template<typename... Args>
+        inline static void store(std::tuple<_RTy...>& result, Args&&... args)
+        {
+            partial_set(result, std::forward<Args>(args)...);
+        }
+
         template<typename... Args>
         static void invoke(
             std::shared_ptr<multiple_result_storage_t<fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>> storage,
@@ -576,8 +575,8 @@ namespace detail
         {
             continuable.invoke([storage](Args&&... args)
             {
-                // FIXME
-                // storage->store<Offset, Args...>(std::forward<Args>(args)...);
+                store(storage->result, std::forward<Args>(args)...);
+                storage->try_invoke();
             });
         }
     };
