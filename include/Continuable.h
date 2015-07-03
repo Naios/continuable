@@ -554,9 +554,8 @@ namespace detail
 
             // TODO Improve the lock here
             std::lock_guard<std::mutex> guard(lock);
-            {
-                // Never call callbacks twice!
-                assert(partitions_left);
+            {                // Never call callbacks twice!
+                // assert(partitions_left);
 
                 // If all partitions have completed invoke the final callback.
                 if (--partitions_left == 0)
