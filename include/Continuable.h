@@ -542,7 +542,7 @@ namespace detail
         template<typename Tuple, typename Current>
         inline static void partial_set(Tuple& result, Current&& current)
         {
-            // Store the callback result in the tuple
+            // Store a single callback result in the tuple
             std::get<Offset>(result) = std::forward<Current>(current);
         }
 
@@ -569,13 +569,17 @@ namespace detail
         }
 
         template<typename... Args>
-        static void invoke(
-            std::shared_ptr<multiple_result_storage_t<fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>> storage,
-            Continuable<Args...>&& continuable)
+        static void invoke(std::shared_ptr<multiple_result_storage_t<
+                fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>> storage,
+                    Continuable<Args...>&& continuable)
         {
+            // Invoke the continuable
             continuable.invoke([storage](Args&&... args)
             {
+                // Route its result to the cache.
                 store(storage->result, std::forward<Args>(args)...);
+
+                // Try to invoke the final callback.
                 storage->try_invoke();
             });
         }
@@ -624,8 +628,10 @@ namespace detail
             template <typename _CTy, typename Arguments, typename... Rest>
             inline static void invoke(shared_result_t storage, Arguments&& args, _CTy&& current, Rest&&... rest)
             {
+                // Invoke the current continuable...
                 invoke(storage, std::forward<Arguments>(args), std::forward<_CTy>(current));
 
+                // And continue with the next
                 distributor<Stack...>::invoke(storage, std::forward<Arguments>(args), std::forward<Rest>(rest)...);
             }
         };
@@ -638,7 +644,8 @@ namespace detail
         {
             template <typename Arguments, typename TupleFunctional>
             inline static void invoke(shared_result_t result, Arguments&& arguments, TupleFunctional&& functional)
-            {              
+            {
+                // Invoke the distributor which invokes all given continuables.
                 distributor<_PTy...>::invoke(
                     result,
                     std::forward<Arguments>(arguments),
