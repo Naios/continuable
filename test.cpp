@@ -110,6 +110,21 @@ void test_unwrap(std::string const& msg)
     std::cout << msg << " is unwrappable: " << (fu::is_unwrappable<T...>::value ? "true" : "false") << std::endl;
 }
 
+namespace detail
+{
+    template<typename, typename>
+    struct function_matches_to_args;
+
+    template<typename LeftReturn, typename... LeftArgs,
+             typename RightReturn, typename... RightArgs>
+    struct function_matches_to_args<
+        std::function<LeftReturn(LeftArgs...)>,
+        std::function<RightReturn(RightArgs...)>>
+    {
+            
+    };
+}
+
 int main(int /*argc*/, char** /*argv*/)
 {
     /*
@@ -368,13 +383,9 @@ int main(int /*argc*/, char** /*argv*/)
 
     make_continuable()
         .all(
-            [] {
-                return CastSpellPromise(10)
-                        .then(CastSpellPromise(15));
-            },
-            [] {
-                return CastSpellPromise(20);
-            },
+            CastSpellPromise(10)
+                .then(CastSpellPromise(15)),
+            CastSpellPromise(20),
             [] {
                 return make_continuable([](Callback<bool, bool, double , std::unique_ptr<std::string>>&& callback)
                 {
@@ -391,6 +402,14 @@ int main(int /*argc*/, char** /*argv*/)
 
         });
 
-    std::cout << "ok" << std::endl;
+    std::function<void()> callable = []
+    {
+        std::cout << "ok" << std::endl;
+    };
+
+    auto conv_test_1 = std::bind(callable);
+
+    conv_test_1(1, 1);
+
     return 0;
 }
