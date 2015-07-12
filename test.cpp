@@ -110,6 +110,7 @@ void test_unwrap(std::string const& msg)
     std::cout << msg << " is unwrappable: " << (fu::is_unwrappable<T...>::value ? "true" : "false") << std::endl;
 }
 
+/*
 namespace detail
 {
     template<typename, typename>
@@ -124,6 +125,7 @@ namespace detail
             
     };
 }
+*/
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -386,12 +388,10 @@ int main(int /*argc*/, char** /*argv*/)
             CastSpellPromise(10)
                 .then(CastSpellPromise(15)),
             CastSpellPromise(20),
-            [] {
-                return make_continuable([](Callback<bool, bool, double , std::unique_ptr<std::string>>&& callback)
-                {
-                    callback(true, false, 0.3f, std::unique_ptr<std::string>(new std::string("oh, all work is done!")));
-                });
-            },
+            make_continuable([](Callback<bool, bool, double , std::unique_ptr<std::string>>&& callback)
+            {
+                callback(true, false, 0.3f, std::unique_ptr<std::string>(new std::string("oh, all work is done!")));
+            }),
             TrivialPromise())
         .then([](SpellCastResult r0, SpellCastResult r1, bool r2, bool r3, double r4, std::unique_ptr<std::string> message)
         {
@@ -410,6 +410,19 @@ int main(int /*argc*/, char** /*argv*/)
     auto conv_test_1 = std::bind(callable);
 
     conv_test_1(1, 1);
+
+    struct TestFunctor
+    {
+        void operator() (int)
+        {
+        }
+    };
+
+    TestFunctor fn;
+
+    static_assert(fu::is_unwrappable<TestFunctor>::value, "not unwrappable!");
+
+    std::function<void(int)> fntest = std::move(fn);
 
     return 0;
 }
