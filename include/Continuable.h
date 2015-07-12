@@ -440,8 +440,9 @@ namespace detail
             static_assert(std::is_rvalue_reference<_CTy&&>::value,
                 "Given continuable must be passed as r-value!");
 
-            std::function<typename std::decay<_CTy>::type(_ATy...)> returning_function
-                = continuable_returner<_CTy, _ATy...>(std::forward<_CTy>(continuable));
+            std::function<typename std::decay<_CTy>::type(_ATy...)> returning_function;
+
+            continuable_returner<_CTy, _ATy...> returner(std::forward<_CTy>(continuable));
 
             return std::move(returning_function);
 
