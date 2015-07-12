@@ -357,6 +357,31 @@ namespace detail
         typedef Tuple tuple;
     };
 
+    template<typename _CTy, typename... _ATy>
+    struct continuable_returner
+    {
+        typename std::decay<_CTy>::type returning_continuable;
+
+        continuable_returner(typename std::decay<_CTy>::type&& returning_continuable_)
+            : returning_continuable(returning_continuable_) { }
+
+        continuable_returner(continuable_returner&) = delete;
+
+        continuable_returner& operator= (continuable_returner&) = delete;
+
+        continuable_returner& operator= (continuable_returner&& right)
+        {
+            returning_continuable = std::move(right.returning_continuable);
+            return *this;
+        };
+
+        auto operator()(_ATy&&...)
+            -> typename std::decay<_CTy>::type
+        {
+            return std::move(returning_continuable);
+        }
+    };
+
     /// Continuable processing detail implementation
     template <typename... _ATy>
     struct functional_traits
@@ -400,31 +425,6 @@ namespace detail
             return std::forward<_CTy>(functional);
         }
 
-        template<typename _CTy>
-        struct continuable_returner
-        {
-            typename std::decay<_CTy>::type returning_continuable;
-
-            continuable_returner(typename std::decay<_CTy>::type&& returning_continuable_)
-                : returning_continuable(std::move(returning_continuable_)) { }
-
-            continuable_returner(continuable_returner&) = delete;
-
-            continuable_returner& operator= (continuable_returner&) = delete;
-
-            continuable_returner& operator= (continuable_returner&& right)
-            {
-                returning_continuable = std::move(right.returning_continuable);
-                return *this;
-            };
-
-            auto operator()(_ATy&&...)
-                -> typename std::decay<_CTy>::type
-            {
-                return std::move(returning_continuable);
-            }
-        };
-
         /// Wrap continuables into the continuable returning functional type.
         template<typename _CTy>
         static auto box_continuable_trait(_CTy&& continuable)
@@ -440,7 +440,10 @@ namespace detail
             static_assert(std::is_rvalue_reference<_CTy&&>::value,
                 "Given continuable must be passed as r-value!");
 
-            return continuable_returner<_CTy>(std::forward<_CTy>(continuable));
+            std::function<typename std::decay<_CTy>::type(_ATy...)> returning_function
+                = continuable_returner<_CTy, _ATy...>(std::forward<_CTy>(continuable));
+
+            return std::move(returning_function);
 
             // Trick C++11 lambda capture rules for non copyable but moveable continuables.
             // TODO Use the stack instead of heap variables.
