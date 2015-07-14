@@ -147,7 +147,7 @@ public:
     MoveCaptureLamda(std::function<void(Capture..., Args...)>&& functional, Capture&&... capture)
         : _functional(std::move(functional)), _capture(std::make_tuple(std::forward<Capture>(capture)...)) { }
 
-    void invoke(Args&&... args)
+    void operator() (Args&&... args)
     {
         _functional(std::move(std::get<SeqOfCapture>(_capture))..., std::forward<Args>(args)...);
     }
@@ -170,7 +170,7 @@ public:
     MoveCaptureLamda(std::function<ReturnType(Capture..., Args...)>&& functional, Capture&&... capture)
         : _functional(std::move(functional)), _capture(std::make_tuple(std::forward<Capture>(capture)...)) { }
 
-    ReturnType invoke(Args&&... args)
+    ReturnType operator() (Args&&... args)
     {
         return _functional(std::move(std::get<SeqOfCapture>(_capture))..., std::forward<Args>(args)...);
     }
@@ -206,6 +206,49 @@ public:
         -> _CTy
     {
         return std::move(returning_continuable);
+    }
+};
+
+template<typename T>
+class copymove
+{
+    T _content;
+
+    bool consumed;
+
+    copymove& move(copymove& right)
+    {
+        // _content = std::move(right._content);
+        return *this;
+    }
+
+    copymove& move(copymove&& right)
+    {
+        // _content = std::move(right._content);
+        return *this;
+    }
+
+public:
+    copymove(copymove const& right) : consumed(false)
+    {
+        // move(right._content);
+    }
+
+    copymove(T& right) : consumed(false)
+    {
+        _content = std::move(right);
+    }
+
+    copymove& operator= (copymove& right)
+    {
+        return move(right);
+    }
+
+    T get()
+    {
+        assert(!consumed && "already consumed!");
+        consumed = true;
+        return move(right._content);
     }
 };
 
@@ -506,7 +549,8 @@ int main(int /*argc*/, char** /*argv*/)
 
     // std::function<void(int)> fntest = std::move(fn);
 
-    MoveCaptureLamda<fu::identity<std::unique_ptr<int>>, fu::identity<void>, fu::sequence_of_t<1>, fu::sequence_of_t<0>> capture([](std::unique_ptr<int>)
+    MoveCaptureLamda<fu::identity<std::unique_ptr<int>>, fu::identity<void, int>, fu::sequence_of_t<1>, fu::sequence_of_t<0>> capture(
+        [](std::unique_ptr<int> capture, int arg)
     {
         
         int i = 0;
@@ -515,8 +559,16 @@ int main(int /*argc*/, char** /*argv*/)
 
     }, std::unique_ptr<int>(new int(90)));
 
-    capture.invoke();
+    capture(1);
 
-    capture.invoke();
+    capture(2);
+
+    std::unique_ptr<int> uptr(new int(90));
+    copymove<std::unique_ptr<int>> mycapture(std::move(uptr));
+    auto capt = [mycapture]
+    {
+    
+    };
+
     return 0;
 }
