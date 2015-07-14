@@ -127,6 +127,30 @@ namespace detail
 }
 */
 
+template<typename _CTy, typename... _ATy>
+class continuable_returner
+{
+    _CTy returning_continuable;
+
+public:
+    continuable_returner(_CTy&& returning_continuable_)
+        : returning_continuable(std::move(returning_continuable_)) { }
+
+    continuable_returner& operator= (continuable_returner&) = delete;
+
+    continuable_returner& operator= (continuable_returner&& right)
+    {
+        // returning_continuable = std::move(right.returning_continuable);
+        return *this;
+    };
+
+    auto operator()(_ATy&&...)
+        -> _CTy
+    {
+        return std::move(returning_continuable);
+    }
+};
+
 int main(int /*argc*/, char** /*argv*/)
 {
     /*
@@ -411,18 +435,15 @@ int main(int /*argc*/, char** /*argv*/)
 
     conv_test_1(1, 1);
 
-    struct TestFunctor
-    {
-        void operator() (int)
-        {
-        }
-    };
+    
 
-    TestFunctor fn;
+    continuable_returner<std::unique_ptr<int>> fn(std::unique_ptr<int>(new int(5)));
 
-    static_assert(fu::is_unwrappable<TestFunctor>::value, "not unwrappable!");
+    continuable_returner<std::unique_ptr<int>> other_fn = std::move(fn);
 
-    std::function<void(int)> fntest = std::move(fn);
+    // static_assert(fu::is_unwrappable<TestFunctor>::value, "not unwrappable!");
+
+    // std::function<void(int)> fntest = std::move(fn);
 
     return 0;
 }

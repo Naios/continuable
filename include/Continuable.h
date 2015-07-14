@@ -357,6 +357,7 @@ namespace detail
         typedef Tuple tuple;
     };
 
+    /*
     template<typename _CTy, typename... _ATy>
     struct continuable_returner
     {
@@ -381,6 +382,7 @@ namespace detail
             return std::move(returning_continuable);
         }
     };
+    */
 
     /// Continuable processing detail implementation
     template <typename... _ATy>
@@ -440,22 +442,16 @@ namespace detail
             static_assert(std::is_rvalue_reference<_CTy&&>::value,
                 "Given continuable must be passed as r-value!");
 
-            std::function<typename std::decay<_CTy>::type(_ATy...)> returning_function;
-
-            continuable_returner<_CTy, _ATy...> returner(std::forward<_CTy>(continuable));
-
-            return std::move(returning_function);
-
             // Trick C++11 lambda capture rules for non copyable but moveable continuables.
             // TODO Use the stack instead of heap variables.
-            /*std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
-                std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));*/
+            std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
+                std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
 
             // Create a fake function which returns the value on invoke.
-            /*return [shared_continuable](_ATy&&...)
+            return [shared_continuable](_ATy&&...)
             {
                 return std::move(*shared_continuable);
-            };*/
+            };
         }
 
         /// Route functionals through
