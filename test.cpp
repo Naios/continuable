@@ -127,22 +127,80 @@ namespace detail
 }
 */
 
+template<typename Capture, typename Args, typename SeqOfCapture, typename SeqOfArgs>
+class MoveCaptureLamda;
+
+template<typename... Capture, typename... Args, std::size_t... SeqOfCapture, std::size_t... SeqOfArgs>
+class MoveCaptureLamda
+    <
+        fu::identity<Capture...>,
+        fu::identity<void, Args...>,
+        fu::sequence<SeqOfCapture...>,
+        fu::sequence<SeqOfArgs...>
+    >
+{
+    std::function<void(Capture..., Args...)> _functional;
+
+    std::tuple<Capture...> _capture;
+
+public:
+    MoveCaptureLamda(std::function<void(Capture..., Args...)>&& functional, Capture&&... capture)
+        : _functional(std::move(functional)), _capture(std::make_tuple(std::forward<Capture>(capture)...)) { }
+
+    void invoke(Args&&... args)
+    {
+        _functional(std::move(std::get<SeqOfCapture>(_capture))..., std::forward<Args>(args)...);
+    }
+};
+
+template<typename... Capture, typename ReturnType, typename... Args, std::size_t... SeqOfCapture, std::size_t... SeqOfArgs>
+class MoveCaptureLamda
+    <
+        fu::identity<Capture...>,
+        fu::identity<ReturnType, Args...>,
+        fu::sequence<SeqOfCapture...>,
+        fu::sequence<SeqOfArgs...>
+    >
+{
+    std::function<ReturnType(Capture..., Args...)> _functional;
+
+    std::tuple<Capture...> _capture;
+
+public:
+    MoveCaptureLamda(std::function<ReturnType(Capture..., Args...)>&& functional, Capture&&... capture)
+        : _functional(std::move(functional)), _capture(std::make_tuple(std::forward<Capture>(capture)...)) { }
+
+    ReturnType invoke(Args&&... args)
+    {
+        return _functional(std::move(std::get<SeqOfCapture>(_capture))..., std::forward<Args>(args)...);
+    }
+};
+
 template<typename _CTy, typename... _ATy>
 class continuable_returner
 {
     _CTy returning_continuable;
 
 public:
+    continuable_returner(continuable_returner&& right)
+    {
+        returning_continuable = std::move(right.returning_continuable);
+    }
+
     continuable_returner(_CTy&& returning_continuable_)
         : returning_continuable(std::move(returning_continuable_)) { }
 
-    continuable_returner& operator= (continuable_returner&) = delete;
-
     continuable_returner& operator= (continuable_returner&& right)
+    {
+        returning_continuable = std::move(right.returning_continuable);
+        return *this;
+    }
+
+    continuable_returner& operator= (continuable_returner& right)
     {
         // returning_continuable = std::move(right.returning_continuable);
         return *this;
-    };
+    }
 
     auto operator()(_ATy&&...)
         -> _CTy
@@ -436,14 +494,29 @@ int main(int /*argc*/, char** /*argv*/)
     conv_test_1(1, 1);
 
     
+    /*
+    continuable_returner<std::unique_ptr<int>> test26151_start(std::unique_ptr<int>(new int(5)));
 
-    continuable_returner<std::unique_ptr<int>> fn(std::unique_ptr<int>(new int(5)));
+    continuable_returner<std::unique_ptr<int>> test26151_moved = std::move(test26151_start);
 
-    continuable_returner<std::unique_ptr<int>> other_fn = std::move(fn);
+    std::function<std::unique_ptr<int>()> test26151_fn = std::move(test26151_moved);
+    */
 
     // static_assert(fu::is_unwrappable<TestFunctor>::value, "not unwrappable!");
 
     // std::function<void(int)> fntest = std::move(fn);
 
+    MoveCaptureLamda<fu::identity<std::unique_ptr<int>>, fu::identity<void>, fu::sequence_of_t<1>, fu::sequence_of_t<0>> capture([](std::unique_ptr<int>)
+    {
+        
+        int i = 0;
+
+        ++i;
+
+    }, std::unique_ptr<int>(new int(90)));
+
+    capture.invoke();
+
+    capture.invoke();
     return 0;
 }
