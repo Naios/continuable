@@ -184,6 +184,7 @@ public:
     }
 };
 
+/*
 template<typename _CTy, typename... _ATy>
 class continuable_returner
 {
@@ -216,6 +217,7 @@ public:
         return std::move(returning_continuable);
     }
 };
+*/
 
 template<typename T>
 class copymove
@@ -719,7 +721,7 @@ int main(int /*argc*/, char** /*argv*/)
 
     // std::this_thread::sleep_for(std::chrono::seconds(5));
 
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    std::this_thread::sleep_for(std::chrono::seconds(5));
 
     pool.Await();
     countPool.Await();
