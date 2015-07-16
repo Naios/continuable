@@ -303,7 +303,7 @@ public:
                     if (_queue.try_dequeue(token, callable))
                     {
                         std::string msg = "Thread " + std::to_string(i) + " is dispatching...\n";
-                        std::cout << msg;
+                        // std::cout << msg;
                         callable();
                     }
                     else
@@ -313,7 +313,7 @@ public:
 
                         {
                             std::string msg = "Thread " + std::to_string(i) + " out of work...\n";
-                            std::cout << msg;
+                            // std::cout << msg;
                         }
 
                         std::unique_lock<std::mutex> lock(_mutex);
@@ -323,7 +323,7 @@ public:
 
                         {
                             std::string msg = "Thread " + std::to_string(i) + " wakes up...\n";
-                            std::cout << msg;
+                            // std::cout << msg;
                         }
                     }
                 }
@@ -709,7 +709,7 @@ int main(int /*argc*/, char** /*argv*/)
             {
                 // std::this_thread::sleep_for(std::chrono::milliseconds(wait));
                 std::string str = "Pass " + std::to_string(run) + " dispatching " + std::to_string(i) + " (" + std::to_string(wait) + "ms delay)" + "\n";
-                std::cout << str;
+                // std::cout << str;
 
                 countPool.Dispatch([&container, wait]
                 {
@@ -721,11 +721,11 @@ int main(int /*argc*/, char** /*argv*/)
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    std::cout << "Awaiting termination...\n";
+    // std::cout << "Awaiting termination...\n";
 
     // std::this_thread::sleep_for(std::chrono::seconds(5));
 
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    // std::this_thread::sleep_for(std::chrono::seconds(5));
 
     pool.Await();
     countPool.Await();
