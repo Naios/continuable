@@ -28,6 +28,10 @@ if(CMAKE_BUILD_TOOL MATCHES "(msdev|devenv|nmake)")
     add_definitions(-Wall -Wextra)
 endif()
 
+if(NOT WIN32)
+    find_package (Threads)
+endif()
+
 file(GLOB_RECURSE LIB_SOURCES include/*.cpp include/*.hpp include/*.h)
 add_library(continue STATIC ${LIB_SOURCES})
 
@@ -39,4 +43,5 @@ add_executable(continue_test ${TEST_SOURCES})
 
 target_link_libraries(continue_test
   continue
+  ${CMAKE_THREAD_LIBS_INIT}
 )
