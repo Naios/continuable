@@ -353,7 +353,8 @@ public:
     void _Shutdown(TerminationMode const mode)
     {
         _shutdown = mode;
-        for (auto& thread : _pool)
+        _condition.notify_all();
+        for (auto&& thread : _pool)
             if (thread.joinable())
                 thread.join();
     }
@@ -679,7 +680,7 @@ int main(int /*argc*/, char** /*argv*/)
 
     DispatcherPool countPool(1);
 
-    DispatcherPool pool(3);
+    DispatcherPool pool;
 
     auto const seed = std::chrono::steady_clock::now().time_since_epoch().count();
 
@@ -700,7 +701,7 @@ int main(int /*argc*/, char** /*argv*/)
 
             pool.Dispatch([&countPool, &container, i, run, wait]
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(wait));
+                // std::this_thread::sleep_for(std::chrono::milliseconds(wait));
                 std::string str = "Pass " + std::to_string(run) + " dispatching " + std::to_string(i) + " (" + std::to_string(wait) + "ms delay)" + "\n";
                 std::cout << str;
 
@@ -717,6 +718,9 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout << "Awaiting termination...\n";
 
     // std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
     pool.Await();
     countPool.Await();
 
