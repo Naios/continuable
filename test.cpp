@@ -17,7 +17,6 @@
 #include <random>
 
 #include "concurrentqueue.h"
-#include "blockingconcurrentqueue.h"
 
 #include <boost/optional.hpp>
 
@@ -284,7 +283,7 @@ class DispatcherPool
 
     std::condition_variable _condition;
 
-    moodycamel::BlockingConcurrentQueue<Callable> _queue;
+    moodycamel::ConcurrentQueue<Callable> _queue;
 
 public:
     DispatcherPool() : DispatcherPool(std::thread::hardware_concurrency()) { }
@@ -698,7 +697,7 @@ int main(int /*argc*/, char** /*argv*/)
 
     unsigned int counter = 0;
 
-    for (unsigned int run = 0; run < 2; ++run)
+    for (unsigned int run = 0; run < 15; ++run)
     {
         for (unsigned int i = 0; i < 20; ++i)
         {
