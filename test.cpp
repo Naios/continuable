@@ -10,6 +10,14 @@
 #include <vector>
 #include <typeinfo>
 
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+#include <atomic>
+#include <random>
+
+#include "concurrentqueue.h"
+
 #include <boost/optional.hpp>
 
 enum SpellCastResult
@@ -249,6 +257,101 @@ public:
         assert(!consumed && "already consumed!");
         consumed = true;
         return move(right._content);
+    }
+};
+
+class DispatcherPool
+{
+    enum TerminationMode
+    {
+        NONE,
+        TERMINATE,
+        AWAIT
+    };
+
+    typedef std::function<void()> Callable;
+
+    std::vector<std::thread> _pool;
+
+    std::atomic<TerminationMode> _shutdown;
+
+    std::mutex _mutex;
+
+    std::condition_variable _condition;
+
+    moodycamel::ConcurrentQueue<Callable> _queue;
+
+public:
+    DispatcherPool() : DispatcherPool(std::thread::hardware_concurrency()) { }
+
+    DispatcherPool(unsigned int const threads) : _shutdown(NONE)
+    {
+        for (unsigned int i = 0; i < threads; ++i)
+        {
+            _pool.emplace_back([&, i]
+            {
+                Callable callable;
+                while (_shutdown != TERMINATE)
+                {
+                    if (_queue.try_dequeue(callable))
+                    {
+                        std::string msg = "Thread " + std::to_string(i) + " is dispatching...\n";
+                        std::cout << msg;
+                        callable();
+                    }
+                    else
+                    {
+                        if (_shutdown == AWAIT)
+                            break;
+
+                        {
+                            std::string msg = "Thread " + std::to_string(i) + " out of work...\n";
+                            std::cout << msg;
+                        }
+
+                        std::unique_lock<std::mutex> lock(_mutex);
+
+                        // Lock until new tasks are added
+                        _condition.wait(lock);
+
+                        {
+                            std::string msg = "Thread " + std::to_string(i) + " wakes up...\n";
+                            std::cout << msg;
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    ~DispatcherPool()
+    {
+        Shutdown();
+    }
+
+    template<typename Functional>
+    void Dispatch(Functional&& functional)
+    {
+        _queue.enqueue(std::forward<Functional>(functional));
+        std::unique_lock<std::mutex> lock(_mutex);
+        _condition.notify_one();
+    }
+
+    void Shutdown()
+    {
+        _Shutdown(TERMINATE);
+    }
+
+    void Await()
+    {
+        _Shutdown(AWAIT);
+    }
+
+    void _Shutdown(TerminationMode const mode)
+    {
+        _shutdown = mode;
+        for (auto&& thread : _pool)
+            thread.join();
     }
 };
 
@@ -570,5 +673,45 @@ int main(int /*argc*/, char** /*argv*/)
     
     };
 
+    typedef std::function<void()> Callable;
+
+    typedef std::unique_ptr<Callable> CallableHolder;
+
+    moodycamel::ConcurrentQueue<Callable> producerConsumerQueue;
+
+    Callable cal = []
+    {
+    };
+
+    producerConsumerQueue.enqueue(std::move(cal));
+
+    DispatcherPool pool(3);
+
+    auto const seed = std::chrono::steady_clock::now().time_since_epoch().count();
+
+    std::mt19937 rng(seed);
+    std::uniform_int_distribution<int> gen(10, 100);
+
+    for (unsigned int run = 0; run < 4; ++run)
+    {
+        for (unsigned int i = 0; i < 20; ++i)
+        {
+            unsigned int wait = gen(rng);
+
+            pool.Dispatch([i, run, wait]
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(wait));
+                std::string str = "Pass " + std::to_string(run) + " dispatching " + std::to_string(i) + "\n";
+                std::cout << str;
+            });
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    std::cout << "Awaiting termination\n";
+
+    // std::this_thread::sleep_for(std::chrono::seconds(5));
+    pool.Await();
     return 0;
 }
