@@ -219,6 +219,7 @@ public:
 };
 */
 
+/*
 template<typename T>
 class copymove
 {
@@ -261,6 +262,7 @@ public:
         return move(right._content);
     }
 };
+*/
 
 class DispatcherPool
 {
@@ -673,12 +675,14 @@ int main(int /*argc*/, char** /*argv*/)
 
     capture(2);
 
+    /*
     std::unique_ptr<int> uptr(new int(90));
     copymove<std::unique_ptr<int>> mycapture(std::move(uptr));
     auto capt = [mycapture]
     {
     
     };
+    */
 
     DispatcherPool countPool(1);
 
@@ -686,7 +690,7 @@ int main(int /*argc*/, char** /*argv*/)
 
     auto const seed = std::chrono::steady_clock::now().time_since_epoch().count();
 
-    std::mt19937 rng(seed);
+    std::mt19937 rng(static_cast<unsigned int>(seed));
     std::uniform_int_distribution<int> gen(10, 150);
 
     std::vector<int> container;
