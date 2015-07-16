@@ -350,8 +350,9 @@ public:
     void _Shutdown(TerminationMode const mode)
     {
         _shutdown = mode;
-        for (auto&& thread : _pool)
-            thread.join();
+        for (auto& thread : _pool)
+            if (thread.joinable())
+                thread.join();
     }
 };
 
@@ -690,9 +691,9 @@ int main(int /*argc*/, char** /*argv*/)
     auto const seed = std::chrono::steady_clock::now().time_since_epoch().count();
 
     std::mt19937 rng(seed);
-    std::uniform_int_distribution<int> gen(10, 100);
+    std::uniform_int_distribution<int> gen(10, 150);
 
-    for (unsigned int run = 0; run < 4; ++run)
+    for (unsigned int run = 0; run < 2; ++run)
     {
         for (unsigned int i = 0; i < 20; ++i)
         {
@@ -701,7 +702,7 @@ int main(int /*argc*/, char** /*argv*/)
             pool.Dispatch([i, run, wait]
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(wait));
-                std::string str = "Pass " + std::to_string(run) + " dispatching " + std::to_string(i) + "\n";
+                std::string str = "Pass " + std::to_string(run) + " dispatching " + std::to_string(i) + " (" + std::to_string(wait) + "ms delay)" + "\n";
                 std::cout << str;
             });
         }
@@ -709,7 +710,7 @@ int main(int /*argc*/, char** /*argv*/)
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    std::cout << "Awaiting termination\n";
+    std::cout << "Awaiting termination...\n";
 
     // std::this_thread::sleep_for(std::chrono::seconds(5));
     pool.Await();
