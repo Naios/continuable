@@ -31,7 +31,7 @@ endif()
 file(GLOB_RECURSE LIB_SOURCES include/*.cpp include/*.hpp include/*.h)
 add_library(continue STATIC ${LIB_SOURCES})
 
-include_directories(include)
+include_directories(include dep/concurrentqueue)
 
 set(TEST_SOURCES test.cpp)
 
