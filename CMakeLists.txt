@@ -5,31 +5,41 @@ include(CheckCXXCompilerFlag)
 include(CheckCXXSourceRuns)
 include(CheckIncludeFiles)
 
-# CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-# if(COMPILER_SUPPORTS_CXX14)
-#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-if(COMPILER_SUPPORTS_CXX11)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-elseif(COMPILER_SUPPORTS_CXX0X)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+if(MSVC)
+  if(${MSVC_VERSION} LESS 1900)
+    message(FATAL_ERROR "You are using an unsupported version of Visual Studio "
+                        "which doesn't support all required C++14 features. "
+                        "(Visual Studio 2015 (Version >= 1900) is required!)")
+
+    message(STATUS "bad")
+  endif()
+
+  if(PLATFORM EQUAL 64)
+    add_definitions("-D_WIN64")
+  else()
+    # ...
+  endif()
+
+  add_definitions(-Wall -Wextra)
+
 else()
-    message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+  # Check C++14 Compiler support.
+  CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+
+  if(NOT COMPILER_SUPPORTS_CXX14)
+    message(FATAL_ERROR "Your compiler has no C++14 capability!")
+  endif()
+
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+
+  # Find Threads
+  find_package (Threads)
 endif()
 
 find_package(Boost 1.55 REQUIRED)
 
 if(Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS})
-endif()
-
-if(CMAKE_BUILD_TOOL MATCHES "(msdev|devenv|nmake)")
-    add_definitions(-Wall -Wextra)
-endif()
-
-if(NOT WIN32)
-    find_package (Threads)
+  include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
 file(GLOB_RECURSE LIB_SOURCES include/*.cpp include/*.hpp include/*.h)
