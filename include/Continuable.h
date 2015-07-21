@@ -332,9 +332,9 @@ namespace detail
     struct void_wrap_trait<fu::identity<_ATy...>>
     {
         template<typename _CTy>
-        static std::function<Continuable<>(_ATy...)> wrap(_CTy&& functional)
+        static std::function<Continuable<>(_ATy...)> wrap(_CTy&& functional_)
         {
-            return [functional](_ATy&&... args)
+            return [functional = std::forward<_CTy>(functional_)](_ATy&&... args)
             {
                 // Invoke the original callback
                 functional(std::forward<_ATy>(args)...);
@@ -353,33 +353,6 @@ namespace detail
 
         typedef Tuple tuple;
     };
-
-    /*
-    template<typename _CTy, typename... _ATy>
-    struct continuable_returner
-    {
-        typename std::decay<_CTy>::type returning_continuable;
-
-        continuable_returner(typename std::decay<_CTy>::type&& returning_continuable_)
-            : returning_continuable(returning_continuable_) { }
-
-        continuable_returner(continuable_returner&) = delete;
-
-        continuable_returner& operator= (continuable_returner&) = delete;
-
-        continuable_returner& operator= (continuable_returner&& right)
-        {
-            returning_continuable = std::move(right.returning_continuable);
-            return *this;
-        };
-
-        auto operator()(_ATy&&...)
-            -> typename std::decay<_CTy>::type
-        {
-            return std::move(returning_continuable);
-        }
-    };
-    */
 
     /// Continuable processing detail implementation
     template <typename... _ATy>
@@ -441,13 +414,13 @@ namespace detail
 
             // Trick C++11 lambda capture rules for non copyable but moveable continuables.
             // TODO Use the stack instead of heap variables.
-            std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
-                std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
+            // std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
+                // std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
 
             // Create a fake function which returns the value on invoke.
-            return [shared_continuable](_ATy&&...)
+            return [continuable_ = std::forward<_CTy>(continuable)](_ATy&&...) mutable
             {
-                return std::move(*shared_continuable);
+                return std::move(continuable_);
             };
         }
 
