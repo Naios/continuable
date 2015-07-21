@@ -220,10 +220,15 @@ namespace fu
         template<std::size_t... Sequence>
         struct invoker<sequence<Sequence...>>
         {
+            template<typename _TTy>
+            inline static void silencer(_TTy&&) { }
+
             template<typename _FTy, typename _TTy>
             inline static auto invoke(_FTy&& functional, _TTy&& tuple)
                 -> return_type_of_t<typename std::decay<_FTy>::type>
             {
+                // Silences warnings about unreferenced formal parameter when pack is empty.
+                silencer(tuple);
                 return std::forward<_FTy>(functional)(std::get<Sequence>(std::forward<_TTy>(tuple))...);
             }
         };
