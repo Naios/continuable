@@ -104,7 +104,7 @@ inline auto make_shared_callback(_CTy&& callback)
 {
     return std::make_shared<callback_of_t<_CTy>>
         (std::forward<callback_of_t<_CTy>>(callback));
-};
+}
 
 /// Creates a weak callback which wraps the given shared or weak callback.
 /// If the given managed callback expires the callback is not invoked anymore.
