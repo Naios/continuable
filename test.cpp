@@ -16,7 +16,7 @@
 #include <atomic>
 #include <random>
 
-#include "concurrentqueue.h"
+// #include "concurrentqueue.h"
 
 #include <boost/optional.hpp>
 
@@ -264,6 +264,7 @@ public:
 };
 */
 
+/*
 class DispatcherPool
 {
     enum TerminationMode
@@ -283,7 +284,7 @@ class DispatcherPool
 
     std::condition_variable _condition;
 
-    moodycamel::ConcurrentQueue<Callable> _queue;
+    // moodycamel::ConcurrentQueue<Callable> _queue;
 
 public:
     DispatcherPool() : DispatcherPool(std::thread::hardware_concurrency()) { }
@@ -295,7 +296,7 @@ public:
             _pool.emplace_back([&, i]
             {
                 // Reserve the consumer token
-                moodycamel::ConsumerToken token(_queue);
+                // moodycamel::ConsumerToken token(_queue);
 
                 Callable callable;
                 while (_shutdown != TERMINATE)
@@ -363,6 +364,7 @@ public:
                 thread.join();
     }
 };
+*/
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -684,10 +686,11 @@ int main(int /*argc*/, char** /*argv*/)
     };
     */
 
-    DispatcherPool countPool(1);
+    // DispatcherPool countPool(1);
 
-    DispatcherPool pool;
+    // DispatcherPool pool;
 
+    /*
     auto const seed = std::chrono::steady_clock::now().time_since_epoch().count();
 
     std::mt19937 rng(static_cast<unsigned int>(seed));
@@ -731,5 +734,7 @@ int main(int /*argc*/, char** /*argv*/)
     countPool.Await();
 
     std::cout << container.size() << " == " << counter;
+    */
+
     return 0;
 }
