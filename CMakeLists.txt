@@ -27,14 +27,17 @@ else()
   CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
 
   if(NOT COMPILER_SUPPORTS_CXX14)
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-      # Clang > 3.4 is ok
-    else()
-      message(FATAL_ERROR "Your compiler has no C++14 capability!")
-    endif()
-  endif()
+    # If not given try to enable C++1y
+    CHECK_CXX_COMPILER_FLAG("-std=c++1y" COMPILER_SUPPORTS_CXX1Y)
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+    if(NOT COMPILER_SUPPORTS_CXX1Y)
+      message(FATAL_ERROR "Your compiler has no C++14 capability!")
+    else()
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
+    endif()
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+  endif()
 
   # Find Threads
   find_package (Threads)
