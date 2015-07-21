@@ -5,6 +5,8 @@ include(CheckCXXCompilerFlag)
 include(CheckCXXSourceRuns)
 include(CheckIncludeFiles)
 
+message(STATUS ${CMAKE_COMPILER_IS_MSVC})
+
 if(MSVC)
   if(${MSVC_VERSION} LESS 1900)
     message(FATAL_ERROR "You are using an unsupported version of Visual Studio "
@@ -27,7 +29,11 @@ else()
   CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
 
   if(NOT COMPILER_SUPPORTS_CXX14)
-    message(FATAL_ERROR "Your compiler has no C++14 capability!")
+    if (CMAKE_COMPILER_IS_CLANGXX)
+      # Clang > 3.4 is ok
+    else()
+      message(FATAL_ERROR "Your compiler has no C++14 capability!")
+    endif()
   endif()
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
