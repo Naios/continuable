@@ -584,7 +584,7 @@ namespace detail
         }
 
         // Do nothing when trying to store empty packs...
-        inline static void store(std::tuple<_RTy...>& result)
+        inline static void store(std::tuple<_RTy...>& /*result*/)
         {
         }
 

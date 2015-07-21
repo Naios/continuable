@@ -31,9 +31,9 @@ class WeakCallbackContainer
 
     typedef std::size_t handle_t;
 
-    std::size_t handle;
+    std::size_t _handle;
 
-    std::unordered_map<decltype(handle), boost::any> container;
+    std::unordered_map<decltype(_handle), boost::any> _container;
 
     template<typename _CTy, typename... Args>
     struct ProxyFactory;
@@ -44,7 +44,7 @@ class WeakCallbackContainer
         // Creates a weak proxy callback which prevents invoking to an invalid context.
         // Removes itself from the owner with the given handler.
         static callback_of_t<_CTy> CreateProxy(std::weak_ptr<WeakCallbackContainer> const& weak_owner,
-            std::size_t const handle, weak_callback_of_t<_CTy> const& weak_callback)
+            std::size_t const _handle, weak_callback_of_t<_CTy> const& weak_callback)
         {
             return [=](Args&&... args)
             {
@@ -57,7 +57,7 @@ class WeakCallbackContainer
                         (*callback)(std::forward<Args>(args)...);
 
                         // Unregister the callback
-                        owner->InvalidateCallback(handle);
+                        owner->InvalidateCallback(_handle);
                     }
             };
         }
@@ -65,7 +65,7 @@ class WeakCallbackContainer
 
 public:
     WeakCallbackContainer()
-        : self_reference(this, [](decltype(this)) { }), handle(0L) { }
+        : self_reference(this, [](decltype(this)) { }), _handle(0L) { }
 
     ~WeakCallbackContainer() = default;
 
@@ -77,7 +77,7 @@ public:
 
     WeakCallbackContainer& Clear()
     {
-        container.clear();
+        _container.clear();
         return *this;
     }
 
@@ -90,12 +90,12 @@ public:
         shared_callback_of_t<_CTy> shared_callback = make_shared_callback(std::forward<_CTy>(callback));
 
         // Create a weak proxy callback which removes the callback on execute
-        auto const this_handle = handle++;
+        auto const this_handle = _handle++;
         callback_of_t<_CTy> proxy =
             ProxyFactory<_CTy, ::fu::argument_type_of_t<_CTy>>::
                 CreateProxy(self_reference, this_handle, shared_callback);
 
-        container.insert(std::make_pair(this_handle, boost::any(std::move(shared_callback))));
+        _container.insert(std::make_pair(this_handle, boost::any(std::move(shared_callback))));
         return std::move(proxy);
     }
 
@@ -109,15 +109,15 @@ public:
 
     boost::optional<handle_t> GetLastCallbackHandle() const
     {
-        if (handle == 0L)
+        if (_handle == 0L)
             return boost::none;
         else
-            return boost::make_optional(handle);
+            return boost::make_optional(_handle);
     }
 
     WeakCallbackContainer& InvalidateCallback(handle_t const handle)
     {
-        container.erase(handle);
+        _container.erase(handle);
         return *this;
     }
 };
