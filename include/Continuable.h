@@ -172,8 +172,6 @@ public:
             typename detail::unary_chainer_t<_CTy, _ATy...>::arguments_t>::value,
                 "Given function signature isn't correct, for now it must match strictly!");
 
-        // Transfer the insert function to the local scope.
-        // Also use it as an r-value reference to try to get move semantics with c++11 lambdas.
         ForwardFunction&& callback = std::move(_callback_insert);
 
         auto&& corrected = detail::functional_traits<_ATy...>::
@@ -336,9 +334,9 @@ namespace detail
     struct void_wrap_trait<fu::identity<_ATy...>>
     {
         template<typename _CTy>
-        static std::function<Continuable<>(_ATy...)> wrap(_CTy&& functional_)
+        static std::function<Continuable<>(_ATy...)> wrap(_CTy&& functional)
         {
-            return [functional = std::forward<_CTy>(functional_)](_ATy&&... args)
+            return [functional](_ATy&&... args)
             {
                 // Invoke the original callback
                 functional(std::forward<_ATy>(args)...);
@@ -418,13 +416,13 @@ namespace detail
 
             // Trick C++11 lambda capture rules for non copyable but moveable continuables.
             // TODO Use the stack instead of heap variables.
-            // std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
-                // std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
+            std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
+                std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
 
             // Create a fake function which returns the value on invoke.
-            return [continuable_ = std::forward<_CTy>(continuable)](_ATy&&...) mutable
+            return [shared_continuable](_ATy&&...) mutable
             {
-                return std::move(continuable_);
+                return std::move(*shared_continuable);
             };
         }
 
