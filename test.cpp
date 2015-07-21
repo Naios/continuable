@@ -638,19 +638,9 @@ int main(int /*argc*/, char** /*argv*/)
         })
         .then([]
         {
-
+            return Log("ok, now its really finished!").then(CastSpellPromise(2));
         });
 
-    std::function<void()> callable = []
-    {
-        std::cout << "ok" << std::endl;
-    };
-
-    auto conv_test_1 = std::bind(callable);
-
-    conv_test_1(1, 1);
-
-    
     /*
     continuable_returner<std::unique_ptr<int>> test26151_start(std::unique_ptr<int>(new int(5)));
 
