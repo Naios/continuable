@@ -6,10 +6,10 @@ include(CheckCXXSourceRuns)
 include(CheckIncludeFiles)
 
 if(MSVC)
-  if(${MSVC_VERSION} LESS 1900)
+  if(${MSVC_VERSION} LESS 1800)
     message(FATAL_ERROR "You are using an unsupported version of Visual Studio "
-                        "which doesn't support all required C++14 features. "
-                        "(Visual Studio 2015 (Version >= 1900) is required!)")
+                        "which doesn't support all required C++11 features. "
+                        "(Visual Studio 2013 (Version >= 1800) is required!)")
 
     message(STATUS "bad")
   endif()
@@ -23,20 +23,20 @@ if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 
 else()
-  # Check C++14 Compiler support.
-  CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+  # Check C++11 Compiler support.
+  CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 
-  if(NOT COMPILER_SUPPORTS_CXX14)
+  if(NOT COMPILER_SUPPORTS_CXX11)
     # If not given try to enable C++1y
     CHECK_CXX_COMPILER_FLAG("-std=c++1y" COMPILER_SUPPORTS_CXX1Y)
 
     if(NOT COMPILER_SUPPORTS_CXX1Y)
-      message(FATAL_ERROR "Your compiler has no C++14 capability!")
+      message(FATAL_ERROR "Your compiler has no C++11 capability!")
     else()
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
     endif()
   else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
   endif()
 
   # Enable full warnings
