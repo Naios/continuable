@@ -92,11 +92,12 @@ public:
     typedef std::function<void(Callback<_ATy...>&&)> ForwardFunction;
 
 private:
+    /// Was the continuable released (invoked or transfered ownership) already?
+    bool _released;
+
     /// Functional which expects a callback that is inserted from the Continuable
     /// to chain everything together
     ForwardFunction _callback_insert;
-
-    bool _released;
 
     template <typename _CTy>
     void invoke(_CTy&& callback)
