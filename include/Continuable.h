@@ -172,17 +172,21 @@ public:
             typename detail::unary_chainer_t<_CTy, _ATy...>::arguments_t>::value,
                 "Given function signature isn't correct, for now it must match strictly!");
 
+        // Transfer the insert function to the local scope.
+        // Also use it as an r-value reference to try to get move semantics with c++11 lambdas.
+        ForwardFunction&& callback = std::move(_callback_insert);
+
+        auto&& corrected = detail::functional_traits<_ATy...>::
+            correct(std::forward<_CTy>(functional));
+
         return typename detail::unary_chainer_t<_CTy, _ATy...>::continuable_t(
-            [
-                corrected = detail::functional_traits<_ATy...>::correct(std::forward<_CTy>(functional)),
-                callback = std::move(_callback_insert)
-            ]
-            (typename detail::unary_chainer_t<_CTy, _ATy...>::callback_t&& call_next) mutable
+            [corrected, callback](typename detail::unary_chainer_t<_CTy, _ATy...>::callback_t&& call_next)
         {
-            callback([corrected = std::move(corrected), call_next](_ATy&&... args) mutable
+            callback([corrected, call_next](_ATy&&... args) mutable
             {
                 // Invoke the next callback
-                corrected(std::forward<_ATy>(args)...).invoke(std::move(call_next));
+                corrected(std::forward<_ATy>(args)...)
+                    .invoke(std::move(call_next));
             });
 
         }, std::move(*this));
