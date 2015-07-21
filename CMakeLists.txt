@@ -20,7 +20,7 @@ if(MSVC)
     # ...
   endif()
 
-  add_definitions(-Wall -Wextra)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 
 else()
   # Check C++14 Compiler support.
