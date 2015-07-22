@@ -696,8 +696,6 @@ namespace detail
 
         typedef typename result_maker::partial_results_t partial_results_t;
 
-        static std::size_t const size = result_maker::size;
-
         typedef multiple_when_all_chainer_t_make_result<fu::identity<_ATy...>, arguments_t, partial_results_t> make_result;
 
         // Creates one continuable from multiple ones

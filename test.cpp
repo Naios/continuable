@@ -305,7 +305,7 @@ public:
 
 int main(int /*argc*/, char** /*argv*/)
 {
-    CopyMoveTracer tracer;
+    // CopyMoveTracer tracer;
 
     /*
     CastSpellPromise(1)
