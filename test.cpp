@@ -118,6 +118,72 @@ void test_unwrap(std::string const& msg)
     std::cout << msg << " is unwrappable: " << (fu::is_unwrappable<T...>::value ? "true" : "false") << std::endl;
 }
 
+#include <iostream>
+#include <atomic>
+#include <random>
+
+static std::atomic_size_t move_tracer_index = 0;
+
+/// Class to trace construct, destruct, copy and move operations.
+/*
+class CopyMoveTracer
+{
+    std::size_t id;
+    std::size_t flags;
+    std::size_t copied;
+    std::size_t moved;
+
+    bool IsEnabled(std::size_t mask) const
+    {
+        // msvc warning silencer
+        return (flags & mask) != 0;
+    }
+
+    void Log(std::string const& msg) const
+    {
+
+    }
+
+public:
+    enum Flags : std::size_t
+    {
+        CAPTURE_NONE      = 0x1,
+        CAPTURE_CONSTRUCT = 0x1,
+        CAPTURE_DESTRUCT  = 0x2,
+        CAPTURE_COPY      = 0x4,
+        CAPTURE_MOVE      = 0x8,
+        CAPTURE_ALL       = CAPTURE_CONSTRUCT | CAPTURE_DESTRUCT | CAPTURE_COPY | CAPTURE_MOVE
+    };
+
+    // Empty construct
+    CopyMoveTracer() : id(++move_tracer_index), flags(CAPTURE_ALL), copied(0), moved(0)
+    {
+        if (IsEnabled(CAPTURE_CONSTRUCT))
+            Log("Tracer constructed");
+    }
+
+    // Construct with flags
+    CopyMoveTracer(std::size_t flags_) : id(++move_tracer_index), flags(flags_), copied(0), moved(0)
+    {
+        if (IsEnabled(CAPTURE_CONSTRUCT))
+            Log("Tracer constructed");
+    }
+
+    // Copy construct
+    CopyMoveTracer(CopyMoveTracer const& right) : id(move_tracer_index++), flags(right.flags), copied(0), moved(0)
+    {
+        if (IsEnabled(CAPTURE_COPY))
+            Log("Tracer copy constructed");
+    }
+
+    // Copy construct
+    CopyMoveTracer(CopyMoveTracer&& right) : id(right.id), flags(right.flags), copied(0), moved(0)
+    {
+        if (IsEnabled(CAPTURE_COPY))
+            Log("Tracer copy constructed");
+    }
+};
+*/
 /*
 namespace detail
 {
@@ -239,6 +305,8 @@ public:
 
 int main(int /*argc*/, char** /*argv*/)
 {
+    CopyMoveTracer tracer;
+
     /*
     CastSpellPromise(1)
         .then([](SpellCastResult)
