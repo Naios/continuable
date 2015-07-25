@@ -122,7 +122,7 @@ void test_unwrap(std::string const& msg)
 #include <atomic>
 #include <random>
 
-static std::atomic_size_t move_tracer_index = 0;
+// static std::atomic_size_t move_tracer_index = 0;
 
 /// Class to trace construct, destruct, copy and move operations.
 /*
