@@ -57,10 +57,10 @@ namespace detail
         }
     };
 
-    template <typename, typename...>
+    template<typename, typename...>
     struct unary_chainer_t;
 
-    template <typename...>
+    template<typename...>
     struct multiple_when_all_chainer_t;
 
     template<typename, typename, typename>
@@ -70,7 +70,7 @@ namespace detail
     struct multiple_result_storage_invoker_t;
 
     /// Functional traits forward declaration.
-    template <typename...>
+    template<typename...>
     struct functional_traits;
 
 } // detail
@@ -99,7 +99,7 @@ private:
     /// Was the continuable released (invoked or transfered ownership) already?
     bool _released;
 
-    template <typename _CTy>
+    template<typename _CTy>
     void invoke(_CTy&& callback)
     {
         if (!_released)
@@ -292,7 +292,7 @@ inline auto make_continuable()
 namespace detail
 {
     /// Helper trait for unary chains like `Continuable::then`
-    template <typename _CTy, typename... _ATy>
+    template<typename _CTy, typename... _ATy>
     struct unary_chainer_t
     {
         // Corrected user given functional
@@ -360,11 +360,11 @@ namespace detail
     };
 
     /// Continuable processing detail implementation
-    template <typename... _ATy>
+    template<typename... _ATy>
     struct functional_traits
     {
         /// Wrap void returning functionals to returns an empty continuable.
-        template <typename _CTy>
+        template<typename _CTy>
         static auto remove_void_trait(_CTy&& functional)
             -> typename std::enable_if<
                     std::is_void<
@@ -389,7 +389,7 @@ namespace detail
         }
 
         /// Route continuable returning functionals through.
-        template <typename _CTy>
+        template<typename _CTy>
         static auto remove_void_trait(_CTy&& functional)
             -> typename std::enable_if<
                     !std::is_void<
@@ -541,7 +541,7 @@ namespace detail
     template<std::size_t Offset, typename... _ATy, typename... _RTy, typename... _PTy>
     struct multiple_result_storage_invoker_t<Offset, fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>
     {
-        template <std::size_t NextOffset>
+        template<std::size_t NextOffset>
         using move_position_to = multiple_result_storage_invoker_t<NextOffset, fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>;
 
         template<typename Tuple, typename Current>
@@ -604,21 +604,21 @@ namespace detail
 
         typedef multiple_result_storage_t<fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>> ResultStorage;
 
-        template <std::size_t Offset>
+        template<std::size_t Offset>
         using invoker_at = multiple_result_storage_invoker_t<Offset, fu::identity<_ATy...>, fu::identity<_RTy...>, fu::identity<_PTy...>>;
 
         typedef std::shared_ptr<ResultStorage> shared_result_t;
 
         typedef std::tuple<_ATy...> shared_args_t;
 
-        template <typename... Stack>
+        template<typename... Stack>
         struct distributor;
 
-        template <std::size_t Position, typename Tuple, typename... Stack>
+        template<std::size_t Position, typename Tuple, typename... Stack>
         struct distributor<partial_result<Position, Tuple>, Stack...>
         {
             /// Real function invocation
-            template <typename _CTy, typename Arguments>
+            template<typename _CTy, typename Arguments>
             inline static void invoke(shared_result_t storage, Arguments&& args, _CTy&& current)
             {
                 // Invoke the continuable from the result storage
@@ -630,7 +630,7 @@ namespace detail
             }
 
             /// Invoke and pass recursive to itself
-            template <typename _CTy, typename Arguments, typename... Rest>
+            template<typename _CTy, typename Arguments, typename... Rest>
             inline static void invoke(shared_result_t storage, Arguments&& args, _CTy&& current, Rest&&... rest)
             {
                 // Invoke the current continuable...
@@ -641,13 +641,13 @@ namespace detail
             }
         };
 
-        template <typename Sequence>
+        template<typename Sequence>
         struct sequenced_invoke;
 
-        template <std::size_t... Sequence>
+        template<std::size_t... Sequence>
         struct sequenced_invoke<fu::sequence<Sequence...>>
         {
-            template <typename Arguments, typename TupleFunctional>
+            template<typename Arguments, typename TupleFunctional>
             inline static void invoke(shared_result_t result, Arguments&& arguments, TupleFunctional&& functional)
             {
                 // Invoke the distributor which invokes all given continuables.
@@ -659,7 +659,7 @@ namespace detail
         };
 
         /// Creates a faked function which invokes all sub continuables
-        template <typename... _CTy>
+        template<typename... _CTy>
         static return_t create(_CTy&&... functionals)
         {
             // C++11 workaround for move semantics of non copyable types
@@ -693,7 +693,7 @@ namespace detail
     };
 
     /// Helper trait for multiple chains like `Continuable::all`
-    template <typename... _ATy, typename... _CTy>
+    template<typename... _ATy, typename... _CTy>
     struct multiple_when_all_chainer_t<fu::identity<_ATy...>, fu::identity<_CTy...>>
     {
         typedef typename functional_traits<_ATy...>::template result_maker_of_t<_CTy...> result_maker;
