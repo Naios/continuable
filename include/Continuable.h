@@ -351,7 +351,10 @@ namespace detail
     template<std::size_t Position, typename Tuple>
     struct partial_result
     {
-        static std::size_t const position = Position;
+        enum my_size : std::size_t
+        {
+            size = Position
+        };
 
         typedef Tuple tuple;
     };
@@ -462,7 +465,10 @@ namespace detail
 
             typedef fu::identity<Pack...> partial_results_t;
 
-            static std::size_t const size = Position;
+            enum my_size : std::size_t
+            {
+                size = Position
+            };
         };
 
         template<std::size_t Position, typename Args, typename Pack, typename Next, typename... Rest>
