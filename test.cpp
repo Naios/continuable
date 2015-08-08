@@ -303,8 +303,12 @@ public:
 };
 */
 
+void test_mockup();
+
 int main(int /*argc*/, char** /*argv*/)
 {
+    test_mockup();
+
     // CopyMoveTracer tracer;
 
     /*
