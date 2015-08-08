@@ -57,7 +57,7 @@ add_library(continue STATIC ${LIB_SOURCES})
 
 include_directories(include dep/concurrentqueue)
 
-set(TEST_SOURCES test.cpp)
+set(TEST_SOURCES test.cpp mockup.cpp)
 
 add_executable(continue_test ${TEST_SOURCES})
 
