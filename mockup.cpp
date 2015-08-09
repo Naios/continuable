@@ -42,11 +42,25 @@ struct Continuable
     }
 };
 
+// helper class
+struct Continuables
+{
+    static Continuable<> create_empty()
+    {
+        return make_continuable([](std::function<void()>&& callback)
+        {
+            callback();
+        });
+    }
+};
+
 template <typename... Args>
 Continuable<> make_continuable(Args&&...)
 {
     return Continuable<>();
 }
+
+
 
 template <typename... LeftArgs, typename... RightArgs>
 Continuable<> operator&& (Continuable<LeftArgs...>&&, Continuable<RightArgs...>&&)
