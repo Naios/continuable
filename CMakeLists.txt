@@ -11,7 +11,6 @@ if(MSVC)
                         "which doesn't support all required C++11 features. "
                         "(Visual Studio 2013 (Version >= 1800) is required!)")
 
-    message(STATUS "bad")
   endif()
 
   if(PLATFORM EQUAL 64)
@@ -53,15 +52,15 @@ if(Boost_FOUND)
 endif()
 
 file(GLOB_RECURSE LIB_SOURCES include/*.cpp include/*.hpp include/*.h)
-add_library(continue STATIC ${LIB_SOURCES})
+add_library(Continuable STATIC ${LIB_SOURCES})
 
 include_directories(include dep/concurrentqueue)
 
 set(TEST_SOURCES test.cpp mockup.cpp)
 
-add_executable(continue_test ${TEST_SOURCES})
+add_executable(ContinuableTest ${TEST_SOURCES})
 
-target_link_libraries(continue_test
-  continue
+target_link_libraries(ContinuableTest
+  Continuable
   ${CMAKE_THREAD_LIBS_INIT}
 )
