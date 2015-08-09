@@ -24,10 +24,7 @@ template <typename...>
 struct Continuable;
 
 template <typename... Args>
-Continuable<> make_continuable(Args&&...)
-{
-    return Continuable<>();
-}
+Continuable<> make_continuable(Args&&...);
 
 template <typename...>
 struct Continuable
@@ -44,6 +41,12 @@ struct Continuable
         return Continuable();
     }
 };
+
+template <typename... Args>
+Continuable<> make_continuable(Args&&...)
+{
+    return Continuable<>();
+}
 
 template <typename... LeftArgs, typename... RightArgs>
 Continuable<> operator&& (Continuable<LeftArgs...>&&, Continuable<RightArgs...>&&)
