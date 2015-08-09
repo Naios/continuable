@@ -60,8 +60,6 @@ Continuable<> make_continuable(Args&&...)
     return Continuable<>();
 }
 
-
-
 template <typename... LeftArgs, typename... RightArgs>
 Continuable<> operator&& (Continuable<LeftArgs...>&&, Continuable<RightArgs...>&&)
 {

@@ -54,9 +54,9 @@ endif()
 file(GLOB_RECURSE LIB_SOURCES include/*.cpp include/*.hpp include/*.h)
 add_library(Continuable STATIC ${LIB_SOURCES})
 
-include_directories(include dep/concurrentqueue)
+include_directories(include testing)
 
-set(TEST_SOURCES test.cpp mockup.cpp)
+file(GLOB TEST_SOURCES *.cpp *.hpp *.h)
 
 add_executable(ContinuableTest ${TEST_SOURCES})
 
