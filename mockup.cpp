@@ -19,6 +19,7 @@
 #include <string>
 #include <functional>
 #include <tuple>
+#include <memory>
 
 template <typename...>
 struct Continuable;
@@ -35,10 +36,9 @@ struct Continuable
         return Continuable();
     }
 
-    template <typename... Args>
-    Continuable all(Args&&...)
+    Continuable& wrap(std::shared_ptr<std::function<void(std::function<void()>&&)>> dispatcher)
     {
-        return Continuable();
+        return *this;
     }
 };
 
@@ -136,9 +136,17 @@ void chain_continuable_mockup()
 /// This mockup shows the basic usage and features of continuables waiting for 2 http requests and a database query.
 void final_mockup()
 {
+    // Optional - Create a dispatcher where which dispatches the main chain.
+    auto const my_dispatcher = std::make_shared<std::function<void(std::function<void()>&&)>>([](std::function<void()>&& function)
+    {
+        // Dispatch in same thread or pass to another one
+        function();
+    });
+
     Continuable<> c1, c2, c3, c4;
 
     (std::move(c1) && std::move(c2))
+        .wrap(my_dispatcher)
         .then(http_request("https://github.com/") &&
               http_request("https://www.google.de/") &&
               mysql_query("SELECT name, session FROM users WHERE id = 3726284"))
