@@ -66,13 +66,19 @@ TEST_CASE("CrossForward tests", "[CrossForward]")
 
     con.ptr = std::make_shared<int>(0);
 
-    static_assert(
-        std::is_same<cross_forward_t<TestContainer&&, std::unique_ptr<int>&>,
-        std::unique_ptr<int>&&>::value,
-        "cross_forward returns wrong type!");
+    static_assert(std::is_same<
+            cross_forward_t<
+                TestContainer&&,
+                std::unique_ptr<int>&
+            >,
+            std::unique_ptr<int>&&>::value,
+            "cross_forward returns wrong type!");
 
-    static_assert(
-        std::is_same<cross_forward_t<TestContainer&, std::unique_ptr<int>&>,
+    static_assert(std::is_same<
+            cross_forward_t<
+                TestContainer&,
+                std::unique_ptr<int>&
+            >,
         std::unique_ptr<int>&>::value,
         "cross_forward returns wrong type!");
 
