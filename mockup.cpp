@@ -108,24 +108,28 @@ void create_continuable_mockup()
 /// This mockup shows how to chain multiple continuables together
 void chain_continuable_mockup()
 {
-    // Best fitting functions
+    // Create continuation using `Continuable<>::then`
     {
-        // Accept params from previous continuable...
-        Continuable<> continuable = make_continuable([](int param1, int param2)
-        {
-            // ... and return the next continuable
-            return mysql_query("some query content");
-        });
+        Continuable<> c1, c2;
+
+        // Invalidates c1 & c2
+        Continuable<> c1_then_c2 = c1.then(std::move(c2));
     }
 
-    // 
+    // Create conditions using `&&` (and `||` - nice to have feature)
     {
-        // Accept params from previous continuable...
-        Continuable<> continuable = make_continuable([](int param1, int param2)
-        {
-            // ... and return the next continuable
-            return mysql_query("some query content");
-        });
+        Continuable<> c1, c2;
+
+        // Invalidates c1 and c2
+        Continuable<> c1_and_c2 = std::move(c1) && std::move(c2);
+    }
+
+    // Create conditions using `||` (nice to have feature - but not mandatory)
+    {
+        Continuable<> c1, c2;
+
+        // Invalidates c1 and c2
+        Continuable<> c1_or_c2 = std::move(c1) || std::move(c2);
     }
 }
 
@@ -151,6 +155,7 @@ void final_mockup()
 void test_mockup()
 {
     create_continuable_mockup();
+    chain_continuable_mockup();
 
     final_mockup();
 }
