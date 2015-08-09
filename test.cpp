@@ -40,11 +40,7 @@ using cross_forward_t =
     typename std::conditional<
         std::is_rvalue_reference<T&&>::value,
         typename std::decay<V>::type&&,
-        typename std::conditional<
-            std::is_lvalue_reference<T&&>::value,
-            typename std::decay<V>::type&,
-            typename std::decay<V>::type
-        >::type
+        typename std::decay<V>::type&
     >::type;
 
 template<typename T, typename V>
