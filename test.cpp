@@ -76,13 +76,13 @@ TEST_CASE("CrossForward tests", "[CrossForward]")
         std::unique_ptr<int>&>::value,
         "cross_forward returns wrong type!");
 
-    SECTION("CrossForward - forward l-value references")
+    SECTION("forward l-value references")
     {
         extract(con);
         REQUIRE(con.ptr.get());
     }
 
-    SECTION("CrossForward - forward r-value references")
+    SECTION("forward r-value references")
     {
         extract(std::move(con));
         REQUIRE_FALSE(con.ptr.get());
