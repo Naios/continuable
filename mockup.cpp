@@ -81,30 +81,58 @@ Continuable<> mysql_query(std::string const& query)
     });
 }
 
-void test_mockup()
+/// This mockup shows how to create a continuable from a functional object.
+void create_continuable_mockup()
 {
+    /// Everything which accepts callbacks can be converted into a continuable.
+    /// Since nearly every async operation can be converted to use callbacks
     {
-        Continuable<> continuable = make_continuable([]
+        Continuable</*std::string*/> continuable =
+            make_continuable([](std::function<void(std::string)>&& /*TODO Find out if its better to use call by value*/ callback)
         {
-            return "hey";
+            callback("my result");
         });
     }
 
-    Continuable<> c1 = make_continuable([]
+    // 
     {
-    });
+        // Accept params from previous continuable...
+        Continuable<> continuable = make_continuable([](int param1, int param2)
+        {
+            // ... and return the next continuable
+            return mysql_query("some query content");
+        });
+    }
+}
 
-    Continuable<> c2 = make_continuable([]
+/// This mockup shows how to chain multiple continuables together
+void chain_continuable_mockup()
+{
+    // Best fitting functions
     {
-    });
+        // Accept params from previous continuable...
+        Continuable<> continuable = make_continuable([](int param1, int param2)
+        {
+            // ... and return the next continuable
+            return mysql_query("some query content");
+        });
+    }
 
-    Continuable<> c3 = make_continuable([]
+    // 
     {
-    });
+        // Accept params from previous continuable...
+        Continuable<> continuable = make_continuable([](int param1, int param2)
+        {
+            // ... and return the next continuable
+            return mysql_query("some query content");
+        });
+    }
+}
 
-    Continuable<> c4 = make_continuable([]
-    {
-    });
+/// This mockup shows the basic usage and features of continuables waiting for 2 http requests and a database query.
+void final_mockup()
+{
+    Continuable<> c1, c2, c3, c4;
 
     (std::move(c1) && std::move(c2))
         .then(http_request("https://github.com/") &&
@@ -118,6 +146,11 @@ void test_mockup()
         .then([](bool hasContent, std::string google, ResultSet user)
         {
         });
+}
 
-    // Continuable<> c11 =  || std::move(c3);
+void test_mockup()
+{
+    create_continuable_mockup();
+
+    final_mockup();
 }
