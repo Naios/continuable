@@ -1,4 +1,4 @@
-project(Continuable CXX)
+project(Continue.cpp CXX)
 cmake_minimum_required(VERSION 2.8)
 
 include(CheckCXXCompilerFlag)
@@ -10,6 +10,7 @@ if(MSVC)
     message(FATAL_ERROR "You are using an unsupported version of Visual Studio "
                         "which doesn't support all required C++11 features. "
                         "(Visual Studio 2013 (Version >= 1800) is required!)")
+
   endif()
 
   if(PLATFORM EQUAL 64)
@@ -47,10 +48,10 @@ if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
-file(GLOB_RECURSE LIB_SOURCES include/*.cpp include/*.hpp)
+file(GLOB_RECURSE LIB_SOURCES include/*.cpp include/*.hpp include/*.h)
 add_library(Continuable STATIC ${LIB_SOURCES})
 
-include_directories(src testing)
+include_directories(include testing)
 
 file(GLOB TEST_SOURCES *.cpp *.hpp *.h)
 
