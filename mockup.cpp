@@ -18,6 +18,7 @@
 
 #include <string>
 #include <functional>
+#include <tuple>
 
 template <typename...>
 struct Continuable;
@@ -109,6 +110,10 @@ void test_mockup()
         .then([](std::string github, std::string google, ResultSet user)
         {
              // result bla bla
+            return std::forward_as_tuple(github.empty(), std::move(google), std::move(user));
+        })
+        .then([](bool hasContent, std::string google, ResultSet user)
+        {
         });
 
     // Continuable<> c11 =  || std::move(c3);
