@@ -1,4 +1,4 @@
-project(Continue.cpp C CXX)
+project(Continuable CXX)
 cmake_minimum_required(VERSION 2.8)
 
 include(CheckCXXCompilerFlag)
@@ -10,7 +10,6 @@ if(MSVC)
     message(FATAL_ERROR "You are using an unsupported version of Visual Studio "
                         "which doesn't support all required C++11 features. "
                         "(Visual Studio 2013 (Version >= 1800) is required!)")
-
   endif()
 
   if(PLATFORM EQUAL 64)
@@ -40,9 +39,6 @@ else()
 
   # Enable full warnings
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
-
-  # Find Threads
-  find_package (Threads)
 endif()
 
 find_package(Boost 1.55 REQUIRED)
@@ -51,16 +47,15 @@ if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
-file(GLOB_RECURSE LIB_SOURCES include/*.cpp include/*.hpp include/*.h)
+file(GLOB_RECURSE LIB_SOURCES include/*.cpp include/*.hpp)
 add_library(Continuable STATIC ${LIB_SOURCES})
 
-include_directories(include testing)
+include_directories(src testing)
 
 file(GLOB TEST_SOURCES *.cpp *.hpp *.h)
 
-add_executable(ContinuableTest ${TEST_SOURCES})
+add_executable(ContinuableTests ${TEST_SOURCES})
 
-target_link_libraries(ContinuableTest
+target_link_libraries(ContinuableTests
   Continuable
-  ${CMAKE_THREAD_LIBS_INIT}
 )
