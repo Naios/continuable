@@ -274,7 +274,7 @@ namespace detail
     {
         /// Corrects functionals with non expected signatures
         /// to match the expected ones.
-        /// Used in `partialized_signature_corrector`
+        /// Used in `partial_signature_corrector`
         template<typename... _ATy>
         struct partial_signature_corrector
         {
@@ -361,7 +361,7 @@ namespace detail
         }
 
         template<typename _CTy>
-        static inline auto partialized_signature_corrector(_CTy&& functional)
+        static inline auto partial_signature_corrector(_CTy&& functional)
             -> _CTy// decltype(correctors::partial_signature_corrector<_ATy...>::correct(std::declval<_CTy>()))
         {
             // return correctors::partial_signature_corrector<_ATy...>::correct(std::forward<_CTy>(functional));
@@ -408,7 +408,7 @@ namespace detail
             return unboxed_continuable_corrector(std::forward<_CTy>(functional));
         }
 
-        /// `partialized_signature_corrector`: Converts functionals with not matching args signature.
+        /// `partial_signature_corrector`: Converts functionals with not matching args signature.
         /// `void_returning_corrector`: Converts void return to empty continuable.
         template<typename _CTy>
         static auto correct_stage(_CTy&& functional)
@@ -416,10 +416,10 @@ namespace detail
                     !detail::is_continuable<
                         typename std::decay<_CTy>::type
                     >::value,
-                    decltype(void_returning_corrector(partialized_signature_corrector(std::declval<_CTy>())))
+                    decltype(void_returning_corrector(partial_signature_corrector(std::declval<_CTy>())))
                 >::type
         {
-            return void_returning_corrector(partialized_signature_corrector(std::forward<_CTy>(functional)));
+            return void_returning_corrector(partial_signature_corrector(std::forward<_CTy>(functional)));
         }
 
         /// Accepts and corrects user given functionals through several stages into the form:

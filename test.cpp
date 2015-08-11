@@ -19,6 +19,8 @@
 
 #include "catch.hpp"
 
+#include "Continuable.h"
+
 void test_mockup();
 void test_incubator();
 
@@ -91,5 +93,70 @@ TEST_CASE("CrossForward tests", "[CrossForward]")
     {
         extract(std::move(con));
         REQUIRE_FALSE(con.ptr.get());
+    }
+}
+
+Continuable<std::string> http_request(std::string const& /*url*/)
+{
+    return make_continuable([=](std::function<void(std::string)>&& callback)
+    {
+        // Do request...
+        std::string result = "some HTTP content";
+
+        callback(std::move(result));
+    });
+}
+
+struct ResultSet
+{
+    std::size_t rows;
+};
+
+Continuable<ResultSet> mysql_query(std::string const& /*query*/)
+{
+    return make_continuable([=](std::function<void(ResultSet)>&& callback)
+    {
+        callback(ResultSet{5});
+    });
+}
+
+Continuable<> defect_continuable()
+{
+    return make_continuable([=](std::function<void()>&& /*callback*/)
+    {
+        // Callback is never called
+    });
+}
+
+TEST_CASE("Continuable invocation on destruct", "[Continuable]")
+{
+    bool invoked = false;
+
+    std::function<void(Callback<>&&)> invokeable = [&](Callback<>&& callback)
+    {
+        invoked = true;
+        callback();
+    };
+
+    SECTION("Continuables are not invoked before destruct")
+    {
+        Continuable<> continuable = make_continuable(std::move(invokeable));
+
+        REQUIRE_FALSE(invoked);
+    }
+
+    SECTION("Continuables are invoked on destruct")
+    {
+        make_continuable(std::move(invokeable));
+
+        REQUIRE(invoked);
+    }
+}
+
+TEST_CASE("Continuable continuation chaining using Continuable::then", "[Continuable]")
+{
+    SECTION("Continuables are invalidated on chaining (no duplicated call)")
+    {
+        std::size_t invoked = 0;
     }
 }
