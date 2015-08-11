@@ -151,12 +151,25 @@ TEST_CASE("Continuable invocation on destruct", "[Continuable]")
 
         REQUIRE(invoked);
     }
+
+    SECTION("Continuables are not invoked after transferred")
+    {
+        Continuable<> continuable = make_continuable(std::move(invokeable));
+
+        {
+            Continuable<> cache = std::move(continuable);
+
+            REQUIRE_FALSE(invoked);
+        }
+
+        REQUIRE(invoked);
+    }
 }
 
 TEST_CASE("Continuable continuation chaining using Continuable::then", "[Continuable]")
 {
     SECTION("Continuables are invalidated on chaining (no duplicated call)")
     {
-        std::size_t invoked = 0;
+        //std::size_t invoked = 0;
     }
 }

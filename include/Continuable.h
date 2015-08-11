@@ -40,22 +40,6 @@ namespace detail
     struct is_continuable<Continuable<Args...>>
         : std::true_type { };
 
-    /// Creates an empty callback.
-    template<typename>
-    struct create_empty_callback;
-
-    template<typename... Args>
-    struct create_empty_callback<std::function<void(std::function<void(Args...)>&&)>>
-    {
-        static auto create()
-            -> Callback<Args...>
-        {
-            return [](Args&&...)
-            {
-            };
-        }
-    };
-
     template<typename...>
     struct continuable_corrector;
 
@@ -131,22 +115,17 @@ public:
             _released = true;
 
             // Invoke everything with an empty callback
-            _callback_insert(detail::create_empty_callback<ForwardFunction>::create());
+            _callback_insert([](_ATy&&...)
+            {
+            });
         }
     }
 
     /// Deleted copy assign
     Continuable& operator= (Continuable const&) = delete;
 
-    /// Move construct assign
-    Continuable& operator= (Continuable&& right)
-    {
-        _released = right._released;
-        right._released = true;
-
-        _callback_insert = std::move(right._callback_insert);
-        return *this;
-    }
+    /// Deleted move assign
+    Continuable& operator= (Continuable&&) = delete;
 
     /// Waits for this continuable and invokes the given callback.
     template<typename _CTy>
