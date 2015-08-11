@@ -82,6 +82,14 @@ private:
         }
     }
 
+    /// Internal onstructor for continuation
+    template<typename... _RATy, typename _FTy>
+    Continuable(_FTy&& callback_insert, Continuable<_RATy...>&& right)
+        : _callback_insert(std::forward<_FTy>(callback_insert)), _released(right._released)
+    {
+        right._released = true;
+    }
+
 public:
     /// Deleted copy construct
     Continuable(Continuable const&) = delete;
@@ -97,13 +105,6 @@ public:
     template<typename _FTy>
     Continuable(_FTy&& callback_insert)
         : _callback_insert(std::forward<_FTy>(callback_insert)), _released(false) { }
-
-    template<typename... _RATy, typename _FTy>
-    Continuable(_FTy&& callback_insert, Continuable<_RATy...>&& right)
-        : _callback_insert(std::forward<_FTy>(callback_insert)), _released(right._released)
-    {
-        right._released = true;
-    }
 
     /// Destructor which calls the dispatch chain if needed.
     ~Continuable()
