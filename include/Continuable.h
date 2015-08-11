@@ -57,7 +57,7 @@ namespace detail
     };
 
     template<typename...>
-    struct continuable_acceptor;
+    struct continuable_corrector;
 
     template<typename, typename...>
     struct continuable_unwrap;
@@ -153,13 +153,13 @@ public:
     auto then(_CTy&& functional)
         -> typename detail::continuable_unwrap<_CTy, _ATy...>::continuable_t
     {
-        static_assert(std::is_same<fu::identity<_ATy...>,
+        /*static_assert(std::is_same<fu::identity<_ATy...>,
             typename detail::continuable_unwrap<_CTy, _ATy...>::arguments_t>::value,
-                "Given function signature isn't correct, for now it must match strictly!");
+                "Given function signature isn't correct, for now it must match strictly!");*/
 
         ForwardFunction&& callback = std::move(_callback_insert);
 
-        auto&& corrected = detail::continuable_acceptor<_ATy...>::accept(std::forward<_CTy>(functional));
+        auto&& corrected = detail::continuable_corrector<_ATy...>::correct(std::forward<_CTy>(functional));
 
         return typename detail::continuable_unwrap<_CTy, _ATy...>::continuable_t(
             [corrected, callback](typename detail::continuable_unwrap<_CTy, _ATy...>::callback_t&& call_next)
@@ -222,6 +222,7 @@ public:
 
 namespace detail
 {
+    // TODO remove this
     template<typename, typename...>
     struct ContinuableFactory;
 
@@ -258,11 +259,6 @@ inline auto make_continuable(_FTy&& functional)
 }
 
 /// Creates an empty continuable.
-/// Can be used to start a chain with aggregate methods.
-/// empty_continuable()
-///     .all(...)
-///     .some(...)
-///     .any(...)
 inline auto make_continuable()
     -> Continuable<>
 {
@@ -274,33 +270,71 @@ inline auto make_continuable()
 
 namespace detail
 {
-    template<typename, typename>
-    struct concat_identities;
-
-    template<typename... Left, typename... Right>
-    struct concat_identities<fu::identity<Left...>, fu::identity<Right...>>
+    namespace correctors
     {
-        typedef fu::identity<Left..., Right...> type;
-    };
+        /// Corrects functionals with non expected signatures
+        /// to match the expected ones.
+        /// Used in `partialized_signature_corrector`
+        template<typename... _ATy>
+        struct partial_signature_corrector
+        {
+            /// Corrector
+            template<typename _CTy>
+            static auto correct(_CTy&& functional)
+                -> typename std::enable_if<
+                    !std::is_same<
+                        fu::argument_type_of_t<
+                            typename std::decay<_CTy>::type
+                        >,
+                        fu::identity<_ATy...>
+                    >::value,
+                    std::function<
+                      fu::return_type_of_t<
+                        typename std::decay<_CTy>::type
+                      >(_ATy...)
+                    >
+                   >::type
+            {
+                // Make use of std::bind's signature erasure
+                return std::bind(std::forward<_CTy>(functional));
+            }
 
-    template<typename>
-    struct identity_to_tuple;
+            // Route through
+            template<typename _CTy>
+            static auto correct(_CTy&& functional)
+                -> typename std::enable_if<
+                    std::is_same<
+                        fu::argument_type_of_t<
+                            typename std::decay<_CTy>::type
+                        >,
+                        fu::identity<_ATy...>
+                    >::value,
+                    _CTy
+                   >::type
+            {
+                return std::forward<_CTy>(functional);
+            }
+        };
 
-    template<typename... Args>
-    struct identity_to_tuple<fu::identity<Args...>>
-    {
-        typedef std::tuple<Args...> type;
-    };
+    } // namespace correctors
 
-    template<typename>
-    struct void_wrap_trait;
-
-    /// Trait needed for functional_traits::remove_void_trait
+    /// Corrector for given Continuables.
     template<typename... _ATy>
-    struct void_wrap_trait<fu::identity<_ATy...>>
+    struct continuable_corrector
     {
+        /// Wrap void returning functionals to return an empty continuable.
+        /// Example:
+        /// void(int, float) to Continuable<>(int, float)
         template<typename _CTy>
-        static std::function<Continuable<>(_ATy...)> wrap(_CTy&& functional)
+        static auto void_returning_corrector(_CTy&& functional)
+            -> typename std::enable_if<
+                    std::is_void<
+                        fu::return_type_of_t<
+                            typename std::decay<_CTy>::type
+                        >
+                    >::value,
+                    std::function<Continuable<>(_ATy...)>
+                >::type
         {
             return [functional](_ATy&&... args)
             {
@@ -311,85 +345,10 @@ namespace detail
                 return make_continuable();
             };
         }
-    };
-
-    /// Corrects functionals with non expected signatures
-    /// to match the expected ones.
-    /// Used in `partialize_correct_trait`
-    template<typename... _ATy>
-    struct partial_corrector
-    {
-        /// Corrector
-        template<typename _CTy>
-        static auto correct(_CTy&& functional)
-            -> typename std::enable_if<
-                !std::is_same<
-                    fu::argument_type_of_t<
-                        typename std::decay<_CTy>::type
-                    >,
-                    fu::identity<_ATy...>
-                >::value,
-                std::function<
-                  fu::return_type_of_t<
-                    typename std::decay<_CTy>::type
-                  >(_ATy...)
-                >
-               >::type
-        {
-            // Make use of std::bind's signature erasure
-            return std::bind(std::forward<_CTy>(functional));
-        }
-
-        // Route through
-        template<typename _CTy>
-        static auto correct(_CTy&& functional)
-            -> typename std::enable_if<
-                std::is_same<
-                    fu::argument_type_of_t<
-                        typename std::decay<_CTy>::type
-                    >,
-                    fu::identity<_ATy...>
-                >::value,
-                _CTy
-               >::type
-        {
-            return std::forward<_CTy>(functional);
-        }
-    };
-
-    template<typename... _ATy>
-    struct continuable_acceptor
-    {
-        /// Wrap void returning functionals to return an empty continuable.
-        /// Example:
-        /// void(int, float) to Continuable<>(int, float)
-        template<typename _CTy>
-        static auto remove_void_trait(_CTy&& functional)
-            -> typename std::enable_if<
-                    std::is_void<
-                        fu::return_type_of_t<
-                            typename std::decay<_CTy>::type
-                        >
-                    >::value,
-                    decltype(
-                        detail::void_wrap_trait<
-                            fu::argument_type_of_t<
-                                typename std::decay<_CTy>::type
-                            >
-                        >::wrap(std::declval<_CTy>())
-                    )
-                >::type
-        {
-            return detail::void_wrap_trait<
-                fu::argument_type_of_t<
-                    typename std::decay<_CTy>::type
-                >
-            >::wrap(std::forward<_CTy>(functional));
-        }
 
         /// Route continuable returning functionals through.
         template<typename _CTy>
-        static auto remove_void_trait(_CTy&& functional)
+        static auto void_returning_corrector(_CTy&& functional)
             -> typename std::enable_if<
                     !std::is_void<
                         fu::return_type_of_t<
@@ -402,16 +361,16 @@ namespace detail
         }
 
         template<typename _CTy>
-        static inline auto partialize_correct_trait(_CTy&& functional)
-            -> _CTy// decltype(partial_corrector<_ATy...>::correct(std::declval<_CTy>()))
+        static inline auto partialized_signature_corrector(_CTy&& functional)
+            -> _CTy// decltype(correctors::partial_signature_corrector<_ATy...>::correct(std::declval<_CTy>()))
         {
-            // return partial_corrector<_ATy...>::correct(std::forward<_CTy>(functional));
+            // return correctors::partial_signature_corrector<_ATy...>::correct(std::forward<_CTy>(functional));
             return std::forward<_CTy>(functional);
         }
 
         /// Wrap Continuables into the continuable returning functional type.
         template<typename _CTy>
-        static auto box_continuable_trait(_CTy&& continuable)
+        static auto unboxed_continuable_corrector(_CTy&& continuable)
             -> typename std::enable_if<
                     detail::is_continuable<
                         typename std::decay<_CTy>::type
@@ -436,62 +395,82 @@ namespace detail
             };
         }
 
-        /// `box_continuable_trait`: Converts plain Continuables to continuable retuning functions.
+        /// `unboxed_continuable_corrector`: Converts plain Continuables to continuable retuning functions.
         template<typename _CTy>
         static auto correct_stage(_CTy&& functional)
             -> typename std::enable_if<
                     detail::is_continuable<
                         typename std::decay<_CTy>::type
                     >::value,
-                    decltype(box_continuable_trait(std::declval<_CTy>()))
+                    decltype(unboxed_continuable_corrector(std::declval<_CTy>()))
                 >::type
         {
-            return box_continuable_trait(std::forward<_CTy>(functional));
+            return unboxed_continuable_corrector(std::forward<_CTy>(functional));
         }
 
-        /// `partialize_correct_trait`: Converts functionals with not matching args signature.
-        /// `remove_void_trait`: Converts void return to empty continuable.
+        /// `partialized_signature_corrector`: Converts functionals with not matching args signature.
+        /// `void_returning_corrector`: Converts void return to empty continuable.
         template<typename _CTy>
         static auto correct_stage(_CTy&& functional)
             -> typename std::enable_if<
                     !detail::is_continuable<
                         typename std::decay<_CTy>::type
                     >::value,
-                    decltype(remove_void_trait(partialize_correct_trait(std::declval<_CTy>())))
+                    decltype(void_returning_corrector(partialized_signature_corrector(std::declval<_CTy>())))
                 >::type
         {
-            return remove_void_trait(partialize_correct_trait(std::forward<_CTy>(functional)));
+            return void_returning_corrector(partialized_signature_corrector(std::forward<_CTy>(functional)));
         }
 
         /// Accepts and corrects user given functionals through several stages into the form:
         /// Continuable<_CArgs...>(_FArgs)
         template<typename _CTy>
-        static inline auto accept(_CTy&& functional)
+        static inline auto correct(_CTy&& functional)
             -> decltype(correct_stage(std::declval<_CTy>()))
         {
             return correct_stage(std::forward<_CTy>(functional));
         }
-    };
+
+    }; // struct continuable_corrector
 
     // Unwraps the corrected type of Continuables
     template<typename _CTy, typename... _ATy>
     struct continuable_unwrap
     {
         // Corrected user given functional
-        typedef decltype(continuable_acceptor<_ATy...>::
-            accept(std::declval<typename std::decay<_CTy>::type>())) accepted_t;
+        typedef decltype(continuable_corrector<_ATy...>::
+            correct(std::declval<typename std::decay<_CTy>::type>())) corrected_t;
 
-        typedef fu::return_type_of_t<accepted_t> continuable_t;
+        typedef fu::return_type_of_t<corrected_t> continuable_t;
 
-        typedef fu::argument_type_of_t<accepted_t> arguments_t;
+        typedef fu::argument_type_of_t<corrected_t> arguments_t;
 
         typedef typename continuable_t::CallbackFunction callback_t;
 
         typedef fu::argument_type_of_t<callback_t> callback_arguments_t;
-    };
+
+    }; // struct continuable_unwrap
 
     /*
-        /// Position wrapper class to pass ints as type
+    template<typename, typename>
+    struct concat_identities;
+
+    template<typename... Left, typename... Right>
+    struct concat_identities<fu::identity<Left...>, fu::identity<Right...>>
+    {
+        typedef fu::identity<Left..., Right...> type;
+    };
+
+    template<typename>
+    struct identity_to_tuple;
+
+    template<typename... Args>
+    struct identity_to_tuple<fu::identity<Args...>>
+    {
+        typedef std::tuple<Args...> type;
+    };
+
+    /// Position wrapper class to pass ints as type
     template<std::size_t Position, typename Tuple>
     struct partial_result
     {

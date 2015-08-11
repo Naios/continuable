@@ -605,6 +605,9 @@ void some_examples()
         })
         .then([](SpellCastResult)
         {
+        })
+        .then([]
+        {
         });
 
     // DispatcherPool countPool(1);
@@ -715,12 +718,12 @@ void test_incubator()
 {
     test_cross_forward();
 
-    std::function<Continuable<>(int, float)> fn1 = detail::partial_corrector<int, float>::correct([](int, float)
+    std::function<Continuable<>(int, float)> fn1 = detail::correctors::partial_signature_corrector<int, float>::correct([](int, float)
     {
         return make_continuable();
     });
 
-    std::function<Continuable<>(int, float)> fn2 = detail::partial_corrector<int, float>::correct([]
+    std::function<Continuable<>(int, float)> fn2 = detail::correctors::partial_signature_corrector<int, float>::correct([]
     {
         return make_continuable();
     });
