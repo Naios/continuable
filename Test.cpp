@@ -202,9 +202,22 @@ TEST_CASE("Continuable continuation chaining using Continuable::then", "[Continu
             {
                 REQUIRE(invoked == 2);
                 invoked = 3;
+
+                return make_continuable([&](Callback<std::size_t>&& callback)
+                {
+                    REQUIRE(invoked == 3);
+                    invoked = 4;
+
+                    callback(5);
+                });
+            })
+            .then([&](std::size_t t)
+            {
+                REQUIRE(invoked == 4);
+                invoked = t;
             });
 
-        REQUIRE(invoked == 3);
+        REQUIRE(invoked == 5);
     }
 
     SECTION("Continuation chains need a callback to continue")
