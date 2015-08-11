@@ -56,21 +56,11 @@ namespace detail
         }
     };
 
+    template<typename...>
+    struct continuable_acceptor;
+
     template<typename, typename...>
-    struct unary_chainer_t;
-
-    template<typename...>
-    struct multiple_when_all_chainer_t;
-
-    template<typename, typename, typename>
-    class multiple_result_storage_t;
-
-    template<std::size_t, typename, typename, typename>
-    struct multiple_result_storage_invoker_t;
-
-    /// Functional traits forward declaration.
-    template<typename...>
-    struct functional_traits;
+    struct continuable_unwrap;
 
 } // detail
 
@@ -82,9 +72,6 @@ class Continuable
     // Make all templates of Continuable to a friend.
     template<typename...>
     friend class Continuable;
-
-    template<std::size_t, typename, typename, typename>
-    friend struct detail::multiple_result_storage_invoker_t;
 
 public:
     typedef Callback<_ATy...> CallbackFunction;
@@ -112,7 +99,6 @@ private:
     }
 
 public:
-
     /// Deleted copy construct
     Continuable(Continuable const&) = delete;
 
@@ -165,30 +151,29 @@ public:
     /// Waits for this continuable and invokes the given callback.
     template<typename _CTy>
     auto then(_CTy&& functional)
-        -> typename detail::unary_chainer_t<_CTy, _ATy...>::continuable_t
+        -> typename detail::continuable_unwrap<_CTy, _ATy...>::continuable_t
     {
         static_assert(std::is_same<fu::identity<_ATy...>,
-            typename detail::unary_chainer_t<_CTy, _ATy...>::arguments_t>::value,
+            typename detail::continuable_unwrap<_CTy, _ATy...>::arguments_t>::value,
                 "Given function signature isn't correct, for now it must match strictly!");
 
         ForwardFunction&& callback = std::move(_callback_insert);
 
-        auto&& corrected = detail::functional_traits<_ATy...>::
-            correct(std::forward<_CTy>(functional));
+        auto&& corrected = detail::continuable_acceptor<_ATy...>::accept(std::forward<_CTy>(functional));
 
-        return typename detail::unary_chainer_t<_CTy, _ATy...>::continuable_t(
-            [corrected, callback](typename detail::unary_chainer_t<_CTy, _ATy...>::callback_t&& call_next)
+        return typename detail::continuable_unwrap<_CTy, _ATy...>::continuable_t(
+            [corrected, callback](typename detail::continuable_unwrap<_CTy, _ATy...>::callback_t&& call_next)
         {
             callback([corrected, call_next](_ATy&&... args) mutable
             {
                 // Invoke the next callback
-                corrected(std::forward<_ATy>(args)...)
-                    .invoke(std::move(call_next));
+                corrected(std::forward<_ATy>(args)...).invoke(std::move(call_next));
             });
 
         }, std::move(*this));
     }
 
+    /*
     template<typename... _CTy>
     auto all(_CTy&&... functionals)
         -> typename detail::multiple_when_all_chainer_t<
@@ -219,7 +204,6 @@ public:
         return some(1, std::forward<_CTy>(functionals)...);
     }
 
-    /*
     /// Validates the Continuable
     inline Continuable Validate()
     {
@@ -290,23 +274,6 @@ inline auto make_continuable()
 
 namespace detail
 {
-    /// Helper trait for unary chains like `Continuable::then`
-    template<typename _CTy, typename... _ATy>
-    struct unary_chainer_t
-    {
-        // Corrected user given functional
-        typedef decltype(detail::functional_traits<_ATy...>::
-            correct(std::declval<typename std::decay<_CTy>::type>())) corrected_t;
-
-        typedef fu::return_type_of_t<corrected_t> continuable_t;
-
-        typedef fu::argument_type_of_t<corrected_t> arguments_t;
-
-        typedef typename continuable_t::CallbackFunction callback_t;
-
-        typedef fu::argument_type_of_t<callback_t> callback_arguments_t;
-    };
-
     template<typename, typename>
     struct concat_identities;
 
@@ -344,18 +311,6 @@ namespace detail
                 return make_continuable();
             };
         }
-    };
-
-    /// Position wrapper class to pass ints as type
-    template<std::size_t Position, typename Tuple>
-    struct partial_result
-    {
-        enum my_size : std::size_t
-        {
-            size = Position
-        };
-
-        typedef Tuple tuple;
     };
 
     /// Corrects functionals with non expected signatures
@@ -402,14 +357,12 @@ namespace detail
         }
     };
 
-    /// Continuable processing detail implementation
     template<typename... _ATy>
-    struct functional_traits
+    struct continuable_acceptor
     {
         /// Wrap void returning functionals to return an empty continuable.
         /// Example:
         /// void(int, float) to Continuable<>(int, float)
-        /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
         static auto remove_void_trait(_CTy&& functional)
             -> typename std::enable_if<
@@ -435,7 +388,6 @@ namespace detail
         }
 
         /// Route continuable returning functionals through.
-        /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
         static auto remove_void_trait(_CTy&& functional)
             -> typename std::enable_if<
@@ -451,13 +403,13 @@ namespace detail
 
         template<typename _CTy>
         static inline auto partialize_correct_trait(_CTy&& functional)
-            -> decltype(partial_corrector<_ATy...>::correct(std::declval<_CTy>()))
+            -> _CTy// decltype(partial_corrector<_ATy...>::correct(std::declval<_CTy>()))
         {
-            return partial_corrector<_ATy...>::correct(std::forward<_CTy>(functional));
+            // return partial_corrector<_ATy...>::correct(std::forward<_CTy>(functional));
+            return std::forward<_CTy>(functional);
         }
 
         /// Wrap Continuables into the continuable returning functional type.
-        /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
         static auto box_continuable_trait(_CTy&& continuable)
             -> typename std::enable_if<
@@ -472,7 +424,7 @@ namespace detail
             static_assert(std::is_rvalue_reference<_CTy&&>::value,
                 "Given continuable must be passed as r-value!");
 
-            // Trick C++11 lambda capture rules for non copyable but moveable continuables.
+            // Trick C++11 lambda capture rules for non move-only Continuables.
             // TODO Use the stack instead of heap variables.
             std::shared_ptr<typename std::decay<_CTy>::type> shared_continuable =
                 std::make_shared<typename std::decay<_CTy>::type>(std::forward<_CTy>(continuable));
@@ -485,7 +437,6 @@ namespace detail
         }
 
         /// `box_continuable_trait`: Converts plain Continuables to continuable retuning functions.
-        /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
         static auto correct_stage(_CTy&& functional)
             -> typename std::enable_if<
@@ -500,7 +451,6 @@ namespace detail
 
         /// `partialize_correct_trait`: Converts functionals with not matching args signature.
         /// `remove_void_trait`: Converts void return to empty continuable.
-        /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
         static auto correct_stage(_CTy&& functional)
             -> typename std::enable_if<
@@ -513,16 +463,50 @@ namespace detail
             return remove_void_trait(partialize_correct_trait(std::forward<_CTy>(functional)));
         }
 
-        /// Correct user given functionals through several stages into the form:
+        /// Accepts and corrects user given functionals through several stages into the form:
         /// Continuable<_CArgs...>(_FArgs)
-        /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
-        static inline auto correct(_CTy&& functional)
+        static inline auto accept(_CTy&& functional)
             -> decltype(correct_stage(std::declval<_CTy>()))
         {
             return correct_stage(std::forward<_CTy>(functional));
         }
+    };
 
+    // Unwraps the corrected type of Continuables
+    template<typename _CTy, typename... _ATy>
+    struct continuable_unwrap
+    {
+        // Corrected user given functional
+        typedef decltype(continuable_acceptor<_ATy...>::
+            accept(std::declval<typename std::decay<_CTy>::type>())) accepted_t;
+
+        typedef fu::return_type_of_t<accepted_t> continuable_t;
+
+        typedef fu::argument_type_of_t<accepted_t> arguments_t;
+
+        typedef typename continuable_t::CallbackFunction callback_t;
+
+        typedef fu::argument_type_of_t<callback_t> callback_arguments_t;
+    };
+
+    /*
+        /// Position wrapper class to pass ints as type
+    template<std::size_t Position, typename Tuple>
+    struct partial_result
+    {
+        enum my_size : std::size_t
+        {
+            size = Position
+        };
+
+        typedef Tuple tuple;
+    };
+
+    /// Continuable processing detail implementation
+    template<typename... _ATy>
+    struct functional_traits
+    {
         template<std::size_t Position, typename Args, typename Pack, typename... Rest>
         struct multiple_result_maker;
 
@@ -545,12 +529,12 @@ namespace detail
                 Position +
                 std::tuple_size<
                     typename identity_to_tuple<
-                        typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
+                        typename continuable_unwrap<Next, _ATy...>::callback_arguments_t
                     >::type
                 >::value,
                 typename concat_identities<
                     Args,
-                    typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
+                    typename continuable_unwrap<Next, _ATy...>::callback_arguments_t
                 >::type,
                 typename concat_identities<
                     Pack,
@@ -558,7 +542,7 @@ namespace detail
                         partial_result<
                             Position,
                             typename identity_to_tuple<
-                                typename unary_chainer_t<Next, _ATy...>::callback_arguments_t
+                                typename continuable_unwrap<Next, _ATy...>::callback_arguments_t
                             >::type
                         >
                     >
@@ -630,7 +614,7 @@ namespace detail
         }
 
         // Do nothing when trying to store empty packs...
-        inline static void store(std::tuple<_RTy...>& /*result*/)
+        inline static void store(std::tuple<_RTy...>&)
         {
         }
 
@@ -779,6 +763,7 @@ namespace detail
             return make_result::create(std::forward<_CTy>(args)...);
         }
     };
+    */
 }
 
 #endif // _CONTINUABLE_H_

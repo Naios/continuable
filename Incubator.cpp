@@ -583,7 +583,7 @@ void some_examples()
     */
 
     make_continuable()
-        .all(
+        /*.all(
             CastSpellPromise(10)
                 .then(CastSpellPromise(15)),
             CastSpellPromise(20),
@@ -594,13 +594,17 @@ void some_examples()
             [] {
                 return TrivialPromise();
             })
-        .then([](SpellCastResult r0, SpellCastResult r1, bool r2, bool r3, double r4, std::unique_ptr<std::string> message)
+            */
+        /*.then([](SpellCastResult r0, SpellCastResult r1, bool r2, bool r3, double r4, std::unique_ptr<std::string> message)
         {
             return TrivialPromise("Lets see... ").then(Log(*message));
-        })
+        })*/
         .then([]
         {
             return Log("ok, now its really finished!").then(CastSpellPromise(2));
+        })
+        .then([](SpellCastResult)
+        {
         });
 
     // DispatcherPool countPool(1);
