@@ -39,6 +39,9 @@
 
 #include <boost/optional.hpp>
 
+namespace incubator
+{
+
 enum SpellCastResult
 {
     SPELL_FAILED_SUCCESS = 0,
@@ -713,6 +716,10 @@ void test_cross_forward()
     int i = 0;
     ++i;
 }
+
+} // namespace incubator
+
+using namespace incubator;
 
 void test_incubator()
 {

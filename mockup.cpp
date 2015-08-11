@@ -20,6 +20,10 @@
 #include <tuple>
 #include <memory>
 
+
+namespace mockup
+{
+
 template <typename...>
 struct Continuable;
 
@@ -171,6 +175,10 @@ void final_mockup()
         {
         });
 }
+
+}// namespace mockup
+
+using namespace mockup;
 
 void test_mockup()
 {
