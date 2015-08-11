@@ -611,6 +611,10 @@ void some_examples()
         })
         .then([]
         {
+            return CastSpellPromise(3837);
+        })
+        .then([]
+        {
         });
 
     // DispatcherPool countPool(1);

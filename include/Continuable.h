@@ -82,7 +82,7 @@ private:
         }
     }
 
-    /// Internal onstructor for continuation
+    /// Internal constructor for continuation
     template<typename... _RATy, typename _FTy>
     Continuable(_FTy&& callback_insert, Continuable<_RATy...>&& right)
         : _callback_insert(std::forward<_FTy>(callback_insert)), _released(right._released)
@@ -133,10 +133,6 @@ public:
     auto then(_CTy&& functional)
         -> typename detail::continuable_unwrap<_CTy, _ATy...>::continuable_t
     {
-        /*static_assert(std::is_same<fu::identity<_ATy...>,
-            typename detail::continuable_unwrap<_CTy, _ATy...>::arguments_t>::value,
-                "Given function signature isn't correct, for now it must match strictly!");*/
-
         ForwardFunction&& callback = std::move(_callback_insert);
 
         auto&& corrected = detail::continuable_corrector<_ATy...>::correct(std::forward<_CTy>(functional));
@@ -342,10 +338,9 @@ namespace detail
 
         template<typename _CTy>
         static inline auto partial_signature_corrector(_CTy&& functional)
-            -> _CTy// decltype(correctors::partial_signature_corrector<_ATy...>::correct(std::declval<_CTy>()))
+            -> decltype(correctors::partial_signature_corrector<_ATy...>::correct(std::declval<_CTy>()))
         {
-            // return correctors::partial_signature_corrector<_ATy...>::correct(std::forward<_CTy>(functional));
-            return std::forward<_CTy>(functional);
+            return correctors::partial_signature_corrector<_ATy...>::correct(std::forward<_CTy>(functional));
         }
 
         /// Wrap Continuables into the continuable returning functional type.
