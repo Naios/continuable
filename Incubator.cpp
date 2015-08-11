@@ -703,58 +703,7 @@ void test_cross_forward()
     ++i;
 }
 
-/// Corrects functionals with non expected signatures
-/// to match the expected ones.
-template<typename... _ATy>
-struct partial_corrector
-{
-    /// Corrector
-    template<typename _CTy>
-    static auto correct(_CTy&& functional)
-        -> typename std::enable_if<
-            !std::is_same<
-                fu::argument_type_of_t<
-                    typename std::decay<_CTy>::type
-                >,
-                fu::identity<_ATy...>
-            >::value,
-            std::function<
-              fu::return_type_of_t<
-                typename std::decay<_CTy>::type
-              >(_ATy...)
-            >
-           >::type
-    {
-        // Make use of std::bind's signature erasure
-        return std::bind(std::forward<_CTy>(functional));
-    }
-
-    // Route through
-    template<typename _CTy>
-    static auto correct(_CTy&& functional)
-        -> typename std::enable_if<
-            std::is_same<
-                fu::argument_type_of_t<
-                    typename std::decay<_CTy>::type
-                >,
-                fu::identity<_ATy...>
-            >::value,
-            _CTy
-           >::type
-    {
-        return std::forward<_CTy>(functional);
-    }
-};
-
 void test_incubator()
 {
     test_cross_forward();
-
-    std::function<void(int, float)> fn1 = partial_corrector<int, float>::correct([](int, float)
-    {
-    });
-
-    std::function<void(int, float)> fn2 = partial_corrector<int, float>::correct([]
-    {
-    });
 }

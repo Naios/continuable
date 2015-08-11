@@ -358,6 +358,50 @@ namespace detail
         typedef Tuple tuple;
     };
 
+    /// Corrects functionals with non expected signatures
+    /// to match the expected ones.
+    /// Used in `partialize_correct_trait`
+    template<typename... _ATy>
+    struct partial_corrector
+    {
+        /// Corrector
+        template<typename _CTy>
+        static auto correct(_CTy&& functional)
+            -> typename std::enable_if<
+                !std::is_same<
+                    fu::argument_type_of_t<
+                        typename std::decay<_CTy>::type
+                    >,
+                    fu::identity<_ATy...>
+                >::value,
+                std::function<
+                  fu::return_type_of_t<
+                    typename std::decay<_CTy>::type
+                  >(_ATy...)
+                >
+               >::type
+        {
+            // Make use of std::bind's signature erasure
+            return std::bind(std::forward<_CTy>(functional));
+        }
+
+        // Route through
+        template<typename _CTy>
+        static auto correct(_CTy&& functional)
+            -> typename std::enable_if<
+                std::is_same<
+                    fu::argument_type_of_t<
+                        typename std::decay<_CTy>::type
+                    >,
+                    fu::identity<_ATy...>
+                >::value,
+                _CTy
+               >::type
+        {
+            return std::forward<_CTy>(functional);
+        }
+    };
+
     /// Continuable processing detail implementation
     template<typename... _ATy>
     struct functional_traits
@@ -405,6 +449,15 @@ namespace detail
             return std::forward<_CTy>(functional);
         }
 
+        template<typename _CTy>
+        static inline auto partialize_correct_trait(_CTy&& functional)
+            // -> decltype(partial_corrector<_ATy>::correct(std::declval<_CTy>()))
+            -> _CTy
+        {
+            // return partial_corrector<_ATy>::correct(std::forward<_CTy>(functional));
+            return std::forward<_CTy>(functional);
+        }
+
         /// Wrap Continuables into the continuable returning functional type.
         /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
@@ -447,7 +500,7 @@ namespace detail
             return box_continuable_trait(std::forward<_CTy>(functional));
         }
 
-        /// `partialize_trait`: Converts functionals with not matching args signature.
+        /// `partialize_correct_trait`: Converts functionals with not matching args signature.
         /// `remove_void_trait`: Converts void return to empty continuable.
         /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
@@ -456,10 +509,10 @@ namespace detail
                     !detail::is_continuable<
                         typename std::decay<_CTy>::type
                     >::value,
-                    decltype(remove_void_trait(std::declval<_CTy>()))
+                    decltype(remove_void_trait(partialize_correct_trait(std::declval<_CTy>())))
                 >::type
         {
-            return remove_void_trait(std::forward<_CTy>(functional));
+            return remove_void_trait(partialize_correct_trait(std::forward<_CTy>(functional)));
         }
 
         /// Correct user given functionals through several stages into the form:
