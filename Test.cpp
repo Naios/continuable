@@ -168,8 +168,53 @@ TEST_CASE("Continuable invocation on destruct", "[Continuable]")
 
 TEST_CASE("Continuable continuation chaining using Continuable::then", "[Continuable]")
 {
-    SECTION("Continuables are invalidated on chaining (no duplicated call)")
+    std::size_t invoked = 0;
+
+    SECTION("Continuables result is evaluateable")
     {
-        //std::size_t invoked = 0;
+        make_continuable([](Callback<int>&& callback)
+        {
+            callback(12345);
+        })
+        .then([&](int i)
+        {
+            if (i == 12345)
+                ++invoked;
+        });
+
+        REQUIRE(invoked == 1);
+    }
+
+    SECTION("Continuables are invalidated on chaining (no duplicated call) and order is ok")
+    {
+        http_request("http://github.com")
+            .then([&](/*std::string url (use signature erasure)*/)
+            {
+                REQUIRE(invoked == 0);
+                invoked = 1;
+            })
+            .then([&]
+            {
+                REQUIRE(invoked == 1);
+                invoked = 2;
+            })
+            .then([&]
+            {
+                REQUIRE(invoked == 2);
+                invoked = 3;
+            });
+
+        REQUIRE(invoked == 3);
+    }
+
+    SECTION("Continuation chains need a callback to continue")
+    {
+        defect_continuable()
+            .then([&]
+            {
+                invoked++;
+            });
+
+        REQUIRE(invoked == 0);
     }
 }
