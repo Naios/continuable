@@ -463,7 +463,7 @@ namespace detail
         }
 
         /// Correct user given functionals through several stages into the form:
-        /// Continuable<_CArgs...>(_FArgs
+        /// Continuable<_CArgs...>(_FArgs)
         /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
         static inline auto correct(_CTy&& functional)
