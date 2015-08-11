@@ -496,6 +496,7 @@ void some_examples()
     //// Here we go
     //entry();
 
+/*
     detail::unary_chainer_t<
         std::function<Continuable<bool>()>
     >::callback_arguments_t args213987;
@@ -547,6 +548,7 @@ void some_examples()
             std::function<Continuable<std::string>()>
         >
     >::result_maker::partial_results_t myres123345;
+    */
 
     /*
     auto firstType = detail::multiple_when_all_chainer_t<
@@ -589,7 +591,9 @@ void some_examples()
             {
                 callback(true, false, 0.3f, std::unique_ptr<std::string>(new std::string("oh, all work is done!")));
             }),
-            TrivialPromise())
+            [] {
+                return TrivialPromise();
+            })
         .then([](SpellCastResult r0, SpellCastResult r1, bool r2, bool r3, double r4, std::unique_ptr<std::string> message)
         {
             return TrivialPromise("Lets see... ").then(Log(*message));
@@ -706,4 +710,14 @@ void test_cross_forward()
 void test_incubator()
 {
     test_cross_forward();
+
+    std::function<Continuable<>(int, float)> fn1 = detail::partial_corrector<int, float>::correct([](int, float)
+    {
+        return make_continuable();
+    });
+
+    std::function<Continuable<>(int, float)> fn2 = detail::partial_corrector<int, float>::correct([]
+    {
+        return make_continuable();
+    });
 }

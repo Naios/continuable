@@ -451,11 +451,9 @@ namespace detail
 
         template<typename _CTy>
         static inline auto partialize_correct_trait(_CTy&& functional)
-            // -> decltype(partial_corrector<_ATy>::correct(std::declval<_CTy>()))
-            -> _CTy
+            -> decltype(partial_corrector<_ATy...>::correct(std::declval<_CTy>()))
         {
-            // return partial_corrector<_ATy>::correct(std::forward<_CTy>(functional));
-            return std::forward<_CTy>(functional);
+            return partial_corrector<_ATy...>::correct(std::forward<_CTy>(functional));
         }
 
         /// Wrap Continuables into the continuable returning functional type.
