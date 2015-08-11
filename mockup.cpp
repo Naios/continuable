@@ -148,7 +148,8 @@ void chain_continuable_mockup()
 void final_mockup()
 {
     // Optional - Create a dispatcher where which dispatches the main chain.
-    auto const my_dispatcher = std::make_shared<std::function<void(std::function<void()>&&)>>([](std::function<void()>&& function)
+    auto const my_dispatcher =
+        std::make_shared<std::function<void(std::function<void()>&&)>>([](std::function<void()>&& function)
     {
         // Dispatch in same thread or pass to another one
         function();
@@ -164,7 +165,7 @@ void final_mockup()
         .then([](std::string github, std::string google, ResultSet user)
         {
              // result bla bla
-            return std::forward_as_tuple(github.empty(), std::move(google), std::move(user));
+            return std::make_tuple(github.empty(), std::move(google), std::move(user));
         })
         .then([](bool hasContent, std::string google, ResultSet user)
         {

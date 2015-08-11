@@ -362,7 +362,10 @@ namespace detail
     template<typename... _ATy>
     struct functional_traits
     {
-        /// Wrap void returning functionals to returns an empty continuable.
+        /// Wrap void returning functionals to return an empty continuable.
+        /// Example:
+        /// void(int, float) to Continuable<>(int, float)
+        /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
         static auto remove_void_trait(_CTy&& functional)
             -> typename std::enable_if<
@@ -388,6 +391,7 @@ namespace detail
         }
 
         /// Route continuable returning functionals through.
+        /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
         static auto remove_void_trait(_CTy&& functional)
             -> typename std::enable_if<
@@ -401,7 +405,8 @@ namespace detail
             return std::forward<_CTy>(functional);
         }
 
-        /// Wrap continuables into the continuable returning functional type.
+        /// Wrap Continuables into the continuable returning functional type.
+        /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
         static auto box_continuable_trait(_CTy&& continuable)
             -> typename std::enable_if<
@@ -428,30 +433,43 @@ namespace detail
             };
         }
 
-        /// Route functionals through
+        /// `box_continuable_trait`: Converts plain Continuables to continuable retuning functions.
+        /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
-        inline static auto box_continuable_trait(_CTy&& continuable)
+        static auto correct_stage(_CTy&& functional)
+            -> typename std::enable_if<
+                    detail::is_continuable<
+                        typename std::decay<_CTy>::type
+                    >::value,
+                    decltype(box_continuable_trait(std::declval<_CTy>()))
+                >::type
+        {
+            return box_continuable_trait(std::forward<_CTy>(functional));
+        }
+
+        /// `partialize_trait`: Converts functionals with not matching args signature.
+        /// `remove_void_trait`: Converts void return to empty continuable.
+        /// TODO Move this into an acceptor helper class.
+        template<typename _CTy>
+        static auto correct_stage(_CTy&& functional)
             -> typename std::enable_if<
                     !detail::is_continuable<
                         typename std::decay<_CTy>::type
                     >::value,
-                    typename std::decay<_CTy>::type
+                    decltype(remove_void_trait(std::declval<_CTy>()))
                 >::type
         {
-            static_assert(std::is_rvalue_reference<_CTy&&>::value,
-                "Given continuable must be passed as r-value!");
-
-            return std::forward<_CTy>(continuable);
+            return remove_void_trait(std::forward<_CTy>(functional));
         }
 
-        /// Correct user given continuable functionals.
-        /// Converts plan continuables to continuable retuning functions.
-        /// Converts void return to empty continuable.
+        /// Correct user given functionals through several stages into the form:
+        /// Continuable<_CArgs...>(_FArgs
+        /// TODO Move this into an acceptor helper class.
         template<typename _CTy>
-        static auto correct(_CTy&& functional)
-            -> decltype(remove_void_trait(box_continuable_trait(std::declval<_CTy>())))
+        static inline auto correct(_CTy&& functional)
+            -> decltype(correct_stage(std::declval<_CTy>()))
         {
-            return remove_void_trait(box_continuable_trait(std::forward<_CTy>(functional)));
+            return correct_stage(std::forward<_CTy>(functional));
         }
 
         template<std::size_t Position, typename Args, typename Pack, typename... Rest>
