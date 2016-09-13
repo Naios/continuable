@@ -21,13 +21,13 @@
 
 #include "Continuable.h"
 
-void testNextGen();
+// void testNextGen();
 void test_mockup();
 void test_incubator();
 
-int main(int argc, char* const argv[])
+int tttt(int argc, char* const argv[])
 {
-    testNextGen();
+    // testNextGen();
     return 0;
 
     test_mockup();

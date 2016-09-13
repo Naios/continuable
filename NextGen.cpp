@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+ /*
 #include <tuple>
 #include <type_traits>
 #include <string>
@@ -46,9 +46,9 @@ namespace detail {
   template<typename T>
   struct ReturnTypeToContinuableConverter;
 
-  /*template<typename... Args>
+  template<typename... Args>
   struct 
-*/
+
 
   template<typename... Args, typename CallbackType>
   class ContinuableBase<Identity<Args...>, CallbackType> {
@@ -60,14 +60,14 @@ namespace detail {
 
     void via() { }
 
-    /*template<typename C>
+    template<typename C>
     auto then(C&& continuation) {
       // The type the callback will evaluate to
       using EvaluatedTo = decltype(std::declval<C>()(std::declval<Args>()...));
 
 
       return EvaluatedTo{ };
-    }*/
+    }
   };
 } // namespace detail
 
@@ -81,19 +81,19 @@ struct Callback {
   void operator() (Args... ) { }
 };
 
-/*template <typename... Args>
+template <typename... Args>
 auto make_continuable(Args&&...) {
   return Continuable<> { };
-}*/
+}
 
-/*auto http_request(std::string url) {
+auto http_request(std::string url) {
   return make_continuable([url](auto& callback) {
 
     callback("<br>hi<br>");
   });
-}*/
+}
 
-/* template<typename Continuation, typename Handler>
+ template<typename Continuation, typename Handler>
 auto appendHandlerToContinuation(Continuation&& cont, Handler&& handler) {
   return [cont = std::forward<Continuation>(cont),
           handler = std::forward<Handler>(handler)](auto&& continuation) {
@@ -108,28 +108,68 @@ auto appendHandlerToContinuation(Continuation&& cont, Handler&& handler) {
   };
 } */
 
+#include <tuple>
+#include <type_traits>
+#include <string>
+
+auto createEmptyContinuation() {
+  return [](auto&& callback) { callback(); };
+}
+
+auto createEmptyCallback() {
+  return [](auto&&...) { };
+}
+
+template<typename Result>
+struct CallbackResultDecorator {
+  template<typename Callback>
+  static auto decorate(Callback&& callback) {
+    return std::forward<Callback>(callback);
+  }
+};
+
+template<>
+struct CallbackResultDecorator<void> {
+  template<typename Callback>
+  static auto decorate(Callback&& callback) {
+    return [callback = std::forward<Callback>(callback)](auto&&... args) {
+      callback(std::forward<decltype(args)>(args)...);
+      return createEmptyContinuation();
+    };
+  }
+};
+
+// Create the proxy callback that is responsible for invoking
+// the real callback and passing the next continuation into
+// to the result of the callback.
+template<typename Callback, typename Next>
+auto createProxyCallback(Callback&& callback,
+                         Next&& next) {
+  return [callback = std::forward<Callback>(callback),
+          next = std::forward<Next>(next)] (auto&&... args) mutable {
+    using Result = decltype(callback(std::forward<decltype(args)>(args)...));
+    using Decorator = CallbackResultDecorator<Result>;
+    Decorator::decorate(std::move(callback))
+            (std::forward<decltype(args)>(args)...)(std::move(next));
+  };
+}
+
 template<typename Continuation, typename Callback>
 auto appendHandlerToContinuation(Continuation&& continuation,
                                  Callback&& callback) {
+
   return [continuation = std::forward<Continuation>(continuation),
           callback = std::forward<Callback>(callback)](auto&& next) mutable {
-
-    // Create the proxy callback that passes the next continuation into
-    // the callback.
-    auto proxy = [callback = std::forward<Callback>(callback),
-                  next = std::forward<decltype(next)>(next)]
-                 (auto&&... args) mutable {
-      callback(std::forward<decltype(args)>(args)...)(std::move(next));
-    };
     // Invoke the next invocation handler
-    std::move(continuation)(std::move(proxy));
+    std::move(continuation)(createProxyCallback(
+      std::move(callback), std::forward<decltype(next)>(next)));
   };
 }
 
 template<typename Continuation>
 void invokeContinuation(Continuation&& continuation) {
   // Pass an empty callback to the continuation to invoke it
-  std::forward<Continuation>(continuation)([](auto&&...) {});
+  std::forward<Continuation>(continuation)(createEmptyCallback());
 }
 
 auto makeTestContinuation() {
@@ -138,63 +178,20 @@ auto makeTestContinuation() {
   };
 }
 
-void testNextGen() {
+int main(int, char**) {
   auto continuation = makeTestContinuation();
 
   auto then1 = [](std::string) {
-    
     int i = 0;
-
-    return makeTestContinuation();
   };
 
-  auto then2 = [](std::string) {
+  auto then2 = []() {
 
     int i = 0;
-
-    return makeTestContinuation();
   };
 
   auto f1 = appendHandlerToContinuation(continuation, then1);
   auto f2 = appendHandlerToContinuation(f1, then2);
 
   invokeContinuation(f2);
-
-  return;
-
-  /*http_request("github.com")
-    .then([](std::string content) {
-      
-    })
-    .then([] {
-
-    });*/
-
-  auto c1 = [](auto&& callback) {
-    
-    callback("");
-  };
-
-  auto r1 = [](auto&& continuation) {
-    
-  };
-
-  auto u1 = [](std::string str) {
-    // do sth
-    (void)str;
-
-    return [](auto&& callback) { // next
-      callback(0);
-    };
-  };
-
-  auto proxy = [u1 = std::move(u1)](auto&& tunnel) {
-
-    auto c2 = u1(tunnel);
-    
-
-    // c2()
-  };
-
-  c1(std::move(proxy));
 }
