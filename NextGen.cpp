@@ -46,66 +46,155 @@ namespace detail {
   template<typename T>
   struct ReturnTypeToContinuableConverter;
 
-  template<typename... Args>
+  /*template<typename... Args>
   struct 
+*/
 
   template<typename... Args, typename CallbackType>
-  class ContinuableBase<Identity<Args...>, typename CallbackType> {
+  class ContinuableBase<Identity<Args...>, CallbackType> {
     CallbackType callback_;
 
   public:
     explicit ContinuableBase(CallbackType&& callback)
       : callback_(std::move(callback)) { }
 
-    template<typename C>
+    void via() { }
+
+    /*template<typename C>
     auto then(C&& continuation) {
       // The type the callback will evaluate to
       using EvaluatedTo = decltype(std::declval<C>()(std::declval<Args>()...));
 
 
       return EvaluatedTo{ };
-    }
+    }*/
   };
 } // namespace detail
 
 using namespace detail;
 
-template<typename... Args>
-using Continuable = detail::ContinuableBase<detail::Identity<Args...>>;
+// template<typename... Args>
+// using Continuable = detail::ContinuableBase<detail::Identity<Args...>>;
 
 template <typename... Args>
 struct Callback {
   void operator() (Args... ) { }
 };
 
-template <typename... Args>
+/*template <typename... Args>
 auto make_continuable(Args&&...) {
   return Continuable<> { };
-}
+}*/
 
-auto http_request(std::string url) {
-  return make_continuable([url](auto&& callback) {
+/*auto http_request(std::string url) {
+  return make_continuable([url](auto& callback) {
 
     callback("<br>hi<br>");
   });
+}*/
+
+/* template<typename Continuation, typename Handler>
+auto appendHandlerToContinuation(Continuation&& cont, Handler&& handler) {
+  return [cont = std::forward<Continuation>(cont),
+          handler = std::forward<Handler>(handler)](auto&& continuation) {
+    using T = decltype(continuation);
+    return [continuation = std::forward<T>(continuation)](auto&&... arg) {
+      continuation(std::forward<decltype(arg)>(arg)...);
+    };
+
+    current([continuation = std::forward<T>(continuation)](auto&&... arg) {
+      continuation(std::forward<decltype(arg)>(arg)...);
+    });
+  };
+} */
+
+template<typename Continuation, typename Callback>
+auto appendHandlerToContinuation(Continuation&& continuation,
+                                 Callback&& callback) {
+  return [continuation = std::forward<Continuation>(continuation),
+          callback = std::forward<Callback>(callback)](auto&& next) mutable {
+
+    // Create the proxy callback that passes the next continuation into
+    // the callback.
+    auto proxy = [callback = std::forward<Callback>(callback),
+                  next = std::forward<decltype(next)>(next)]
+                 (auto&&... args) mutable {
+      callback(std::forward<decltype(args)>(args)...)(std::move(next));
+    };
+    // Invoke the next invocation handler
+    std::move(continuation)(std::move(proxy));
+  };
+}
+
+template<typename Continuation>
+void invokeContinuation(Continuation&& continuation) {
+  // Pass an empty callback to the continuation to invoke it
+  std::forward<Continuation>(continuation)([](auto&&...) {});
+}
+
+auto makeTestContinuation() {
+  return [](auto&& callback) {
+    callback("<br>hi<br>");
+  };
 }
 
 void testNextGen() {
-  using t = GetNamedParameterOrDefault<
-    NamedParameterId::NAMED_PARAMATER_CALLBACK,
-    Identity<>,
-    void,
-    int,
-    NamedParameter<NamedParameterId::NAMED_PARAMATER_CALLBACK, std::string>,
-    float
-  >;
+  auto continuation = makeTestContinuation();
 
-  http_request("github.com")
+  auto then1 = [](std::string) {
+    
+    int i = 0;
+
+    return makeTestContinuation();
+  };
+
+  auto then2 = [](std::string) {
+
+    int i = 0;
+
+    return makeTestContinuation();
+  };
+
+  auto f1 = appendHandlerToContinuation(continuation, then1);
+  auto f2 = appendHandlerToContinuation(f1, then2);
+
+  invokeContinuation(f2);
+
+  return;
+
+  /*http_request("github.com")
     .then([](std::string content) {
       
-      return 
     })
     .then([] {
 
-    });
+    });*/
+
+  auto c1 = [](auto&& callback) {
+    
+    callback("");
+  };
+
+  auto r1 = [](auto&& continuation) {
+    
+  };
+
+  auto u1 = [](std::string str) {
+    // do sth
+    (void)str;
+
+    return [](auto&& callback) { // next
+      callback(0);
+    };
+  };
+
+  auto proxy = [u1 = std::move(u1)](auto&& tunnel) {
+
+    auto c2 = u1(tunnel);
+    
+
+    // c2()
+  };
+
+  c1(std::move(proxy));
 }
