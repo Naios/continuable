@@ -139,6 +139,29 @@ struct CallbackResultDecorator<void> {
   }
 };
 
+template<typename S, unsigned... I, typename T, typename F>
+auto applyTuple(std::integer_sequence<S, I...>, T&& tuple, F&& function) {
+  return std::forward<F>(function)(std::get<I>(std::forward<T>(tuple))...);
+}
+
+template<typename... Results>
+struct CallbackResultDecorator<std::tuple<Results...>> {
+  template<typename Callback>
+  static auto decorate(Callback&& callback) {
+    return [callback = std::forward<Callback>(callback)](auto&&... args) {
+      // Receive the tuple from the callback
+      auto result = callback(std::forward<decltype(args)>(args)...);
+      return [result = std::move(result)] (auto&& callback) mutable {
+        // Generate a sequence for tag dispatching
+        auto constexpr const sequence
+          = std::make_integer_sequence<unsigned, sizeof...(Results)>{};
+        applyTuple(sequence, std::move(result),
+                   std::forward<decltype(callback)>(callback));
+      };
+    };
+  }
+};
+
 // Create the proxy callback that is responsible for invoking
 // the real callback and passing the next continuation into
 // to the result of the callback.
@@ -183,9 +206,11 @@ int main(int, char**) {
 
   auto then1 = [](std::string) {
     int i = 0;
+
+    return std::make_tuple(47, 46, 45);
   };
 
-  auto then2 = []() {
+  auto then2 = [](int val1, int val2, int val3) {
 
     int i = 0;
   };
