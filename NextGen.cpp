@@ -112,14 +112,24 @@ auto appendHandlerToContinuation(Continuation&& cont, Handler&& handler) {
 #include <type_traits>
 #include <string>
 
-auto createEmptyContinuation() {
+/*struct ThisThreadDispatcher {
+  void operator() const() ()
+};*/
+
+static auto createEmptyContinuation() {
   return [](auto&& callback) { callback(); };
 }
 
-auto createEmptyCallback() {
+static auto createEmptyCallback() {
   return [](auto&&...) { };
 }
 
+template<typename S, unsigned... I, typename T, typename F>
+auto applyTuple(std::integer_sequence<S, I...>, T&& tuple, F&& function) {
+  return std::forward<F>(function)(std::get<I>(std::forward<T>(tuple))...);
+}
+
+/// Decorates none
 template<typename Result>
 struct CallbackResultDecorator {
   template<typename Callback>
@@ -128,6 +138,7 @@ struct CallbackResultDecorator {
   }
 };
 
+/// Decorates void as return type
 template<>
 struct CallbackResultDecorator<void> {
   template<typename Callback>
@@ -139,11 +150,7 @@ struct CallbackResultDecorator<void> {
   }
 };
 
-template<typename S, unsigned... I, typename T, typename F>
-auto applyTuple(std::integer_sequence<S, I...>, T&& tuple, F&& function) {
-  return std::forward<F>(function)(std::get<I>(std::forward<T>(tuple))...);
-}
-
+// Decorates tuples as return type
 template<typename... Results>
 struct CallbackResultDecorator<std::tuple<Results...>> {
   template<typename Callback>
@@ -151,25 +158,29 @@ struct CallbackResultDecorator<std::tuple<Results...>> {
     return [callback = std::forward<Callback>(callback)](auto&&... args) {
       // Receive the tuple from the callback
       auto result = callback(std::forward<decltype(args)>(args)...);
-      return [result = std::move(result)] (auto&& callback) mutable {
+      return [result = std::move(result)] (auto&& next) mutable {
         // Generate a sequence for tag dispatching
         auto constexpr const sequence
           = std::make_integer_sequence<unsigned, sizeof...(Results)>{};
+        // Invoke the callback with the tuple returned
+        // from the previous callback.
         applyTuple(sequence, std::move(result),
-                   std::forward<decltype(callback)>(callback));
+                   std::forward<decltype(next)>(next));
       };
     };
   }
 };
 
-// Create the proxy callback that is responsible for invoking
-// the real callback and passing the next continuation into
-// to the result of the callback.
+/// Create the proxy callback that is responsible for invoking
+/// the real callback and passing the next continuation into
+/// to the result of the callback.
 template<typename Callback, typename Next>
 auto createProxyCallback(Callback&& callback,
                          Next&& next) {
   return [callback = std::forward<Callback>(callback),
           next = std::forward<Next>(next)] (auto&&... args) mutable {
+    // Callbacks shall always return a continuation,
+    // if not, we need to decorate it.
     using Result = decltype(callback(std::forward<decltype(args)>(args)...));
     using Decorator = CallbackResultDecorator<Result>;
     Decorator::decorate(std::move(callback))
@@ -195,13 +206,14 @@ void invokeContinuation(Continuation&& continuation) {
   std::forward<Continuation>(continuation)(createEmptyCallback());
 }
 
-auto makeTestContinuation() {
+static auto makeTestContinuation() {
   return [](auto&& callback) {
     callback("<br>hi<br>");
   };
 }
 
 int main(int, char**) {
+  int res = 0;
   auto continuation = makeTestContinuation();
 
   auto then1 = [](std::string) {
@@ -210,8 +222,8 @@ int main(int, char**) {
     return std::make_tuple(47, 46, 45);
   };
 
-  auto then2 = [](int val1, int val2, int val3) {
-
+  auto then2 = [&](int val1, int val2, int val3) {
+    res = val1 + val2 + val3;
     int i = 0;
   };
 
@@ -219,4 +231,5 @@ int main(int, char**) {
   auto f2 = appendHandlerToContinuation(f1, then2);
 
   invokeContinuation(f2);
+  return res;
 }
