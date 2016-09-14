@@ -108,8 +108,10 @@ auto appendHandlerToContinuation(Continuation&& cont, Handler&& handler) {
   };
 } */
 
+#include <mutex>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 #include <string>
 #include <memory>
 
@@ -141,30 +143,42 @@ public:
   Ownership() { }
   Ownership(Ownership const&) = default;
   explicit Ownership(Ownership&& right) noexcept
-    : isOwningThis(takeOverFrom(std::move(right))) { };
+    : isOwningThis(std::exchange(right.isOwningThis, false)) { };
   Ownership& operator = (Ownership const&) = default;
   Ownership& operator = (Ownership&& right) noexcept {
-    isOwningThis = takeOverFrom(std::move(right));
+    isOwningThis = std::exchange(right.isOwningThis, false);
     return *this;
   }
 
-  bool IsOwning() const noexcept {
+  bool hasOwnership() const noexcept {
     return isOwningThis;
   }
 
-private:
-  bool static takeOverFrom(Ownership&& right) {
-    bool value = right.isOwningThis;
-    right.isOwningThis = false;
-    return value;
+  void invalidate() {
+    isOwningThis = false;
   }
 
+private:
   bool isOwningThis{ true };
 };
 
-/// Decorates none
-template<typename Result>
+/// Decorates single values
+template<typename Value>
 struct CallbackResultDecorator {
+  template<typename Callback>
+  static auto decorate(Callback&& callback) {
+    return [callback = std::forward<Callback>(callback)](auto&&... args) {
+      Value value = callback(std::forward<decltype(args)>(args)...);
+      return [value =  std::move(value)](auto&& callback) mutable {
+        callback(std::move(value));
+      };
+    };
+  }
+};
+
+/// No decoration is needed for continuables
+template<typename Config>
+struct CallbackResultDecorator<ContinuableBase<Config>>{
   template<typename Callback>
   static auto decorate(Callback&& callback) {
     return std::forward<Callback>(callback);
@@ -223,8 +237,7 @@ auto createProxyCallback(Callback&& callback,
 
 template<typename Continuation, typename Callback>
 auto appendCallback(Continuation&& continuation,
-                                 Callback&& callback) {
-
+                    Callback&& callback) {
   return [continuation = std::forward<Continuation>(continuation),
           callback = std::forward<Callback>(callback)](auto&& next) mutable {
     // Invoke the next invocation handler
@@ -233,10 +246,13 @@ auto appendCallback(Continuation&& continuation,
   };
 }
 
-template<typename Continuation>
-void invokeContinuation(Continuation&& continuation) {
-  // Pass an empty callback to the continuation to invoke it
-  std::forward<Continuation>(continuation)(createEmptyCallback());
+template<typename Data>
+void invokeContinuation(Data data) {
+  // Check whether the ownership is acquired and start the continuation call
+  if (data.ownership.hasOwnership()) {
+    // Pass an empty callback to the continuation to invoke it
+    std::move(data.continuation)(createEmptyCallback());
+  }
 }
 
 template<typename ContinuationType, typename DispatcherType>
@@ -255,91 +271,134 @@ struct ContinuableConfig {
   >;
 };
 
+/// 
+template<typename ConfigType>
+struct ContinuableData {
+  using Config = ConfigType;
+
+  ContinuableData(Ownership ownership_,
+                  typename Config::Continuation continuation_,
+                  typename Config::Dispatcher dispatcher_) noexcept
+    : ownership(std::move(ownership_)),
+      continuation(std::move(continuation_)),
+      dispatcher(std::move(dispatcher_))  { }
+
+  Ownership ownership;
+  typename Config::Continuation continuation;
+  typename Config::Dispatcher dispatcher;
+};
+
+/// The DefaultDecoration is a container for already materialized
+/// ContinuableData which can be accessed instantly.
+template<typename Data>
+class DefaultDecoration {
+public:
+  DefaultDecoration(Data data_)
+    : data(std::move(data_)) { }
+
+  using Config = typename Data::Config;
+
+  /// Return a r-value reference to the data
+  Data&& undecorate()&& {
+    return std::move(data);
+  }
+  /// Return a copy of the data
+  Data undecorate() const& {
+    return data;
+  }
+
+private:
+  Data data;
+};
+
 template<typename Continuation, typename Dispatcher = SelfDispatcher>
 auto make_continuable(Continuation&& continuation,
                       Dispatcher&& dispatcher = SelfDispatcher{}) noexcept {
-  using Config = ContinuableConfig<
+  using Decoration = DefaultDecoration<ContinuableData<ContinuableConfig<
     std::decay_t<Continuation>,
     std::decay_t<Dispatcher>
-  >;
-  return ContinuableBase<Config> {
+  >>>;
+  return ContinuableBase<Decoration> { { {
+    { },
     std::forward<Continuation>(continuation),
     std::forward<Dispatcher>(dispatcher)
-  };
+  } } };
 }
 
-template<typename Config>
+template<typename Data, typename Callback>
+auto thenImpl(Data data, Callback&& callback) {
+  auto next = appendCallback(std::move(data.continuation),
+                             std::forward<Callback>(callback));
+  using Decoration = DefaultDecoration<ContinuableData<
+    typename Data::Config::template ChangeContinuationTo<decltype(next)>
+  >>;
+  return ContinuableBase<Decoration> { {
+    { std::move(data.ownership), std::move(next), std::move(data.dispatcher) }
+  } };
+}
+
+template<typename Data, typename NewDispatcher>
+auto postImpl(Data&& data ,NewDispatcher&& newDispatcher) {
+ /*->ContinuableBase<typename Config::template
+  ChangeDispatcherTo<std::decay_t<NewDispatcher>>> {
+  return{ std::move(continuation), std::move(ownership),
+    std::forward<NewDispatcher>(newDispatcher) }; */
+
+  return 0;
+}
+
+
+template<typename Decoration>
 class ContinuableBase {
   template<typename>
   friend class ContinuableBase;
 
-  ContinuableBase(typename Config::Continuation continuation_,
-                  Ownership ownership_,
-                  typename Config::Dispatcher dispatcher_) noexcept
-    : continuation(std::move(continuation_)),
-      dispatcher(std::move(dispatcher_)), ownership(std::move(ownership_)) { }
-
 public:
-  ContinuableBase(typename Config::Continuation continuation_,
-                  typename Config::Dispatcher dispatcher_) noexcept
-    : continuation(std::move(continuation_)),
-      dispatcher(std::move(dispatcher_)) { }
+  explicit ContinuableBase(Decoration decoration_)
+    : decoration(std::move(decoration_)) { }
+
   ~ContinuableBase() {
-    if (ownership.IsOwning()) {
-      invokeContinuation(std::move(continuation));
-    }
+    // Undecorate/materialize the decoration
+    invokeContinuation(std::move(decoration).undecorate());
   }
   ContinuableBase(ContinuableBase&&) = default;
   ContinuableBase(ContinuableBase const&) = default;
 
   template<typename Callback>
   auto then(Callback&& callback)&& {
-    auto next = appendCallback(std::move(continuation),
-                               std::forward<Callback>(callback));
-    using Transformed = ContinuableBase<
-      typename Config::template ChangeContinuationTo<decltype(next)>
-    >;
-    return Transformed {
-      std::move(next), std::move(ownership), std::move(dispatcher)
-    };
+    return thenImpl(std::move(decoration).undecorate(),
+                    std::forward<Callback>(callback));
   }
 
   template<typename Callback>
   auto then(Callback&& callback) const& {
-    auto next = appendCallback(continuation, std::forward<Callback>(callback));
-    using Transformed = ContinuableBase<
-      typename Config::template ChangeContinuationTo<decltype(next)>
-    >;
-    return Transformed {
-      std::move(next), ownership, dispatcher
-    };
+    return thenImpl(decoration.undecorate(),
+                    std::forward<Callback>(callback));
   }
 
   template<typename NewDispatcher>
-  auto post(NewDispatcher&& newDispatcher)&&
-    -> ContinuableBase<typename Config::template
-                       ChangeDispatcherTo<std::decay_t<NewDispatcher>>> {
-    return { std::move(continuation), std::move(ownership),
-             std::forward<NewDispatcher>(newDispatcher) };
+  auto post(NewDispatcher&& newDispatcher)&& {
+    return postImpl(std::move(decoration).undecorate(),
+                    std::forward<NewDispatcher>(newDispatcher));
   }
 
   template<typename NewDispatcher>
-  auto post(NewDispatcher&& newDispatcher) const&
-    -> ContinuableBase<typename Config::template
-                       ChangeDispatcherTo<std::decay_t<NewDispatcher>>> {
-    return { continuation, ownership,
-             std::forward<NewDispatcher>(newDispatcher) };
+  auto post(NewDispatcher&& newDispatcher) const& {
+    return postImpl(decoration.undecorate(),
+                    std::forward<NewDispatcher>(newDispatcher));
   }
 
 private:
-  typename Config::Continuation continuation;
-  typename Config::Dispatcher dispatcher;
-  Ownership ownership;
+  /// The Decoration represents the possible lazy materialized
+  /// data of the continuable.
+  /// The decoration pattern is used to make it possible to allow lazy chaining
+  /// of operators on Continuables like the and expression `&&`.
+  Decoration decoration;
 };
 
 static auto makeTestContinuation() {
   return make_continuable([](auto&& callback) {
-    callback("<br>hi<br>");
+    callback("47");
   });
 }
 
@@ -348,17 +407,15 @@ int main(int, char**) {
 
   int res = 0;
   makeTestContinuation()
-    .post(dispatcher)
-    .then([](std::string) {
-      
-
+    // .post(dispatcher)
+    .then([](std::string /*str*/) {
       return std::make_tuple(47, 46, 45);
     })
-    .then([&](int val1, int val2, int val3) {
-
-
-      res += val1 + val2 + val3;
-      int i = 0;
+    .then([](int val1, int val2, int val3) {
+      return val1 + val2 + val3;
+    })
+    .then([&](int val) {
+      res += val;
     });
 
   return res;
