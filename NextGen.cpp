@@ -111,10 +111,17 @@ auto appendHandlerToContinuation(Continuation&& cont, Handler&& handler) {
 #include <tuple>
 #include <type_traits>
 #include <string>
+#include <memory>
 
-/*struct ThisThreadDispatcher {
-  void operator() const() ()
-};*/
+struct SelfDispatcher {
+  template<typename T>
+  void operator() (T&& callable) const {
+    std::forward<T>(callable)();
+  }
+};
+
+template<typename Continuation, typename Dispatcher = SelfDispatcher>
+class ContinuableBase;
 
 static auto createEmptyContinuation() {
   return [](auto&& callback) { callback(); };
@@ -128,6 +135,32 @@ template<typename S, unsigned... I, typename T, typename F>
 auto applyTuple(std::integer_sequence<S, I...>, T&& tuple, F&& function) {
   return std::forward<F>(function)(std::get<I>(std::forward<T>(tuple))...);
 }
+
+class Ownership {
+public:
+  Ownership() { }
+  Ownership(Ownership const&) = default;
+  explicit Ownership(Ownership&& right) noexcept
+    : isOwningThis(takeOverFrom(std::move(right))) { };
+  Ownership& operator = (Ownership const&) = default;
+  Ownership& operator = (Ownership&& right) noexcept {
+    isOwningThis = takeOverFrom(std::move(right));
+    return *this;
+  }
+
+  bool IsOwning() const noexcept {
+    return isOwningThis;
+  }
+
+private:
+  bool static takeOverFrom(Ownership&& right) {
+    bool value = right.isOwningThis;
+    right.isOwningThis = false;
+    return value;
+  }
+
+  bool isOwningThis{ true };
+};
 
 /// Decorates none
 template<typename Result>
@@ -206,30 +239,98 @@ void invokeContinuation(Continuation&& continuation) {
   std::forward<Continuation>(continuation)(createEmptyCallback());
 }
 
-static auto makeTestContinuation() {
-  return [](auto&& callback) {
-    callback("<br>hi<br>");
+template<typename Continuation, typename Dispatcher = SelfDispatcher>
+auto make_continuable(Continuation&& continuation,
+                      Dispatcher&& dispatcher = SelfDispatcher{}) noexcept {
+  return ContinuableBase<std::decay_t<Continuation>, std::decay_t<Dispatcher>> {
+    std::forward<Continuation>(continuation), std::forward<Dispatcher>(dispatcher)
   };
 }
 
+template<typename Continuation, typename Dispatcher>
+class ContinuableBase {
+  template<typename, typename>
+  friend class ContinuableBase;
+
+  ContinuableBase(Continuation continuation_, Ownership ownership_,
+                  Dispatcher dispatcher_) noexcept
+    : continuation(std::move(continuation_)),
+      dispatcher(std::move(dispatcher_)), ownership(std::move(ownership_)) { }
+
+public:
+  ContinuableBase(Continuation continuation_,
+                  Dispatcher dispatcher_ = Dispatcher{}) noexcept
+    : continuation(std::move(continuation_)),
+      dispatcher(std::move(dispatcher_)) { }
+  ~ContinuableBase() {
+    if (ownership.IsOwning()) {
+      invokeContinuation(std::move(continuation));
+    }
+  }
+  ContinuableBase(ContinuableBase&&) = default;
+  ContinuableBase(ContinuableBase const&) = default;
+
+  template<typename Callback>
+  auto then(Callback&& callback)&& {
+    auto next = appendHandlerToContinuation(std::move(continuation),
+                                            std::forward<Callback>(callback));
+    return ContinuableBase<std::decay_t<decltype(next)>, Dispatcher> {
+      std::move(next), std::move(ownership), std::move(dispatcher)
+    };
+  }
+
+  template<typename Callback>
+  auto then(Callback&& callback) const& {
+    auto next = appendHandlerToContinuation(continuation,
+                                            std::forward<Callback>(callback));
+    return ContinuableBase<std::decay_t<decltype(next)>, Dispatcher> {
+      std::move(next), ownership, dispatcher
+    };
+  }
+
+  template<typename NewStrand>
+  auto post(NewStrand&& newStrand)&& {
+    return ContinuableBase<Continuation, NewStrand> {
+      std::move(continuation), std::move(ownership),
+      std::forward<NewStrand>(newStrand)
+    };
+  }
+
+  template<typename NewStrand>
+  auto post(NewStrand&& newStrand) const& {
+    return ContinuableBase<Continuation, NewStrand> {
+      continuation, ownership,
+      std::forward<NewStrand>(newStrand)
+    };
+  }
+
+private:
+  Continuation continuation;
+  Dispatcher dispatcher;
+  Ownership ownership;
+};
+
+static auto makeTestContinuation() {
+  return make_continuable([i = std::make_unique<int>(0)](auto&& callback) {
+    callback("<br>hi<br>");
+  });
+}
+
 int main(int, char**) {
+  auto dispatcher = [](auto callable) {
+    
+  };
+
   int res = 0;
-  auto continuation = makeTestContinuation();
+  makeTestContinuation()
+    .post(dispatcher)
+    .then([](std::string) {
+      return std::make_tuple(47, 46, 45);
+    })
+    .then([&](int val1, int val2, int val3) {
+      res += val1 + val2 + val3;
+      int i = 0;
+    });
 
-  auto then1 = [](std::string) {
-    int i = 0;
-
-    return std::make_tuple(47, 46, 45);
-  };
-
-  auto then2 = [&](int val1, int val2, int val3) {
-    res = val1 + val2 + val3;
-    int i = 0;
-  };
-
-  auto f1 = appendHandlerToContinuation(continuation, then1);
-  auto f2 = appendHandlerToContinuation(f1, then2);
-
-  invokeContinuation(f2);
   return res;
 }
