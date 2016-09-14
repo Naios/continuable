@@ -222,7 +222,7 @@ auto createProxyCallback(Callback&& callback,
 }
 
 template<typename Continuation, typename Callback>
-auto appendHandlerToContinuation(Continuation&& continuation,
+auto appendCallback(Continuation&& continuation,
                                  Callback&& callback) {
 
   return [continuation = std::forward<Continuation>(continuation),
@@ -294,8 +294,8 @@ public:
 
   template<typename Callback>
   auto then(Callback&& callback)&& {
-    auto next = appendHandlerToContinuation(std::move(continuation),
-                                            std::forward<Callback>(callback));
+    auto next = appendCallback(std::move(continuation),
+                               std::forward<Callback>(callback));
     using Transformed = ContinuableBase<
       typename Config::template ChangeContinuationTo<decltype(next)>
     >;
@@ -306,8 +306,7 @@ public:
 
   template<typename Callback>
   auto then(Callback&& callback) const& {
-    auto next = appendHandlerToContinuation(continuation,
-                                            std::forward<Callback>(callback));
+    auto next = appendCallback(continuation, std::forward<Callback>(callback));
     using Transformed = ContinuableBase<
       typename Config::template ChangeContinuationTo<decltype(next)>
     >;
@@ -317,25 +316,19 @@ public:
   }
 
   template<typename NewDispatcher>
-  auto post(NewDispatcher&& newDispatcher)&& {
-    using Transformed = ContinuableBase<
-      typename Config::template ChangeDispatcherTo<std::decay_t<NewDispatcher>>
-    >;
-    return Transformed {
-      std::move(continuation), std::move(ownership),
-      std::forward<NewDispatcher>(newDispatcher)
-    };
+  auto post(NewDispatcher&& newDispatcher)&&
+    -> ContinuableBase<typename Config::template
+                       ChangeDispatcherTo<std::decay_t<NewDispatcher>>> {
+    return { std::move(continuation), std::move(ownership),
+             std::forward<NewDispatcher>(newDispatcher) };
   }
 
   template<typename NewDispatcher>
-  auto post(NewDispatcher&& newDispatcher) const& {
-    using Transformed = ContinuableBase<
-      typename Config::template ChangeDispatcherTo<std::decay_t<NewDispatcher>>
-    >;
-    return Transformed {
-      continuation, ownership,
-      std::forward<NewDispatcher>(newDispatcher)
-    };
+  auto post(NewDispatcher&& newDispatcher) const&
+    -> ContinuableBase<typename Config::template
+                       ChangeDispatcherTo<std::decay_t<NewDispatcher>>> {
+    return { continuation, ownership,
+             std::forward<NewDispatcher>(newDispatcher) };
   }
 
 private:
