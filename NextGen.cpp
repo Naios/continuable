@@ -344,15 +344,17 @@ auto thenImpl(Data data, Callback&& callback) {
 }
 
 template<typename Data, typename NewDispatcher>
-auto postImpl(Data&& data ,NewDispatcher&& newDispatcher) {
- /*->ContinuableBase<typename Config::template
-  ChangeDispatcherTo<std::decay_t<NewDispatcher>>> {
-  return{ std::move(continuation), std::move(ownership),
-    std::forward<NewDispatcher>(newDispatcher) }; */
-
-  return 0;
+auto postImpl(Data data ,NewDispatcher&& newDispatcher) {
+  using Decoration = DefaultDecoration<ContinuableData<
+    typename Data::Config::template
+      ChangeDispatcherTo<std::decay_t<NewDispatcher>>
+  >>;
+  return ContinuableBase<Decoration>(Decoration({
+    std::move(data.ownership),
+    std::move(data.continuation),
+    std::forward<NewDispatcher>(newDispatcher)
+  }));
 }
-
 
 template<typename Decoration>
 class ContinuableBase {
@@ -413,7 +415,7 @@ int main(int, char**) {
 
   int res = 0;
   makeTestContinuation()
-    // .post(dispatcher)
+    .post(dispatcher)
     .then([](std::string /*str*/) {
       return std::make_tuple(47, 46, 45);
     })
