@@ -177,8 +177,8 @@ struct CallbackResultDecorator {
 };
 
 /// No decoration is needed for continuables
-template<typename Config>
-struct CallbackResultDecorator<ContinuableBase<Config>>{
+template<typename Decorator>
+struct CallbackResultDecorator<ContinuableBase<Decorator>>{
   template<typename Callback>
   static auto decorate(Callback&& callback) {
     return std::forward<Callback>(callback);
@@ -283,6 +283,11 @@ struct ContinuableData {
       continuation(std::move(continuation_)),
       dispatcher(std::move(dispatcher_))  { }
 
+  ContinuableData(typename Config::Continuation continuation_,
+                  typename Config::Dispatcher dispatcher_) noexcept
+    : continuation(std::move(continuation_)),
+      dispatcher(std::move(dispatcher_))  { }
+
   Ownership ownership;
   typename Config::Continuation continuation;
   typename Config::Dispatcher dispatcher;
@@ -293,7 +298,7 @@ struct ContinuableData {
 template<typename Data>
 class DefaultDecoration {
 public:
-  DefaultDecoration(Data data_)
+  explicit DefaultDecoration(Data data_)
     : data(std::move(data_)) { }
 
   using Config = typename Data::Config;
@@ -318,11 +323,10 @@ auto make_continuable(Continuation&& continuation,
     std::decay_t<Continuation>,
     std::decay_t<Dispatcher>
   >>>;
-  return ContinuableBase<Decoration> { { {
-    { },
+  return ContinuableBase<Decoration>(Decoration({
     std::forward<Continuation>(continuation),
     std::forward<Dispatcher>(dispatcher)
-  } } };
+  }));
 }
 
 template<typename Data, typename Callback>
@@ -332,9 +336,11 @@ auto thenImpl(Data data, Callback&& callback) {
   using Decoration = DefaultDecoration<ContinuableData<
     typename Data::Config::template ChangeContinuationTo<decltype(next)>
   >>;
-  return ContinuableBase<Decoration> { {
-    { std::move(data.ownership), std::move(next), std::move(data.dispatcher) }
-  } };
+  return ContinuableBase<Decoration>(Decoration({
+    std::move(data.ownership),
+    std::move(next),
+    std::move(data.dispatcher)
+  }));
 }
 
 template<typename Data, typename NewDispatcher>
