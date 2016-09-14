@@ -120,7 +120,7 @@ struct SelfDispatcher {
   }
 };
 
-template<typename Continuation, typename Dispatcher = SelfDispatcher>
+template<typename Config>
 class ContinuableBase;
 
 static auto createEmptyContinuation() {
@@ -239,27 +239,49 @@ void invokeContinuation(Continuation&& continuation) {
   std::forward<Continuation>(continuation)(createEmptyCallback());
 }
 
+template<typename ContinuationType, typename DispatcherType>
+struct ContinuableConfig {
+  using Continuation = ContinuationType;
+  using Dispatcher = DispatcherType;
+
+  template<typename NewType>
+  using ChangeContinuationTo = ContinuableConfig<
+    NewType, Dispatcher
+  >;
+
+  template<typename NewType>
+  using ChangeDispatcherTo = ContinuableConfig<
+    Continuation, NewType
+  >;
+};
+
 template<typename Continuation, typename Dispatcher = SelfDispatcher>
 auto make_continuable(Continuation&& continuation,
                       Dispatcher&& dispatcher = SelfDispatcher{}) noexcept {
-  return ContinuableBase<std::decay_t<Continuation>, std::decay_t<Dispatcher>> {
-    std::forward<Continuation>(continuation), std::forward<Dispatcher>(dispatcher)
+  using Config = ContinuableConfig<
+    std::decay_t<Continuation>,
+    std::decay_t<Dispatcher>
+  >;
+  return ContinuableBase<Config> {
+    std::forward<Continuation>(continuation),
+    std::forward<Dispatcher>(dispatcher)
   };
 }
 
-template<typename Continuation, typename Dispatcher>
+template<typename Config>
 class ContinuableBase {
-  template<typename, typename>
+  template<typename>
   friend class ContinuableBase;
 
-  ContinuableBase(Continuation continuation_, Ownership ownership_,
-                  Dispatcher dispatcher_) noexcept
+  ContinuableBase(typename Config::Continuation continuation_,
+                  Ownership ownership_,
+                  typename Config::Dispatcher dispatcher_) noexcept
     : continuation(std::move(continuation_)),
       dispatcher(std::move(dispatcher_)), ownership(std::move(ownership_)) { }
 
 public:
-  ContinuableBase(Continuation continuation_,
-                  Dispatcher dispatcher_ = Dispatcher{}) noexcept
+  ContinuableBase(typename Config::Continuation continuation_,
+                  typename Config::Dispatcher dispatcher_) noexcept
     : continuation(std::move(continuation_)),
       dispatcher(std::move(dispatcher_)) { }
   ~ContinuableBase() {
@@ -274,7 +296,10 @@ public:
   auto then(Callback&& callback)&& {
     auto next = appendHandlerToContinuation(std::move(continuation),
                                             std::forward<Callback>(callback));
-    return ContinuableBase<std::decay_t<decltype(next)>, Dispatcher> {
+    using Transformed = ContinuableBase<
+      typename Config::template ChangeContinuationTo<decltype(next)>
+    >;
+    return Transformed {
       std::move(next), std::move(ownership), std::move(dispatcher)
     };
   }
@@ -283,51 +308,62 @@ public:
   auto then(Callback&& callback) const& {
     auto next = appendHandlerToContinuation(continuation,
                                             std::forward<Callback>(callback));
-    return ContinuableBase<std::decay_t<decltype(next)>, Dispatcher> {
+    using Transformed = ContinuableBase<
+      typename Config::template ChangeContinuationTo<decltype(next)>
+    >;
+    return Transformed {
       std::move(next), ownership, dispatcher
     };
   }
 
-  template<typename NewStrand>
-  auto post(NewStrand&& newStrand)&& {
-    return ContinuableBase<Continuation, NewStrand> {
+  template<typename NewDispatcher>
+  auto post(NewDispatcher&& newDispatcher)&& {
+    using Transformed = ContinuableBase<
+      typename Config::template ChangeDispatcherTo<std::decay_t<NewDispatcher>>
+    >;
+    return Transformed {
       std::move(continuation), std::move(ownership),
-      std::forward<NewStrand>(newStrand)
+      std::forward<NewDispatcher>(newDispatcher)
     };
   }
 
-  template<typename NewStrand>
-  auto post(NewStrand&& newStrand) const& {
-    return ContinuableBase<Continuation, NewStrand> {
+  template<typename NewDispatcher>
+  auto post(NewDispatcher&& newDispatcher) const& {
+    using Transformed = ContinuableBase<
+      typename Config::template ChangeDispatcherTo<std::decay_t<NewDispatcher>>
+    >;
+    return Transformed {
       continuation, ownership,
-      std::forward<NewStrand>(newStrand)
+      std::forward<NewDispatcher>(newDispatcher)
     };
   }
 
 private:
-  Continuation continuation;
-  Dispatcher dispatcher;
+  typename Config::Continuation continuation;
+  typename Config::Dispatcher dispatcher;
   Ownership ownership;
 };
 
 static auto makeTestContinuation() {
-  return make_continuable([i = std::make_unique<int>(0)](auto&& callback) {
+  return make_continuable([](auto&& callback) {
     callback("<br>hi<br>");
   });
 }
 
 int main(int, char**) {
-  auto dispatcher = [](auto callable) {
-    
-  };
+  auto dispatcher = SelfDispatcher{};
 
   int res = 0;
   makeTestContinuation()
     .post(dispatcher)
     .then([](std::string) {
+      
+
       return std::make_tuple(47, 46, 45);
     })
     .then([&](int val1, int val2, int val3) {
+
+
       res += val1 + val2 + val3;
       int i = 0;
     });
