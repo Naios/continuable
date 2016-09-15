@@ -108,6 +108,7 @@ auto appendHandlerToContinuation(Continuation&& cont, Handler&& handler) {
   };
 } */
 
+#include <functional>
 #include <mutex>
 #include <tuple>
 #include <type_traits>
@@ -141,25 +142,28 @@ auto applyTuple(std::integer_sequence<S, I...>, T&& tuple, F&& function) {
 class Ownership {
 public:
   Ownership() { }
+  explicit Ownership(bool isOwning_) : isOwning(isOwning_) { }
   Ownership(Ownership const&) = default;
   explicit Ownership(Ownership&& right) noexcept
-    : isOwningThis(std::exchange(right.isOwningThis, false)) { };
+    : isOwning(std::exchange(right.isOwning, false)) { };
   Ownership& operator = (Ownership const&) = default;
   Ownership& operator = (Ownership&& right) noexcept {
-    isOwningThis = std::exchange(right.isOwningThis, false);
+    isOwning = std::exchange(right.isOwning, false);
     return *this;
   }
 
+  Ownership operator&& (Ownership right) const {
+    return Ownership(hasOwnership() && right.hasOwnership());
+  }
+
   bool hasOwnership() const noexcept {
-    return isOwningThis;
+    return isOwning;
   }
-
   void invalidate() {
-    isOwningThis = false;
+    isOwning = false;
   }
-
 private:
-  bool isOwningThis{ true };
+  bool isOwning{ true };
 };
 
 /// Decorates single values
@@ -220,7 +224,7 @@ struct CallbackResultDecorator<std::tuple<Results...>> {
 
 /// Create the proxy callback that is responsible for invoking
 /// the real callback and passing the next continuation into
-/// to the result of the callback.
+/// the result of the following callback.
 template<typename Callback, typename Next>
 auto createProxyCallback(Callback&& callback,
                          Next&& next) {
@@ -304,10 +308,12 @@ public:
   using Config = typename Data::Config;
 
   /// Return a r-value reference to the data
+  template<typename Callback>
   Data&& undecorate()&& {
     return std::move(data);
   }
   /// Return a copy of the data
+  template<typename Callback>
   Data undecorate() const& {
     return data;
   }
@@ -315,6 +321,42 @@ public:
 private:
   Data data;
 };
+
+template<typename Combined>
+class LazyCombineDecoration {
+public:
+  // TODO
+  explicit LazyCombineDecoration(Ownership ownership_, Combined combined_)
+    : ownership(std::move(ownership_)), combined(std::move(combined_)) { }
+
+  // using Config = typename Data::Config;
+
+  /// Return a r-value reference to the data
+  template<typename Callback>
+  void undecorate()&& {
+  }
+  template<typename Callback>
+  /// Return a copy of the data
+  void undecorate() const& {
+  }
+
+  template<typename RightLazyCombine>
+  auto merge(RightLazyCombine&& right) {
+    
+  }
+
+private:
+  Ownership ownership;
+  Combined combined;
+};
+
+template<typename>
+struct is_lazy_combined
+  : std::false_type { };
+
+template<typename Data>
+struct is_lazy_combined<LazyCombineDecoration<Data>>
+  : std::true_type { };
 
 template<typename Continuation, typename Dispatcher = SelfDispatcher>
 auto make_continuable(Continuation&& continuation,
@@ -357,6 +399,27 @@ auto postImpl(Data data ,NewDispatcher&& newDispatcher) {
 }
 
 template<typename Decoration>
+auto convertToLazyCombine(std::true_type /*is_lazy_combined*/,
+                          Decoration&& decoration) {
+  return std::forward<Decoration>(decoration);
+}
+
+template<typename Decoration>
+auto convertToLazyCombine(std::false_type /*is_lazy_combined*/,
+                          Decoration&& decoration) {
+  return LazyCombineDecoration<std::tuple<>>{};
+}
+
+template<typename LeftDecoration, typename RightDecoration>
+auto combineImpl(LeftDecoration&& leftDecoration,
+                 RightDecoration&& rightDecoration) {
+  return convertToLazyCombine(is_lazy_combined<std::decay_t<LeftDecoration>>{},
+    std::forward<LeftDecoration>(leftDecoration))
+      .add(convertToLazyCombine(is_lazy_combined<std::decay_t<RightDecoration>>{},
+           std::forward<RightDecoration>(rightDecoration)));
+ }
+
+template<typename Decoration>
 class ContinuableBase {
   template<typename>
   friend class ContinuableBase;
@@ -367,33 +430,53 @@ public:
 
   ~ContinuableBase() {
     // Undecorate/materialize the decoration
-    invokeContinuation(std::move(decoration).undecorate());
+    invokeContinuation(std::move(decoration).template undecorate<void(*)()>());
   }
   ContinuableBase(ContinuableBase&&) = default;
   ContinuableBase(ContinuableBase const&) = default;
 
   template<typename Callback>
   auto then(Callback&& callback)&& {
-    return thenImpl(std::move(decoration).undecorate(),
+    return thenImpl(std::move(decoration).template undecorate<Callback>(),
                     std::forward<Callback>(callback));
   }
 
   template<typename Callback>
   auto then(Callback&& callback) const& {
-    return thenImpl(decoration.undecorate(),
+    return thenImpl(decoration.undecorate<Callback>(),
                     std::forward<Callback>(callback));
   }
 
-  template<typename NewDispatcher>
+  /*template<typename NewDispatcher>
   auto post(NewDispatcher&& newDispatcher)&& {
-    return postImpl(std::move(decoration).undecorate(),
+    return postImpl(std::move(decoration).template undecorate<void>(),
                     std::forward<NewDispatcher>(newDispatcher));
   }
 
   template<typename NewDispatcher>
   auto post(NewDispatcher&& newDispatcher) const& {
-    return postImpl(decoration.undecorate(),
+    return postImpl(decoration.template undecorate<void>(),
                     std::forward<NewDispatcher>(newDispatcher));
+  }*/
+
+  template<typename RightDecoration>
+  auto operator&& (ContinuableBase<RightDecoration>&& right)&& {
+    return combineImpl(std::move(decoration), std::move(right.decoration));
+  }
+
+  template<typename RightDecoration>
+  auto operator&& (ContinuableBase<RightDecoration> const& right)&& {
+    return combineImpl(std::move(decoration), right.decoration);
+  }
+
+  template<typename RightDecoration>
+  auto operator&& (ContinuableBase<RightDecoration>&& right) const& {
+    return combineImpl(decoration, std::move(right.decoration));
+  }
+
+  template<typename RightDecoration>
+  auto operator&& (ContinuableBase<RightDecoration> const& right) const& {
+    return combineImpl(decoration, right.decoration);
   }
 
 private:
@@ -405,20 +488,50 @@ private:
 };
 
 static auto makeTestContinuation() {
-  return make_continuable([](auto&& callback) {
+  return make_continuable([i = std::make_unique<int>(0)](auto&& callback) {
     callback("47");
   });
 }
 
+struct Inspector {
+  template<typename... Args>
+  auto operator() (Args...) {
+    return std::common_type<std::tuple<Args...>>{};
+  }
+};
+
+template<unsigned N>
+struct FailIfWrongArgs {
+  template<typename... Args>
+  auto operator() (Args...)
+    -> std::enable_if_t<N == sizeof...(Args)> { }
+};
+
 int main(int, char**) {
   auto dispatcher = SelfDispatcher{};
 
+  auto unwrap = [](auto&& callback) {
+
+    callback("47");
+  };
+
+  /*auto unwrapper = [](auto&&... args) {
+    return std::common_type<std::tuple<decltype(args)...>>{};
+  };*/
+
+  using T = decltype(unwrap(FailIfWrongArgs<0>{}));
+
+  // using T = decltype(unwrap(std::declval<Inspector>()));
+  // T t{};
+
+  // auto combined = makeTestContinuation() && makeTestContinuation();
+
   int res = 0;
   makeTestContinuation()
-    .post(dispatcher)
     .then([](std::string /*str*/) {
       return std::make_tuple(47, 46, 45);
     })
+    // .post(dispatcher)
     .then([](int val1, int val2, int val3) {
       return val1 + val2 + val3;
     })
