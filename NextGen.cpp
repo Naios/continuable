@@ -115,6 +115,16 @@ auto appendHandlerToContinuation(Continuation&& cont, Handler&& handler) {
 #include <utility>
 #include <string>
 #include <memory>
+#include "Continuable.h"
+
+// Equivalent to C++17's std::void_t which is targets a bug in GCC,
+// that prevents correct SFINAE behavior.
+// See http://stackoverflow.com/questions/35753920 for details.
+template<typename...>
+struct deduce_to_void : std::common_type<void> { };
+
+template<typename... T>
+using always_void_t = typename deduce_to_void<T...>::type;
 
 struct SelfDispatcher {
   template<typename T>
@@ -122,6 +132,9 @@ struct SelfDispatcher {
     std::forward<T>(callable)();
   }
 };
+
+template<typename T>
+struct Identity { };
 
 template<typename Config>
 class ContinuableBase;
@@ -137,6 +150,24 @@ static auto createEmptyCallback() {
 template<typename S, unsigned... I, typename T, typename F>
 auto applyTuple(std::integer_sequence<S, I...>, T&& tuple, F&& function) {
   return std::forward<F>(function)(std::get<I>(std::forward<T>(tuple))...);
+}
+
+template<unsigned... LeftI, unsigned... RightI,
+         typename... Left, typename... Right>
+auto tupleMerge(std::integer_sequence<unsigned, LeftI...>,
+                std::integer_sequence<unsigned, RightI...>,
+                std::tuple<Left...>&& left, std::tuple<Right...>&& right) {
+  return std::make_tuple(std::get<LeftI>(std::move(left))...,
+                         std::get<RightI>(std::move(right))...);
+}
+
+/// Merges the left and the right tuple together in one.
+template<typename... Left, typename... Right>
+auto tupleMerge(std::tuple<Left...>&& left,
+                std::tuple<Right...>&& right) {
+  return tupleMerge(std::make_integer_sequence<unsigned, sizeof...(Left)>{},
+                    std::make_integer_sequence<unsigned, sizeof...(Right)>{},
+                    std::move(left), std::move(right));
 }
 
 class Ownership {
@@ -165,6 +196,61 @@ public:
 private:
   bool isOwning{ true };
 };
+
+template<typename Function>
+struct undecorate_function;
+
+template<typename ReturnType, typename... Args>
+struct undecorate_function<ReturnType(Args...)> {
+  /// The return type of the function.
+  typedef ReturnType return_type;
+  /// The argument types of the function as pack in Identity.
+  typedef Identity<Args...> argument_type;
+};
+
+/// Mutable function pointers
+template<typename ReturnType, typename... Args>
+struct undecorate_function<ReturnType(*)(Args...)>
+  : undecorate_function<ReturnType(Args...)> { };
+
+/// Const function pointers
+template<typename ReturnType, typename... Args>
+struct undecorate_function<ReturnType(*const)(Args...)>
+  : undecorate_function<ReturnType(Args...)> { };
+
+/// Mutable class method pointers
+template<typename ClassType, typename ReturnType, typename... Args>
+struct undecorate_function<ReturnType(ClassType::*)(Args...)>
+  : undecorate_function<ReturnType(Args...)> { };
+
+/// Const class method pointers
+template<typename ClassType, typename ReturnType, typename... Args>
+struct undecorate_function<ReturnType(ClassType::*)(Args...) const>
+  : undecorate_function<ReturnType(Args...)> { };
+
+/// Mutable volatile class method pointers
+template<typename ClassType, typename ReturnType, typename... Args>
+struct undecorate_function<ReturnType(ClassType::*)(Args...) volatile>
+  : undecorate_function<ReturnType(Args...)> { };
+
+/// Const volatile class method pointers
+template<typename ClassType, typename ReturnType, typename... Args>
+struct undecorate_function<ReturnType(ClassType::*)(Args...) const volatile>
+  : undecorate_function<ReturnType(Args...)> { };
+
+template<typename Function>
+using do_undecorate = std::conditional_t<
+  std::is_class<Function>::value,
+  decltype(&Function::operator()),
+  Function>;
+
+template<typename Function, typename = always_void_t<>>
+struct is_undecorateable : std::false_type { };
+
+template<typename Function>
+struct is_undecorateable<Function, always_void_t<
+  typename do_undecorate<Function>::return_type
+>> : std::true_type { };
 
 /// Decorates single values
 template<typename Value>
@@ -322,41 +408,60 @@ private:
   Data data;
 };
 
+template<typename... TargetArgs, typename... CombinedData>
+auto undecorateCombined(Identity<TargetArgs...>,
+                        std::tuple<CombinedData...> combined) {
+
+}
+
+template<typename Callback, typename... CombinedData>
+auto undecorateCombined(std::tuple<CombinedData...> combined) {
+  // using TargetArgs = typename do_undecorate<Callback>::argument_type;
+  // return undecorateCombined(TargetArgs{}, std::move(combined));
+}
+
 template<typename Combined>
 class LazyCombineDecoration {
 public:
   // TODO
-  explicit LazyCombineDecoration(Ownership ownership_, Combined combined_)
-    : ownership(std::move(ownership_)), combined(std::move(combined_)) { }
+  explicit LazyCombineDecoration(Combined combined_)
+    : combined(std::move(combined_)) { }
 
   // using Config = typename Data::Config;
+
+  template<typename Callback>
+  static void requiresUndecorateable() {
+    static_assert(is_undecorateable<Callback>::value,
+                  "Can't retrieve the signature of the given callback. "
+                  "Consider to pass an untemplated function or functor "
+                  "to the `then` method invocation to fix this.");
+  }
 
   /// Return a r-value reference to the data
   template<typename Callback>
   void undecorate()&& {
+    requiresUndecorateable<Callback>();
+    return undecorateCombined<Callback>(std::move(combined));
   }
+
   template<typename Callback>
   /// Return a copy of the data
   void undecorate() const& {
+    requiresUndecorateable<Callback>();
+    return undecorateCombined<Callback>(combined);
   }
 
   template<typename RightLazyCombine>
-  auto merge(RightLazyCombine&& right) {
-    
+  auto merge(RightLazyCombine right) && {
+    auto merged = tupleMerge(std::move(combined), std::move(right.combined));
+    return ContinuableBase<LazyCombineDecoration<decltype(merged)>> {
+      LazyCombineDecoration<decltype(merged)>{std::move(merged)}
+    };
   }
 
 private:
-  Ownership ownership;
   Combined combined;
 };
-
-template<typename>
-struct is_lazy_combined
-  : std::false_type { };
-
-template<typename Data>
-struct is_lazy_combined<LazyCombineDecoration<Data>>
-  : std::true_type { };
 
 template<typename Continuation, typename Dispatcher = SelfDispatcher>
 auto make_continuable(Continuation&& continuation,
@@ -398,25 +503,22 @@ auto postImpl(Data data ,NewDispatcher&& newDispatcher) {
   }));
 }
 
-template<typename Decoration>
-auto convertToLazyCombine(std::true_type /*is_lazy_combined*/,
-                          Decoration&& decoration) {
-  return std::forward<Decoration>(decoration);
+template<typename Combined>
+auto toLazyCombined(LazyCombineDecoration<Combined> decoration) {
+  return std::move(decoration);
 }
 
 template<typename Decoration>
-auto convertToLazyCombine(std::false_type /*is_lazy_combined*/,
-                          Decoration&& decoration) {
-  return LazyCombineDecoration<std::tuple<>>{};
+auto toLazyCombined(Decoration&& decoration) {
+  auto data = std::forward<Decoration>(decoration).template undecorate<void>();
+  return LazyCombineDecoration<std::tuple<decltype(data)>>(std::move(data));
 }
 
 template<typename LeftDecoration, typename RightDecoration>
 auto combineImpl(LeftDecoration&& leftDecoration,
                  RightDecoration&& rightDecoration) {
-  return convertToLazyCombine(is_lazy_combined<std::decay_t<LeftDecoration>>{},
-    std::forward<LeftDecoration>(leftDecoration))
-      .add(convertToLazyCombine(is_lazy_combined<std::decay_t<RightDecoration>>{},
-           std::forward<RightDecoration>(rightDecoration)));
+  return toLazyCombined(std::forward<LeftDecoration>(leftDecoration))
+    .merge(toLazyCombined(std::forward<RightDecoration>(rightDecoration)));
  }
 
 template<typename Decoration>
@@ -430,7 +532,7 @@ public:
 
   ~ContinuableBase() {
     // Undecorate/materialize the decoration
-    invokeContinuation(std::move(decoration).template undecorate<void(*)()>());
+    // invokeContinuation(std::move(decoration).template undecorate<void>());
   }
   ContinuableBase(ContinuableBase&&) = default;
   ContinuableBase(ContinuableBase const&) = default;
@@ -443,7 +545,7 @@ public:
 
   template<typename Callback>
   auto then(Callback&& callback) const& {
-    return thenImpl(decoration.undecorate<Callback>(),
+    return thenImpl(decoration.template undecorate<Callback>(),
                     std::forward<Callback>(callback));
   }
 
@@ -479,11 +581,18 @@ public:
     return combineImpl(decoration, right.decoration);
   }
 
+  template<typename Callback>
+  auto undecorateFor(Callback&&) {
+    return decoration.template undecorate<Callback>();
+  }
+
 private:
   /// The Decoration represents the possible lazy materialized
   /// data of the continuable.
   /// The decoration pattern is used to make it possible to allow lazy chaining
-  /// of operators on Continuables like the and expression `&&`.
+  /// of operators on Continuables like the and expression `&&`,
+  /// that requires lazy evaluation and the signature of the callback chained
+  /// with ContinuableBase::then.
   Decoration decoration;
 };
 
@@ -510,16 +619,17 @@ struct FailIfWrongArgs {
 int main(int, char**) {
   auto dispatcher = SelfDispatcher{};
 
-  auto unwrap = [](auto&& callback) {
-
-    callback("47");
-  };
+  (makeTestContinuation() && makeTestContinuation())
+    .undecorateFor([]()
+    {
+    
+    });
 
   /*auto unwrapper = [](auto&&... args) {
     return std::common_type<std::tuple<decltype(args)...>>{};
   };*/
 
-  using T = decltype(unwrap(FailIfWrongArgs<0>{}));
+  // using T = decltype(unwrap(FailIfWrongArgs<0>{}));
 
   // using T = decltype(unwrap(std::declval<Inspector>()));
   // T t{};
@@ -528,7 +638,7 @@ int main(int, char**) {
 
   int res = 0;
   makeTestContinuation()
-    .then([](std::string /*str*/) {
+    .then([](std::string) {
       return std::make_tuple(47, 46, 45);
     })
     // .post(dispatcher)
