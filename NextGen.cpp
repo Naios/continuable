@@ -452,7 +452,7 @@ public:
   }
 
   template<typename RightLazyCombine>
-  auto merge(RightLazyCombine right) && {
+  auto merge(RightLazyCombine right)&& {
     auto merged = tupleMerge(std::move(combined), std::move(right.combined));
     return ContinuableBase<LazyCombineDecoration<decltype(merged)>> {
       LazyCombineDecoration<decltype(merged)>{std::move(merged)}
