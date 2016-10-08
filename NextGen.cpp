@@ -115,7 +115,6 @@ auto appendHandlerToContinuation(Continuation&& cont, Handler&& handler) {
 #include <utility>
 #include <string>
 #include <memory>
-#include "Continuable.h"
 
 // Equivalent to C++17's std::void_t which is targets a bug in GCC,
 // that prevents correct SFINAE behavior.
@@ -270,7 +269,7 @@ struct CallbackResultDecorator {
 template<typename Decorator>
 struct CallbackResultDecorator<ContinuableBase<Decorator>>{
   template<typename Callback>
-  static auto decorate(Callback&& callback) {
+  static auto decorate(Callback&& callback) -> std::decay_t<Callback> {
     return std::forward<Callback>(callback);
   }
 };
@@ -491,7 +490,7 @@ auto thenImpl(Data data, Callback&& callback) {
 }
 
 template<typename Data, typename NewDispatcher>
-auto postImpl(Data data ,NewDispatcher&& newDispatcher) {
+auto postImpl(Data data, NewDispatcher&& newDispatcher) {
   using Decoration = DefaultDecoration<ContinuableData<
     typename Data::Config::template
       ChangeDispatcherTo<std::decay_t<NewDispatcher>>
@@ -562,23 +561,13 @@ public:
   }*/
 
   template<typename RightDecoration>
-  auto operator&& (ContinuableBase<RightDecoration>&& right)&& {
+  auto operator&& (ContinuableBase<RightDecoration> right)&& {
     return combineImpl(std::move(decoration), std::move(right.decoration));
   }
 
   template<typename RightDecoration>
-  auto operator&& (ContinuableBase<RightDecoration> const& right)&& {
-    return combineImpl(std::move(decoration), right.decoration);
-  }
-
-  template<typename RightDecoration>
-  auto operator&& (ContinuableBase<RightDecoration>&& right) const& {
+  auto operator&& (ContinuableBase<RightDecoration> right) const& {
     return combineImpl(decoration, std::move(right.decoration));
-  }
-
-  template<typename RightDecoration>
-  auto operator&& (ContinuableBase<RightDecoration> const& right) const& {
-    return combineImpl(decoration, right.decoration);
   }
 
   template<typename Callback>
@@ -619,11 +608,11 @@ struct FailIfWrongArgs {
 int main(int, char**) {
   auto dispatcher = SelfDispatcher{};
 
-  (makeTestContinuation() && makeTestContinuation())
+  /*(makeTestContinuation() && makeTestContinuation())
     .undecorateFor([]()
     {
     
-    });
+    });*/
 
   /*auto unwrapper = [](auto&&... args) {
     return std::common_type<std::tuple<decltype(args)...>>{};
@@ -647,6 +636,15 @@ int main(int, char**) {
     })
     .then([&](int val) {
       res += val;
+    })
+    .then([] {
+
+
+
+      return makeTestContinuation();
+    })
+    .then([] (std::string arg) {
+
     });
 
   return res;
