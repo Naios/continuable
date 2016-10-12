@@ -26,6 +26,9 @@ target_compile_features(continuable
 
 # Set up the test environment for testing
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+  add_executable(incubator "${CMAKE_CURRENT_LIST_DIR}/incubator.cpp")
+  target_link_libraries(incubator continuable)
+
   if (MSVC)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
     string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
