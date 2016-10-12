@@ -352,7 +352,8 @@ void invokeContinuation(Data data) {
   }
 }
 
-///
+/// Holds the effective data for the continuable, like the current owner status,
+/// the continuation object and the dispatcher.
 template<typename ContinuationType,
          typename DispatcherType>
 struct ContinuableData {
@@ -396,28 +397,39 @@ struct ContinuableData {
   Dispatcher dispatcher;
 };
 
-/// The DefaultDecoration is a container for already materialized
-/// ContinuableData which can be accessed instantly.
-template<typename Data>
-class DefaultDecoration {
+/// An undecorator that undecorates nothing
+struct UndecorateNone {
+  template<typename /*Target*/, typename T>
+  static auto undecorate(T&& data) -> std::decay_t<T> {
+    return std::forward<T>(data);
+  }
+};
+
+/// The Undecorateable is a container for unmaterialized
+/// ContinuableData which can be accessed on demand.
+template<typename Data,
+         typename Undecorator = UndecorateNone>
+class Undecorateable {
 public:
-  explicit DefaultDecoration(Data data_)
+  explicit Undecorateable(Data data_)
     : data(std::move(data_)) { }
 
   /// Return a r-value reference to the data
-  template<typename Callback>
-  Data&& undecorate()&& {
-    return std::move(data);
+  template<typename Target>
+  auto undecorate()&& {
+    return Undecorator::template undecorate<Target>(std::move(data));
   }
+
   /// Return a copy of the data
-  template<typename Callback>
-  Data undecorate() const& {
-    return data;
+  template<typename Target>
+  auto undecorate() const& {
+    return Undecorator::template undecorate<Target>(data);
   }
 
 private:
   Data data;
 };
+
 
 template<typename... TargetArgs, typename... CombinedData>
 auto undecorateCombined(Identity<TargetArgs...>,
@@ -431,6 +443,7 @@ auto undecorateCombined(std::tuple<CombinedData...> combined) {
   // return undecorateCombined(TargetArgs{}, std::move(combined));
 }
 
+// FIXME
 template<typename Combined>
 class LazyCombineDecoration {
 public:
@@ -477,7 +490,7 @@ private:
 template<typename Continuation, typename Dispatcher = SelfDispatcher>
 auto make_continuable(Continuation&& continuation,
                       Dispatcher&& dispatcher = SelfDispatcher{}) noexcept {
-  using Decoration = DefaultDecoration<ContinuableData<
+  using Decoration = Undecorateable<ContinuableData<
     std::decay_t<Continuation>,
     std::decay_t<Dispatcher>
   >>;
@@ -491,7 +504,7 @@ template<typename Undecorated, typename Callback>
 auto thenImpl(Undecorated undecorated, Callback&& callback) {
   auto next = appendCallback(std::move(undecorated.continuation),
                              std::forward<Callback>(callback));
-  using Decoration = DefaultDecoration<
+  using Decoration = Undecorateable<
     typename Undecorated::template ChangeContinuationTo<decltype(next)>
   >;
   return ContinuableBase<Decoration>(Decoration({
@@ -503,7 +516,7 @@ auto thenImpl(Undecorated undecorated, Callback&& callback) {
 
 template<typename Undecorated, typename NewDispatcher>
 auto postImpl(Undecorated undecorated, NewDispatcher&& newDispatcher) {
-  using Decoration = DefaultDecoration<
+  using Decoration = Undecorateable<
     typename Undecorated::template
       ChangeDispatcherTo<std::decay_t<NewDispatcher>>
   >;
