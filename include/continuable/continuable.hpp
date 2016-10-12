@@ -352,42 +352,48 @@ void invokeContinuation(Data data) {
   }
 }
 
-template<typename ContinuationType, typename DispatcherType>
-struct ContinuableConfig {
+///
+template<typename ContinuationType,
+         typename DispatcherType>
+struct ContinuableData {
+  /// The plain continuation type that is stored within the data.
+  /// Continuation types have a templated or a fixed signature
+  /// where `operator()` expects one variable that has the following
+  /// `operator()` signature: `void()` callback args
+  /// For instance:
+  ///   std::function<void(std::function<void(int, float)>)>
+  ///        ^^^^^^^^           ^^^^^^^^
+  ///      continuation         callback
+  /// where int and float are the arguments the callback is invoked with.
   using Continuation = ContinuationType;
+  /// TODO
   using Dispatcher = DispatcherType;
 
-  template<typename NewType>
-  using ChangeContinuationTo = ContinuableConfig<
-    NewType, Dispatcher
-  >;
-
-  template<typename NewType>
-  using ChangeDispatcherTo = ContinuableConfig<
-    Continuation, NewType
-  >;
-};
-
-///
-template<typename ConfigType>
-struct ContinuableData {
-  using Config = ConfigType;
+  ContinuableData(Continuation continuation_,
+    Dispatcher dispatcher_) noexcept
+    : continuation(std::move(continuation_)),
+    dispatcher(std::move(dispatcher_)) { }
 
   ContinuableData(Ownership ownership_,
-                  typename Config::Continuation continuation_,
-                  typename Config::Dispatcher dispatcher_) noexcept
+                  Continuation continuation_,
+                  Dispatcher dispatcher_) noexcept
     : ownership(std::move(ownership_)),
       continuation(std::move(continuation_)),
       dispatcher(std::move(dispatcher_))  { }
 
-  ContinuableData(typename Config::Continuation continuation_,
-                  typename Config::Dispatcher dispatcher_) noexcept
-    : continuation(std::move(continuation_)),
-      dispatcher(std::move(dispatcher_))  { }
+  template<typename NewType>
+  using ChangeContinuationTo = ContinuableData<
+    NewType, Dispatcher
+  >;
+
+  template<typename NewType>
+  using ChangeDispatcherTo = ContinuableData<
+    Continuation, NewType
+  >;
 
   Ownership ownership;
-  typename Config::Continuation continuation;
-  typename Config::Dispatcher dispatcher;
+  Continuation continuation;
+  Dispatcher dispatcher;
 };
 
 /// The DefaultDecoration is a container for already materialized
@@ -397,8 +403,6 @@ class DefaultDecoration {
 public:
   explicit DefaultDecoration(Data data_)
     : data(std::move(data_)) { }
-
-  using Config = typename Data::Config;
 
   /// Return a r-value reference to the data
   template<typename Callback>
@@ -473,10 +477,10 @@ private:
 template<typename Continuation, typename Dispatcher = SelfDispatcher>
 auto make_continuable(Continuation&& continuation,
                       Dispatcher&& dispatcher = SelfDispatcher{}) noexcept {
-  using Decoration = DefaultDecoration<ContinuableData<ContinuableConfig<
+  using Decoration = DefaultDecoration<ContinuableData<
     std::decay_t<Continuation>,
     std::decay_t<Dispatcher>
-  >>>;
+  >>;
   return ContinuableBase<Decoration>(Decoration({
     std::forward<Continuation>(continuation),
     std::forward<Dispatcher>(dispatcher)
@@ -487,9 +491,9 @@ template<typename Undecorated, typename Callback>
 auto thenImpl(Undecorated undecorated, Callback&& callback) {
   auto next = appendCallback(std::move(undecorated.continuation),
                              std::forward<Callback>(callback));
-  using Decoration = DefaultDecoration<ContinuableData<
-    typename Undecorated::Config::template ChangeContinuationTo<decltype(next)>
-  >>;
+  using Decoration = DefaultDecoration<
+    typename Undecorated::template ChangeContinuationTo<decltype(next)>
+  >;
   return ContinuableBase<Decoration>(Decoration({
     std::move(undecorated.ownership),
     std::move(next),
@@ -499,10 +503,10 @@ auto thenImpl(Undecorated undecorated, Callback&& callback) {
 
 template<typename Undecorated, typename NewDispatcher>
 auto postImpl(Undecorated undecorated, NewDispatcher&& newDispatcher) {
-  using Decoration = DefaultDecoration<ContinuableData<
-    typename Undecorated::Config::template
+  using Decoration = DefaultDecoration<
+    typename Undecorated::template
       ChangeDispatcherTo<std::decay_t<NewDispatcher>>
-  >>;
+  >;
   return ContinuableBase<Decoration>(Decoration({
     std::move(undecorated.ownership),
     std::move(undecorated.continuation),
