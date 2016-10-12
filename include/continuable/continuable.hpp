@@ -173,12 +173,15 @@ auto tupleMerge(std::tuple<Left...>&& left,
                     std::move(left), std::move(right));
 }
 
+/// This class is responsible for holding an abstract copy- and
+/// move-able ownership that is invalidated when the object
+/// is moved to another instance.
 class Ownership {
 public:
   Ownership() { }
   explicit Ownership(bool isOwning_) : isOwning(isOwning_) { }
   Ownership(Ownership const&) = default;
-  explicit Ownership(Ownership&& right) noexcept
+  Ownership(Ownership&& right) noexcept
     : isOwning(std::exchange(right.isOwning, false)) { };
   Ownership& operator = (Ownership const&) = default;
   Ownership& operator = (Ownership&& right) noexcept {
@@ -196,6 +199,7 @@ public:
   void invalidate() {
     isOwning = false;
   }
+
 private:
   bool isOwning{ true };
 };
@@ -479,29 +483,29 @@ auto make_continuable(Continuation&& continuation,
   }));
 }
 
-template<typename Data, typename Callback>
-auto thenImpl(Data data, Callback&& callback) {
-  auto next = appendCallback(std::move(data.continuation),
+template<typename Undecorated, typename Callback>
+auto thenImpl(Undecorated undecorated, Callback&& callback) {
+  auto next = appendCallback(std::move(undecorated.continuation),
                              std::forward<Callback>(callback));
   using Decoration = DefaultDecoration<ContinuableData<
-    typename Data::Config::template ChangeContinuationTo<decltype(next)>
+    typename Undecorated::Config::template ChangeContinuationTo<decltype(next)>
   >>;
   return ContinuableBase<Decoration>(Decoration({
-    std::move(data.ownership),
+    std::move(undecorated.ownership),
     std::move(next),
-    std::move(data.dispatcher)
+    std::move(undecorated.dispatcher)
   }));
 }
 
-template<typename Data, typename NewDispatcher>
-auto postImpl(Data data, NewDispatcher&& newDispatcher) {
+template<typename Undecorated, typename NewDispatcher>
+auto postImpl(Undecorated undecorated, NewDispatcher&& newDispatcher) {
   using Decoration = DefaultDecoration<ContinuableData<
-    typename Data::Config::template
+    typename Undecorated::Config::template
       ChangeDispatcherTo<std::decay_t<NewDispatcher>>
   >>;
   return ContinuableBase<Decoration>(Decoration({
-    std::move(data.ownership),
-    std::move(data.continuation),
+    std::move(undecorated.ownership),
+    std::move(undecorated.continuation),
     std::forward<NewDispatcher>(newDispatcher)
   }));
 }
@@ -608,50 +612,5 @@ struct FailIfWrongArgs {
   auto operator() (Args...)
     -> std::enable_if_t<N == sizeof...(Args)> { }
 };
-
-int main(int, char**) {
-  auto dispatcher = SelfDispatcher{};
-
-  /*(makeTestContinuation() && makeTestContinuation())
-    .undecorateFor([]()
-    {
-
-    });*/
-
-  /*auto unwrapper = [](auto&&... args) {
-    return std::common_type<std::tuple<decltype(args)...>>{};
-  };*/
-
-  // using T = decltype(unwrap(FailIfWrongArgs<0>{}));
-
-  // using T = decltype(unwrap(std::declval<Inspector>()));
-  // T t{};
-
-  // auto combined = makeTestContinuation() && makeTestContinuation();
-
-  int res = 0;
-  makeTestContinuation()
-    .then([](std::string) {
-      return std::make_tuple(47, 46, 45);
-    })
-    // .post(dispatcher)
-    .then([](int val1, int val2, int val3) {
-      return val1 + val2 + val3;
-    })
-    .then([&](int val) {
-      res += val;
-    })
-    .then([] {
-
-
-
-      return makeTestContinuation();
-    })
-    .then([] (std::string arg) {
-
-    });
-
-  return res;
-}
 
 #endif // CONTINUABLE_HPP_INCLUDED__

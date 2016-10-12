@@ -26,7 +26,9 @@ target_compile_features(continuable
 
 # Set up the test environment for testing
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-  add_executable(incubator "${CMAKE_CURRENT_LIST_DIR}/incubator.cpp")
+  add_executable(incubator
+    "${CMAKE_CURRENT_LIST_DIR}/include/continuable/continuable.hpp"
+    "${CMAKE_CURRENT_LIST_DIR}/incubator.cpp")
   target_link_libraries(incubator continuable)
 
   if (MSVC)
