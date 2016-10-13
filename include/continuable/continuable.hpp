@@ -204,6 +204,19 @@ private:
   bool isOwning{ true };
 };
 
+template<typename... Args>
+struct SignatureHint : std::true_type {
+  typedef Identity<Args...> argument_type;
+};
+
+template<>
+struct SignatureHint<void>  : std::false_type { };
+
+using AbsentSignatureHint = SignatureHint<void>;
+
+template<typename T>
+using InferSignatureFrom = AbsentSignatureHint;
+
 template<typename Function>
 struct undecorate_function;
 
@@ -355,7 +368,8 @@ void invokeContinuation(Data data) {
 /// Holds the effective data for the continuable, like the current owner status,
 /// the continuation object and the dispatcher.
 template<typename ContinuationType,
-         typename DispatcherType>
+         typename DispatcherType,
+         typename SignatureHintType = InferSignatureFrom<ContinuationType>>
 struct ContinuableData {
   /// The plain continuation type that is stored within the data.
   /// Continuation types have a templated or a fixed signature
@@ -369,6 +383,8 @@ struct ContinuableData {
   using Continuation = ContinuationType;
   /// TODO
   using Dispatcher = DispatcherType;
+  /// The possible signature hint of the continuation
+  using SignatureHint = SignatureHintType;
 
   ContinuableData(Continuation continuation_,
     Dispatcher dispatcher_) noexcept
@@ -389,7 +405,7 @@ struct ContinuableData {
 
   template<typename NewType>
   using ChangeDispatcherTo = ContinuableData<
-    Continuation, NewType
+    Continuation, NewType, SignatureHint
   >;
 
   Ownership ownership;
@@ -429,7 +445,6 @@ public:
 private:
   Data data;
 };
-
 
 template<typename... TargetArgs, typename... CombinedData>
 auto undecorateCombined(Identity<TargetArgs...>,
