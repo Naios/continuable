@@ -142,13 +142,13 @@ struct Identity { };
 template<typename Config>
 class ContinuableBase;
 
-static auto createEmptyContinuation() {
-  return [](auto&& callback) { callback(); };
+template<typename T>
+void emptyContinuation(T&& callback) {
+  std::forward<T>(callback)();
 }
 
-static auto createEmptyCallback() {
-  return [](auto&&...) { };
-}
+template<typename Args>
+void emptyCallback(Args&&... /*arguments*/) { }
 
 template<typename S, unsigned... I, typename T, typename F>
 auto applyTuple(std::integer_sequence<S, I...>, T&& tuple, F&& function) {
@@ -205,59 +205,83 @@ private:
 };
 
 template<typename... Args>
-struct SignatureHint : std::true_type {
-  typedef Identity<Args...> argument_type;
+struct ArgumentsHint : std::true_type {
+  /// The argument types of the function as pack in Identity.
+  using argument_type = Identity<Args...>;
+};
+
+template<typename OnlyArgument>
+struct ArgumentsHint<OnlyArgument> : std::true_type {
+  /// The argument types of the function as pack in Identity.
+  using argument_type = Identity<OnlyArgument>;
+
+  using only_argument_type = OnlyArgument;
 };
 
 template<>
-struct SignatureHint<void>  : std::false_type { };
+struct ArgumentsHint<void>  : std::false_type { };
 
-using AbsentSignatureHint = SignatureHint<void>;
-
-template<typename T>
-using InferSignatureFrom = AbsentSignatureHint;
+using AbsentArgumentsHint = ArgumentsHint<void>;
 
 template<typename Function>
-struct undecorate_function;
+struct GetArgumentsHint;
 
 template<typename ReturnType, typename... Args>
-struct undecorate_function<ReturnType(Args...)> {
-  /// The return type of the function.
-  typedef ReturnType return_type;
-  /// The argument types of the function as pack in Identity.
-  typedef Identity<Args...> argument_type;
-};
+struct GetArgumentsHint<ReturnType(Args...)>
+  : std::common_type<ArgumentsHint<Args...>> { };
 
 /// Mutable function pointers
 template<typename ReturnType, typename... Args>
-struct undecorate_function<ReturnType(*)(Args...)>
-  : undecorate_function<ReturnType(Args...)> { };
+struct GetArgumentsHint<ReturnType(*)(Args...)>
+  : GetArgumentsHint<ReturnType(Args...)> { };
 
 /// Const function pointers
 template<typename ReturnType, typename... Args>
-struct undecorate_function<ReturnType(*const)(Args...)>
-  : undecorate_function<ReturnType(Args...)> { };
+struct GetArgumentsHint<ReturnType(*const)(Args...)>
+  : GetArgumentsHint<ReturnType(Args...)> { };
 
 /// Mutable class method pointers
 template<typename ClassType, typename ReturnType, typename... Args>
-struct undecorate_function<ReturnType(ClassType::*)(Args...)>
-  : undecorate_function<ReturnType(Args...)> { };
+struct GetArgumentsHint<ReturnType(ClassType::*)(Args...)>
+  : GetArgumentsHint<ReturnType(Args...)> { };
 
 /// Const class method pointers
 template<typename ClassType, typename ReturnType, typename... Args>
-struct undecorate_function<ReturnType(ClassType::*)(Args...) const>
-  : undecorate_function<ReturnType(Args...)> { };
+struct GetArgumentsHint<ReturnType(ClassType::*)(Args...) const>
+  : GetArgumentsHint<ReturnType(Args...)> { };
 
 /// Mutable volatile class method pointers
 template<typename ClassType, typename ReturnType, typename... Args>
-struct undecorate_function<ReturnType(ClassType::*)(Args...) volatile>
-  : undecorate_function<ReturnType(Args...)> { };
+struct GetArgumentsHint<ReturnType(ClassType::*)(Args...) volatile>
+  : GetArgumentsHint<ReturnType(Args...)> { };
 
 /// Const volatile class method pointers
 template<typename ClassType, typename ReturnType, typename... Args>
-struct undecorate_function<ReturnType(ClassType::*)(Args...) const volatile>
-  : undecorate_function<ReturnType(Args...)> { };
+struct GetArgumentsHint<ReturnType(ClassType::*)(Args...) const volatile>
+  : GetArgumentsHint<ReturnType(Args...)> { };
 
+template<typename T,
+  typename ReturnType, typename... Args,
+  typename Qualifier, typename Config,
+  template<typename...> class Accept>
+struct invocation_acceptor_select<T, ReturnType(Args...), Qualifier, Config,
+  Accept, always_void_t<
+  typename std::enable_if<std::is_convertible<
+  decltype(std::declval<
+    make_qualified_type_t<T, Qualifier>
+  >()(std::declval<Args>()...)),
+  ReturnType
+  >::value>::type>>
+  : Accept<>{};
+
+template<typename T,
+         typename = always_void_t<>>
+struct InferArgumentsFromType : AbsentArgumentsHint { };
+
+template<typename T>
+using InferArgumentsFrom = typename InferArgumentsFromType<T>::type;
+
+/*
 template<typename Function>
 using do_undecorate = std::conditional_t<
   std::is_class<Function>::value,
@@ -271,6 +295,7 @@ template<typename Function>
 struct is_undecorateable<Function, always_void_t<
   typename do_undecorate<Function>::return_type
 >> : std::true_type { };
+*/
 
 /// Decorates single values
 template<typename Value>
@@ -279,7 +304,7 @@ struct CallbackResultDecorator {
   static auto decorate(Callback&& callback) {
     return [callback = std::forward<Callback>(callback)](auto&&... args) {
       Value value = callback(std::forward<decltype(args)>(args)...);
-      return [value =  std::move(value)](auto&& callback) mutable {
+      return [value = std::move(value)](auto&& callback) mutable {
         callback(std::move(value));
       };
     };
@@ -302,7 +327,7 @@ struct CallbackResultDecorator<void> {
   static auto decorate(Callback&& callback) {
     return [callback = std::forward<Callback>(callback)](auto&&... args) {
       callback(std::forward<decltype(args)>(args)...);
-      return createEmptyContinuation();
+      return emptyContinuation;
     };
   }
 };
@@ -361,7 +386,7 @@ void invokeContinuation(Data data) {
   // Check whether the ownership is acquired and start the continuation call
   if (data.ownership.hasOwnership()) {
     // Pass an empty callback to the continuation to invoke it
-    std::move(data.continuation)(createEmptyCallback());
+    std::move(data.continuation)(emptyCallback);
   }
 }
 
@@ -369,7 +394,7 @@ void invokeContinuation(Data data) {
 /// the continuation object and the dispatcher.
 template<typename ContinuationType,
          typename DispatcherType,
-         typename SignatureHintType = InferSignatureFrom<ContinuationType>>
+         typename ArgumentsHintType = InferArgumentsFrom<ContinuationType>>
 struct ContinuableData {
   /// The plain continuation type that is stored within the data.
   /// Continuation types have a templated or a fixed signature
@@ -384,7 +409,7 @@ struct ContinuableData {
   /// TODO
   using Dispatcher = DispatcherType;
   /// The possible signature hint of the continuation
-  using SignatureHint = SignatureHintType;
+  using ArgumentsHint = ArgumentsHintType;
 
   ContinuableData(Continuation continuation_,
     Dispatcher dispatcher_) noexcept
@@ -405,7 +430,7 @@ struct ContinuableData {
 
   template<typename NewType>
   using ChangeDispatcherTo = ContinuableData<
-    Continuation, NewType, SignatureHint
+    Continuation, NewType, ArgumentsHint
   >;
 
   Ownership ownership;
@@ -624,12 +649,6 @@ private:
   /// with ContinuableBase::then.
   Decoration decoration;
 };
-
-static auto makeTestContinuation() {
-  return make_continuable([i = std::make_unique<int>(0)](auto&& callback) {
-    callback("47");
-  });
-}
 
 struct Inspector {
   template<typename... Args>

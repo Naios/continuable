@@ -6,6 +6,12 @@
 template<typename... Args>
 using continuable = decltype(make_continuable(std::declval<std::function<void(Args...)>>));
 
+static auto makeTestContinuation() {
+  return make_continuable([i = std::make_unique<int>(0)](auto&& callback) {
+    callback("47");
+  });
+}
+
 int main(int, char**) {
   // continuable<int, int> c;
 
