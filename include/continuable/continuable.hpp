@@ -127,7 +127,7 @@ template<typename...>
 struct deduce_to_void : std::common_type<void> { };
 
 template<typename... T>
-using always_void_t = typename deduce_to_void<T...>::type;
+using void_t = typename deduce_to_void<T...>::type;
 
 struct SelfDispatcher {
   template<typename T>
@@ -136,19 +136,21 @@ struct SelfDispatcher {
   }
 };
 
-template<typename T>
+template<typename... T>
 struct Identity { };
 
 template<typename Config>
 class ContinuableBase;
 
-template<typename T>
-void emptyContinuation(T&& callback) {
-  std::forward<T>(callback)();
+inline auto emptyContinuation() {
+  return [](auto&& callback) {
+    std::forward<decltype(callback)>(callback)();
+  };
 }
 
-template<typename Args>
-void emptyCallback(Args&&... /*arguments*/) { }
+inline auto emptyCallback() {
+  return [](auto&&...) { };
+}
 
 template<typename S, unsigned... I, typename T, typename F>
 auto applyTuple(std::integer_sequence<S, I...>, T&& tuple, F&& function) {
@@ -189,14 +191,14 @@ public:
     return *this;
   }
 
-  Ownership operator&& (Ownership right) const {
+  Ownership operator&& (Ownership right) const noexcept {
     return Ownership(hasOwnership() && right.hasOwnership());
   }
 
   bool hasOwnership() const noexcept {
     return isOwning;
   }
-  void invalidate() {
+  void invalidate() noexcept {
     isOwning = false;
   }
 
@@ -223,43 +225,61 @@ struct ArgumentsHint<void>  : std::false_type { };
 
 using AbsentArgumentsHint = ArgumentsHint<void>;
 
+using EmptyArgumentsHint = ArgumentsHint<>;
+
 template<typename Function>
-struct GetArgumentsHint;
+struct UnwrapArguments;
 
 template<typename ReturnType, typename... Args>
-struct GetArgumentsHint<ReturnType(Args...)>
+struct UnwrapArguments<ReturnType(Args...)>
   : std::common_type<ArgumentsHint<Args...>> { };
 
 /// Mutable function pointers
 template<typename ReturnType, typename... Args>
-struct GetArgumentsHint<ReturnType(*)(Args...)>
-  : GetArgumentsHint<ReturnType(Args...)> { };
+struct UnwrapArguments<ReturnType(*)(Args...)>
+  : UnwrapArguments<ReturnType(Args...)> { };
 
 /// Const function pointers
 template<typename ReturnType, typename... Args>
-struct GetArgumentsHint<ReturnType(*const)(Args...)>
-  : GetArgumentsHint<ReturnType(Args...)> { };
+struct UnwrapArguments<ReturnType(*const)(Args...)>
+  : UnwrapArguments<ReturnType(Args...)> { };
 
 /// Mutable class method pointers
 template<typename ClassType, typename ReturnType, typename... Args>
-struct GetArgumentsHint<ReturnType(ClassType::*)(Args...)>
-  : GetArgumentsHint<ReturnType(Args...)> { };
+struct UnwrapArguments<ReturnType(ClassType::*)(Args...)>
+  : UnwrapArguments<ReturnType(Args...)> { };
 
 /// Const class method pointers
 template<typename ClassType, typename ReturnType, typename... Args>
-struct GetArgumentsHint<ReturnType(ClassType::*)(Args...) const>
-  : GetArgumentsHint<ReturnType(Args...)> { };
+struct UnwrapArguments<ReturnType(ClassType::*)(Args...) const>
+  : UnwrapArguments<ReturnType(Args...)> { };
 
 /// Mutable volatile class method pointers
 template<typename ClassType, typename ReturnType, typename... Args>
-struct GetArgumentsHint<ReturnType(ClassType::*)(Args...) volatile>
-  : GetArgumentsHint<ReturnType(Args...)> { };
+struct UnwrapArguments<ReturnType(ClassType::*)(Args...) volatile>
+  : UnwrapArguments<ReturnType(Args...)> { };
 
 /// Const volatile class method pointers
 template<typename ClassType, typename ReturnType, typename... Args>
-struct GetArgumentsHint<ReturnType(ClassType::*)(Args...) const volatile>
-  : GetArgumentsHint<ReturnType(Args...)> { };
+struct UnwrapArguments<ReturnType(ClassType::*)(Args...) const volatile>
+  : UnwrapArguments<ReturnType(Args...)> { };
 
+template<typename Functional>
+using unwrap_functional_t = std::conditional_t<
+  std::is_function<Functional>::value,
+  UnwrapArguments<Functional>,
+  UnwrapArguments<decltype(&Functional::operator())>
+>;
+
+template<typename T>
+using unwrap_continuation_t = typename unwrap_functional_t<
+  typename unwrap_functional_t<T>::type::only_argument_type
+>::type;
+
+template<typename T>
+using unwrap_callback_t = AbsentArgumentsHint;
+
+/*
 template<typename T,
   typename ReturnType, typename... Args,
   typename Qualifier, typename Config,
@@ -278,8 +298,10 @@ template<typename T,
          typename = always_void_t<>>
 struct InferArgumentsFromType : AbsentArgumentsHint { };
 
+*/
+
 template<typename T>
-using InferArgumentsFrom = typename InferArgumentsFromType<T>::type;
+using InferArgumentsFrom = AbsentArgumentsHint; //  typename InferArgumentsFromType<T>::type;
 
 /*
 template<typename Function>
@@ -327,7 +349,7 @@ struct CallbackResultDecorator<void> {
   static auto decorate(Callback&& callback) {
     return [callback = std::forward<Callback>(callback)](auto&&... args) {
       callback(std::forward<decltype(args)>(args)...);
-      return emptyContinuation;
+      return emptyContinuation();
     };
   }
 };
@@ -382,11 +404,11 @@ auto appendCallback(Continuation&& continuation,
 }
 
 template<typename Data>
-void invokeContinuation(Data data) {
+void invokeUndecorated(Data data) {
   // Check whether the ownership is acquired and start the continuation call
   if (data.ownership.hasOwnership()) {
     // Pass an empty callback to the continuation to invoke it
-    std::move(data.continuation)(emptyCallback);
+    std::move(data.continuation)(emptyCallback());
   }
 }
 
@@ -456,15 +478,15 @@ public:
     : data(std::move(data_)) { }
 
   /// Return a r-value reference to the data
-  template<typename Target>
+  template<typename Hint>
   auto undecorate()&& {
-    return Undecorator::template undecorate<Target>(std::move(data));
+    return Undecorator::template undecorate<Hint>(std::move(data));
   }
 
   /// Return a copy of the data
-  template<typename Target>
+  template<typename Hint>
   auto undecorate() const& {
-    return Undecorator::template undecorate<Target>(data);
+    return Undecorator::template undecorate<Hint>(data);
   }
 
 private:
@@ -495,24 +517,26 @@ public:
 
   template<typename Callback>
   static void requiresUndecorateable() {
-    static_assert(is_undecorateable<Callback>::value,
+    /*static_assert(is_undecorateable<Callback>::value,
                   "Can't retrieve the signature of the given callback. "
                   "Consider to pass an untemplated function or functor "
-                  "to the `then` method invocation to fix this.");
+                  "to the `then` method invocation to fix this.");*/
   }
 
   /// Return a r-value reference to the data
-  template<typename Callback>
+  template<typename... Args>
   void undecorate()&& {
-    requiresUndecorateable<Callback>();
-    return undecorateCombined<Callback>(std::move(combined));
+    /// TODO
+    // requiresUndecorateable<>();
+    // return undecorateCombined<Callback>(std::move(combined));
   }
 
-  template<typename Callback>
+  template<typename... Args>
   /// Return a copy of the data
   void undecorate() const& {
-    requiresUndecorateable<Callback>();
-    return undecorateCombined<Callback>(combined);
+    /// TODO
+    // requiresUndecorateable<Callback>();
+    // return undecorateCombined<Callback>(combined);
   }
 
   template<typename RightLazyCombine>
@@ -538,6 +562,11 @@ auto make_continuable(Continuation&& continuation,
     std::forward<Continuation>(continuation),
     std::forward<Dispatcher>(dispatcher)
   }));
+}
+
+template <typename T, typename... Args>
+auto add_type_hint(T&& continuable) {
+  return std::forward<T>(continuable);
 }
 
 template<typename Undecorated, typename Callback>
@@ -596,20 +625,23 @@ public:
 
   ~ContinuableBase() {
     // Undecorate/materialize the decoration
-    // invokeContinuation(std::move(decoration).template undecorate<void>());
+    invokeUndecorated(std::move(decoration)
+      .template undecorate<EmptyArgumentsHint>());
   }
   ContinuableBase(ContinuableBase&&) = default;
   ContinuableBase(ContinuableBase const&) = default;
 
   template<typename Callback>
   auto then(Callback&& callback)&& {
-    return thenImpl(std::move(decoration).template undecorate<Callback>(),
+    using Hint = unwrap_callback_t<Callback>;
+    return thenImpl(std::move(decoration).template undecorate<Hint>(),
                     std::forward<Callback>(callback));
   }
 
   template<typename Callback>
   auto then(Callback&& callback) const& {
-    return thenImpl(decoration.template undecorate<Callback>(),
+    using Hint = unwrap_callback_t<Callback>;
+    return thenImpl(decoration.template undecorate<Hint>(),
                     std::forward<Callback>(callback));
   }
 

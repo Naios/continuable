@@ -3,6 +3,7 @@
 
 #include "continuable/continuable.hpp"
 
+
 template<typename... Args>
 using continuable = decltype(make_continuable(std::declval<std::function<void(Args...)>>));
 
@@ -12,7 +13,56 @@ static auto makeTestContinuation() {
   });
 }
 
+static auto dnsResolve(std::string) {
+  return make_continuable([](auto&& callback) {
+    callback("");
+  });
+}
+
+static auto httpRequestToIp(std::string) {
+  return make_continuable([](auto&& callback) {
+    callback("");
+  });
+}
+
+template<typename T>
+static auto flatten(T&& factory) {
+  return [factory = std::forward<T>(factory)](auto&&... args) {
+    return factory(std::forward<decltype(args)>(args)...);
+  };
+}
+
+/*static auto httpRequest(std::string url) {
+  return dnsResolve(url)
+    .then(flatten(httpRequestToIp))
+    .then([](std::string result) {
+      
+    });
+}*/
+
+struct Debugable {
+  int i = 5;
+
+  template<typename C>
+  void operator() (C&& c) {
+    std::forward<C>(c)(true);
+  }
+};
+
+static auto moveTo() {
+  /*return make_continuable([](auto&& callback) {
+    callback(true);
+  });*/
+
+  return make_continuable(Debugable{});
+}
+
 int main(int, char**) {
+
+  Debugable deb;
+
+  // moveTo().then([](bool) {});
+
   // continuable<int, int> c;
 
   auto dispatcher = SelfDispatcher{};
@@ -47,14 +97,11 @@ int main(int, char**) {
       res += val;
     })
     .then([] {
-
-
-
       return makeTestContinuation();
     })
     .then(makeTestContinuation())
     .then([] (std::string arg) {
-
+      arg.clear();
     });
 
   return res;

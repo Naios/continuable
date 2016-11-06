@@ -1,5 +1,6 @@
 add_executable(continuable-tests
-  ${CMAKE_CURRENT_LIST_DIR}/test-chaining.cpp)
+  ${CMAKE_CURRENT_LIST_DIR}/test-chaining.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/test-unwrap.cpp)
 
 target_link_libraries(continuable-tests
   PRIVATE
