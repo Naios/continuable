@@ -120,6 +120,9 @@ auto appendHandlerToContinuation(Continuation&& cont, Handler&& handler) {
 #include <string>
 #include <memory>
 
+template<typename T>
+struct fail : std::enable_if_t<std::is_same<T, void>::value, std::true_type> { };
+
 // Equivalent to C++17's std::void_t which is targets a bug in GCC,
 // that prevents correct SFINAE behavior.
 // See http://stackoverflow.com/questions/35753920 for details.
@@ -144,13 +147,18 @@ class ContinuableBase;
 
 inline auto emptyContinuation() {
   return [](auto&& callback) {
-    std::forward<decltype(callback)>(callback)();
+    /*std::forward<decltype(callback)>(*/callback/*)*/();
   };
 }
 
 inline auto emptyCallback() {
   return [](auto&&...) { };
 }
+
+struct FinalCallback {
+  template<typename... Args>
+  void operator() (Args&&...) const { }
+};
 
 template<typename S, unsigned... I, typename T, typename F>
 auto applyTuple(std::integer_sequence<S, I...>, T&& tuple, F&& function) {
@@ -220,11 +228,12 @@ struct ArgumentsHint<OnlyArgument> : std::true_type {
   using only_argument_type = OnlyArgument;
 };
 
+struct AbsentArgumentsTag { };
+
 template<>
-struct ArgumentsHint<void>  : std::false_type { };
+struct ArgumentsHint<AbsentArgumentsTag> : std::false_type { };
 
-using AbsentArgumentsHint = ArgumentsHint<void>;
-
+using AbsentArgumentsHint = ArgumentsHint<AbsentArgumentsTag>;
 using EmptyArgumentsHint = ArgumentsHint<>;
 
 template<typename Function>
@@ -334,10 +343,10 @@ struct CallbackResultDecorator {
 };
 
 /// No decoration is needed for continuables
-template<typename Decorator>
-struct CallbackResultDecorator<ContinuableBase<Decorator>>{
+template<typename Decoration>
+struct CallbackResultDecorator<ContinuableBase<Decoration>>{
   template<typename Callback>
-  static auto decorate(Callback&& callback) -> std::decay_t<Callback> {
+  static auto decorate(Callback&& callback) {
     return std::forward<Callback>(callback);
   }
 };
@@ -375,6 +384,14 @@ struct CallbackResultDecorator<std::tuple<Results...>> {
   }
 };
 
+template<typename Result, typename Next>
+void finalInvoke(std::true_type, Result&&, Next&&) { }
+
+template<typename Result, typename Next>
+void finalInvoke(std::false_type, Result&& result, Next&& next) {
+  std::forward<Result>(result)(std::forward<Next>(next));
+}
+
 /// Create the proxy callback that is responsible for invoking
 /// the real callback and passing the next continuation into
 /// the result of the following callback.
@@ -387,8 +404,10 @@ auto createProxyCallback(Callback&& callback,
     // if not, we need to decorate it.
     using Result = decltype(callback(std::forward<decltype(args)>(args)...));
     using Decorator = CallbackResultDecorator<Result>;
-    Decorator::decorate(std::move(callback))
-            (std::forward<decltype(args)>(args)...)(std::move(next));
+    auto callable = Decorator::decorate(std::move(callback));
+    auto result = std::move(callable)(std::forward<decltype(args)>(args)...);
+    finalInvoke(std::is_same<FinalCallback, std::decay_t<Next>>{},
+                std::move(result), std::move(next));
   };
 }
 
@@ -408,7 +427,14 @@ void invokeUndecorated(Data data) {
   // Check whether the ownership is acquired and start the continuation call
   if (data.ownership.hasOwnership()) {
     // Pass an empty callback to the continuation to invoke it
-    std::move(data.continuation)(emptyCallback());
+    auto cont = std::move(data.continuation); // (emptyCallback());
+
+    // auto fn = &decltype(cont)::operator();
+    // cont([](auto&&...) { });
+
+    cont(FinalCallback{});
+
+    int i = 0;
   }
 }
 
@@ -495,12 +521,12 @@ private:
 
 template<typename... TargetArgs, typename... CombinedData>
 auto undecorateCombined(Identity<TargetArgs...>,
-                        std::tuple<CombinedData...> combined) {
+                        std::tuple<CombinedData...> /*combined*/) {
 
 }
 
 template<typename Callback, typename... CombinedData>
-auto undecorateCombined(std::tuple<CombinedData...> combined) {
+auto undecorateCombined(std::tuple<CombinedData...> /*combined*/) {
   // using TargetArgs = typename do_undecorate<Callback>::argument_type;
   // return undecorateCombined(TargetArgs{}, std::move(combined));
 }

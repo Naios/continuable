@@ -45,27 +45,38 @@ struct Debugable {
 
   template<typename C>
   void operator() (C&& c) {
+	// fail<C> cc;
     std::forward<C>(c)(true);
   }
 };
 
 static auto moveTo() {
-  /*return make_continuable([](auto&& callback) {
+  return make_continuable([](auto&& callback) {
     callback(true);
-  });*/
+  });
 
-  return make_continuable(Debugable{});
+  // return make_continuable(Debugable{});
 }
 
 int main(int, char**) {
 
   Debugable deb;
 
-  // moveTo().then([](bool) {});
+  auto empty = [](auto&&...) {};
+
+  deb(empty);
+
+  moveTo()
+    .then([](bool) {
+	    return make_continuable(Debugable{});
+    })
+    .then([](bool) {
+
+    });
 
   // continuable<int, int> c;
 
-  auto dispatcher = SelfDispatcher{};
+  // auto dispatcher = SelfDispatcher{};
 
   /*(makeTestContinuation() && makeTestContinuation())
     .undecorateFor([]()
@@ -85,7 +96,7 @@ int main(int, char**) {
   // auto combined = makeTestContinuation() && makeTestContinuation();
 
   int res = 0;
-  makeTestContinuation()
+  /*makeTestContinuation()
     .then([](std::string) {
       return std::make_tuple(47, 46, 45);
     })
@@ -102,7 +113,7 @@ int main(int, char**) {
     .then(makeTestContinuation())
     .then([] (std::string arg) {
       arg.clear();
-    });
+    });*/
 
   return res;
 }
