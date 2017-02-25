@@ -1,0 +1,6 @@
+[submodule "dep/googletest/googletest"]
+	path = dep/googletest/googletest
+	url = https://github.com/google/googletest.git
+[submodule "dep/function2/function2"]
+	path = dep/function2/function2
+	url = https://github.com/Naios/function2.git

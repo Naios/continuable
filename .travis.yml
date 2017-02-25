@@ -1,0 +1,104 @@
+sudo: true
+dist: trusty
+language: cpp
+
+git:
+  depth: 1
+
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - valgrind
+            - g++-5
+          sources:
+            - ubuntu-toolchain-r-test
+      env:
+        - COMPILER=g++-5
+
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - valgrind
+            - g++-6
+          sources:
+            - ubuntu-toolchain-r-test
+      env:
+        - COMPILER=g++-6
+
+    - os: linux
+      compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.7 main"
+              key_url: "http://apt.llvm.org/llvm-snapshot.gpg.key"
+          packages:
+            - g++-6
+            - clang-3.7
+      env:
+        - COMPILER=clang++-3.7
+
+    - os: linux
+      compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.9 main"
+              key_url: "http://apt.llvm.org/llvm-snapshot.gpg.key"
+          packages:
+            - g++-6
+            - clang-3.9
+      env:
+        - COMPILER=clang++-3.9
+
+install:
+  - export CXX=$COMPILER
+  - $CXX --version
+
+  # Function for creating a new 'build' directory
+  - |
+    function invoke_build {
+      echo "Renew build directory..."
+      cd $TRAVIS_BUILD_DIR
+
+      # Remove any existing build directory
+      [ -e build ] && rm -r -f build
+      mkdir build
+      cd build
+
+      # Configure the project and build it
+      cmake -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS -Werror" -DCMAKE_BUILD_TYPE=Debug ..
+      make -j2
+    }
+
+script:
+  - |
+    if [[ $COMPILER == *"clang"* ]]; then
+      # Build the test suite with various sanitizers:
+      # - ASan (LSan):
+      echo "Building with address sanitizer..."
+      CMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer"
+      invoke_build
+      ctest --verbose
+
+      # - UBSan:
+      echo "Building with undefined behaviour sanitizer..."
+      CMAKE_CXX_FLAGS="-fsanitize=undefined -fno-omit-frame-pointer"
+      invoke_build
+      ctest --verbose
+    else
+      # Build an run the tests suite with valgrind
+      invoke_build
+      valgrind --error-exitcode=1 --leak-check=full --show-reachable=yes ctest --verbose
+    fi
+
+notifications:
+  email: false
