@@ -1334,14 +1334,90 @@ private:
   }
 };
 
-template <typename... Args, typename T>
-auto make_continuable(T&& continuation) {
+/// Creates a \ref continuable_base from a callback taking function.
+///
+/// \tparam Args The types (signature hint) the given callback is called with.
+/// * **Some arguments** indicate the types the callback will be invoked with.
+/// ```cpp
+/// auto ct = cti::make_continuable<int, std::string>([](auto&& callback) {
+///   std::forward<decltype(callback)>(callback)(200, "<html>...</html>");
+/// });
+/// ```
+/// * **void as argument** indicates that the callback will be invoked
+///   with no arguments:
+/// ```cpp
+/// auto ct = cti::make_continuable<void>([](auto&& callback) {
+///   std::forward<decltype(callback)>(callback)();
+/// });
+/// ```
+/// * **No arguments** indicate that the types are unknown.
+///   You should always give the type hint a callback is called with because
+///   it's required for intermediate actions like connecting continuables.
+///   You may omit the signature hint if you are erasing the type of
+///   the continuable right after creation.
+/// ```cpp
+/// // Never do this:
+/// auto ct = cti::make_continuable([](auto&& callback) {
+///   std::forward<decltype(callback)>(callback)(0.f, 'c');
+/// });
+///
+/// // However, you may do this:
+/// continuable<float, char> ct = cti::make_continuable([](auto&& callback) {
+///   std::forward<decltype(callback)>(callback)(0.f, 'c');
+/// });
+/// ```
+///
+/// \param continuation The continuation the continuable is created from.
+/// The continuation must be a functional type accepting a callback parameter
+/// which represents the object invokable with the asynchronous result of this
+/// continuable.
+/// ```cpp
+/// auto ct = cti::make_continuable([](auto&& callback) {
+///   std::forward<decltype(callback)>(callback)("result");
+/// });
+/// ```
+/// The callback may be stored or moved.
+/// In some cases the callback may be copied if supported by the underlying
+/// callback chain, in order to invoke the call chain multiple times.
+/// It's recommended to accept any callback instead of erasing it.
+/// ```cpp
+/// // Good practice:
+/// auto ct = cti::make_continuable([](auto&& callback) {
+///   std::forward<decltype(callback)>(callback)("result");
+/// });
+///
+/// // Good practice using a functional object:
+/// struct Continuation {
+///   template<typename T>
+///   void operator() (T&& continuation) const {
+///     // ...
+///   }
+/// }
+///
+/// auto ct = cti::make_continuable(Continuation{});
+///
+/// // Bad practice (because of unnecessary type erasure):
+/// auto ct = cti::make_continuable(
+///   [](std::function<void(std::string)> callback) {
+///     callback("result");
+///   });
+/// ```
+///
+/// \returns A \ref continuable_base with unknown template parameters which
+///          wraps the given continuation.
+///
+/// \note You should always turn the callback into a r-value if possible
+///       (`std::move` or `std::forward`) for qualifier correct invokation.
+///
+/// \since version 1.0.0
+template <typename... Args, typename Continuation>
+auto make_continuable(Continuation&& continuation) {
   auto hint = detail::compose::annotating::extract(
       detail::util::identity_of(continuation),
       detail::util::identity<Args...>{});
 
-  return detail::base::make_continuable_base(std::forward<T>(continuation),
-                                             hint);
+  return detail::base::make_continuable_base(
+      std::forward<Continuation>(continuation), hint);
 }
 
 template <typename First, typename Second, typename... Rest>

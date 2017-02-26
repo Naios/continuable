@@ -48,6 +48,8 @@ bld/
 # Visual Studo 2015 cache/options directory
 .vs/
 
+doc/doxygen/
+
 format.sh
 push.sh
 commit.sh
