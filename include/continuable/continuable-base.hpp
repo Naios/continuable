@@ -37,6 +37,7 @@ namespace cti {
 /// \cond false
 inline namespace abi_v1 {
 /// \endcond
+
 /// A wrapper class to mark a functional class as continuation
 /// Such a wrapper class is required to decorate the result of a callback
 /// correctly.
@@ -1251,12 +1252,23 @@ public:
   continuable_base(continuable_base<OData, OAnnotation>&& other)
       : continuable_base(std::move(other).materialize().consumeData()) {}
 
+  /// \cond false
   continuable_base(continuable_base&&) = default;
   continuable_base(continuable_base const&) = default;
 
   continuable_base& operator=(continuable_base&&) = default;
   continuable_base& operator=(continuable_base const&) = default;
+  /// \endcond
 
+  /// The destructor automatically invokes the continuable_base
+  /// if it wasn't consumed yet.
+  ///
+  /// In order to invoke the continuable early you may call the
+  /// continuable_base::done() method.
+  ///
+  /// You may release the continuable_base through calling the corresponding
+  /// continuable_base::release() method which prevents
+  /// the invocation on destruction.
   ~continuable_base() {
     if (ownership_.has_ownership()) {
       std::move(*this).done();
@@ -1301,6 +1313,8 @@ public:
     assert(!ownership_.has_ownership());
   }
 
+  /// Prevents the automatic invocation on destruction as explained
+  /// in continuable_base::~continuable_base().
   void release() noexcept { ownership_.invalidate(); }
 
 private:
@@ -1336,7 +1350,7 @@ private:
   }
 };
 
-/// Creates a \ref continuable_base from a callback taking function.
+/// Creates a continuable_base from a callback taking function.
 ///
 /// \tparam Args The types (signature hint) the given callback is called with.
 /// * **Some arguments** indicate the types the callback will be invoked with.
@@ -1405,9 +1419,9 @@ private:
 ///   });
 /// ```
 ///
-/// \returns A \ref continuable_base with unknown template parameters which
+/// \returns A continuable_base with unknown template parameters which
 ///          wraps the given continuation.
-///          In order to convert the \ref continuable_base to a known type
+///          In order to convert the continuable_base to a known type
 ///          you need to apply type erasure.
 ///
 /// \note You should always turn the callback into a r-value if possible
@@ -1426,10 +1440,10 @@ auto make_continuable(Continuation&& continuation) {
 
 /// Connects the given continuables with an *all* logic.
 ///
-/// \param continuables The \ref continuable_base objects to connect.
+/// \param continuables The continuable_base objects to connect.
 ///        Requires at least 2 objects to connect.
 ///
-/// \see \ref continuable_base::operator && for details.
+/// \see continuable_base::operator && for details.
 ///
 /// \since version 1.0.0
 template <typename... Continuables>
@@ -1442,10 +1456,10 @@ auto all_of(Continuables&&... continuables) {
 
 /// Connects the given continuables with an *any* logic.
 ///
-/// \param continuables The \ref continuable_base objects to connect.
+/// \param continuables The continuable_base objects to connect.
 ///        Requires at least 2 objects to connect.
 ///
-/// \see \ref continuable_base::operator|| for details.
+/// \see continuable_base::operator|| for details.
 ///
 /// \since version 1.0.0
 template <typename... Continuables>
