@@ -29,7 +29,9 @@
 #include "continuable/continuable-base.hpp"
 
 namespace cti {
+/// \cond false
 inline namespace abi_v1 {
+/// \endcond
 namespace detail {
 namespace testing {
 template <typename C> void expect_async_completion(C&& continuable) {
@@ -107,7 +109,9 @@ void expect_async_types(C&& continuable, util::identity<Args...> expected) {
 }
 } // end namespace testing
 } // end namespace detail
+/// \cond false
 } // end inline namespace abi_...
+/// \endcond
 } // end namespace cti
 
 /// Expects the final callback of the given continuable to be called

@@ -34,7 +34,9 @@
 #include <utility>
 
 namespace cti {
+/// \cond false
 inline namespace abi_v1 {
+/// \endcond
 /// A wrapper class to mark a functional class as continuation
 /// Such a wrapper class is required to decorate the result of a callback
 /// correctly.
@@ -1405,6 +1407,8 @@ private:
 ///
 /// \returns A \ref continuable_base with unknown template parameters which
 ///          wraps the given continuation.
+///          In order to convert the \ref continuable_base to a known type
+///          you need to apply type erasure.
 ///
 /// \note You should always turn the callback into a r-value if possible
 ///       (`std::move` or `std::forward`) for qualifier correct invokation.
@@ -1420,18 +1424,36 @@ auto make_continuable(Continuation&& continuation) {
       std::forward<Continuation>(continuation), hint);
 }
 
-template <typename First, typename Second, typename... Rest>
-auto all_of(First&& first, Second&& second, Rest&&... rest) {
-  return detail::util::fold(
-      detail::util::and_folding(), std::forward<First>(first),
-      std::forward<Second>(second), std::forward<Rest>(rest)...);
+/// Connects the given continuables with an *all* logic.
+///
+/// \param continuables The \ref continuable_base objects to connect.
+///        Requires at least 2 objects to connect.
+///
+/// \see \ref continuable_base::operator && for details.
+///
+/// \since version 1.0.0
+template <typename... Continuables>
+auto all_of(Continuables&&... continuables) {
+  static_assert(sizeof...(continuables) >= 2,
+                "Requires at least 2 continuables!");
+  return detail::util::fold(detail::util::and_folding(),
+                            std::forward<Continuables>(continuables)...);
 }
 
-template <typename First, typename Second, typename... Rest>
-auto any_of(First&& first, Second&& second, Rest&&... rest) {
-  return detail::util::fold(
-      detail::util::or_folding(), std::forward<First>(first),
-      std::forward<Second>(second), std::forward<Rest>(rest)...);
+/// Connects the given continuables with an *any* logic.
+///
+/// \param continuables The \ref continuable_base objects to connect.
+///        Requires at least 2 objects to connect.
+///
+/// \see \ref continuable_base::operator|| for details.
+///
+/// \since version 1.0.0
+template <typename... Continuables>
+auto any_of(Continuables&&... continuables) {
+  static_assert(sizeof...(continuables) >= 2,
+                "Requires at least 2 continuables!");
+  return detail::util::fold(detail::util::or_folding(),
+                            std::forward<Continuables>(continuables)...);
 }
 
 template <template <typename> class CallbackWrapper,
@@ -1452,7 +1474,9 @@ using continuable_of_t =
  * cti::through
  */
 
+/// \cond false
 } // end inline namespace abi_...
+/// \endcond
 } // end namespace cti
 
 #endif // CONTINUABLE_BASE_HPP_INCLUDED__
