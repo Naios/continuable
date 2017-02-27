@@ -58,8 +58,8 @@ void expect_async_validation(C&& continuable, V&& validator) {
 }
 
 /// Expects that the continuable is finished with the given arguments
-template <typename C, typename V, typename... Args>
-void expect_async_binary_validation(C&& continuable, V&& validator,
+template <typename V, typename C, typename... Args>
+void expect_async_binary_validation(V&& validator, C&& continuable,
                                     Args&&... expected) {
   expect_async_validation(std::forward<C>(continuable), [
     expected_pack = std::make_tuple(std::forward<Args>(expected)...),
@@ -85,16 +85,16 @@ void expect_async_binary_validation(C&& continuable, V&& validator,
   });
 }
 
-template <typename C, typename... Args>
-void expect_async_result(C&& continuable, Args&&... expected) {
-  expect_async_binary_validation(
-      std::forward<C>(continuable),
-      [](auto&& expected, auto&& actual) { EXPECT_EQ(expected, actual); },
-      std::forward<Args>(expected)...);
+inline auto expecting_eq_check() {
+  return [](auto expected, auto actual) { EXPECT_EQ(expected, actual); };
+}
+
+inline auto asserting_eq_check() {
+  return [](auto expected, auto actual) { ASSERT_EQ(expected, actual); };
 }
 
 template <typename C, typename... Args>
-void expect_async_types(C&& continuable, util::identity<Args...> expected) {
+void assert_async_types(C&& continuable, util::identity<Args...> expected) {
   expect_async_validation(
       std::forward<C>(continuable), [&](auto... actualPack) {
         auto actual = util::identity<decltype(actualPack)...>{};
@@ -116,6 +116,8 @@ void expect_async_types(C&& continuable, util::identity<Args...> expected) {
 
 /// Expects the final callback of the given continuable to be called
 /// with any result.
+///
+/// \since version 1.0.0
 #define EXPECT_ASYNC_COMPLETION(CONTINUABLE)                                   \
   cti::detail::testing::expect_async_completion(CONTINUABLE);
 
@@ -125,25 +127,79 @@ void expect_async_types(C&& continuable, util::identity<Args...> expected) {
   cti::detail::testing::expect_async_validation(CONTINUABLE, VALIDATOR);
 
 /// Expects the continuation to be called and forwards it's arguments to
-/// the given validator which can then do assertions on the result:
+/// the given validator which can then do assertions on the result.
 ///
-///   auto validator = [](auto expected, auto actual) {
-///     // ...
-///   };
+/// A validator consists of a binary consumer with a signature as in
+/// in the example shown below:
+/// ```cpp
+/// auto validator = [](auto expected, auto actual) {
+///   EXPECT_EQ(expected, actual);
+/// };
+/// ```
+///
+/// The macro is usable as shown in the following example:
+/// ```cpp
+/// continuable<string> async_get(std::string);
+/// // ...
+/// auto validator = [](auto expected, auto actual) {
+///   EXPECT_EQ(expected, actual);
+/// };
+///
+/// EXPECT_ASYNC_BINARY_VALIDATION(validator, async_get("hello"), "hello")
+/// ```
 ///
 /// The validator is called for every expecting and actual result.
-#define EXPECT_ASYNC_BINARY_VALIDATION(CONTINUABLE, ...)                       \
-  cti::detail::testing::expect_async_binary_validation(CONTINUABLE,            \
-                                                       __VA_ARGS__);
+///
+/// \note This macro is mainly present for building other assertions
+///       relying on custom validation logic.
+///
+/// \since version 1.0.0
+#define EXPECT_ASYNC_BINARY_VALIDATION(VALIDATOR, ...)                         \
+  cti::detail::testing::expect_async_binary_validation(VALIDATOR, __VA_ARGS__);
 
 /// Expects that the continuable is finished with the given result
+///
+/// ```cpp
+/// continuable<string> async_get(std::string);
+/// // ...
+///
+/// EXPECT_ASYNC_RESULT(async_get("hello"), "hello");
+/// ```
+///
+/// \since version 1.0.0
 #define EXPECT_ASYNC_RESULT(...)                                               \
-  cti::detail::testing::expect_async_result(__VA_ARGS__);
+  EXPECT_ASYNC_BINARY_VALIDATION(cti::detail::testing::expecting_eq_check(),   \
+                                 __VA_ARGS__)
 
-/// Expects that the continuable is finished with the given type of arguments
+/// Asserts that the continuable is finished with the given result
+///
+/// ```cpp
+/// continuable<string> async_get(std::string);
+/// // ...
+///
+/// ASSERT_ASYNC_RESULT(async_get("hello"), "hello");
+/// ```
+///
+/// \since version 1.0.0
+#define ASSERT_ASYNC_RESULT(...)                                               \
+  EXPECT_ASYNC_BINARY_VALIDATION(cti::detail::testing::asserting_eq_check(),   \
+                                 __VA_ARGS__)
+
+/// Asserts that the continuable is finished with the given type of arguments
 /// without validating it against equality.
-#define EXPECT_ASYNC_TYPES(CONTINUABLE, ...)                                   \
-  cti::detail::testing::expect_async_types(                                    \
+///
+/// ```cpp
+/// continuable<string> async_get(std::string);
+/// // ...
+///
+/// ASSERT_ASYNC_TYPES(async_get("hello"), std::string);
+/// ```
+///
+/// \note This is a compile-time assertion.
+///
+/// \since version 1.0.0
+#define ASSERT_ASYNC_TYPES(CONTINUABLE, ...)                                   \
+  cti::detail::testing::assert_async_types(                                    \
       CONTINUABLE, cti::detail::util::identity<__VA_ARGS__>{})
 
 #endif // CONTINUABLE_TESTING_HPP_INCLUDED__

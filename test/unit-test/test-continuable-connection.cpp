@@ -23,6 +23,13 @@
 
 #include "test-continuable.hpp"
 
+template <typename T> auto make_step(T* me, unsigned& current, unsigned step) {
+  return me->invoke([=]() mutable {
+    ASSERT_EQ(step, current);
+    ++current;
+  });
+}
+
 TYPED_TEST(single_dimension_tests, is_logical_and_connectable) {
 
   {
@@ -42,8 +49,16 @@ TYPED_TEST(single_dimension_tests, is_logical_and_connectable) {
 
   {
     auto chain = this->supply(tag1{}) && this->supply(tag2{}, tag3{});
-    EXPECT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3);
+    ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3);
   }
+
+  /*{
+    // Check the evaluation order
+    unsigned i = 0;
+    auto composed =
+        make_step(this, i, 0) && make_step(this, i, 1) && make_step(this, i, 2);
+    EXPECT_ASYNC_RESULT(std::move(composed));
+  }*/
 }
 
 TYPED_TEST(single_dimension_tests, is_logical_or_connectable) {
@@ -65,18 +80,18 @@ TYPED_TEST(single_dimension_tests, is_logical_or_connectable) {
 
   {
     auto chain = this->supply(tag1{}, tag2{}) || this->supply(tag1{}, tag2{});
-    EXPECT_ASYNC_TYPES(std::move(chain), tag1, tag2);
+    ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2);
   }
 
   {
     auto chain = this->supply(tag1{}, tag2{}, tag3{}) ||
                  this->supply(tag1{}, tag2{}, tag3{});
-    EXPECT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3);
+    ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3);
   }
 
   {
     using common = std::common_type_t<char, int>;
     auto chain = this->supply(char(0), int(0)) || this->supply(int(0), char(0));
-    EXPECT_ASYNC_TYPES(std::move(chain), common, common);
+    ASSERT_ASYNC_TYPES(std::move(chain), common, common);
   }
 }

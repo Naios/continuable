@@ -4,7 +4,7 @@ This documentation covers the continuable library in detail
 
 ## Content
 
-- Class cti::continuable_base  - main class for continuation chaining
+- Class cti::continuable_base  - main class for continuation chaining.
   - \link cti::continuable_base::then then\endlink - adds a callback or  cti::continuable_base to the invocation chain.
   - \link cti::continuable_base::operator && operator&&\endlink  - connects another cti::continuable_base with an *all* logic.
   - \link cti::continuable_base::operator|| operator||\endlink  - connects another cti::continuable_base with an *any* logic.
@@ -13,4 +13,8 @@ This documentation covers the continuable library in detail
   - \link cti::make_continuable make_continuable\endlink - creates a cti::continuable_base from a callback tanking function.
   - \link cti::all_of all_of\endlink - connects all given cti::continuable_base objects with an *all* logic.
   - \link cti::any_of any_of\endlink - connects all given cti::continuable_base objects with an *any* logic.
+- GTest macros:
+  - \link EXPECT_ASYNC_RESULT EXPECT_ASYNC_RESULT\endlink - Expects that the given continuable is finished with the given result.
+  - \link ASSERT_ASYNC_RESULT ASSERT_ASYNC_RESULT\endlink - Asserts that the given continuable is finished with the given result.
+  - \link ASSERT_ASYNC_TYPES ASSERT_ASYNC_TYPES\endlink - Asserts that the given continuable is finished with the given types without validating it against equality.
 

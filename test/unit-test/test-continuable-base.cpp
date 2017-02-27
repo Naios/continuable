@@ -42,7 +42,7 @@ TYPED_TEST(single_dimension_tests, are_supplyd_on_destruct) {
 
   EXPECT_ASYNC_RESULT(this->supply(0xDA), 0xDA);
 
-  EXPECT_ASYNC_TYPES(this->supply(tag1{}), tag1);
+  ASSERT_ASYNC_TYPES(this->supply(tag1{}), tag1);
 }
 
 TYPED_TEST(single_dimension_tests, are_chainable) {
@@ -53,7 +53,7 @@ TYPED_TEST(single_dimension_tests, are_chainable) {
   // Type chain
   {
     auto chain = this->supply().then([] { return tag1{}; });
-    EXPECT_ASYNC_TYPES(std::move(chain), tag1);
+    ASSERT_ASYNC_TYPES(std::move(chain), tag1);
   }
 
   // Pair chain
@@ -62,7 +62,7 @@ TYPED_TEST(single_dimension_tests, are_chainable) {
       // ...
       return std::make_pair(tag1{}, tag2{});
     });
-    EXPECT_ASYNC_TYPES(std::move(chain), tag1, tag2);
+    ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2);
   }
 
   // Tuple chain
@@ -71,20 +71,20 @@ TYPED_TEST(single_dimension_tests, are_chainable) {
       // ...
       return std::make_tuple(tag1{}, tag2{}, tag3{});
     });
-    EXPECT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3);
+    ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3);
   }
 
   // Erasing chain
   {
     auto chain = this->supply().then(this->supply(tag1{}));
-    EXPECT_ASYNC_TYPES(std::move(chain), tag1);
+    ASSERT_ASYNC_TYPES(std::move(chain), tag1);
   }
 
   // Continuing chain
   {
     auto chain = this->supply().then([&] { return this->supply(tag1{}); });
 
-    EXPECT_ASYNC_TYPES(std::move(chain), tag1);
+    ASSERT_ASYNC_TYPES(std::move(chain), tag1);
   }
 }
 

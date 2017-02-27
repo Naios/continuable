@@ -31,26 +31,40 @@
 #include "continuable/continuable.hpp"
 #include "gtest/gtest.h"
 
+using cti::detail::util::identity;
+
+inline auto to_hint(identity<> /*hint*/) { return identity<void>{}; }
+template <typename... Args> auto to_hint(identity<Args...> hint) {
+  return hint;
+}
+
+template <typename... Args> auto supplier_of(Args&&... args) {
+  return [values = std::make_tuple(std::forward<Args>(args)...)](
+      auto&& callback) mutable {
+    cti::detail::util::unpack(std::move(values), [&](auto&&... passed) {
+      // ...
+      std::forward<decltype(callback)>(callback)(
+          std::forward<decltype(passed)>(passed)...);
+    });
+  };
+}
+
 template <typename Provider>
 class continuation_provider : public ::testing::Test, public Provider {
 public:
-  auto supply() {
-    return this->makeVoid([](auto&& callback) mutable {
-      // ...
-      std::forward<decltype(callback)>(callback)();
-    });
-  };
+  template <typename T> auto invoke(T&& type) {
+    return this->make(identity<>{}, identity<void>{},
+                      [type = std::forward<T>(type)](auto&& callback) mutable {
+                        std::forward<decltype(callback)>(callback)();
+                      });
+  }
+
   template <typename... Args> auto supply(Args&&... args) {
-    return this->template make<std::decay_t<Args>...>([values = std::make_tuple(
-                                                           std::forward<Args>(
-                                                               args)...)](
-        auto&& callback) mutable {
-      cti::detail::util::unpack(std::move(values), [&](auto&&... passed) {
-        // ...
-        std::forward<decltype(callback)>(callback)(
-            std::forward<decltype(passed)>(passed)...);
-      });
-    });
+    identity<std::decay_t<Args>...> arg_types;
+    auto hint_types = to_hint(arg_types);
+
+    return this->make(arg_types, hint_types,
+                      supplier_of(std::forward<Args>(args)...));
   }
 };
 
@@ -61,21 +75,21 @@ inline auto empty_caller() {
   };
 }
 
+inline auto empty_continuable() {
+  return cti::make_continuable<void>(empty_caller());
+}
+
 struct provide_copyable {
-  template <typename T> auto makeVoid(T&& callback) {
-    return make<void>(std::forward<T>(callback));
-  }
-  template <typename... Args, typename T> auto make(T&& callback) {
-    return cti::make_continuable<Args...>(std::forward<T>(callback));
+  template <typename... Args, typename... Hint, typename T>
+  auto make(identity<Args...>, identity<Hint...>, T&& callback) {
+    return cti::make_continuable<Hint...>(std::forward<T>(callback));
   }
 };
 
 struct provide_unique {
-  template <typename T> auto makeVoid(T&& callback) {
-    return make<void>(std::forward<T>(callback));
-  }
-  template <typename... Args, typename T> auto make(T&& callback) {
-    return cti::make_continuable<Args...>([
+  template <typename... Args, typename... Hint, typename T>
+  auto make(identity<Args...>, identity<Hint...>, T&& callback) {
+    return cti::make_continuable<Hint...>([
       callback = std::forward<T>(callback), guard = std::make_unique<int>(0)
     ](auto&&... args) mutable {
       (void)(*guard);
@@ -85,68 +99,59 @@ struct provide_unique {
 };
 
 struct provide_copyable_erasure {
-  template <typename T> auto makeVoid(T&& callback) {
-    return make(std::forward<T>(callback));
-  }
-  template <typename... Args, typename T>
-  cti::continuable<Args...> make(T&& callback) {
-    return cti::make_continuable(std::forward<T>(callback));
+  template <typename... Args, typename... Hint, typename T>
+  cti::continuable<Args...> make(identity<Args...>, identity<Hint...>,
+                                 T&& callback) {
+    return cti::make_continuable<Hint...>(std::forward<T>(callback));
   }
 };
 
 struct provide_unique_erasure {
-  template <typename T> auto makeVoid(T&& callback) {
-    return make(std::forward<T>(callback));
-  }
-  template <typename... Args, typename T>
-  cti::unique_continuable<Args...> make(T&& callback) {
-    return cti::make_continuable(std::forward<T>(callback));
+  template <typename... Args, typename... Hint, typename T>
+  cti::unique_continuable<Args...> make(identity<Args...>, identity<Hint...>,
+                                        T&& callback) {
+    return cti::make_continuable<Hint...>(std::forward<T>(callback));
   }
 };
 
-/*
-template <typename Left, typename Right> struct provide_continuation_or_left {
-  Left left_;
-  Right right_;
+template <typename Provider> struct provide_continuation_and_left {
+  Provider provider_;
 
-  template <typename T> auto makeVoid(T&& callback) {
-    return left_.template make<void>(std::forward<T>(callback)) ||
-           right_.template make<void>(empty_caller());
-  }
-  template <typename... Args, typename T> auto make(T&& callback) {
-    return left_.template make<Args...>(std::forward<T>(callback)) ||
-      right_.template make<void>(empty_caller());
+  template <typename... Args, typename... Hint, typename T>
+  auto make(identity<Args...> args, identity<Hint...> hint, T&& callback) {
+    return empty_continuable() &&
+           provider_.make(args, hint, std::forward<T>(callback));
   }
 };
-*/
 
-template <typename... Args> struct type_chainer {
-  template <typename First> auto add() {
-    return type_chainer<Args..., First>{};
-  }
-  template <template <typename> class T, typename First> auto add() {
-    return type_chainer<Args..., T<First>>{};
-  }
-  template <template <typename, typename> class T, typename First,
-            typename Second>
-  auto add() {
-    return type_chainer<Args..., T<First, Second>, T<First, Second>,
-                        T<Second, First>, T<Second, Second>>{};
-  }
+template <typename Provider> struct provide_continuation_and_right {
+  Provider provider_;
 
-  using type = testing::Types<Args...>;
+  template <typename... Args, typename... Hint, typename T>
+  auto make(identity<Args...> args, identity<Hint...> hint, T&& callback) {
+    return provider_.make(args, hint, std::forward<T>(callback)) &&
+           empty_continuable();
+  }
 };
 
-inline auto make_type() {
-  type_chainer<> chainer{};
-  return chainer // ...
-      .add<provide_copyable>()
-      .add<provide_unique>()
-      .add<provide_copyable_erasure>()
-      .add<provide_unique_erasure>();
-}
-
-using single_types = decltype(make_type())::type;
+// clang-format off
+using single_types = ::testing::Types<
+  provide_copyable,
+  provide_unique,
+  provide_copyable_erasure,
+  provide_unique_erasure,
+  // Some instantiations out commented for compilation speed reasons
+  // provide_continuation_and_left<provide_copyable>,
+  provide_continuation_and_left<provide_unique>,
+// provide_continuation_and_left<provide_copyable_erasure>,
+// provide_continuation_and_left<provide_unique_erasure>,
+  // Some instantiations out commented for compilation speed reasons
+  // provide_continuation_and_right<provide_copyable>,
+  provide_continuation_and_right<provide_unique>
+  // provide_continuation_and_left<provide_copyable_erasure>,
+  // provide_continuation_and_left<provide_unique_erasure>
+>;
+// clang-format on
 
 struct tag1 {};
 struct tag2 {};

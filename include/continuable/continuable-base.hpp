@@ -47,6 +47,7 @@ namespace detail {
 /// Utility namespace which provides useful meta-programming support
 namespace util {
 
+/// \cond false
 #define CTI__FOR_EACH_BOOLEAN_BIN_OP(CTI__OP__)                                \
   CTI__OP__(==)                                                                \
   CTI__OP__(!=) CTI__OP__(<=) CTI__OP__(>=) CTI__OP__(<) CTI__OP__(>)
@@ -56,9 +57,11 @@ namespace util {
   CTI__OP__(/) CTI__OP__(+) CTI__OP__(-) CTI__FOR_EACH_BOOLEAN_BIN_OP(CTI__OP__)
 #define CTI__FOR_EACH_INTEGRAL_UNA_OP(CTI__OP__)                               \
   CTI__OP__(~) CTI__FOR_EACH_BOOLEAN_UNA_OP(CTI__OP__)
+/// \endcond
 
 template <typename T, T Value>
 struct constant : std::integral_constant<T, Value> {
+/// \cond false
 #define CTI__INST(CTI__OP)                                                     \
   template <typename OT, OT OValue>                                            \
   /*constexpr*/ auto operator CTI__OP(std::integral_constant<OT, OValue>)      \
@@ -74,10 +77,12 @@ struct constant : std::integral_constant<T, Value> {
   }
   CTI__FOR_EACH_INTEGRAL_UNA_OP(CTI__INST)
 #undef CTI__INST
+  /// \endcond
 };
 
 template <bool Value>
 struct constant<bool, Value> : std::integral_constant<bool, Value> {
+/// \cond false
 #define CTI__INST(CTI__OP)                                                     \
   template <typename OT, OT OValue>                                            \
   /*constexpr*/ auto operator CTI__OP(std::integral_constant<bool, OValue>)    \
@@ -92,6 +97,7 @@ struct constant<bool, Value> : std::integral_constant<bool, Value> {
   }
   CTI__FOR_EACH_BOOLEAN_UNA_OP(CTI__INST)
 #undef CTI__INST
+  /// \endcond
 };
 
 template <bool Value> using bool_constant = constant<bool, Value>;
@@ -276,19 +282,6 @@ auto static_while(Value&& value, Predicate&& predicate, Handler&& handler) {
                      return std::forward<decltype(result)>(result);
                    });
 }
-
-/// Iterates from the begin to the end, the handler is invoked
-/// with a constant representing the current position.
-/// The handler shall return a constant representing the next position.
-// template <std::size_t Begin, std::size_t End, typename Handler>
-// void static_for(size_constant<Begin> begin, size_constant<End> end, Handler&&
-// handler) {
-//  auto delta = begin - end;
-//  static_for_each_in(std::make_index_sequence<delta.value>{}, [&](auto pos)
-//  mutable {
-//    handler(pos + begin);
-//  });
-//}
 
 /// Returns a validator which checks whether the given sequenceable is empty
 inline auto is_empty() {
@@ -966,13 +959,6 @@ private:
 };
 } // end namespace detail
 
-/// Adds the given continuation to the left composition
-/*template <typename... LeftArgs, typename Continuation>
-auto chain_composition(std::tuple<LeftArgs...> leftPack,
-                       Continuation&& continuation) {
-  return util::push(std::move(leftPack),
-                    std::forward<Continuation>(continuation));
-}*/
 /// Adds the given continuation tuple to the left composition
 template <typename... LeftArgs, typename... RightArgs>
 auto chain_composition(std::tuple<LeftArgs...> leftPack,
@@ -1304,7 +1290,9 @@ public:
                                     std::move(*this), std::move(right));
   }
 
-  auto futurize() && { return detail::transforms::as_future(std::move(*this)); }
+  auto futurize() && {
+    return detail::transforms::as_future(std::move(*this).materialize());
+  }
 
   void done() && {
     assert(ownership_.has_ownership() &&

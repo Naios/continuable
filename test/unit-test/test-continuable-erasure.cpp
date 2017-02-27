@@ -23,12 +23,18 @@
 
 #include "test-continuable.hpp"
 
-using namespace cti;
+TYPED_TEST(single_dimension_tests, is_eraseable) {
 
-TEST(ContinuableErasureTests, FunctionsAreUnwrappable) {
-  // ...
+  {
+    cti::unique_continuable<int> erasure =
+        cti::make_continuable(supplier_of(0xDF));
 
-  // continuable<int> ss = supply(0);
+    EXPECT_ASYNC_RESULT(std::move(erasure), 0xDF);
+  }
 
-  // auto itm = std::move(ss).then(supply(2));
+  {
+    cti::unique_continuable<int> erasure = this->supply(0xDF);
+
+    EXPECT_ASYNC_RESULT(std::move(erasure), 0xDF);
+  }
 }

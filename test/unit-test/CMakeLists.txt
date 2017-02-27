@@ -5,7 +5,7 @@ add_executable(test-continuable
   ${CMAKE_CURRENT_LIST_DIR}/test-continuable.hpp
   ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base.cpp
   ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/test-continuable-transforms.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/test-continuable-erasure.cpp
   ${CMAKE_CURRENT_LIST_DIR}/test-continuable-recursion.cpp)
 
 target_link_libraries(test-continuable
