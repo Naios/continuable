@@ -1,6 +1,6 @@
 # continuable->then(make_things_simple());
 
-[![Build Status](https://travis-ci.org/Naios/continuable.svg?branch=master)](https://travis-ci.org/Naios/continuable) [![Build status](https://ci.appveyor.com/api/projects/status/328ta3r5x92f3byv?svg=true)](https://ci.appveyor.com/project/Naios/continuable) ![](https://img.shields.io/badge/License-MIT-blue.svg) [![](https://img.shields.io/badge/Try-online-green.svg)](http://melpon.org/wandbox/permlink/TPSde7EsCcXcC72D)
+[![Build Status](https://travis-ci.org/Naios/continuable.svg?branch=master)](https://travis-ci.org/Naios/continuable) [![Build status](https://ci.appveyor.com/api/projects/status/328ta3r5x92f3byv?svg=true)](https://ci.appveyor.com/project/Naios/continuable) ![](https://img.shields.io/badge/License-MIT-blue.svg) [![](https://img.shields.io/badge/Try-online-green.svg)](http://melpon.org/wandbox/permlink/gRWxSNHtARvRcmSY)
 
 > Async C++14 platform independent continuation chainer providing light and allocation aware futures
 

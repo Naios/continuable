@@ -65,7 +65,7 @@ install:
 
   # Function for creating a new 'build' directory
   - |
-    function invoke_build {
+    function renew_build {
       echo "Renew build directory..."
       cd $TRAVIS_BUILD_DIR
 
@@ -76,7 +76,6 @@ install:
 
       # Configure the project and build it
       cmake -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS -Werror" -DCMAKE_BUILD_TYPE=Debug ..
-      make -j2
     }
 
 script:
@@ -86,17 +85,20 @@ script:
       # - ASan (LSan):
       echo "Building with address sanitizer..."
       CMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer"
-      invoke_build
+      renew_build
+      make -j2
       ctest --verbose
 
       # - UBSan:
       echo "Building with undefined behaviour sanitizer..."
       CMAKE_CXX_FLAGS="-fsanitize=undefined -fno-omit-frame-pointer"
-      invoke_build
+      renew_build
+      make -j2
       ctest --verbose
     else
       # Build an run the tests suite with valgrind
-      invoke_build
+      renew_build
+      make -j2
       valgrind --error-exitcode=1 --leak-check=full --show-reachable=yes ctest --verbose
     fi
 
