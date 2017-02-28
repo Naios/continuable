@@ -427,6 +427,114 @@ inline auto or_folding() {
 template <typename T>
 using fail = std::integral_constant<bool, !std::is_same<T, T>::value>;
 
+namespace detail {
+template <typename T, typename Args, typename = void_t<>>
+struct is_invokable_impl : std::common_type<std::false_type> {};
+
+template <typename T, typename... Args>
+struct is_invokable_impl<
+    T, std::tuple<Args...>,
+    void_t<decltype(std::declval<T>()(std::declval<Args>()...))>>
+    : std::common_type<std::true_type> {};
+} // end namespace detail
+
+/// Deduces to a std::true_type if the given type is callable with the arguments
+/// inside the given tuple.
+/// The main reason for implementing it with the detection idiom instead of
+/// hana like detection is that MSVC has issues with capturing raw template
+/// arguments inside lambda closures.
+///
+/// ```cpp
+/// util::is_invokable_t<object, std::tuple<Args...>>
+/// ```
+template <typename T, typename Args>
+using is_invokable_t = typename detail::is_invokable_impl<T, Args>::type;
+
+namespace detail {
+/// Forwards every element in the tuple except the last one
+template <typename T> auto forward_except_last(T&& sequenceable) {
+  auto size = pack_size_of(identity_of(sequenceable)) - size_constant_of<1>();
+  auto sequence = std::make_index_sequence<size.value>();
+
+  return unpack(std::forward<T>(sequenceable),
+                [](auto&&... args) {
+                  return std::forward_as_tuple(
+                      std::forward<decltype(args)>(args)...);
+                },
+                sequence);
+}
+
+/// We are able to call the callable with the arguments given in the tuple
+template <typename T, typename... Args>
+auto partial_invoke_impl(std::true_type, T&& callable,
+                         std::tuple<Args...> args) {
+  return unpack(std::move(args), [&](auto&&... arg) {
+    return std::forward<T>(callable)(std::forward<decltype(arg)>(arg)...);
+  });
+}
+
+/// We were unable to call the callable with the arguments in the tuple.
+/// Remove the last argument from the tuple and try it again.
+template <typename T, typename... Args>
+auto partial_invoke_impl(std::false_type, T&& callable,
+                         std::tuple<Args...> args) {
+
+  // If you are encountering this assertion you tried to attach a callback
+  // which can't accept the arguments of the continuation.
+  //
+  // ```cpp
+  // continuable<int, int> c;
+  // std::move(c).then([](std::vector<int> v) { /*...*/ })
+  // ```
+  static_assert(
+      sizeof...(Args) > 0,
+      "There is no way to call the given object with these arguments!");
+
+  // Remove the last argument from the tuple
+  auto next = forward_except_last(std::move(args));
+
+  // Test whether we are able to call the function with the given tuple
+  is_invokable_t<decltype(callable), decltype(next)> is_invokable;
+
+  return partial_invoke_impl(is_invokable, std::forward<T>(callable),
+                             std::move(next));
+}
+
+/// Shortcut - we can call the callable directly
+template <typename T, typename... Args>
+auto partial_invoke_impl_shortcut(std::true_type, T&& callable,
+                                  Args&&... args) {
+  return std::forward<T>(callable)(std::forward<Args>(args)...);
+}
+
+/// Failed shortcut - we were unable to invoke the callable with the
+/// original arguments.
+template <typename T, typename... Args>
+auto partial_invoke_impl_shortcut(std::false_type failed, T&& callable,
+                                  Args&&... args) {
+
+  // Our shortcut failed, convert the arguments into a forwarding tuple
+  return partial_invoke_impl(
+      failed, std::forward<T>(callable),
+      std::forward_as_tuple(std::forward<Args>(args)...));
+}
+} // end namespace detail
+
+/// Partially invokes the given callable with the given arguments.
+///
+/// \note This function will assert statically if there is no way to call the
+///       given object with less arguments.
+template <typename T, typename... Args>
+auto partial_invoke(T&& callable, Args&&... args) {
+  // Test whether we are able to call the function with the given arguments.
+  is_invokable_t<decltype(callable), std::tuple<Args...>> is_invokable;
+
+  // The implementation is done in a shortcut way so there are less
+  // type instantiations needed to call the callable with its full signature.
+  return detail::partial_invoke_impl_shortcut(
+      is_invokable, std::forward<T>(callable), std::forward<Args>(args)...);
+}
+
 // Class for making child classes non copyable
 struct non_copyable {
   non_copyable() = default;
