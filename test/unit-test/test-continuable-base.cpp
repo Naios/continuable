@@ -127,3 +127,14 @@ TYPED_TEST(single_dimension_tests, are_executable_through_dispatchers) {
     EXPECT_EQ(future.get(), canary);
   }
 }
+
+TYPED_TEST(single_dimension_tests, are_partial_callable) {
+  EXPECT_ASYNC_RESULT(this->supply(1, 2).then([] {
+    // ...
+  }));
+
+  EXPECT_ASYNC_RESULT(this->supply(0xDF, 0xDD, 3, 4).then([](int a, int b) {
+    EXPECT_EQ(a, 0xDF);
+    EXPECT_EQ(b, 0xDD);
+  }));
+}

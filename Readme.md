@@ -253,7 +253,7 @@ Continuables returning more then one value will evaluate to a future providing a
 
 Although the library has progressed very far there are still some candies missing:
 
-- [ ] **Partial application**:
+- [x] **Partial application**:
 
       We could allow callbacks to be invoked with fewer arguments than expected:
 

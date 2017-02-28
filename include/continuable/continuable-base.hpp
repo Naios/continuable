@@ -865,17 +865,24 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   static_assert(is_continuation<std::decay_t<Continuation>>{},
                 "Expected a continuation!");
 
+  // Wrap the callback into a partial callable callback
+  auto partial_callable = [callback = std::forward<Callback>(callback)](
+      auto&&... args) mutable {
+    return util::partial_invoke(std::move(callback),
+                                std::forward<decltype(args)>(args)...);
+  };
+
   auto hint = hint_of(util::identity_of(continuation));
-  auto next_hint = next_hint_of(util::identity_of(callback), hint);
+  auto next_hint = next_hint_of(util::identity_of(partial_callable), hint);
 
   return make_continuable_base(
       [
         continuation = std::forward<Continuation>(continuation),
-        callback = std::forward<Callback>(callback),
+        partial_callable = std::move(partial_callable),
         executor = std::forward<Executor>(executor)
       ](auto&& nextCallback) mutable {
         invoke_proxy(hint_of(util::identity_of(continuation)),
-                     std::move(continuation), std::move(callback),
+                     std::move(continuation), std::move(partial_callable),
                      std::move(executor),
                      std::forward<decltype(nextCallback)>(nextCallback));
       },
