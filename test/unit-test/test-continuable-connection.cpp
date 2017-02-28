@@ -48,6 +48,11 @@ TYPED_TEST(single_dimension_tests, is_logical_and_connectable) {
   }
 
   {
+    auto chain = cti::all_of(this->supply(1, 2), this->supply(3, 4));
+    EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3, 4);
+  }
+
+  {
     auto chain = this->supply(tag1{}) && this->supply(tag2{}, tag3{});
     ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3);
   }
@@ -76,6 +81,11 @@ TYPED_TEST(single_dimension_tests, is_logical_or_connectable) {
   {
     auto chain = this->supply(1, 2) || this->supply(3, 4);
     EXPECT_ASYNC_RESULT(std::move(chain), 1, 2);
+  }
+
+  {
+    auto chain = cti::any_of(this->supply(1), this->supply(2), this->supply(3));
+    EXPECT_ASYNC_RESULT(std::move(chain), 1);
   }
 
   {
@@ -114,6 +124,11 @@ TYPED_TEST(single_dimension_tests, is_logical_seq_connectable) {
   {
     auto chain = this->supply(1) >> this->supply(2);
     EXPECT_ASYNC_RESULT(std::move(chain), 1, 2);
+  }
+
+  {
+    auto chain = cti::seq_of(this->supply(1), this->supply(2), this->supply(3));
+    EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3);
   }
 
   {
