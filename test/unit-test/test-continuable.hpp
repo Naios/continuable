@@ -134,22 +134,34 @@ template <typename Provider> struct provide_continuation_and_right {
   }
 };
 
+template <typename Provider> struct provide_continuation_seq_right {
+  Provider provider_;
+
+  template <typename... Args, typename... Hint, typename T>
+  auto make(identity<Args...> args, identity<Hint...> hint, T&& callback) {
+    return provider_.make(args, hint, std::forward<T>(callback)) >>
+           empty_continuable();
+  }
+};
+
 // clang-format off
+// Feel free to uncomment more tests, however this will increase the
+// build time significantly.
 using single_types = ::testing::Types<
   provide_copyable,
-  provide_unique,
-  provide_copyable_erasure,
+  // provide_unique,
+  // provide_copyable_erasure,
   provide_unique_erasure,
   // Some instantiations out commented for compilation speed reasons
   // provide_continuation_and_left<provide_copyable>,
   provide_continuation_and_left<provide_unique>,
-// provide_continuation_and_left<provide_copyable_erasure>,
-// provide_continuation_and_left<provide_unique_erasure>,
-  // Some instantiations out commented for compilation speed reasons
+  // provide_continuation_and_left<provide_copyable_erasure>,
+  // provide_continuation_and_left<provide_unique_erasure>,
   // provide_continuation_and_right<provide_copyable>,
-  provide_continuation_and_right<provide_unique>
+  provide_continuation_and_right<provide_unique>,
   // provide_continuation_and_left<provide_copyable_erasure>,
   // provide_continuation_and_left<provide_unique_erasure>
+  provide_continuation_seq_right<provide_unique>
 >;
 // clang-format on
 

@@ -14,8 +14,7 @@ if (PLATFORM EQUAL 64)
   add_definitions("-D_WIN64")
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /MP")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /bigobj")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /MP /bigobj")
 
 if (TESTS_NO_EXCEPTIONS)
   add_definitions(-D_HAS_EXCEPTIONS=0)

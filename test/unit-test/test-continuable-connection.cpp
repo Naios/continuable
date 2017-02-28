@@ -103,4 +103,45 @@ TYPED_TEST(single_dimension_tests, is_logical_or_connectable) {
     EXPECT_ASYNC_RESULT(std::move(composed));
   }
 }
+
+TYPED_TEST(single_dimension_tests, is_logical_seq_connectable) {
+
+  {
+    auto chain = this->supply() >> this->supply();
+    EXPECT_ASYNC_RESULT(std::move(chain));
+  }
+
+  {
+    auto chain = this->supply(1) >> this->supply(2);
+    EXPECT_ASYNC_RESULT(std::move(chain), 1, 2);
+  }
+
+  {
+    auto chain = this->supply(1, 2) >> this->supply(3, 4);
+    EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3, 4);
+  }
+
+  {
+    auto chain = this->supply(tag1{}, tag2{}) >> this->supply(tag1{}, tag2{});
+    ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag1, tag2);
+  }
+
+  {
+    auto chain = this->supply(tag1{}, tag2{}, tag3{}) >>
+                 this->supply(tag1{}, tag2{}, tag3{});
+    ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3, tag1, tag2, tag3);
+  }
+
+  {
+    // Check the evaluation order
+    unsigned i = 0;
+    auto composed =
+        make_step(this, i, 0) >> make_step(this, i, 1) >> make_step(this, i, 2);
+    EXPECT_ASYNC_RESULT(std::move(composed));
+  }
+
+  {
+    auto chain = this->supply('a') >> this->supply('b') >> this->supply('c');
+    EXPECT_ASYNC_RESULT(std::move(chain), 'a', 'b', 'c');
+  }
 }

@@ -422,6 +422,13 @@ inline auto or_folding() {
            std::forward<decltype(right)>(right);
   };
 }
+/// Returns a folding function using operator `>>`.
+inline auto seq_folding() {
+  return [](auto&& left, auto&& right) {
+    return std::forward<decltype(left)>(left) >>
+           std::forward<decltype(right)>(right);
+  };
+}
 
 /// Deduces to a std::false_type
 template <typename T>
@@ -927,7 +934,7 @@ auto wrap_continuation(Continuation&& continuation) {
 } // end namespace base
 
 /// The namespace `compose` offers methods to chain continuations together
-/// with `all` and `any` logic.
+/// with `all`, `any` or `seq` logic.
 namespace compose {
 struct strategy_all_tag {};
 struct strategy_any_tag {};
@@ -1262,6 +1269,24 @@ auto finalize_composition(strategy_any_tag, Composition&& composition) {
       },
       signature);
 }
+
+/// Connects the left and the right continuable to a sequence
+///
+/// \note This is implemented in an eager way because we would not gain
+///       any profit from chaining sequences lazily.
+template <typename Left, typename Right>
+auto sequential_connect(Left&& left, Right&& right) {
+  return std::forward<Left>(left).then([right = std::forward<Right>(right)](
+      auto&&... args) mutable {
+    return std::move(right).then([previous = std::make_tuple(
+                                      std::forward<decltype(args)>(args)...)](
+        auto&&... args) mutable {
+      return util::merge(
+          std::move(previous),
+          std::make_tuple(std::forward<decltype(args)>(args)...));
+    });
+  });
+}
 } // end namespace compose
 
 /// Provides helper functions to transform continuations to other types
@@ -1403,6 +1428,13 @@ public:
     right.assert_owning();
     return detail::compose::connect(detail::compose::strategy_any_tag{},
                                     std::move(*this), std::move(right));
+  }
+
+  template <typename OData, typename OAnnotation>
+  auto operator>>(continuable_base<OData, OAnnotation>&& right) && {
+    right.assert_owning();
+    return detail::compose::sequential_connect(std::move(*this),
+                                               std::move(right));
   }
 
   auto futurize() && {
@@ -1570,6 +1602,22 @@ auto any_of(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,
                 "Requires at least 2 continuables!");
   return detail::util::fold(detail::util::or_folding(),
+                            std::forward<Continuables>(continuables)...);
+}
+
+/// Connects the given continuables with a *seq* logic.
+///
+/// \param continuables The continuable_base objects to connect.
+///        Requires at least 2 objects to connect.
+///
+/// \see continuable_base::operator>> for details.
+///
+/// \since version 1.0.0
+template <typename... Continuables>
+auto seq_of(Continuables&&... continuables) {
+  static_assert(sizeof...(continuables) >= 2,
+                "Requires at least 2 continuables!");
+  return detail::util::fold(detail::util::seq_folding(),
                             std::forward<Continuables>(continuables)...);
 }
 

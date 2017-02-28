@@ -265,10 +265,10 @@ Although the library has progressed very far there are still some candies missin
       ```
 
 
-- [ ] The **sequential/pipe operator** which invokes continuables sequentially and calls the callback with all results:
+- [x] The **sequential operator** which invokes continuables sequentially and calls the callback with all results:
 
       ```c++
-      (http_request("github.com") | http_request("travis-ci.org") | http_request("atom.io"))
+      (http_request("github.com") >> http_request("travis-ci.org") >> http_request("atom.io"))
         .then([](std::string github, std::string travis, std::string atom) {
           // The requests are done sequentially and the callback is called
           // with the response of github, travis and atom as soon as atom has responded.
