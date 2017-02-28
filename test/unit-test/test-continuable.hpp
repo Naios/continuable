@@ -174,4 +174,11 @@ struct single_dimension_tests : continuation_provider<Provider> {};
 
 TYPED_TEST_CASE(single_dimension_tests, single_types);
 
+template <typename T> auto make_step(T* me, unsigned& current, unsigned step) {
+  return me->invoke([=]() mutable {
+    ASSERT_EQ(step, current);
+    ++current;
+  });
+}
+
 #endif // TEST_CONTINUABLE_HPP__
