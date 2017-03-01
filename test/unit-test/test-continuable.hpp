@@ -148,20 +148,26 @@ template <typename Provider> struct provide_continuation_seq_right {
 // Feel free to uncomment more tests, however this will increase the
 // build time significantly.
 using single_types = ::testing::Types<
+#if UNIT_TEST_STEP == 1
   provide_copyable,
   // provide_unique,
   // provide_copyable_erasure,
-  provide_unique_erasure,
+  provide_unique_erasure
+#elif UNIT_TEST_STEP == 2
   // Some instantiations out commented for compilation speed reasons
   // provide_continuation_and_left<provide_copyable>,
-  provide_continuation_and_left<provide_unique>,
+  provide_continuation_and_left<provide_unique>
   // provide_continuation_and_left<provide_copyable_erasure>,
   // provide_continuation_and_left<provide_unique_erasure>,
   // provide_continuation_and_right<provide_copyable>,
-  provide_continuation_and_right<provide_unique>,
+#elif UNIT_TEST_STEP == 3
+  provide_continuation_and_right<provide_unique>
   // provide_continuation_and_left<provide_copyable_erasure>,
-  // provide_continuation_and_left<provide_unique_erasure>
+#elif UNIT_TEST_STEP == 4
+  provide_continuation_and_left<provide_unique_erasure>
+#elif UNIT_TEST_STEP == 5
   provide_continuation_seq_right<provide_unique>
+#endif
 >;
 // clang-format on
 
