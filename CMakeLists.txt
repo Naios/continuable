@@ -5,19 +5,18 @@ project(continuable C CXX)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-# Continuable
-add_library(continuable INTERFACE)
+# continuable-base
+add_library(continuable-base INTERFACE)
 
-target_include_directories(continuable
+target_include_directories(continuable-base
   INTERFACE
     "${CMAKE_CURRENT_LIST_DIR}/include")
 
-target_link_libraries(continuable
+target_link_libraries(continuable-base
   INTERFACE
-    function2
     Threads::Threads)
 
-target_compile_features(continuable
+target_compile_features(continuable-base
   INTERFACE
     cxx_alias_templates
     cxx_auto_type
@@ -32,6 +31,13 @@ target_compile_features(continuable
     cxx_nullptr
     cxx_trailing_return_types
     cxx_return_type_deduction)
+
+add_library(continuable INTERFACE)
+
+target_link_libraries(continuable
+  INTERFACE
+    continuable-base
+    function2)
 
 # Testing
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)

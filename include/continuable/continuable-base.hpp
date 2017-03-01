@@ -1,5 +1,12 @@
 
 /**
+
+                        /~` _  _ _|_. _     _ |_ | _
+                        \_,(_)| | | || ||_|(_||_)|(/_
+
+                    https://github.com/Naios/continuable
+
+
   Copyright(c) 2015 - 2017 Denis Blank <denis.blank at outlook dot com>
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,6 +33,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <cstdint>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -33,16 +41,47 @@
 #include <type_traits>
 #include <utility>
 
+/// Declares the continuable library namespace.
+///
+/// The most important class is cti::continuable_base, that provides the
+/// whole functionality for continuation chaining.
+///
+/// The class cti::continuable_base is created through the
+/// cti::make_continuable() function which accepts a callback taking function.
+///
+/// Also there are following support functions available:
+/// - cti::all_of() - connects cti::continuable_base's to an `all` connection.
+/// - cti::any_of() - connects cti::continuable_base's to an `any` connection.
+/// - cti::seq_of() - connects cti::continuable_base's to a sequence.
+///
 namespace cti {
 /// \cond false
 inline namespace abi_v1 {
 /// \endcond
 
-/// A wrapper class to mark a functional class as continuation
-/// Such a wrapper class is required to decorate the result of a callback
-/// correctly.
+/// The main class of the continuable library, it provides the functionality
+/// for chaining callbacks and continuations together to a unified hierarchy.
+///
+/// The most important method is the cti::continuable_base::then() method,
+/// which allows to attach a callback to the continuable.
+///
+/// \tparam Data The internal data which is used to store the current
+///         continuation and intermediate lazy connection result.
+///
+/// \tparam Annotation The internal data used to store the current signature
+///         hint or strategy used for combining lazy connections.
+///
+/// \note Nearly all methods of the cti::continuable_base are required to be
+///       called as r-value. This is required because the continuable carries
+///       variables which are consumed when the object is transformed as part
+///       of a method call. You may copy a continuable which underlying
+///       storages are copyable to split the call hierarchy into multiple parts.
+///
+/// \since version 1.0.0
 template <typename Data, typename Annotation> class continuable_base;
 
+/// Declares the internal private namespace of the continuable library
+/// which isn't intended to be used by users of the library.
 namespace detail {
 /// Utility namespace which provides useful meta-programming support
 namespace util {
@@ -747,6 +786,8 @@ inline auto sequencedUnpackInvoker() {
         std::forward<decltype(args)>(args)...);
 
     util::unpack(std::move(result), [&](auto&&... types) {
+      /// TODO Add inplace resolution here
+
       std::forward<decltype(nextCallback)>(nextCallback)(
           std::forward<decltype(types)>(types)...);
     });
@@ -1358,22 +1399,29 @@ auto as_future(continuable_base<Data, Annotation>&& continuable) {
 } // end namespace detail
 
 template <typename Data, typename Annotation> class continuable_base {
+  /// \cond false
   template <typename, typename> friend class continuable_base;
   friend struct detail::base::attorney;
 
   // The continuation type or intermediate result
   Data data_;
   detail::util::ownership ownership_;
+  /// \endcond
 
 public:
+  /// Constructor accepting the data object while erasing the annotation
   explicit continuable_base(Data data) : data_(std::move(data)) {}
 
-  /// Constructor taking the data
+  /// Constructor accepting the any object convertible to the data object,
+  /// while erasing the annotation
   template <typename OData, std::enable_if_t<std::is_convertible<
                                 std::decay_t<OData>, Data>::value>* = nullptr>
   continuable_base(OData&& data) : data_(std::forward<OData>(data)) {}
 
-  /// Constructor taking the data of other continuables while erasing the hint
+  /// Constructor taking the data of other continuables while erasing the hint.
+  ///
+  /// This constructor makes it possible to replace the internal data object of
+  /// the continuable by any object which is useful for type-erasure.
   template <typename OData, typename OAnnotation>
   continuable_base(continuable_base<OData, OAnnotation>&& other)
       : continuable_base(std::move(other).materialize().consumeData()) {}
@@ -1395,6 +1443,8 @@ public:
   /// You may release the continuable_base through calling the corresponding
   /// continuable_base::release() method which prevents
   /// the invocation on destruction.
+  ///
+  /// \since version 1.0.0
   ~continuable_base() {
     if (ownership_.has_ownership()) {
       std::move(*this).done();
@@ -1402,12 +1452,87 @@ public:
     assert(!ownership_.has_ownership() && "Ownership should be released!");
   }
 
-  template <typename OData, typename OAnnotation>
-  auto then(continuable_base<OData, OAnnotation>&& continuation) && {
-    return std::move(*this).then(
-        detail::base::wrap_continuation(std::move(continuation).materialize()));
-  }
-
+  /// Main method of the continuable_base to chain the current continuation
+  /// with a new callback.
+  ///
+  /// \param callback The callback which is used to process the current
+  ///        asynchronous result on arrival. The callback is required to accept
+  ///        the current result at least partially (or nothing of the result).
+  /// ```cpp
+  /// (http_request("github.com") && http_request("atom.io"))
+  ///   .then([](std::string github, std::string atom) {
+  ///     // We use the whole result
+  ///   });
+  ///
+  /// (http_request("github.com") && http_request("atom.io"))
+  ///   .then([](std::string github) {
+  ///     // We only use the result partially
+  ///   });
+  ///
+  /// (http_request("github.com") && http_request("atom.io"))
+  ///   .then([] {
+  ///     // We discard the result
+  ///   });
+  /// ```
+  ///
+  /// \param executor The optional executor which is used to dispatch
+  ///        the callback. The executor needs to accept functional objects
+  ///        callable through an `operator()` through its operator() itself.
+  ///        The executor can be move-only, but it's not required to.
+  ///        The default executor which is used when omitting the argument
+  ///        dispatches the callback on the current executing thread.
+  ///        Consider the example shown below:
+  /// ```cpp
+  /// auto executor = [](auto&& work) {
+  ///   // Dispatch the work here or forward it to an executor of
+  ///   // your choice.
+  ///   std::forward<decltype(work)>(work)();
+  /// };
+  ///
+  /// http_request("github.com")
+  ///   .then([](std::string github) {
+  ///     // Do something...
+  ///    }, executor);
+  /// ```
+  ///
+  /// \returns Returns a continuable_base with an asynchronous return type
+  ///          depending on the return value of the callback:
+  /// |      Callback returns      |              Resulting type               |
+  /// | : ---------------------- : | : --------------------------------------- |
+  /// | `void`                     | `continuable_base with <>`                |
+  /// | `Arg`                      | `continuable_base with <Arg>`             |
+  /// | `std::pair<First, Second>` | `continuable_base with <First, Second>`   |
+  /// | `std::tuple<Args...>`      | `continuable_base with <Args...>`         |
+  /// | `continuable_base<Arg...>` | `continuable_base with <Args...>`         |
+  ///          Which means the result type of the continuable_base is equal to
+  ///          the plain types the callback returns (`std::tuple` and
+  ///          `std::pair` arguments are unwrapped).
+  ///          A single continuable_base as argument is resolved and the result
+  ///          type is equal to the resolved continuable_base.
+  ///          Consider the following examples:
+  /// ```cpp
+  /// http_request("github.com")
+  ///   .then([](std::string github) { return; })
+  ///   .then([] { }); // <void>
+  ///
+  /// http_request("github.com")
+  ///   .then([](std::string github) { return 0; })
+  ///   .then([](int a) { }); // <int>
+  ///
+  /// http_request("github.com")
+  ///   .then([](std::string github) { return std::make_pair(1, 2); })
+  ///   .then([](int a, int b) { }); <int, int>
+  ///
+  /// http_request("github.com")
+  ///   .then([](std::string github) { return std::make_tuple(1, 2, 3); })
+  ///   .then([](int a, int b, int c) { }); <int, int, int>
+  ///
+  /// http_request("github.com")
+  ///   .then([](std::string github) { return http_request("atom.io"); })
+  ///   .then([](std::string atom) { }); <std::string>
+  /// ```
+  ///
+  /// \since version 1.0.0
   template <typename T, typename E = detail::this_thread_executor_tag>
   auto then(T&& callback,
             E&& executor = detail::this_thread_executor_tag{}) && {
@@ -1416,6 +1541,65 @@ public:
                                             std::forward<E>(executor));
   }
 
+  /// Additional overload of the continuable_base::then() method
+  /// which is accepting a continuable_base itself.
+  ///
+  /// \param continuation A continuable_base reflecting the continuation to
+  ///        which is used to continue the call hierarchy.
+  ///        The result of the current continuable is discarded and the given
+  ///        continuation is invoked as shown below.
+  /// ```cpp
+  /// http_request("github.com")
+  ///   .then(http_request("atom.io"))
+  ///   .then([](std::string atom) {
+  ///     // ...
+  ///   });
+  /// ```
+  ///
+  /// \returns Returns a continuable_base representing the next asynchronous
+  ///          result to continue within the asynchronous call hierarchy.
+  ///
+  /// \since version 1.0.0
+  template <typename OData, typename OAnnotation>
+  auto then(continuable_base<OData, OAnnotation>&& continuation) && {
+    return std::move(*this).then(
+        detail::base::wrap_continuation(std::move(continuation).materialize()));
+  }
+
+  /// Connects both continuable_base objects logically and calls any attached
+  /// callback with the result of both continuables.
+  ///
+  /// \param right The continuable on the right-hand side to connect.
+  ///
+  /// \returns Returns a continuable_base with a result type matching
+  ///          the result of the left continuable_base combined with the
+  ///          right continuable_base.
+  ///          The returned continuable_base will be in an intermediate lazy
+  ///          state, further calls to its continuable_base::operator &&
+  ///          will add other continuable_base objects to the current
+  ///          invocation chain.
+  /// ```cpp
+  /// (http_request("github.com") && http_request("atom.io"))
+  ///   .then([](std::string github, std::string atom) {
+  ///     // ...
+  ///   });
+  ///
+  /// auto request = http_request("github.com") && http_request("atom.io");
+  /// (std::move(request) && http_request("travis-ci.org"))
+  ///    // All three requests are invoked in parallel although we added
+  ///    // the request to "travis-ci.org" last.
+  ///   .then([](std::string github, std::string atom, std::string travis) {
+  ///     // ...
+  ///   });
+  /// ```
+  ///
+  /// \note The continuables are invoked parallel on the current thread,
+  ///       because the `all` strategy tries to resolve the continuations
+  ///       as fast as possible.
+  ///       Sequential invocation is also supported through the
+  ///       continuable_base::operator>> method.
+  ///
+  /// \since version 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator&&(continuable_base<OData, OAnnotation>&& right) && {
     right.assert_owning();

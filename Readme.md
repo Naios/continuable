@@ -8,8 +8,8 @@ This library provides full feature support of:
 
 * async continuation chaining using **callbacks** (*then*).
 * **no enforced type-erasure** which means we need **extremely fewer heap allocations** .
-* support for **finite logical connections** between continuables through an **all or any** strategy.
-* **syntactic sugar** for attaching callbacks to a continuation.
+* support for **finite logical connections** between continuables through an **all, any or sequence** strategy.
+* **syntactic sugar** for attaching callbacks to a continuation like partial invocation.
 
 
 
