@@ -1412,13 +1412,14 @@ public:
   /// Constructor accepting the data object while erasing the annotation
   explicit continuable_base(Data data) : data_(std::move(data)) {}
 
-  /// Constructor accepting the any object convertible to the data object,
+  /// Constructor accepting any object convertible to the data object,
   /// while erasing the annotation
   template <typename OData, std::enable_if_t<std::is_convertible<
                                 std::decay_t<OData>, Data>::value>* = nullptr>
   continuable_base(OData&& data) : data_(std::forward<OData>(data)) {}
 
-  /// Constructor taking the data of other continuables while erasing the hint.
+  /// Constructor taking the data of other continuable_base objects
+  /// while erasing the hint.
   ///
   /// This constructor makes it possible to replace the internal data object of
   /// the continuable by any object which is useful for type-erasure.
@@ -1521,15 +1522,15 @@ public:
   ///
   /// http_request("github.com")
   ///   .then([](std::string github) { return std::make_pair(1, 2); })
-  ///   .then([](int a, int b) { }); <int, int>
+  ///   .then([](int a, int b) { }); // <int, int>
   ///
   /// http_request("github.com")
   ///   .then([](std::string github) { return std::make_tuple(1, 2, 3); })
-  ///   .then([](int a, int b, int c) { }); <int, int, int>
+  ///   .then([](int a, int b, int c) { }); // <int, int, int>
   ///
   /// http_request("github.com")
   ///   .then([](std::string github) { return http_request("atom.io"); })
-  ///   .then([](std::string atom) { }); <std::string>
+  ///   .then([](std::string atom) { }); // <std::string>
   /// ```
   ///
   /// \since version 1.0.0
@@ -1544,7 +1545,7 @@ public:
   /// Additional overload of the continuable_base::then() method
   /// which is accepting a continuable_base itself.
   ///
-  /// \param continuation A continuable_base reflecting the continuation to
+  /// \param continuation A continuable_base reflecting the continuation
   ///        which is used to continue the call hierarchy.
   ///        The result of the current continuable is discarded and the given
   ///        continuation is invoked as shown below.
@@ -1566,8 +1567,8 @@ public:
         detail::base::wrap_continuation(std::move(continuation).materialize()));
   }
 
-  /// Connects both continuable_base objects logically and calls any attached
-  /// callback with the result of both continuables.
+  /// Invokes both continuable_base objects parallel and calls the
+  /// callback with the result of both continuable_base objects.
   ///
   /// \param right The continuable on the right-hand side to connect.
   ///
@@ -1593,9 +1594,9 @@ public:
   ///   });
   /// ```
   ///
-  /// \note The continuables are invoked parallel on the current thread,
-  ///       because the `all` strategy tries to resolve the continuations
-  ///       as fast as possible.
+  /// \note The continuable_base objects are invoked parallel on the
+  ///       current thread, because the `all` strategy tries to resolve
+  ///       the continuations as fast as possible.
   ///       Sequential invocation is also supported through the
   ///       continuable_base::operator>> method.
   ///
@@ -1607,6 +1608,42 @@ public:
                                     std::move(*this), std::move(right));
   }
 
+  /// Invokes both continuable_base objects parallel and calls the
+  /// callback once with the first result available.
+  ///
+  /// \param right The continuable on the right-hand side to connect.
+  ///              The right continuable is required to have a compatible
+  ///              result to the left connected continuable_base,
+  ///              such that `std::common_type_t<Left, Right>` deduces to
+  ///              a variable for every type in the result of the left and
+  ///              the right continuable_base.
+  ///
+  /// \returns Returns a continuable_base with a result type matching
+  ///          the combined result which of all connected
+  ///          continuable_base objects.
+  ///          The combined result is evaluated through the `std::common_type`
+  ///          trait which returns the type all types can be converted to.
+  ///          The returned continuable_base will be in an intermediate lazy
+  ///          state, further calls to its continuable_base::operator &&
+  ///          will add other continuable_base objects to the current
+  ///          invocation chain.
+  /// ```cpp
+  /// (http_request("github.com") || http_request("atom.io"))
+  ///   .then([](std::string github_or_atom) {
+  ///     // ...
+  ///   });
+  ///
+  /// (supply(10, 'T') || supply(10.f, 'T'))
+  ///   .then([](int a, char b) {
+  ///     // ...
+  ///   });
+  /// ```
+  ///
+  /// \note The continuable_base objects are invoked parallel on the
+  ///       current thread, however, the callback is only called once with
+  ///       the first result which becomes available.
+  ///
+  /// \since version 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator||(continuable_base<OData, OAnnotation>&& right) && {
     right.assert_owning();
@@ -1614,6 +1651,28 @@ public:
                                     std::move(*this), std::move(right));
   }
 
+  /// Invokes both continuable_base objects sequential and calls the
+  /// callback with the result of both continuable_base objects.
+  ///
+  /// \param right The continuable on the right-hand side to connect.
+  ///
+  /// \returns Returns a continuable_base with a result type matching
+  ///          the result of the left continuable_base combined with the
+  ///          right continuable_base.
+  /// ```cpp
+  /// (http_request("github.com") >> http_request("atom.io"))
+  ///   .then([](std::string github, std::string atom) {
+  ///     // The callback is called with the result of both requests,
+  ///     // however, the request to atom was started after the request
+  ///     // to github was finished.
+  ///   });
+  /// ```
+  ///
+  /// \note The continuable_base objects are invoked sequential on the
+  ///       current thread. Parallel invocation is also supported through the
+  ///       continuable_base::operator&& method.
+  ///
+  /// \since version 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator>>(continuable_base<OData, OAnnotation>&& right) && {
     right.assert_owning();
@@ -1621,10 +1680,30 @@ public:
                                                std::move(right));
   }
 
+  /// Starts the continuation chain and returns the asynchronous
+  /// result as `std::future<...>`.
+  ///
+  /// \returns Returns a `std::future<...>` which becomes ready as soon
+  ///          as the the continuation chain has finished.
+  ///          The signature of the future depends on the result type:
+  /// |          Continuation type        |             Return type            |
+  /// | : ------------------------------- | : -------------------------------- |
+  /// | `continuable_base with <>`        | `std::future<void>`                |
+  /// | `continuable_base with <Arg>`     | `std::future<Arg>`                 |
+  /// | `continuable_base with <Args...>` | `std::future<std::tuple<Args...>>` |
+  ///
+  /// \since version 1.0.0
   auto futurize() && {
     return detail::transforms::as_future(std::move(*this).materialize());
   }
 
+  /// Invokes the continuation chain before the the continuabl_base
+  /// is destructed. This will invalidate the object.
+  ///
+  /// \note Calling this method on consumed continuabl_base objects
+  ///       will trigger an assertion.
+  ///
+  /// \since version 1.0.0
   void done() && {
     assert(ownership_.has_ownership() &&
            "Tried to finalize a continuable with an invalid state!");
@@ -1632,8 +1711,13 @@ public:
     assert(!ownership_.has_ownership());
   }
 
-  /// Prevents the automatic invocation on destruction as explained
-  /// in continuable_base::~continuable_base().
+  /// Prevents the automatic invocation of the continuation chain
+  /// on destruction.
+  ///
+  /// \see continuable_base::~continuable_base() for further details about
+  ///      the continuation invocation on destruction.
+  ///
+  /// \since version 1.0.0
   void release() noexcept { ownership_.invalidate(); }
 
 private:
@@ -1813,15 +1897,6 @@ using continuable_erasure_of_t =
 template <typename Erasure, typename... Args>
 using continuable_of_t =
     continuable_base<Erasure, detail::signature_hint_tag<Args...>>;
-
-/*
- * cti::none
- * cti::spreading
- * cti::partialization
- * cti::prepend
- * cti::append
- * cti::through
- */
 
 /// \cond false
 } // end inline namespace abi_...
