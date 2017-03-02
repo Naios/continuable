@@ -143,16 +143,17 @@ template <bool Value> using bool_constant = constant<bool, Value>;
 template <std::size_t Value> using size_constant = constant<std::size_t, Value>;
 
 template <typename T, bool Value>
-auto constant_of(std::integral_constant<T, Value> /*value*/ = {}) {
+constexpr auto constant_of(std::integral_constant<T, Value> /*value*/ = {}) {
   return constant<T, Value>{};
 }
 template <std::size_t Value>
-auto size_constant_of(
-    std::integral_constant<std::size_t, Value> /*value*/ = {}) {
+constexpr auto
+size_constant_of(std::integral_constant<std::size_t, Value> /*value*/ = {}) {
   return size_constant<Value>{};
 }
 template <bool Value>
-auto bool_constant_of(std::integral_constant<bool, Value> /*value*/ = {}) {
+constexpr auto
+bool_constant_of(std::integral_constant<bool, Value> /*value*/ = {}) {
   return bool_constant<Value>{};
 }
 
@@ -177,24 +178,26 @@ template <typename> struct is_identity : std::false_type {};
 template <typename... Args>
 struct is_identity<identity<Args...>> : std::true_type {};
 
-template <typename T> identity<std::decay_t<T>> identity_of(T const& /*type*/) {
+template <typename T>
+identity<std::decay_t<T>> constexpr identity_of(T const& /*type*/) noexcept {
   return {};
 }
 template <typename... Args>
-identity<Args...> identity_of(identity<Args...> /*type*/) {
+constexpr identity<Args...> identity_of(identity<Args...> /*type*/) noexcept {
   return {};
 }
-template <typename T> auto identity_of() {
+template <typename T> constexpr auto identity_of() noexcept {
   return std::conditional_t<is_identity<std::decay_t<T>>::value, T,
                             identity<std::decay_t<T>>>{};
 }
 
-template <std::size_t I, typename... T> auto get(identity<T...>) {
+template <std::size_t I, typename... T>
+constexpr auto get(identity<T...>) noexcept {
   return identity_of<at_t<I, T...>>();
 }
 
 /// Helper to trick compilers about that a parameter pack is used
-template <typename... T> void unused(T&&... args) {
+template <typename... T> constexpr void unused(T&&... args) {
   auto use = [](auto&& type) mutable {
     (void)type;
     return 0;
@@ -225,63 +228,69 @@ struct is_valid_impl<T, Check,
     : std::common_type<std::true_type> {};
 
 template <typename Type, typename TrueCallback>
-void static_if_impl(std::true_type, Type&& type, TrueCallback&& trueCallback) {
+constexpr void static_if_impl(std::true_type, Type&& type,
+                              TrueCallback&& trueCallback) {
   std::forward<TrueCallback>(trueCallback)(std::forward<Type>(type));
 }
 
 template <typename Type, typename TrueCallback>
-void static_if_impl(std::false_type, Type&& /*type*/,
-                    TrueCallback&& /*trueCallback*/) {}
+constexpr void static_if_impl(std::false_type, Type&& /*type*/,
+                              TrueCallback&& /*trueCallback*/) {}
 
 template <typename Type, typename TrueCallback, typename FalseCallback>
-auto static_if_impl(std::true_type, Type&& type, TrueCallback&& trueCallback,
-                    FalseCallback&& /*falseCallback*/) {
+constexpr auto static_if_impl(std::true_type, Type&& type,
+                              TrueCallback&& trueCallback,
+                              FalseCallback&& /*falseCallback*/) {
   return std::forward<TrueCallback>(trueCallback)(std::forward<Type>(type));
 }
 
 template <typename Type, typename TrueCallback, typename FalseCallback>
-auto static_if_impl(std::false_type, Type&& type,
-                    TrueCallback&& /*trueCallback*/,
-                    FalseCallback&& falseCallback) {
+constexpr auto static_if_impl(std::false_type, Type&& type,
+                              TrueCallback&& /*trueCallback*/,
+                              FalseCallback&& falseCallback) {
   return std::forward<FalseCallback>(falseCallback)(std::forward<Type>(type));
 }
 } // end namespace detail
 
 /// Returns the pack size of the given type
-template <typename... Args> auto pack_size_of(identity<std::tuple<Args...>>) {
+template <typename... Args>
+constexpr auto pack_size_of(identity<std::tuple<Args...>>) noexcept {
   return size_of_t<Args...>{};
 }
 /// Returns the pack size of the given type
 template <typename First, typename Second>
-auto pack_size_of(identity<std::pair<First, Second>>) {
+constexpr auto pack_size_of(identity<std::pair<First, Second>>) noexcept {
   return size_of_t<First, Second>{};
 }
 /// Returns the pack size of the given type
-template <typename... Args> auto pack_size_of(identity<Args...>) {
+template <typename... Args>
+constexpr auto pack_size_of(identity<Args...>) noexcept {
   return size_of_t<Args...>{};
 }
 
 /// Returns an index sequence of the given type
-template <typename T> auto sequenceOf(T&& sequenceable) {
-  auto size = pack_size_of(std::forward<T>(sequenceable));
-  (void)size;
-  return std::make_index_sequence<decltype(size)::value>();
+template <typename T> constexpr auto sequenceOf(T&& /*sequenceable*/) noexcept {
+  return std::make_index_sequence<decltype(
+      pack_size_of(std::declval<T>()))::value>();
 }
 
 /// Returns a check which returns a true type if the current value
 /// is below the
-template <std::size_t End> auto isLessThen(size_constant<End> end) {
+template <std::size_t End>
+constexpr auto isLessThen(size_constant<End> end) noexcept {
   return [=](auto current) { return end > current; };
 }
 
 /// Compile-time check for validating a certain expression
 template <typename T, typename Check>
-auto is_valid(T&& /*type*/, Check&& /*check*/) {
+constexpr auto is_valid(T&& /*type*/, Check&& /*check*/) noexcept {
   return typename detail::is_valid_impl<T, Check>::type{};
 }
 
 /// Creates a static functional validator object.
-template <typename Check> auto validatorOf(Check&& check) {
+template <typename Check>
+constexpr auto validatorOf(Check&& check) noexcept(
+    std::is_nothrow_move_constructible<std::decay_t<Check>>::value) {
   return [check = std::forward<Check>(check)](auto&& matchable) {
     return is_valid(std::forward<decltype(matchable)>(matchable), check);
   };
@@ -289,7 +298,8 @@ template <typename Check> auto validatorOf(Check&& check) {
 
 /// Invokes the callback only if the given type matches the check
 template <typename Type, typename Check, typename TrueCallback>
-void static_if(Type&& type, Check&& check, TrueCallback&& trueCallback) {
+constexpr void static_if(Type&& type, Check&& check,
+                         TrueCallback&& trueCallback) {
   detail::static_if_impl(std::forward<Check>(check)(type),
                          std::forward<Type>(type),
                          std::forward<TrueCallback>(trueCallback));
@@ -298,8 +308,9 @@ void static_if(Type&& type, Check&& check, TrueCallback&& trueCallback) {
 /// Invokes the callback only if the given type matches the check
 template <typename Type, typename Check, typename TrueCallback,
           typename FalseCallback>
-auto static_if(Type&& type, Check&& check, TrueCallback&& trueCallback,
-               FalseCallback&& falseCallback) {
+constexpr auto static_if(Type&& type, Check&& check,
+                         TrueCallback&& trueCallback,
+                         FalseCallback&& falseCallback) {
   return detail::static_if_impl(std::forward<Check>(check)(type),
                                 std::forward<Type>(type),
                                 std::forward<TrueCallback>(trueCallback),
@@ -309,7 +320,8 @@ auto static_if(Type&& type, Check&& check, TrueCallback&& trueCallback,
 /// A compile-time while loop, which loops as long the value matches
 /// the predicate. The handler shall return the next value.
 template <typename Value, typename Predicate, typename Handler>
-auto static_while(Value&& value, Predicate&& predicate, Handler&& handler) {
+constexpr auto static_while(Value&& value, Predicate&& predicate,
+                            Handler&& handler) {
   return static_if(std::forward<Value>(value), predicate,
                    [&](auto&& result) mutable {
                      return static_while(
@@ -323,7 +335,7 @@ auto static_while(Value&& value, Predicate&& predicate, Handler&& handler) {
 }
 
 /// Returns a validator which checks whether the given sequenceable is empty
-inline auto is_empty() {
+inline auto is_empty() noexcept {
   return [](auto const& checkable) {
     return pack_size_of(checkable) == size_constant_of<0>();
   };
@@ -331,14 +343,14 @@ inline auto is_empty() {
 
 /// Calls the given unpacker with the content of the given sequence
 template <typename U, std::size_t... I>
-auto unpack(std::integer_sequence<std::size_t, I...>, U&& unpacker) {
+constexpr auto unpack(std::integer_sequence<std::size_t, I...>, U&& unpacker) {
   return std::forward<U>(unpacker)(size_constant_of<I>()...);
 }
 
 /// Calls the given unpacker with the content of the given sequenceable
 template <typename F, typename U, std::size_t... I>
-auto unpack(F&& firstSequenceable, U&& unpacker,
-            std::integer_sequence<std::size_t, I...>) {
+constexpr auto unpack(F&& firstSequenceable, U&& unpacker,
+                      std::integer_sequence<std::size_t, I...>) {
   using std::get;
   (void)firstSequenceable;
   return std::forward<U>(unpacker)(
@@ -347,9 +359,9 @@ auto unpack(F&& firstSequenceable, U&& unpacker,
 /// Calls the given unpacker with the content of the given sequenceable
 template <typename F, typename S, typename U, std::size_t... IF,
           std::size_t... IS>
-auto unpack(F&& firstSequenceable, S&& secondSequenceable, U&& unpacker,
-            std::integer_sequence<std::size_t, IF...>,
-            std::integer_sequence<std::size_t, IS...>) {
+constexpr auto unpack(F&& firstSequenceable, S&& secondSequenceable,
+                      U&& unpacker, std::integer_sequence<std::size_t, IF...>,
+                      std::integer_sequence<std::size_t, IS...>) {
   using std::get;
   (void)firstSequenceable;
   (void)secondSequenceable;
@@ -365,7 +377,8 @@ auto unpack(F&& firstSequenceable, U&& unpacker) {
 }
 /// Calls the given unpacker with the content of the given sequenceables
 template <typename F, typename S, typename U>
-auto unpack(F&& firstSequenceable, S&& secondSequenceable, U&& unpacker) {
+constexpr auto unpack(F&& firstSequenceable, S&& secondSequenceable,
+                      U&& unpacker) {
   return unpack(std::forward<F>(firstSequenceable),
                 std::forward<S>(secondSequenceable), std::forward<U>(unpacker),
                 sequenceOf(identity_of(firstSequenceable)),
@@ -374,7 +387,8 @@ auto unpack(F&& firstSequenceable, S&& secondSequenceable, U&& unpacker) {
 
 /// Applies the handler function to each element contained in the sequenceable
 template <typename Sequenceable, typename Handler>
-void static_for_each_in(Sequenceable&& sequenceable, Handler&& handler) {
+constexpr void static_for_each_in(Sequenceable&& sequenceable,
+                                  Handler&& handler) {
   unpack(
       std::forward<Sequenceable>(sequenceable), [&](auto&&... entries) mutable {
         auto consume = [&](auto&& entry) mutable {
@@ -390,7 +404,7 @@ void static_for_each_in(Sequenceable&& sequenceable, Handler&& handler) {
 
 /// Adds the given type at the back of the left sequenceable
 template <typename Left, typename Element>
-auto push(Left&& left, Element&& element) {
+constexpr auto push(Left&& left, Element&& element) {
   return unpack(std::forward<Left>(left), [&](auto&&... leftArgs) {
     return std::make_tuple(std::forward<decltype(leftArgs)>(leftArgs)...,
                            std::forward<Element>(element));
@@ -399,44 +413,45 @@ auto push(Left&& left, Element&& element) {
 
 /// Adds the element to the back of the identity
 template <typename... Args, typename Element>
-auto push(identity<Args...>, identity<Element>) {
+constexpr auto push(identity<Args...>, identity<Element>) noexcept {
   return identity<Args..., Element>{};
 }
 
 /// Removes the first element from the identity
 template <typename First, typename... Rest>
-auto pop_first(identity<First, Rest...>) {
+constexpr auto pop_first(identity<First, Rest...>) noexcept {
   return identity<Rest...>{};
 }
 
 /// Returns the merged sequence
-template <typename Left> auto merge(Left&& left) {
+template <typename Left> constexpr auto merge(Left&& left) {
   return std::forward<Left>(left);
 }
 /// Merges the left sequenceable with the right ones
 template <typename Left, typename Right, typename... Rest>
-auto merge(Left&& left, Right&& right, Rest&&... rest) {
-  // Merge the left with the right sequenceable
-  auto merged =
-      unpack(std::forward<Left>(left), std::forward<Right>(right),
-             [&](auto&&... args) {
-               // Maybe use: template <template<typename...> class T,
-               // typename... Args>
-               return std::make_tuple(std::forward<decltype(args)>(args)...);
-             });
-  // And merge it with the rest
-  return merge(std::move(merged), std::forward<Rest>(rest)...);
+constexpr auto merge(Left&& left, Right&& right, Rest&&... rest) {
+  // Merge the left with the right sequenceable and
+  // merge the result with the rest.
+  return merge(unpack(std::forward<Left>(left), std::forward<Right>(right),
+                      [&](auto&&... args) {
+                        // Maybe use: template <template<typename...> class T,
+                        // typename... Args>
+                        return std::make_tuple(
+                            std::forward<decltype(args)>(args)...);
+                      }),
+               std::forward<Rest>(rest)...);
 }
 /// Merges the left identity with the right ones
 template <typename... LeftArgs, typename... RightArgs, typename... Rest>
-auto merge(identity<LeftArgs...> /*left*/, identity<RightArgs...> /*right*/,
-           Rest&&... rest) {
+constexpr auto merge(identity<LeftArgs...> /*left*/,
+                     identity<RightArgs...> /*right*/, Rest&&... rest) {
   return merge(identity<LeftArgs..., RightArgs...>{},
                std::forward<Rest>(rest)...);
 }
 
 /// Combines the given arguments with the given folding function
-template <typename F, typename First> auto fold(F&& /*folder*/, First&& first) {
+template <typename F, typename First>
+constexpr auto fold(F&& /*folder*/, First&& first) {
   return std::forward<First>(first);
 }
 /// Combines the given arguments with the given folding function
@@ -448,21 +463,21 @@ auto fold(F&& folder, First&& first, Second&& second, Rest&&... rest) {
 }
 
 /// Returns a folding function using operator `&&`.
-inline auto and_folding() {
+inline auto and_folding() noexcept {
   return [](auto&& left, auto&& right) {
     return std::forward<decltype(left)>(left) &&
            std::forward<decltype(right)>(right);
   };
 }
 /// Returns a folding function using operator `||`.
-inline auto or_folding() {
+inline auto or_folding() noexcept {
   return [](auto&& left, auto&& right) {
     return std::forward<decltype(left)>(left) ||
            std::forward<decltype(right)>(right);
   };
 }
 /// Returns a folding function using operator `>>`.
-inline auto seq_folding() {
+inline auto seq_folding() noexcept {
   return [](auto&& left, auto&& right) {
     return std::forward<decltype(left)>(left) >>
            std::forward<decltype(right)>(right);
@@ -583,18 +598,18 @@ auto partial_invoke(T&& callable, Args&&... args) {
 
 // Class for making child classes non copyable
 struct non_copyable {
-  non_copyable() = default;
+  constexpr non_copyable() = default;
   non_copyable(non_copyable const&) = delete;
-  non_copyable(non_copyable&&) = default;
+  constexpr non_copyable(non_copyable&&) = default;
   non_copyable& operator=(non_copyable const&) = delete;
   non_copyable& operator=(non_copyable&&) = default;
 };
 
 // Class for making child classes non copyable and movable
 struct non_movable {
-  non_movable() = default;
+  constexpr non_movable() = default;
   non_movable(non_movable const&) = delete;
-  non_movable(non_movable&&) = delete;
+  constexpr non_movable(non_movable&&) = delete;
   non_movable& operator=(non_movable const&) = delete;
   non_movable& operator=(non_movable&&) = delete;
 };
@@ -604,9 +619,9 @@ struct non_movable {
 /// is moved to another instance.
 class ownership {
 public:
-  ownership() = default;
-  explicit ownership(bool isOwning_) : is_owning(isOwning_) {}
-  ownership(ownership const&) = default;
+  constexpr ownership() = default;
+  constexpr explicit ownership(bool isOwning_) : is_owning(isOwning_) {}
+  constexpr ownership(ownership const&) = default;
   ownership(ownership&& right) noexcept
       : is_owning(std::exchange(right.is_owning, false)){};
   ownership& operator=(ownership const&) = default;
@@ -619,7 +634,7 @@ public:
     return ownership(has_ownership() && right.has_ownership());
   }
 
-  bool has_ownership() const noexcept { return is_owning; }
+  constexpr bool has_ownership() const noexcept { return is_owning; }
   void invalidate() noexcept { is_owning = false; }
 
 private:
@@ -654,15 +669,15 @@ struct this_thread_executor_tag {};
 ///     -> void
 namespace base {
 /// Returns the signature hint of the given continuable
-template <typename T> auto hint_of(util::identity<T>) {
+template <typename T> constexpr auto hint_of(util::identity<T>) {
   static_assert(util::fail<T>::value,
                 "Expected a continuation with an existing signature hint!");
   return util::identity_of<void>();
 }
 /// Returns the signature hint of the given continuable
 template <typename Data, typename... Args>
-auto hint_of(
-    util::identity<continuable_base<Data, signature_hint_tag<Args...>>>) {
+constexpr auto
+hint_of(util::identity<continuable_base<Data, signature_hint_tag<Args...>>>) {
   return signature_hint_tag<Args...>{};
 }
 
@@ -726,18 +741,18 @@ public:
   using T::operator();
 
   /// Returns the underlaying signature hint
-  Hint hint() const noexcept { return {}; }
+  constexpr Hint hint() const noexcept { return {}; }
 };
 
 template <typename T, typename... Args>
-auto make_invoker(T&& invoke, signature_hint_tag<Args...>) {
+constexpr auto make_invoker(T&& invoke, signature_hint_tag<Args...>) {
   return invoker<std::decay_t<T>, signature_hint_tag<Args...>>(
       std::forward<T>(invoke));
 }
 
 /// - continuable<?...> -> result(nextCallback);
 template <typename Data, typename Annotation>
-auto invokerOf(util::identity<continuable_base<Data, Annotation>>) {
+constexpr auto invokerOf(util::identity<continuable_base<Data, Annotation>>) {
   /// Get the hint of the unwrapped returned continuable
   using Type = decltype(attorney::materialize(
       std::declval<continuable_base<Data, Annotation>>()));
@@ -796,14 +811,14 @@ inline auto sequencedUnpackInvoker() {
 
 // - std::pair<?, ?> -> nextCallback(?, ?)
 template <typename First, typename Second>
-auto invokerOf(util::identity<std::pair<First, Second>>) {
+constexpr auto invokerOf(util::identity<std::pair<First, Second>>) {
   return make_invoker(sequencedUnpackInvoker(),
                       util::identity<First, Second>{});
 }
 
 // - std::tuple<?...>  -> nextCallback(?...)
 template <typename... Args>
-auto invokerOf(util::identity<std::tuple<Args...>>) {
+constexpr auto invokerOf(util::identity<std::tuple<Args...>>) {
   return make_invoker(sequencedUnpackInvoker(), util::identity<Args...>{});
 }
 } // end namespace decoration
@@ -890,8 +905,8 @@ void invoke_proxy(signature_hint_tag<Args...>, Continuation&& continuation,
 
 /// Returns the next hint when the callback is invoked with the given hint
 template <typename T, typename... Args>
-auto next_hint_of(util::identity<T> /*callback*/,
-                  signature_hint_tag<Args...> /*current*/) {
+constexpr auto next_hint_of(util::identity<T> /*callback*/,
+                            signature_hint_tag<Args...> /*current*/) {
   auto result =
       util::identity_of<decltype(std::declval<T>()(std::declval<Args>()...))>();
 
@@ -989,12 +1004,12 @@ template <> struct is_strategy<strategy_any_tag> : std::true_type {};
 namespace annotating {
 namespace detail {
 /// Void hints are equal to an empty signature
-inline auto make_hint_of(util::identity<void>) {
+constexpr auto make_hint_of(util::identity<void>) noexcept {
   return signature_hint_tag<>{};
 }
 /// All other hints are the obvious hints...
 template <typename... HintArgs>
-auto make_hint_of(util::identity<HintArgs...> args) {
+constexpr auto make_hint_of(util::identity<HintArgs...> args) noexcept {
   return args; // Identity is equal to signature_hint_tag
 }
 } // end namespace detail
@@ -1015,7 +1030,8 @@ auto make_hint_of(util::identity<HintArgs...> args) {
 /// - absent_signature_hint_tag
 ///
 template <typename T, typename... HintArgs>
-auto extract(util::identity<T> /*type*/, util::identity<HintArgs...> hint) {
+constexpr auto extract(util::identity<T> /*type*/,
+                       util::identity<HintArgs...> hint) {
   return util::static_if(hint, util::is_empty(),
                          [=](auto /*hint*/) {
                            /// When the arguments are the hint is absent
@@ -1030,7 +1046,7 @@ auto extract(util::identity<T> /*type*/, util::identity<HintArgs...> hint) {
 
 namespace detail {
 template <std::size_t Pos, typename T>
-void assign(util::size_constant<Pos> /*pos*/, T& /*storage*/) {
+constexpr void assign(util::size_constant<Pos> /*pos*/, T& /*storage*/) {
   // ...
 }
 template <std::size_t Pos, typename T, typename Current, typename... Args>
@@ -1251,11 +1267,11 @@ auto make_any_result_submitter(Callback&& callback) {
 }
 
 template <typename T, typename... Args>
-T first_of(util::identity<T, Args...>) noexcept;
+constexpr T first_of(util::identity<T, Args...>) noexcept;
 
 template <typename Signature, typename... Args>
-auto common_result_of(Signature signature, signature_hint_tag<>,
-                      Args... /*args*/) {
+constexpr auto common_result_of(Signature signature, signature_hint_tag<>,
+                                Args... /*args*/) {
   /// Assert that the other signatures are empty too which means all signatures
   /// had the same size.
   util::static_for_each_in(util::identity<Args...>{}, [&](auto rest) {
@@ -1271,7 +1287,8 @@ auto common_result_of(Signature signature, signature_hint_tag<>,
 /// c1 with `void(int)` and c22 with `void(float)`, the common result shared
 /// between both continuations is `void(int)`.
 template <typename Signature, typename First, typename... Args>
-auto common_result_of(Signature signature, First first, Args... args) {
+constexpr auto common_result_of(Signature signature, First first,
+                                Args... args) {
   auto common =
       util::identity<std::common_type_t<decltype(first_of(first)),
                                         decltype(first_of(args))...>>{};
@@ -1366,9 +1383,9 @@ class promise_callback<signature_hint_tag<Args...>>
   typename future_trait<Args...>::promise_t promise_;
 
 public:
-  promise_callback() = default;
+  constexpr promise_callback() = default;
   promise_callback(promise_callback const&) = delete;
-  promise_callback(promise_callback&&) = default;
+  constexpr promise_callback(promise_callback&&) = default;
   promise_callback& operator=(promise_callback const&) = delete;
   promise_callback& operator=(promise_callback&&) = delete;
 
