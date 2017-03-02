@@ -59,9 +59,7 @@ template <typename T> auto assert_invocation(T* me) {
 }
 
 TYPED_TEST(single_dimension_tests, are_incomplete_when_released) {
-  auto chain = this->supply().then([] {
-    int i = 0;
-  });
+  auto chain = this->supply();
   chain.release();
   EXPECT_ASYNC_INCOMPLETE(std::move(chain));
 }

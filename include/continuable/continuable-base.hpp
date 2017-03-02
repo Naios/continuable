@@ -613,30 +613,59 @@ struct non_movable {
   non_movable& operator=(non_movable const&) = delete;
   non_movable& operator=(non_movable&&) = delete;
 };
+} // end namespace util
 
 /// This class is responsible for holding an abstract copy- and
 /// move-able ownership that is invalidated when the object
 /// is moved to another instance.
 class ownership {
+  explicit constexpr ownership(bool acquired, bool frozen)
+      : acquired_(acquired), frozen_(frozen) {}
+
 public:
-  constexpr ownership() = default;
-  constexpr explicit ownership(bool isOwning_) : is_owning(isOwning_) {}
+  constexpr ownership() : acquired_(true), frozen_(false) {}
   constexpr ownership(ownership const&) = default;
   ownership(ownership&& right) noexcept
-      : is_owning(std::exchange(right.is_owning, false)){};
+      : acquired_(right.consume()), frozen_(right.is_frozen()) {}
   ownership& operator=(ownership const&) = default;
   ownership& operator=(ownership&& right) noexcept {
-    is_owning = std::exchange(right.is_owning, false);
+    acquired_ = right.consume();
+    frozen_ = right.is_frozen();
     return *this;
   }
 
-  constexpr bool has_ownership() const noexcept { return is_owning; }
-  void invalidate() noexcept { is_owning = false; }
+  // Merges both ownerships together
+  ownership operator|(ownership const& right) const noexcept {
+    return ownership(is_acquired() && right.is_acquired(),
+                     is_frozen() || right.is_frozen());
+  }
+
+  constexpr bool is_acquired() const noexcept { return acquired_; }
+  constexpr bool is_frozen() const noexcept { return frozen_; }
+
+  void release() noexcept {
+    assert(is_acquired() && "Tried to release the ownership twice!");
+    acquired_ = false;
+  }
+  void freeze(bool enabled = true) noexcept {
+    assert(is_acquired() && "Tried to freeze a released object!");
+    frozen_ = enabled;
+  }
 
 private:
-  bool is_owning = true;
+  bool consume() noexcept {
+    if (is_acquired()) {
+      release();
+      return true;
+    }
+    return false;
+  }
+
+  /// Is true when the object is in a valid state
+  bool acquired_ : 1;
+  /// Is true when the automatic invocation on destruction is disabled
+  bool frozen_ : 1;
 };
-} // end namespace util
 
 /// Represents a present signature hint
 template <typename... Args> using signature_hint_tag = util::identity<Args...>;
@@ -654,7 +683,7 @@ struct this_thread_executor_tag {};
 ///
 /// Important methods are:
 /// - Creating a continuation from a callback taking functional
-///   base::make_continuable_base(auto&& callback)
+///   base::attorney::create(auto&& callback)
 ///     -> base::continuation<auto>
 /// - Chaining a continuation together with a callback
 ///   base::chain_continuation(base::continuation<auto> continuation,
@@ -677,14 +706,6 @@ hint_of(util::identity<continuable_base<Data, signature_hint_tag<Args...>>>) {
   return signature_hint_tag<Args...>{};
 }
 
-/// Makes a continuation wrapper from the given argument
-template <typename T, typename A = absent_signature_hint_tag>
-auto make_continuable_base(T&& continuation,
-                           A /*hint*/ = absent_signature_hint_tag{}) {
-  return continuable_base<std::decay_t<T>, std::decay_t<A>>(
-      std::forward<T>(continuation));
-}
-
 template <typename T> struct is_continuation : std::false_type {};
 template <typename Data, typename Annotation>
 struct is_continuation<continuable_base<Data, Annotation>> : std::true_type {};
@@ -692,6 +713,13 @@ struct is_continuation<continuable_base<Data, Annotation>> : std::true_type {};
 /// Helper class to access private methods and members of
 /// the continuable_base class.
 struct attorney {
+  /// Makes a continuation wrapper from the given argument
+  template <typename T, typename A = absent_signature_hint_tag>
+  static auto create(T&& continuation, A /*hint*/, ownership ownership_) {
+    return continuable_base<std::decay_t<T>, std::decay_t<A>>(
+        std::forward<T>(continuation), ownership_);
+  }
+
   /// Invokes a continuation object in a reference correct way
   template <typename Data, typename Annotation, typename Callback>
   static auto
@@ -708,8 +736,14 @@ struct attorney {
   }
 
   template <typename Data, typename Annotation>
-  static Data&& consumeData(continuable_base<Data, Annotation>&& continuation) {
-    return std::move(continuation).consumeData();
+  static Data&&
+  consume_data(continuable_base<Data, Annotation>&& continuation) {
+    return std::move(continuation).consume_data();
+  }
+
+  template <typename Continuable>
+  static ownership ownership_of(Continuable&& continuation) {
+    return continuation.ownership_;
   }
 };
 
@@ -933,8 +967,12 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   auto hint = hint_of(util::identity_of(continuation));
   auto next_hint = next_hint_of(util::identity_of(partial_callable), hint);
 
-  return make_continuable_base(
+  auto ownership_ = attorney::ownership_of(continuation);
+  continuation.freeze();
+
+  return attorney::create(
       [
+        // TODO consume only the data here
         continuation = std::forward<Continuation>(continuation),
         partial_callable = std::move(partial_callable),
         executor = std::forward<Executor>(executor)
@@ -944,7 +982,7 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
                      std::move(executor),
                      std::forward<decltype(nextCallback)>(nextCallback));
       },
-      next_hint);
+      next_hint, ownership_);
 }
 
 /// Workaround for GCC bug:
@@ -979,6 +1017,7 @@ public:
 /// Returns a continuable into a functional object returning the continuable
 template <typename Continuation>
 auto wrap_continuation(Continuation&& continuation) {
+  continuation.freeze();
   return supplier_callback<std::decay_t<Continuation>>(
       std::forward<Continuation>(continuation));
 }
@@ -1173,7 +1212,7 @@ auto normalize(Strategy /*strategy*/,
                continuable_base<Data, Strategy>&& continuation) {
 
   // If we are in the given strategy we can just use the data of the continuable
-  return base::attorney::consumeData(std::move(continuation));
+  return base::attorney::consume_data(std::move(continuation));
 }
 
 /// Entry function for connecting two continuables with a given strategy.
@@ -1182,6 +1221,12 @@ template <typename Strategy, typename LData, typename LAnnotation,
 auto connect(Strategy strategy, continuable_base<LData, LAnnotation>&& left,
              continuable_base<RData, RAnnotation>&& right) {
 
+  auto ownership_ =
+      base::attorney::ownership_of(left) | base::attorney::ownership_of(right);
+
+  left.freeze();
+  right.freeze();
+
   // Make the new data which consists of a tuple containing
   // all connected continuables.
   auto data = chain_composition(normalize(strategy, std::move(left)),
@@ -1189,7 +1234,7 @@ auto connect(Strategy strategy, continuable_base<LData, LAnnotation>&& left,
 
   // Return a new continuable containing the tuple and holding
   // the current strategy as annotation.
-  return base::make_continuable_base(std::move(data), strategy);
+  return base::attorney::create(std::move(data), strategy, ownership_);
 }
 
 /// Creates a submitter which caches the intermediate results of `all` chains
@@ -1203,24 +1248,29 @@ auto make_all_result_submitter(Callback&& callback,
 }
 
 /// Finalizes the all logic of a given composition
-template <typename Composition>
-auto finalize_composition(strategy_all_tag, Composition&& composition) {
+template <typename Data>
+auto finalize_composition(
+    continuable_base<Data, strategy_all_tag>&& continuation) {
+
+  auto ownership_ = base::attorney::ownership_of(continuation);
+
+  auto composition = base::attorney::consume_data(std::move(continuation));
 
   // Merge all signature hints together
   auto signature = util::unpack(composition, [](auto&... entries) {
     return util::merge(base::hint_of(util::identity_of(entries))...);
   });
 
-  return base::make_continuable_base(
-      [ signature, composition = std::forward<Composition>(composition) ](
-          auto&& callback) mutable {
+  return base::attorney::create(
+      [ signature,
+        composition = std::move(composition) ](auto&& callback) mutable {
         // We mark the current 2-dimensional position through a pair:
         // std::pair<size_constant<?>, size_constant<?>>
         //           ~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~
         //           Continuation pos     Result pos
         auto begin = std::make_pair(util::size_constant_of<0>(),
                                     util::size_constant_of<0>());
-        auto pack = util::identity_of<std::decay_t<Composition>>();
+        auto pack = util::identity_of(composition);
         auto end = util::pack_size_of(pack);
         auto condition = [=](auto pos) { return pos.first < end; };
 
@@ -1250,7 +1300,7 @@ auto finalize_composition(strategy_all_tag, Composition&& composition) {
                                 next);
         });
       },
-      signature);
+      signature, std::move(ownership_));
 }
 
 /// Creates a submitter that continues `any` chains
@@ -1293,8 +1343,13 @@ constexpr auto common_result_of(Signature signature, First first,
 }
 
 /// Finalizes the any logic of a given composition
-template <typename Composition>
-auto finalize_composition(strategy_any_tag, Composition&& composition) {
+template <typename Data>
+auto finalize_composition(
+    continuable_base<Data, strategy_any_tag>&& continuation) {
+
+  auto ownership_ = base::attorney::ownership_of(continuation);
+
+  auto composition = base::attorney::consume_data(std::move(continuation));
 
   // Determine the shared result between all continuations
   auto signature = util::unpack(composition, [](auto const&... args) {
@@ -1302,9 +1357,8 @@ auto finalize_composition(strategy_any_tag, Composition&& composition) {
                             base::hint_of(util::identity_of(args))...);
   });
 
-  return base::make_continuable_base(
-      [composition =
-           std::forward<Composition>(composition)](auto&& callback) mutable {
+  return base::attorney::create(
+      [composition = std::move(composition)](auto&& callback) mutable {
 
         // Create the submitter which calls the given callback once at the first
         // callback invocation.
@@ -1320,7 +1374,7 @@ auto finalize_composition(strategy_any_tag, Composition&& composition) {
                                        submitter->create_callback());
                                  });
       },
-      signature);
+      signature, std::move(ownership_));
 }
 
 /// Connects the left and the right continuable to a sequence
@@ -1329,6 +1383,9 @@ auto finalize_composition(strategy_any_tag, Composition&& composition) {
 ///       any profit from chaining sequences lazily.
 template <typename Left, typename Right>
 auto sequential_connect(Left&& left, Right&& right) {
+  left.freeze(right.is_frozen());
+  right.freeze();
+
   return std::forward<Left>(left).then([right = std::forward<Right>(right)](
       auto&&... args) mutable {
     return std::move(right).then([previous = std::make_tuple(
@@ -1417,8 +1474,13 @@ template <typename Data, typename Annotation> class continuable_base {
 
   // The continuation type or intermediate result
   Data data_;
-  detail::util::ownership ownership_;
+  // The transferable state which represents the validity of the object
+  detail::ownership ownership_;
   /// \endcond
+
+  /// Constructor accepting the data object while erasing the annotation
+  explicit continuable_base(Data data, detail::ownership ownership)
+      : data_(std::move(data)), ownership_(std::move(ownership)) {}
 
 public:
   /// Constructor accepting the data object while erasing the annotation
@@ -1437,7 +1499,7 @@ public:
   /// the continuable by any object which is useful for type-erasure.
   template <typename OData, typename OAnnotation>
   continuable_base(continuable_base<OData, OAnnotation>&& other)
-      : continuable_base(std::move(other).materialize().consumeData()) {}
+      : continuable_base(std::move(other).materialize().consume_data()) {}
 
   /// \cond false
   continuable_base(continuable_base&&) = default;
@@ -1448,21 +1510,25 @@ public:
   /// \endcond
 
   /// The destructor automatically invokes the continuable_base
-  /// if it wasn't consumed yet.
+  /// if it wasn't released yet.
   ///
   /// In order to invoke the continuable early you may call the
   /// continuable_base::done() method.
   ///
   /// You may release the continuable_base through calling the corresponding
-  /// continuable_base::release() method which prevents
-  /// the invocation on destruction.
+  /// continuable_base::release method which prevents
+  /// the invocation on destruction but also makes the object unusable.
+  ///
+  /// The continuable_base::freeze method just disables the automatic
+  /// invocation on destruction without invalidating the object.
   ///
   /// \since version 1.0.0
   ~continuable_base() {
-    if (ownership_.has_ownership()) {
+    if (ownership_.is_acquired() && !ownership_.is_frozen()) {
       std::move(*this).done();
     }
-    assert(!ownership_.has_ownership() && "Ownership should be released!");
+    assert((!ownership_.is_acquired() || ownership_.is_frozen()) &&
+           "Ownership should be released!");
   }
 
   /// Main method of the continuable_base to chain the current continuation
@@ -1615,7 +1681,6 @@ public:
   /// \since version 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator&&(continuable_base<OData, OAnnotation>&& right) && {
-    right.assert_owning();
     return detail::compose::connect(detail::compose::strategy_all_tag{},
                                     std::move(*this), std::move(right));
   }
@@ -1658,7 +1723,6 @@ public:
   /// \since version 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator||(continuable_base<OData, OAnnotation>&& right) && {
-    right.assert_owning();
     return detail::compose::connect(detail::compose::strategy_any_tag{},
                                     std::move(*this), std::move(right));
   }
@@ -1687,7 +1751,6 @@ public:
   /// \since version 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator>>(continuable_base<OData, OAnnotation>&& right) && {
-    right.assert_owning();
     return detail::compose::sequential_connect(std::move(*this),
                                                std::move(right));
   }
@@ -1709,32 +1772,57 @@ public:
     return detail::transforms::as_future(std::move(*this).materialize());
   }
 
-  /// Invokes the continuation chain before the the continuabl_base
-  /// is destructed. This will invalidate the object.
-  ///
-  /// \note Calling this method on consumed continuabl_base objects
-  ///       will trigger an assertion.
-  ///
-  /// \since version 1.0.0
-  void done() && {
-    assert(ownership_.has_ownership() &&
-           "Tried to finalize a continuable with an invalid state!");
-    detail::base::finalize_continuation(std::move(*this));
-    assert(!ownership_.has_ownership());
-  }
-
-  /// Prevents the automatic invocation of the continuation chain
-  /// on destruction.
+  /// Invokes the continuation chain before the continuabl_base
+  /// is destructed. This will release the object.
   ///
   /// \see continuable_base::~continuable_base() for further details about
   ///      the continuation invocation on destruction.
   ///
+  /// \note This method will trigger an assertion if the
+  ///       continuable_base was released already.
+  ///
   /// \since version 1.0.0
-  void release() noexcept { ownership_.invalidate(); }
+  void done() && { detail::base::finalize_continuation(std::move(*this)); }
+
+  /// Predicate to check whether the continuable_base is frozen or not.
+  ///
+  /// \returns Returns true when the continuable_base is frozen.
+  ///
+  /// \see continuable_base::freeze() for further details.
+  ///
+  /// \note This method will trigger an assertion if the
+  ///       continuable_base was released already.
+  ///
+  /// \since version 1.0.0
+  bool is_frozen() const noexcept {
+    assert_acquired();
+    return ownership_.is_frozen();
+  }
+
+  /// Prevents the automatic invocation of the continuation chain
+  /// on destruction of the continuable_base. You may still invoke the chain
+  /// through the continuable_base::done method.
+  ///
+  /// This is useful for storing a continuable_base inside a continuation
+  /// chain while storing it for further usage.
+  ///
+  /// \param enabled Indicates whether the freeze is enabled or disabled.
+  ///
+  /// \see continuable_base::~continuable_base() for further details about
+  ///      the continuation invocation on destruction.
+  ///
+  /// \note This method will trigger an assertion if the
+  ///       continuable_base was released already.
+  ///
+  /// \since version 1.0.0
+  void freeze(bool enabled = true) noexcept { ownership_.freeze(enabled); }
 
 private:
+  void release() noexcept { ownership_.release(); }
+
   auto materialize() &&
       noexcept(std::is_nothrow_move_constructible<Data>::value) {
+    assert_acquired();
     return materializeImpl(std::move(*this));
   }
 
@@ -1750,18 +1838,16 @@ private:
                 detail::compose::is_strategy<OAnnotation>::value>* = nullptr>
   static auto
   materializeImpl(continuable_base<OData, OAnnotation>&& continuable) {
-    return detail::compose::finalize_composition(
-        OAnnotation{}, std::move(continuable).consumeData());
+    return detail::compose::finalize_composition(std::move(continuable));
   }
 
-  Data&& consumeData() && {
+  Data&& consume_data() && {
     release();
     return std::move(data_);
   }
 
-  void assert_owning() const {
-    assert(ownership_.has_ownership() &&
-           "Tried to use a released continuable!");
+  void assert_acquired() const {
+    assert(ownership_.is_acquired() && "Tried to use a released continuable!");
   }
 };
 
@@ -1849,8 +1935,8 @@ auto make_continuable(Continuation&& continuation) {
       detail::util::identity_of(continuation),
       detail::util::identity<Args...>{});
 
-  return detail::base::make_continuable_base(
-      std::forward<Continuation>(continuation), hint);
+  return detail::base::attorney::create(
+      std::forward<Continuation>(continuation), hint, detail::ownership{});
 }
 
 /// Connects the given continuables with an *all* logic.
