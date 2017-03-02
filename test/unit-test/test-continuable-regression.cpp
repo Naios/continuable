@@ -28,7 +28,7 @@
 using namespace cti;
 using namespace cti::detail;
 
-TEST(recursion_tests, are_multiple_args_mergeable) {
+TEST(regression_tests, are_multiple_args_mergeable) {
   {
     auto tp = std::make_tuple(1, 2, 3);
     util::merge(tp, tp, tp, tp, tp);

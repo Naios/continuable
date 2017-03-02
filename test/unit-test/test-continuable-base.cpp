@@ -26,7 +26,7 @@
 using namespace cti;
 using namespace cti::detail;
 
-TYPED_TEST(single_dimension_tests, are_supplyd_on_destruct) {
+TYPED_TEST(single_dimension_tests, are_called_on_destruct) {
   {
     auto allowed = false;
 
@@ -43,6 +43,38 @@ TYPED_TEST(single_dimension_tests, are_supplyd_on_destruct) {
   EXPECT_ASYNC_RESULT(this->supply(0xDA), 0xDA);
 
   ASSERT_ASYNC_TYPES(this->supply(tag1{}), tag1);
+}
+
+template <typename T> auto create_incomplete(T* me) {
+  return me->make(identity<>{}, identity<void>{}, [](auto&& callback) mutable {
+    // Destruct the callback here
+    auto destroy = std::forward<decltype(callback)>(callback);
+    (void)destroy;
+  });
+}
+
+template <typename T> auto assert_invocation(T* me) {
+  return me->make(identity<>{}, identity<void>{},
+                  [](auto&& /*callback*/) mutable { FAIL(); });
+}
+
+TYPED_TEST(single_dimension_tests, are_incomplete_when_released) {
+  auto chain = this->supply().then([] {
+    int i = 0;
+  });
+  chain.release();
+  EXPECT_ASYNC_INCOMPLETE(std::move(chain));
+}
+
+TYPED_TEST(single_dimension_tests, are_not_dispatched_when_released) {
+  auto chain = assert_invocation(this);
+  chain.release();
+  EXPECT_ASYNC_INCOMPLETE(std::move(chain));
+}
+
+TYPED_TEST(single_dimension_tests, are_not_finished_when_not_continued) {
+  auto chain = create_incomplete(this);
+  EXPECT_ASYNC_INCOMPLETE(std::move(chain));
 }
 
 TYPED_TEST(single_dimension_tests, are_chainable) {
@@ -88,7 +120,7 @@ TYPED_TEST(single_dimension_tests, are_chainable) {
   }
 }
 
-TYPED_TEST(single_dimension_tests, are_executable_through_dispatchers) {
+TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
   auto is_ready = [](auto& future) {
     // Check that the future is ready
     return future.wait_for(std::chrono::seconds(0)) ==

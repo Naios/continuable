@@ -1,4 +1,4 @@
-foreach(STEP RANGE 5)
+foreach(STEP RANGE 4)
   set(PROJECT_NAME test-continuable-${STEP})
   set(TEST_NAME continuable-unit-tests-${STEP})
 
@@ -9,7 +9,7 @@ foreach(STEP RANGE 5)
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-any.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-seq.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-erasure.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-recursion.cpp)
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-regression.cpp)
 
   target_link_libraries(${PROJECT_NAME}
     PRIVATE

@@ -53,6 +53,15 @@ template <typename C> void expect_async_completion(C&& continuable) {
   EXPECT_TRUE(called);
 }
 
+template <typename C> void expect_async_incomplete(C&& continuable) {
+  std::forward<C>(continuable).then([](auto&&... args) {
+    // Workaround for our known GCC bug.
+    util::unused(std::forward<decltype(args)>(args)...);
+
+    FAIL();
+  });
+}
+
 template <typename C, typename V>
 void expect_async_validation(C&& continuable, V&& validator) {
   expect_async_completion(
@@ -127,6 +136,13 @@ void assert_async_types(C&& continuable, util::identity<Args...> expected) {
 /// \since version 1.0.0
 #define EXPECT_ASYNC_COMPLETION(CONTINUABLE)                                   \
   cti::detail::testing::expect_async_completion(CONTINUABLE);
+
+/// Expects the final callback of the given continuable is never called
+/// with any result.
+///
+/// \since version 1.0.0
+#define EXPECT_ASYNC_INCOMPLETE(CONTINUABLE)                                   \
+  cti::detail::testing::expect_async_incomplete(CONTINUABLE);
 
 /// Expects the continuation to be called and forwards it's arguments to
 /// the given validator which can then do assertions on the result.
