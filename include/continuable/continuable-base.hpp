@@ -197,7 +197,7 @@ constexpr auto get(identity<T...>) noexcept {
 }
 
 /// Helper to trick compilers about that a parameter pack is used
-template <typename... T> constexpr void unused(T&&... args) {
+template <typename... T> void unused(T&&... args) {
   auto use = [](auto&& type) mutable {
     (void)type;
     return 0;
@@ -630,10 +630,6 @@ public:
     return *this;
   }
 
-  ownership operator&&(ownership right) const noexcept {
-    return ownership(has_ownership() && right.has_ownership());
-  }
-
   constexpr bool has_ownership() const noexcept { return is_owning; }
   void invalidate() noexcept { is_owning = false; }
 
@@ -907,10 +903,9 @@ void invoke_proxy(signature_hint_tag<Args...>, Continuation&& continuation,
 template <typename T, typename... Args>
 constexpr auto next_hint_of(util::identity<T> /*callback*/,
                             signature_hint_tag<Args...> /*current*/) {
-  auto result =
-      util::identity_of<decltype(std::declval<T>()(std::declval<Args>()...))>();
-
-  return decoration::invokerOf(result).hint();
+  return decoration::invokerOf(util::identity_of<decltype(std::declval<T>()(
+                                   std::declval<Args>()...))>())
+      .hint();
 }
 
 /// Chains a callback together with a continuation and returns a continuation:
@@ -1289,12 +1284,12 @@ constexpr auto common_result_of(Signature signature, signature_hint_tag<>,
 template <typename Signature, typename First, typename... Args>
 constexpr auto common_result_of(Signature signature, First first,
                                 Args... args) {
-  auto common =
+  using Common =
       util::identity<std::common_type_t<decltype(first_of(first)),
-                                        decltype(first_of(args))...>>{};
+                                        decltype(first_of(args))...>>;
 
-  return common_result_of(util::push(signature, common), util::pop_first(first),
-                          util::pop_first(args)...);
+  return common_result_of(util::push(signature, Common{}),
+                          util::pop_first(first), util::pop_first(args)...);
 }
 
 /// Finalizes the any logic of a given composition
