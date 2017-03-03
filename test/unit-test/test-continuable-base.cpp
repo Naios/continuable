@@ -58,21 +58,36 @@ template <typename T> auto assert_invocation(T* me) {
                   [](auto&& /*callback*/) mutable { FAIL(); });
 }
 
-TYPED_TEST(single_dimension_tests, are_incomplete_when_released) {
-  auto chain = this->supply();
-  chain.release();
-  EXPECT_ASYNC_INCOMPLETE(std::move(chain));
+TYPED_TEST(single_dimension_tests, are_incomplete_when_frozen) {
+  {
+    auto chain = this->supply();
+    chain.freeze();
+    EXPECT_ASYNC_INCOMPLETE(std::move(chain));
+  }
+
+  {
+    auto chain = this->supply();
+    chain.freeze();
+    EXPECT_ASYNC_INCOMPLETE(std::move(chain).then(this->supply()));
+  }
 }
 
-TYPED_TEST(single_dimension_tests, are_not_dispatched_when_released) {
+TYPED_TEST(single_dimension_tests, are_not_dispatched_when_frozen) {
   auto chain = assert_invocation(this);
-  chain.release();
+  chain.freeze();
   EXPECT_ASYNC_INCOMPLETE(std::move(chain));
 }
 
 TYPED_TEST(single_dimension_tests, are_not_finished_when_not_continued) {
-  auto chain = create_incomplete(this);
-  EXPECT_ASYNC_INCOMPLETE(std::move(chain));
+  {
+    auto chain = create_incomplete(this);
+    EXPECT_ASYNC_INCOMPLETE(std::move(chain));
+  }
+
+  {
+    auto chain = create_incomplete(this);
+    EXPECT_ASYNC_INCOMPLETE(std::move(chain).then(this->supply()));
+  }
 }
 
 TYPED_TEST(single_dimension_tests, are_chainable) {

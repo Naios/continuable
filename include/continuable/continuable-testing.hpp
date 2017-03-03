@@ -42,10 +42,10 @@ inline namespace abi_v1 {
 namespace detail {
 namespace testing {
 template <typename C> void expect_async_completion(C&& continuable) {
-  bool called = false;
-  std::forward<C>(continuable).then([&](auto&&... args) {
-    ASSERT_FALSE(called);
-    called = true;
+  auto called = std::make_shared<bool>(false);
+  std::forward<C>(continuable).then([called](auto&&... args) {
+    ASSERT_FALSE(*called);
+    *called = true;
 
     // Workaround for our known GCC bug.
     util::unused(std::forward<decltype(args)>(args)...);
