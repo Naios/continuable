@@ -77,6 +77,11 @@ inline namespace abi_v1 {
 ///       of a method call. You may copy a continuable which underlying
 ///       storages are copyable to split the call hierarchy into multiple parts.
 ///
+/// \attention The continuable_base objects aren't intended to be stored.
+///            If you want to store a continuble_base you should always
+///            call the continuable_base::freeze method for disabling the
+///            invocation on destruction.
+///
 /// \since version 1.0.0
 template <typename Data, typename Annotation> class continuable_base;
 
@@ -1768,14 +1773,14 @@ public:
     return detail::transforms::as_future(std::move(*this).materialize());
   }
 
-  /// Invokes the continuation chain before the continuable_base
+  /// Invokes the continuation chain manually even before the continuable_base
   /// is destructed. This will release the object.
   ///
   /// \see continuable_base::~continuable_base() for further details about
   ///      the continuation invocation on destruction.
   ///
-  /// \note This method will trigger an assertion if the
-  ///       continuable_base was released already.
+  /// \attention This method will trigger an assertion if the
+  ///            continuable_base was released already.
   ///
   /// \since version 1.0.0
   void done() && { detail::base::finalize_continuation(std::move(*this)); }
@@ -1786,8 +1791,8 @@ public:
   ///
   /// \see continuable_base::freeze for further details.
   ///
-  /// \note This method will trigger an assertion if the
-  ///       continuable_base was released already.
+  /// \attention This method will trigger an assertion if the
+  ///            continuable_base was released already.
   ///
   /// \since version 1.0.0
   bool is_frozen() const noexcept {
@@ -1796,8 +1801,8 @@ public:
   }
 
   /// Prevents the automatic invocation of the continuation chain
-  /// on destruction of the continuable_base. You may still invoke the chain
-  /// through the continuable_base::done method.
+  /// which happens on destruction of the continuable_base.
+  /// You may still invoke the chain through the continuable_base::done method.
   ///
   /// This is useful for storing a continuable_base inside a continuation
   /// chain while storing it for further usage.
@@ -1807,8 +1812,8 @@ public:
   /// \see continuable_base::~continuable_base() for further details about
   ///      the continuation invocation on destruction.
   ///
-  /// \note This method will trigger an assertion if the
-  ///       continuable_base was released already.
+  /// \attention This method will trigger an assertion if the
+  ///            continuable_base was released already.
   ///
   /// \since version 1.0.0
   continuable_base& freeze(bool enabled = true) & noexcept {
