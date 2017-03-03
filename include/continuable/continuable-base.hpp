@@ -1510,16 +1510,12 @@ public:
   /// \endcond
 
   /// The destructor automatically invokes the continuable_base
-  /// if it wasn't released yet.
+  /// if it wasn't consumed yet.
   ///
   /// In order to invoke the continuable early you may call the
   /// continuable_base::done() method.
   ///
-  /// You may release the continuable_base through calling the corresponding
-  /// continuable_base::release method which prevents
-  /// the invocation on destruction but also makes the object unusable.
-  ///
-  /// The continuable_base::freeze method just disables the automatic
+  /// The continuable_base::freeze method disables the automatic
   /// invocation on destruction without invalidating the object.
   ///
   /// \since version 1.0.0
@@ -1772,7 +1768,7 @@ public:
     return detail::transforms::as_future(std::move(*this).materialize());
   }
 
-  /// Invokes the continuation chain before the continuabl_base
+  /// Invokes the continuation chain before the continuable_base
   /// is destructed. This will release the object.
   ///
   /// \see continuable_base::~continuable_base() for further details about
@@ -1788,7 +1784,7 @@ public:
   ///
   /// \returns Returns true when the continuable_base is frozen.
   ///
-  /// \see continuable_base::freeze() for further details.
+  /// \see continuable_base::freeze for further details.
   ///
   /// \note This method will trigger an assertion if the
   ///       continuable_base was released already.
@@ -1815,7 +1811,16 @@ public:
   ///       continuable_base was released already.
   ///
   /// \since version 1.0.0
-  void freeze(bool enabled = true) noexcept { ownership_.freeze(enabled); }
+  continuable_base& freeze(bool enabled = true) & noexcept {
+    ownership_.freeze(enabled);
+    return *this;
+  }
+
+  /// \copydoc continuable_base::freeze
+  continuable_base&& freeze(bool enabled = true) && noexcept {
+    ownership_.freeze(enabled);
+    return std::move(*this);
+  }
 
 private:
   void release() noexcept { ownership_.release(); }

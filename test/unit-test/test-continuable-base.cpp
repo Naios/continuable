@@ -90,6 +90,18 @@ TYPED_TEST(single_dimension_tests, are_not_finished_when_not_continued) {
   }
 }
 
+TYPED_TEST(single_dimension_tests, freeze_is_kept_across_the_chain) {
+  {
+    auto chain = this->supply().freeze().then([=] { return this->supply(); });
+    ASSERT_TRUE(chain.is_frozen());
+  }
+
+  {
+    auto chain = this->supply().freeze().then(this->supply());
+    ASSERT_TRUE(chain.is_frozen());
+  }
+}
+
 TYPED_TEST(single_dimension_tests, are_chainable) {
   EXPECT_ASYNC_RESULT(this->supply().then([] {
     return; // void
