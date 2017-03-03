@@ -5,7 +5,7 @@
                         \_,(_)| | | || ||_|(_||_)|(/_
 
                     https://github.com/Naios/continuable
-
+                                   v0.8.0
 
   Copyright(c) 2015 - 2017 Denis Blank <denis.blank at outlook dot com>
 
@@ -1997,14 +1997,31 @@ auto seq_of(Continuables&&... continuables) {
                             std::forward<Continuables>(continuables)...);
 }
 
+/// Trait to retrieve a continuable_base type with a given type-erasure backend.
+///
+/// Every object may me used as type-erasure backend as long as the
+/// requirements of a `std::function` like wrapper are satisfied.
+///
+/// \tparam CallbackWrapper The type which is used to erase the callback.
+///
+/// \tparam ContinuationWrapper The type which is used to erase the
+///         continuation data.
+///
+/// \tparam Args The current signature of the continuable.
 template <template <typename> class CallbackWrapper,
           template <typename> class ContinuationWrapper, typename... Args>
-using continuable_erasure_of_t =
-    CallbackWrapper<void(ContinuationWrapper<void(Args...)>)>;
+struct continuable_trait {
+  /// The callback type which is passed to continuations
+  using callback = CallbackWrapper<void(Args...)>;
 
-template <typename Erasure, typename... Args>
-using continuable_of_t =
-    continuable_base<Erasure, detail::signature_hint_tag<Args...>>;
+  /// The continuation type which is used to erase the internal data.
+  using continuation =
+      ContinuationWrapper<void(CallbackWrapper<void(Args...)>)>;
+
+  /// The continuable type for the given parameters.
+  using continuable =
+      continuable_base<continuation, detail::signature_hint_tag<Args...>>;
+};
 
 /// \cond false
 } // end inline namespace abi_...

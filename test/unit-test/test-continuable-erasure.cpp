@@ -38,3 +38,14 @@ TYPED_TEST(single_dimension_tests, is_eraseable) {
     EXPECT_ASYNC_RESULT(std::move(erasure), 0xDF);
   }
 }
+
+TYPED_TEST(single_dimension_tests, is_callable) {
+
+  cti::unique_continuable<int, int> erased =
+      [](cti::unique_callback<int, int>&& callback) {
+
+        std::move(callback)(0xDF, 0xDD);
+      };
+
+  EXPECT_ASYNC_RESULT(std::move(erased), 0xDF, 0xDD);
+}

@@ -22,31 +22,6 @@
 
 #include "continuable/continuable.hpp"
 
-using namespace cti::detail;
-using namespace cti::detail::util;
-
-/// Predicate to check whether an object is callable with the given arguments
-template <typename... Args> auto is_invokable_with(identity<Args...>) {
-  return [](auto&& callable) {
-    (void)callable;
-    return is_invokable_t<decltype(callable), identity<Args...>>{};
-  };
-}
-
-template <typename... Right>
-auto reverse(identity<>, identity<Right...> right = identity<>{}) {
-  return right;
-}
-template <typename First, typename... Left, typename... Right>
-auto reverse(identity<First, Left...>, identity<Right...> = identity<>{}) {
-  return reverse(identity<Left...>{}, identity<First, Right...>{});
-}
-
 int main(int, char**) {
-
-  auto cb = [](int, int) { return 0; };
-
-  partial_invoke(cb, 0, 0, 0, 0, 0, 0, 0);
-
   return 0;
 }

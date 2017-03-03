@@ -5,7 +5,7 @@
                         \_,(_)| | | || ||_|(_||_)|(/_
 
                     https://github.com/Naios/continuable
-
+                                   v0.8.0
 
   Copyright(c) 2015 - 2017 Denis Blank <denis.blank at outlook dot com>
 
@@ -31,30 +31,69 @@
 #ifndef CONTINUABLE_HPP_INCLUDED__
 #define CONTINUABLE_HPP_INCLUDED__
 
-#include <type_traits>
-
 #include "continuable/continuable-base.hpp"
 #include "function2/function2.hpp"
 
 namespace cti {
+// clang-format off
+/// \cond false
+inline namespace abi_v1 {
+/// \endcond
+namespace detail {
+template<typename... Args>
+using trait_of = continuable_trait<
+  fu2::function,
+  fu2::function,
+  Args...
+>;
+
+template<typename... Args>
+using unique_trait_of = continuable_trait<
+  fu2::unique_function,
+  fu2::unique_function,
+  Args...
+>;
+} // end namespace detail
+
 /// Defines a copyable continuation type which uses the
 /// function2 backend for type erasure.
 ///
-/// Usable like: continuable<int, float>
+/// Usable like: `cti::continuable<int, float>`
 template <typename... Args>
-using continuable = continuable_of_t<
-    continuable_erasure_of_t<fu2::function, fu2::unique_function, Args...>,
-    Args...>;
+using continuable = typename detail::trait_of<
+  Args...
+>::continuable;
+
+/// Defines a copyable callback type which uses the
+/// function2 backend for the continuable type erasure.
+///
+/// Usable like: `callback<int, float>`
+template <typename... Args>
+using callback = typename detail::trait_of<
+  Args...
+>::callback;
 
 /// Defines a non-copyable continuation type which uses the
 /// function2 backend for type erasure.
 ///
-/// Usable like: unique_continuable<int, float>
+/// Usable like: `unique_continuable<int, float>`
 template <typename... Args>
-using unique_continuable =
-    continuable_of_t<continuable_erasure_of_t<fu2::unique_function,
-                                              fu2::unique_function, Args...>,
-                     Args...>;
+using unique_continuable = typename detail::unique_trait_of<
+  Args...
+>::continuable;
+
+/// Defines a non-copyable callback type which uses the
+/// function2 backend for the continuable type erasure.
+///
+/// Usable like: `unique_callback<int, float>`
+template <typename... Args>
+using unique_callback = typename detail::unique_trait_of<
+  Args...
+>::callback;
+/// \cond false
+} // end inline namespace abi_...
+/// \endcond
+// clang-format on
 } // end namespace cti
 
 #endif // CONTINUABLE_HPP_INCLUDED__
