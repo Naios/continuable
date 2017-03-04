@@ -50,7 +50,7 @@ template <typename C> void expect_async_completion(C&& continuable) {
     // Workaround for our known GCC bug.
     util::unused(std::forward<decltype(args)>(args)...);
   });
-  EXPECT_TRUE(called);
+  EXPECT_TRUE(*called);
 }
 
 template <typename C> void expect_async_incomplete(C&& continuable) {
