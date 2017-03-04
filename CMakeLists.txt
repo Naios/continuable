@@ -5,6 +5,12 @@ project(continuable C CXX)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+  set(CONTINUABLE_UNIT_TESTS ON)
+endif()
+
+add_subdirectory(dep)
+
 # continuable-base
 add_library(continuable-base INTERFACE)
 
@@ -52,7 +58,7 @@ if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 
   include(cmake/CMakeLists.txt)
 
-  add_subdirectory(dep)
+
   add_subdirectory(examples)
   add_subdirectory(test)
 endif ()

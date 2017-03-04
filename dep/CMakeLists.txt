@@ -1,4 +1,4 @@
-if(NOT TARGET gtest)
+if(CONTINUABLE_UNIT_TESTS AND NOT TARGET gtest)
   add_subdirectory(googletest)
 endif()
 
