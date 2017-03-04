@@ -5,7 +5,7 @@
                         \_,(_)| | | || ||_|(_||_)|(/_
 
                     https://github.com/Naios/continuable
-                                   v0.8.0
+                                   v1.0.0
 
   Copyright(c) 2015 - 2017 Denis Blank <denis.blank at outlook dot com>
 
