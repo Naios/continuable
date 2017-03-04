@@ -35,7 +35,7 @@ TYPED_TEST(single_dimension_tests, are_called_on_destruct) {
     ASSERT_FALSE(allowed);
 
     allowed = true;
-    EXPECT_ASYNC_COMPLETION(std::move(continuable));
+    ASSERT_ASYNC_COMPLETION(std::move(continuable));
   }
 
   EXPECT_ASYNC_RESULT(this->supply());
@@ -62,31 +62,31 @@ TYPED_TEST(single_dimension_tests, are_incomplete_when_frozen) {
   {
     auto chain = this->supply();
     chain.freeze();
-    EXPECT_ASYNC_INCOMPLETE(std::move(chain));
+    ASSERT_ASYNC_NEVER_COMPLETED(std::move(chain));
   }
 
   {
     auto chain = this->supply();
     chain.freeze();
-    EXPECT_ASYNC_INCOMPLETE(std::move(chain).then(this->supply()));
+    ASSERT_ASYNC_NEVER_COMPLETED(std::move(chain).then(this->supply()));
   }
 }
 
 TYPED_TEST(single_dimension_tests, are_not_dispatched_when_frozen) {
   auto chain = assert_invocation(this);
   chain.freeze();
-  EXPECT_ASYNC_INCOMPLETE(std::move(chain));
+  ASSERT_ASYNC_NEVER_COMPLETED(std::move(chain));
 }
 
 TYPED_TEST(single_dimension_tests, are_not_finished_when_not_continued) {
   {
     auto chain = create_incomplete(this);
-    EXPECT_ASYNC_INCOMPLETE(std::move(chain));
+    ASSERT_ASYNC_NEVER_COMPLETED(std::move(chain));
   }
 
   {
     auto chain = create_incomplete(this);
-    EXPECT_ASYNC_INCOMPLETE(std::move(chain).then(this->supply()));
+    ASSERT_ASYNC_NEVER_COMPLETED(std::move(chain).then(this->supply()));
   }
 }
 

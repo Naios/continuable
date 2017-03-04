@@ -41,7 +41,7 @@ inline namespace abi_v1 {
 /// \endcond
 namespace detail {
 namespace testing {
-template <typename C> void expect_async_completion(C&& continuable) {
+template <typename C> void assert_async_completion(C&& continuable) {
   auto called = std::make_shared<bool>(false);
   std::forward<C>(continuable).then([called](auto&&... args) {
     ASSERT_FALSE(*called);
@@ -50,10 +50,10 @@ template <typename C> void expect_async_completion(C&& continuable) {
     // Workaround for our known GCC bug.
     util::unused(std::forward<decltype(args)>(args)...);
   });
-  EXPECT_TRUE(*called);
+  ASSERT_TRUE(*called);
 }
 
-template <typename C> void expect_async_incomplete(C&& continuable) {
+template <typename C> void assert_async_never_completed(C&& continuable) {
   std::forward<C>(continuable).then([](auto&&... args) {
     // Workaround for our known GCC bug.
     util::unused(std::forward<decltype(args)>(args)...);
@@ -63,8 +63,8 @@ template <typename C> void expect_async_incomplete(C&& continuable) {
 }
 
 template <typename C, typename V>
-void expect_async_validation(C&& continuable, V&& validator) {
-  expect_async_completion(
+void assert_async_validation(C&& continuable, V&& validator) {
+  assert_async_completion(
       std::forward<C>(continuable)
           .then([validator =
                      std::forward<V>(validator)](auto&&... args) mutable {
@@ -75,9 +75,9 @@ void expect_async_validation(C&& continuable, V&& validator) {
 
 /// Expects that the continuable is finished with the given arguments
 template <typename V, typename C, typename... Args>
-void expect_async_binary_validation(V&& validator, C&& continuable,
+void assert_async_binary_validation(V&& validator, C&& continuable,
                                     Args&&... expected) {
-  expect_async_validation(std::forward<C>(continuable), [
+  assert_async_validation(std::forward<C>(continuable), [
     expected_pack = std::make_tuple(std::forward<Args>(expected)...),
     validator = std::forward<V>(validator)
   ](auto&&... args) mutable {
@@ -111,7 +111,7 @@ inline auto asserting_eq_check() {
 
 template <typename C, typename... Args>
 void assert_async_types(C&& continuable, util::identity<Args...> expected) {
-  expect_async_validation(
+  assert_async_validation(
       std::forward<C>(continuable), [&](auto... actualPack) {
         auto actual = util::identity<decltype(actualPack)...>{};
         util::unused(expected, actual,
@@ -130,26 +130,26 @@ void assert_async_types(C&& continuable, util::identity<Args...> expected) {
 /// \endcond
 } // end namespace cti
 
-/// Expects the final callback of the given continuable to be called
+/// Asserts that the final callback of the given continuable was called
 /// with any result.
 ///
 /// \since version 1.0.0
-#define EXPECT_ASYNC_COMPLETION(CONTINUABLE)                                   \
-  cti::detail::testing::expect_async_completion(CONTINUABLE);
+#define ASSERT_ASYNC_COMPLETION(CONTINUABLE)                                   \
+  cti::detail::testing::assert_async_completion(CONTINUABLE);
 
-/// Expects the final callback of the given continuable is never called
+/// Asserts that the final callback of the given continuable is never called
 /// with any result.
 ///
 /// \since version 1.0.0
-#define EXPECT_ASYNC_INCOMPLETE(CONTINUABLE)                                   \
-  cti::detail::testing::expect_async_incomplete(CONTINUABLE);
+#define ASSERT_ASYNC_NEVER_COMPLETED(CONTINUABLE)                              \
+  cti::detail::testing::assert_async_never_completed(CONTINUABLE);
 
 /// Expects the continuation to be called and forwards it's arguments to
 /// the given validator which can then do assertions on the result.
-#define EXPECT_ASYNC_VALIDATION(CONTINUABLE, VALIDATOR)                        \
-  cti::detail::testing::expect_async_validation(CONTINUABLE, VALIDATOR);
+#define ASSERT_ASYNC_VALIDATION(CONTINUABLE, VALIDATOR)                        \
+  cti::detail::testing::assert_async_validation(CONTINUABLE, VALIDATOR);
 
-/// Expects the continuation to be called and forwards it's arguments to
+/// Asserts that the continuation was called and forwards it's arguments to
 /// the given validator which can then do assertions on the result.
 ///
 /// A validator consists of a binary consumer with a signature as in
@@ -168,7 +168,7 @@ void assert_async_types(C&& continuable, util::identity<Args...> expected) {
 ///   EXPECT_EQ(expected, actual);
 /// };
 ///
-/// EXPECT_ASYNC_BINARY_VALIDATION(validator, async_get("hello"), "hello")
+/// ASSERT_ASYNC_BINARY_VALIDATION(validator, async_get("hello"), "hello")
 /// ```
 ///
 /// The validator is called for every expecting and actual result.
@@ -177,8 +177,8 @@ void assert_async_types(C&& continuable, util::identity<Args...> expected) {
 ///       relying on custom validation logic.
 ///
 /// \since version 1.0.0
-#define EXPECT_ASYNC_BINARY_VALIDATION(VALIDATOR, ...)                         \
-  cti::detail::testing::expect_async_binary_validation(VALIDATOR, __VA_ARGS__);
+#define ASSERT_ASYNC_BINARY_VALIDATION(VALIDATOR, ...)                         \
+  cti::detail::testing::assert_async_binary_validation(VALIDATOR, __VA_ARGS__);
 
 /// Expects that the continuable is finished with the given result
 ///
@@ -191,7 +191,7 @@ void assert_async_types(C&& continuable, util::identity<Args...> expected) {
 ///
 /// \since version 1.0.0
 #define EXPECT_ASYNC_RESULT(...)                                               \
-  EXPECT_ASYNC_BINARY_VALIDATION(cti::detail::testing::expecting_eq_check(),   \
+  ASSERT_ASYNC_BINARY_VALIDATION(cti::detail::testing::expecting_eq_check(),   \
                                  __VA_ARGS__)
 
 /// Asserts that the continuable is finished with the given result
@@ -205,7 +205,7 @@ void assert_async_types(C&& continuable, util::identity<Args...> expected) {
 ///
 /// \since version 1.0.0
 #define ASSERT_ASYNC_RESULT(...)                                               \
-  EXPECT_ASYNC_BINARY_VALIDATION(cti::detail::testing::asserting_eq_check(),   \
+  ASSERT_ASYNC_BINARY_VALIDATION(cti::detail::testing::asserting_eq_check(),   \
                                  __VA_ARGS__)
 
 /// Asserts that the continuable is finished with the given type of arguments
