@@ -1773,8 +1773,8 @@ public:
     return detail::transforms::as_future(std::move(*this).materialize());
   }
 
-  /// Invokes the continuation chain manually even before the continuable_base
-  /// is destructed. This will release the object.
+  /// Invokes the continuation chain manually even before the
+  /// cti::continuable_base is destructed. This will release the object.
   ///
   /// \see continuable_base::~continuable_base() for further details about
   ///      the continuation invocation on destruction.
@@ -1785,7 +1785,7 @@ public:
   /// \since version 1.0.0
   void done() && { detail::base::finalize_continuation(std::move(*this)); }
 
-  /// Predicate to check whether the continuable_base is frozen or not.
+  /// Predicate to check whether the cti::continuable_base is frozen or not.
   ///
   /// \returns Returns true when the continuable_base is frozen.
   ///
