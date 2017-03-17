@@ -35,6 +35,26 @@ struct continuable_base {
   template <typename T> continuable_base& failed(T&&) { return *this; }
 };
 
+template <typename... T> struct promise {
+  void set_value(T...) noexcept {}
+
+  void operator()(T...) && noexcept {}
+
+  void set_exception(std::exception_ptr exception) noexcept {
+    // ...
+    (void)exception;
+  }
+
+  void set_error(std::error_code error) noexcept {
+    // ...
+    (void)error;
+  }
+
+  void cancel() noexcept {}
+
+  bool is_canceled() const noexcept { return false; }
+};
+
 template <typename... Result> struct accumulator {
   auto accumulate() {
     return [] {};
