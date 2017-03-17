@@ -23,6 +23,7 @@
 #include <string>
 #include <functional>
 #include <system_error>
+#include <exception>
 
 struct continuable_base {
   template <typename T> continuable_base& then(T&&) { return *this; }
