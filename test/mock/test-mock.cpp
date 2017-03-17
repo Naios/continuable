@@ -20,10 +20,10 @@
   SOFTWARE.
 **/
 
-#include <string>
-#include <functional>
-#include <system_error>
 #include <exception>
+#include <functional>
+#include <string>
+#include <system_error>
 
 struct continuable_base {
   template <typename T> continuable_base& then(T&&) { return *this; }
@@ -35,9 +35,10 @@ struct continuable_base {
   template <typename T> continuable_base& failed(T&&) { return *this; }
 };
 
-template<typename... Result>
-struct accumulator {
-  auto accumulate() { return [] {}; }
+template <typename... Result> struct accumulator {
+  auto accumulate() {
+    return [] {};
+  }
 };
 
 template <typename Accumulator, typename... Initial>

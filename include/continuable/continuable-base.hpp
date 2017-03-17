@@ -776,7 +776,7 @@ public:
   using T::operator();
 
   /// Returns the underlaying signature hint
-  constexpr Hint hint() const noexcept { return {}; }
+  static constexpr Hint hint() noexcept { return {}; }
 };
 
 template <typename T, typename... Args>
@@ -787,7 +787,7 @@ constexpr auto make_invoker(T&& invoke, signature_hint_tag<Args...>) {
 
 /// - continuable<?...> -> result(nextCallback);
 template <typename Data, typename Annotation>
-constexpr auto invokerOf(util::identity<continuable_base<Data, Annotation>>) {
+constexpr auto invoker_of(util::identity<continuable_base<Data, Annotation>>) {
   /// Get the hint of the unwrapped returned continuable
   using Type = decltype(attorney::materialize(
       std::declval<continuable_base<Data, Annotation>>()));
@@ -805,7 +805,7 @@ constexpr auto invokerOf(util::identity<continuable_base<Data, Annotation>>) {
 }
 
 /// - ? -> nextCallback(?)
-template <typename T> auto invokerOf(util::identity<T>) {
+template <typename T> auto invoker_of(util::identity<T>) {
   return make_invoker(
       [](auto&& callback, auto&& nextCallback, auto&&... args) {
         auto result = std::forward<decltype(callback)>(callback)(
@@ -817,7 +817,7 @@ template <typename T> auto invokerOf(util::identity<T>) {
 }
 
 /// - void -> nextCallback()
-inline auto invokerOf(util::identity<void>) {
+inline auto invoker_of(util::identity<void>) {
   return make_invoker(
       [](auto&& callback, auto&& nextCallback, auto&&... args) {
         std::forward<decltype(callback)>(callback)(
@@ -830,7 +830,7 @@ inline auto invokerOf(util::identity<void>) {
 
 /// Returns a sequenced invoker which is able to invoke
 /// objects where std::get is applicable.
-inline auto sequencedUnpackInvoker() {
+inline auto sequenced_unpack_invoker() {
   return [](auto&& callback, auto&& nextCallback, auto&&... args) {
     auto result = std::forward<decltype(callback)>(callback)(
         std::forward<decltype(args)>(args)...);
@@ -846,15 +846,15 @@ inline auto sequencedUnpackInvoker() {
 
 // - std::pair<?, ?> -> nextCallback(?, ?)
 template <typename First, typename Second>
-constexpr auto invokerOf(util::identity<std::pair<First, Second>>) {
-  return make_invoker(sequencedUnpackInvoker(),
+constexpr auto invoker_of(util::identity<std::pair<First, Second>>) {
+  return make_invoker(sequenced_unpack_invoker(),
                       util::identity<First, Second>{});
 }
 
 // - std::tuple<?...>  -> nextCallback(?...)
 template <typename... Args>
-constexpr auto invokerOf(util::identity<std::tuple<Args...>>) {
-  return make_invoker(sequencedUnpackInvoker(), util::identity<Args...>{});
+constexpr auto invoker_of(util::identity<std::tuple<Args...>>) {
+  return make_invoker(sequenced_unpack_invoker(), util::identity<Args...>{});
 }
 } // end namespace decoration
 
@@ -929,7 +929,7 @@ void invoke_proxy(signature_hint_tag<Args...>, Continuation&& continuation,
         util::identity_of<decltype(std::move(callback)(std::move(args)...))>();
 
     // Pick the correct invoker that handles decorating of the result
-    auto invoker = decoration::invokerOf(result);
+    auto invoker = decoration::invoker_of(result);
 
     // Invoke the callback
     packed_dispatch(std::move(executor), std::move(invoker),
@@ -942,7 +942,7 @@ void invoke_proxy(signature_hint_tag<Args...>, Continuation&& continuation,
 template <typename T, typename... Args>
 constexpr auto next_hint_of(util::identity<T> /*callback*/,
                             signature_hint_tag<Args...> /*current*/) {
-  return decoration::invokerOf(util::identity_of<decltype(std::declval<T>()(
+  return decoration::invoker_of(util::identity_of<decltype(std::declval<T>()(
                                    std::declval<Args>()...))>())
       .hint();
 }
