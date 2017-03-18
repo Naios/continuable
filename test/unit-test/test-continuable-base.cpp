@@ -145,6 +145,8 @@ TYPED_TEST(single_dimension_tests, are_chainable) {
   }
 }
 
+#ifndef NO_FUTURE_TESTS
+
 TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
   auto is_ready = [](auto& future) {
     // Check that the future is ready
@@ -184,6 +186,8 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
     EXPECT_EQ(future.get(), canary);
   }
 }
+
+#endif // NO_FUTURE_TESTS
 
 TYPED_TEST(single_dimension_tests, are_partial_callable) {
   EXPECT_ASYNC_RESULT(this->supply(1, 2).then([] {

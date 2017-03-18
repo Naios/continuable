@@ -23,6 +23,8 @@
 
 #include "test-continuable.hpp"
 
+#ifndef NO_ERASURE_TESTS
+
 TYPED_TEST(single_dimension_tests, is_eraseable) {
 
   {
@@ -49,3 +51,5 @@ TYPED_TEST(single_dimension_tests, is_callable) {
 
   EXPECT_ASYNC_RESULT(std::move(erased), 0xDF, 0xDD);
 }
+
+#endif // #ifndef NO_ERASURE_TESTS
