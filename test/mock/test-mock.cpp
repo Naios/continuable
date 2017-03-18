@@ -25,20 +25,22 @@
 #include <string>
 #include <system_error>
 
-struct continuable_base {
-  template <typename T> continuable_base& then(T&&) { return *this; }
+template <typename... A> struct continuable {
+  template <typename T = int> continuable(T&& = 0) {}
 
-  template <typename T> continuable_base& dropped(T&&) { return *this; }
+  template <typename T> continuable& then(T&&) { return *this; }
 
-  template <typename T> continuable_base& thrown(T&&) { return *this; }
+  template <typename T> continuable& dropped(T&&) { return *this; }
 
-  template <typename T> continuable_base& failed(T&&) { return *this; }
+  template <typename T> continuable& thrown(T&&) { return *this; }
+
+  template <typename T> continuable& failed(T&&) { return *this; }
 };
 
-template <typename... T> struct promise {
-  void set_value(T...) noexcept {}
+template <typename... A> struct promise {
+  void set_value(A...) noexcept {}
 
-  void operator()(T...) && noexcept {}
+  void operator()(A...) && noexcept {}
 
   void set_exception(std::exception_ptr exception) noexcept {
     // ...
@@ -63,10 +65,19 @@ template <typename... Result> struct accumulator {
 
 template <typename Accumulator, typename... Initial>
 auto make_accumulator(Accumulator&& /*ac*/, Initial&&... /*initial*/) {
-  return std::make_tuple(continuable_base{}, accumulator<int>{});
+  return std::make_tuple(continuable<>{}, accumulator<int>{});
 }
 
-continuable_base http_request(std::string) { return {}; }
+continuable<std::string> http_request(std::string url) {
+  return [url = std::move(url)](promise<std::string> result) mutable {
+    // ...
+    result.set_value("<html>...</html>");
+    // ...
+    result.set_exception(nullptr);
+    // ...
+    result.set_error(std::error_code{});
+  };
+}
 
 int main(int, char**) {
   auto accumulator = make_accumulator(std::plus<int>{}, 0);
