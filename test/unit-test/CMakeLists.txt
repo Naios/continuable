@@ -14,6 +14,7 @@ foreach(STEP RANGE 4)
   target_link_libraries(${PROJECT_NAME}
     PRIVATE
       gtest-main
+      cxx_function
       continuable)
 
   target_compile_definitions(${PROJECT_NAME}

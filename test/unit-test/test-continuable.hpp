@@ -29,7 +29,17 @@
 #include "continuable/continuable-base.hpp"
 #include "continuable/continuable-testing.hpp"
 #include "continuable/continuable.hpp"
+#include "cxx_function/cxx_function.hpp"
 #include "gtest/gtest.h"
+
+template <typename... Args>
+using cxx_trait_of = cti::continuable_trait<cxx_function::function,
+                                            cxx_function::function, Args...>;
+
+template <typename... Args>
+using unique_cxx_trait_of =
+    cti::continuable_trait<cxx_function::unique_function,
+                           cxx_function::unique_function, Args...>;
 
 using cti::detail::util::identity;
 

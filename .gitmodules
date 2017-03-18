@@ -4,3 +4,6 @@
 [submodule "dep/function2/function2"]
 	path = dep/function2/function2
 	url = https://github.com/Naios/function2.git
+[submodule "dep/cxx_function/cxx_function"]
+	path = dep/cxx_function/cxx_function
+	url = https://github.com/potswa/cxx_function.git
