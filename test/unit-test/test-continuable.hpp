@@ -24,7 +24,7 @@
 #ifndef TEST_CONTINUABLE_HPP__
 #define TEST_CONTINUABLE_HPP__
 
-#if UNIT_TEST_STEP >= 3
+#if UNIT_TEST_STEP == 4
 #define THIRD_PARTY_TESTS
 #endif
 
@@ -40,17 +40,11 @@
 #include "continuable/continuable-testing.hpp"
 #include "continuable/continuable.hpp"
 #include "gtest/gtest.h"
+#include <functional>
 
 #ifdef THIRD_PARTY_TESTS
 
 #include "cxx_function/cxx_function.hpp"
-
-template <typename... Args>
-using std_trait_of =
-    cti::continuable_trait<std::function, std::function, Args...>;
-
-template <typename... Args>
-using std_continuable = typename std_trait_of<Args...>::continuable;
 
 template <typename T> using cxx_function_fn = cxx_function::function<T>;
 
@@ -73,6 +67,13 @@ template <typename... Args>
 using cxx_unique_continuable =
     typename unique_cxx_trait_of<Args...>::continuable;
 #endif // THIRD_PARTY_TESTS
+
+template <typename... Args>
+using std_trait_of =
+    cti::continuable_trait<std::function, std::function, Args...>;
+
+template <typename... Args>
+using std_continuable = typename std_trait_of<Args...>::continuable;
 
 using cti::detail::util::identity;
 
@@ -197,16 +198,15 @@ using single_types = ::testing::Types<
   provide_continuation_and_right<provide_unique>,
   provide_continuation_and_left<provide_erasure<cti::continuable>>
 #elif UNIT_TEST_STEP == 2
-  provide_continuation_and_left<provide_erasure<cti::unique_continuable>>,
-  provide_continuation_seq_right<provide_unique>
+  provide_continuation_and_left<provide_erasure<cti::unique_continuable>>
 #elif UNIT_TEST_STEP == 3
-#define NO_ERASURE_TESTS
-  provide_erasure<cxx_unique_continuable>
+  provide_continuation_seq_right<provide_unique>
 #elif UNIT_TEST_STEP == 4
 #define NO_ERASURE_TESTS
 #define NO_FUTURE_TESTS
-  provide_erasure<std_continuable>,
-  provide_erasure<cxx_continuable>
+  provide_erasure<std_continuable>
+  // provide_erasure<cxx_continuable>,
+  // provide_erasure<cxx_unique_continuable>
 #endif
 >;
 // clang-format on
