@@ -1334,7 +1334,7 @@ constexpr auto common_result_of(Signature signature, signature_hint_tag<>,
 
 /// Determine the common result between all continuation which are chained
 /// with an `any` strategy, consider two continuations:
-/// c1 with `void(int)` and c22 with `void(float)`, the common result shared
+/// c1 with `void(int)` and c2 with `void(float)`, the common result shared
 /// between both continuations is `void(int)`.
 template <typename Signature, typename First, typename... Args>
 constexpr auto common_result_of(Signature signature, First first,

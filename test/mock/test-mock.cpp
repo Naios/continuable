@@ -55,6 +55,22 @@ template <typename... T> struct promise {
   bool is_canceled() const noexcept { return false; }
 };
 
+template <typename... T> struct promise {
+  void set_value(T...) noexcept {}
+
+  void operator()(T...) && noexcept {}
+
+  void set_exception(std::exception_ptr exception) noexcept {
+    // ...
+    (void)exception;
+  }
+
+  void set_error(std::error_code error) noexcept {
+    // ...
+    (void)error;
+  }
+};
+
 template <typename... Result> struct accumulator {
   auto accumulate() {
     return [] {};
