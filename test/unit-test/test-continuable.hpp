@@ -198,16 +198,17 @@ using single_types = ::testing::Types<
   provide_continuation_and_right<provide_unique>,
   provide_continuation_and_left<provide_erasure<cti::continuable>>
 #elif UNIT_TEST_STEP == 2
-  provide_continuation_and_left<provide_erasure<cti::unique_continuable>>,
-  provide_continuation_seq_right<provide_unique>
+  provide_continuation_and_left<provide_erasure<cti::unique_continuable>>
 #elif UNIT_TEST_STEP == 3
 #define NO_ERASURE_TESTS
-  provide_erasure<cxx_unique_continuable>
-#elif UNIT_TEST_STEP == 4
-#define NO_ERASURE_TESTS
 #define NO_FUTURE_TESTS
-  provide_erasure<std_continuable>,
-  provide_erasure<cxx_continuable>
+  provide_erasure<std_continuable>
+#elif UNIT_TEST_STEP == 4
+//#define NO_ERASURE_TESTS
+//#define NO_FUTURE_TESTS
+//  provide_erasure<cxx_continuable>,
+//  provide_erasure<cxx_unique_continuable>
+  provide_continuation_seq_right<provide_unique>
 #endif
 >;
 // clang-format on
