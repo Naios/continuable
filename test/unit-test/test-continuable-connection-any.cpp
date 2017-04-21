@@ -41,7 +41,8 @@ TYPED_TEST(single_dimension_tests, is_logical_any_connectable) {
   }
 
   {
-    auto chain = cti::any_of(this->supply(1), this->supply(2), this->supply(3));
+    auto chain =
+        cti::when_any(this->supply(1), this->supply(2), this->supply(3));
     EXPECT_ASYNC_RESULT(std::move(chain), 1);
   }
 

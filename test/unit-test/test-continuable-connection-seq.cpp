@@ -36,7 +36,7 @@ TYPED_TEST(single_dimension_tests, is_logical_seq_connectable) {
   }
 
   {
-    auto chain = cti::seq_of(this->supply(1), this->supply(2), this->supply(3));
+    auto chain = cti::when_seq(this->supply(1), this->supply(2), this->supply(3));
     EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3);
   }
 

@@ -129,9 +129,9 @@ void connecting_continuables() {
 
   // There are helper functions for connecting continuables:
   auto all =
-      cti::all_of(http_request("github.com"), http_request("travis-ci.org"));
+      cti::when_all(http_request("github.com"), http_request("travis-ci.org"));
   auto any =
-      cti::any_of(http_request("github.com"), http_request("travis-ci.org"));
+      cti::when_any(http_request("github.com"), http_request("travis-ci.org"));
 }
 
 int main() {

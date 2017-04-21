@@ -50,9 +50,9 @@
 /// cti::make_continuable() function which accepts a callback taking function.
 ///
 /// Also there are following support functions available:
-/// - cti::all_of() - connects cti::continuable_base's to an `all` connection.
-/// - cti::any_of() - connects cti::continuable_base's to an `any` connection.
-/// - cti::seq_of() - connects cti::continuable_base's to a sequence.
+/// - cti::when_all() - connects cti::continuable_base's to an `all` connection.
+/// - cti::when_any() - connects cti::continuable_base's to an `any` connection.
+/// - cti::when_seq() - connects cti::continuable_base's to a sequence.
 ///
 namespace cti {
 /// \cond false
@@ -1956,13 +1956,24 @@ auto make_continuable(Continuation&& continuation) {
 ///
 /// \see continuable_base::operator && for details.
 ///
-/// \since version 1.0.0
+/// \since version 1.1.0
 template <typename... Continuables>
-auto all_of(Continuables&&... continuables) {
+auto when_all(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,
                 "Requires at least 2 continuables!");
   return detail::util::fold(detail::util::and_folding(),
                             std::forward<Continuables>(continuables)...);
+}
+
+/// \copydoc when_all
+///
+/// \since version 1.0.0
+///
+/// \deprecated Use the `when_all` function instead.
+template <typename... Continuables>
+[[deprecated("Replaced by cti::when_all")]]
+auto all_of(Continuables&&... continuables) {
+  return when_all(std::forward<Continuables>(continuables)...);
 }
 
 /// Connects the given continuables with an *any* logic.
@@ -1972,13 +1983,24 @@ auto all_of(Continuables&&... continuables) {
 ///
 /// \see continuable_base::operator|| for details.
 ///
-/// \since version 1.0.0
+/// \since version 1.1.0
 template <typename... Continuables>
-auto any_of(Continuables&&... continuables) {
+auto when_any(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,
                 "Requires at least 2 continuables!");
   return detail::util::fold(detail::util::or_folding(),
                             std::forward<Continuables>(continuables)...);
+}
+
+/// \copydoc when_any
+///
+/// \since version 1.0.0
+///
+/// \deprecated Use the `when_any` function instead.
+template <typename... Continuables>
+[[deprecated("Replaced by cti::when_any")]]
+auto any_of(Continuables&&... continuables) {
+  return when_any(std::forward<Continuables>(continuables)...);
 }
 
 /// Connects the given continuables with a *seq* logic.
@@ -1988,13 +2010,24 @@ auto any_of(Continuables&&... continuables) {
 ///
 /// \see continuable_base::operator>> for details.
 ///
-/// \since version 1.0.0
+/// \since version 1.1.0
 template <typename... Continuables>
-auto seq_of(Continuables&&... continuables) {
+auto when_seq(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,
                 "Requires at least 2 continuables!");
   return detail::util::fold(detail::util::seq_folding(),
                             std::forward<Continuables>(continuables)...);
+}
+
+/// \copydoc when_seq
+///
+/// \since version 1.0.0
+///
+/// \deprecated Use the `when_seq` function instead.
+template <typename... Continuables>
+[[deprecated("Replaced by cti::when_seq")]]
+auto seq_of(Continuables&&... continuables) {
+  return when_seq(std::forward<Continuables>(continuables)...);
 }
 
 /// Trait to retrieve a continuable_base type with a given type-erasure backend.

@@ -16,9 +16,9 @@ This documentation covers the continuable library in detail
 
 - **Helper functions**
   - \link cti::make_continuable make_continuable\endlink - creates a cti::continuable_base from a callback tanking function.
-  - \link cti::all_of all_of\endlink - connects all given cti::continuable_base objects with an *all* logic.
-  - \link cti::any_of any_of\endlink - connects all given cti::continuable_base objects with an *any* logic.
-  - \link cti::seq_of seq_of\endlink - connects all given cti::continuable_base objects with a *sequence* logic.
+  - \link cti::when_all when_all\endlink - connects all given cti::continuable_base objects with an *all* logic.
+  - \link cti::when_any when_any\endlink - connects all given cti::continuable_base objects with an *any* logic.
+  - \link cti::when_seq when_seq\endlink - connects all given cti::continuable_base objects with a *sequence* logic.
 
 - **Class cti::continuable_trait** - A trait class for defining your own cti::continuable_base trait with the type-erasure backend of your choice.
   - \link cti::continuable_trait::callback callback\endlink - \copybrief cti::continuable_trait::callback
