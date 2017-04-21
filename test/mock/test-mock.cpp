@@ -47,7 +47,7 @@ template <typename... A> struct promise {
     (void)exception;
   }
 
-  void set_error(std::error_code error) noexcept {
+  void set_error(std::error_condition error) noexcept {
     // ...
     (void)error;
   }
@@ -75,7 +75,7 @@ continuable<std::string> http_request(std::string url) {
     // ...
     result.set_exception(nullptr);
     // ...
-    result.set_error(std::error_code{});
+    result.set_error(std::error_condition{});
   };
 }
 
@@ -92,9 +92,9 @@ int main(int, char**) {
         // ...
         (void)exception;
       })
-      .failed([](std::error_code code) {
+      .failed([](std::error_condition error) {
         // ...
-        (void)code;
+        (void)error;
       });
 
   return 0;
