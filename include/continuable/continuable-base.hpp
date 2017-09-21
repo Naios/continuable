@@ -83,7 +83,8 @@ inline namespace abi_v1 {
 ///            invocation on destruction.
 ///
 /// \since version 1.0.0
-template <typename Data, typename Annotation> class continuable_base;
+template <typename Data, typename Annotation>
+class continuable_base;
 
 /// Declares the internal private namespace of the continuable library
 /// which isn't intended to be used by users of the library.
@@ -144,8 +145,10 @@ struct constant<bool, Value> : std::integral_constant<bool, Value> {
   /// \endcond
 };
 
-template <bool Value> using bool_constant = constant<bool, Value>;
-template <std::size_t Value> using size_constant = constant<std::size_t, Value>;
+template <bool Value>
+using bool_constant = constant<bool, Value>;
+template <std::size_t Value>
+using size_constant = constant<std::size_t, Value>;
 
 template <typename T, bool Value>
 constexpr auto constant_of(std::integral_constant<T, Value> /*value*/ = {}) {
@@ -173,13 +176,17 @@ using at_t = decltype(std::get<I>(std::declval<std::tuple<Args...>>()));
 
 /// Evaluates to an integral constant which represents the size
 /// of the given pack.
-template <typename... Args> using size_of_t = size_constant<sizeof...(Args)>;
+template <typename... Args>
+using size_of_t = size_constant<sizeof...(Args)>;
 
 /// A tagging type for wrapping other types
-template <typename... T> struct identity {};
-template <typename T> struct identity<T> : std::common_type<T> {};
+template <typename... T>
+struct identity {};
+template <typename T>
+struct identity<T> : std::common_type<T> {};
 
-template <typename> struct is_identity : std::false_type {};
+template <typename>
+struct is_identity : std::false_type {};
 template <typename... Args>
 struct is_identity<identity<Args...>> : std::true_type {};
 
@@ -191,7 +198,8 @@ template <typename... Args>
 constexpr identity<Args...> identity_of(identity<Args...> /*type*/) noexcept {
   return {};
 }
-template <typename T> constexpr auto identity_of() noexcept {
+template <typename T>
+constexpr auto identity_of() noexcept {
   return std::conditional_t<is_identity<std::decay_t<T>>::value, T,
                             identity<std::decay_t<T>>>{};
 }
@@ -202,7 +210,8 @@ constexpr auto get(identity<T...>) noexcept {
 }
 
 /// Helper to trick compilers about that a parameter pack is used
-template <typename... T> void unused(T&&... args) {
+template <typename... T>
+void unused(T&&... args) {
   auto use = [](auto&& type) mutable {
     (void)type;
     return 0;
@@ -216,7 +225,8 @@ namespace detail {
 // Equivalent to C++17's std::void_t which targets a bug in GCC,
 // that prevents correct SFINAE behavior.
 // See http://stackoverflow.com/questions/35753920 for details.
-template <typename...> struct deduce_to_void : std::common_type<void> {};
+template <typename...>
+struct deduce_to_void : std::common_type<void> {};
 } // end namespace detail
 
 /// C++17 like void_t type
@@ -240,7 +250,8 @@ constexpr void static_if_impl(std::true_type, Type&& type,
 
 template <typename Type, typename TrueCallback>
 constexpr void static_if_impl(std::false_type, Type&& /*type*/,
-                              TrueCallback&& /*trueCallback*/) {}
+                              TrueCallback&& /*trueCallback*/) {
+}
 
 template <typename Type, typename TrueCallback, typename FalseCallback>
 constexpr auto static_if_impl(std::true_type, Type&& type,
@@ -274,7 +285,8 @@ constexpr auto pack_size_of(identity<Args...>) noexcept {
 }
 
 /// Returns an index sequence of the given type
-template <typename T> constexpr auto sequenceOf(T&& /*sequenceable*/) noexcept {
+template <typename T>
+constexpr auto sequenceOf(T&& /*sequenceable*/) noexcept {
   return std::make_index_sequence<decltype(
       pack_size_of(std::declval<T>()))::value>();
 }
@@ -429,7 +441,8 @@ constexpr auto pop_first(identity<First, Rest...>) noexcept {
 }
 
 /// Returns the merged sequence
-template <typename Left> constexpr auto merge(Left&& left) {
+template <typename Left>
+constexpr auto merge(Left&& left) {
   return std::forward<Left>(left);
 }
 /// Merges the left sequenceable with the right ones
@@ -518,7 +531,8 @@ using is_invokable_t = typename detail::is_invokable_impl<T, Args>::type;
 
 namespace detail {
 /// Forwards every element in the tuple except the last one
-template <typename T> auto forward_except_last(T&& sequenceable) {
+template <typename T>
+auto forward_except_last(T&& sequenceable) {
   auto size = pack_size_of(identity_of(sequenceable)) - size_constant_of<1>();
   auto sequence = std::make_index_sequence<size.value>();
 
@@ -625,13 +639,16 @@ struct non_movable {
 /// is moved to another instance.
 class ownership {
   explicit constexpr ownership(bool acquired, bool frozen)
-      : acquired_(acquired), frozen_(frozen) {}
+      : acquired_(acquired), frozen_(frozen) {
+  }
 
 public:
-  constexpr ownership() : acquired_(true), frozen_(false) {}
+  constexpr ownership() : acquired_(true), frozen_(false) {
+  }
   constexpr ownership(ownership const&) = default;
   ownership(ownership&& right) noexcept
-      : acquired_(right.consume()), frozen_(right.is_frozen()) {}
+      : acquired_(right.consume()), frozen_(right.is_frozen()) {
+  }
   ownership& operator=(ownership const&) = default;
   ownership& operator=(ownership&& right) noexcept {
     acquired_ = right.consume();
@@ -645,8 +662,12 @@ public:
                      is_frozen() || right.is_frozen());
   }
 
-  constexpr bool is_acquired() const noexcept { return acquired_; }
-  constexpr bool is_frozen() const noexcept { return frozen_; }
+  constexpr bool is_acquired() const noexcept {
+    return acquired_;
+  }
+  constexpr bool is_frozen() const noexcept {
+    return frozen_;
+  }
 
   void release() noexcept {
     assert(is_acquired() && "Tried to release the ownership twice!");
@@ -673,11 +694,13 @@ private:
 };
 
 /// Represents a present signature hint
-template <typename... Args> using signature_hint_tag = util::identity<Args...>;
+template <typename... Args>
+using signature_hint_tag = util::identity<Args...>;
 /// Represents an absent signature hint
 struct absent_signature_hint_tag {};
 
-template <typename> struct is_absent_hint : std::false_type {};
+template <typename>
+struct is_absent_hint : std::false_type {};
 template <>
 struct is_absent_hint<absent_signature_hint_tag> : std::true_type {};
 
@@ -699,7 +722,8 @@ struct this_thread_executor_tag {};
 ///     -> void
 namespace base {
 /// Returns the signature hint of the given continuable
-template <typename T> constexpr auto hint_of(util::identity<T>) {
+template <typename T>
+constexpr auto hint_of(util::identity<T>) {
   static_assert(util::fail<T>::value,
                 "Expected a continuation with an existing signature hint!");
   return util::identity_of<void>();
@@ -711,7 +735,8 @@ hint_of(util::identity<continuable_base<Data, signature_hint_tag<Args...>>>) {
   return signature_hint_tag<Args...>{};
 }
 
-template <typename T> struct is_continuation : std::false_type {};
+template <typename T>
+struct is_continuation : std::false_type {};
 template <typename Data, typename Annotation>
 struct is_continuation<continuable_base<Data, Annotation>> : std::true_type {};
 
@@ -769,14 +794,18 @@ struct attorney {
 namespace decoration {
 /// Helper class wrapping the underlaying unwrapping lambda
 /// in order to extend it with a hint method.
-template <typename T, typename Hint> class invoker : public T {
+template <typename T, typename Hint>
+class invoker : public T {
 public:
-  explicit invoker(T invoke) : T(std::move(invoke)) {}
+  explicit invoker(T invoke) : T(std::move(invoke)) {
+  }
 
   using T::operator();
 
   /// Returns the underlaying signature hint
-  static constexpr Hint hint() noexcept { return {}; }
+  static constexpr Hint hint() noexcept {
+    return {};
+  }
 };
 
 template <typename T, typename... Args>
@@ -805,7 +834,8 @@ constexpr auto invoker_of(util::identity<continuable_base<Data, Annotation>>) {
 }
 
 /// - ? -> nextCallback(?)
-template <typename T> auto invoker_of(util::identity<T>) {
+template <typename T>
+auto invoker_of(util::identity<T>) {
   return make_invoker(
       [](auto&& callback, auto&& nextCallback, auto&&... args) {
         auto result = std::forward<decltype(callback)>(callback)(
@@ -943,7 +973,7 @@ template <typename T, typename... Args>
 constexpr auto next_hint_of(util::identity<T> /*callback*/,
                             signature_hint_tag<Args...> /*current*/) {
   return decoration::invoker_of(util::identity_of<decltype(std::declval<T>()(
-                                   std::declval<Args>()...))>())
+                                    std::declval<Args>()...))>())
       .hint();
 }
 
@@ -993,7 +1023,9 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
 /// Workaround for GCC bug:
 /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095
 struct empty_callback {
-  template <typename... Args> void operator()(Args...) const {}
+  template <typename... Args>
+  void operator()(Args...) const {
+  }
 };
 
 /// Final invokes the given continuation chain:
@@ -1008,13 +1040,16 @@ void finalize_continuation(Continuation&& continuation) {
 
 /// Workaround for GCC bug:
 /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095
-template <typename T> class supplier_callback {
+template <typename T>
+class supplier_callback {
   T data_;
 
 public:
-  explicit supplier_callback(T data) : data_(std::move(data)) {}
+  explicit supplier_callback(T data) : data_(std::move(data)) {
+  }
 
-  template <typename... Args> auto operator()(Args...) {
+  template <typename... Args>
+  auto operator()(Args...) {
     return std::move(data_);
   }
 };
@@ -1034,9 +1069,12 @@ namespace compose {
 struct strategy_all_tag {};
 struct strategy_any_tag {};
 
-template <typename T> struct is_strategy : std::false_type {};
-template <> struct is_strategy<strategy_all_tag> : std::true_type {};
-template <> struct is_strategy<strategy_any_tag> : std::true_type {};
+template <typename T>
+struct is_strategy : std::false_type {};
+template <>
+struct is_strategy<strategy_all_tag> : std::true_type {};
+template <>
+struct is_strategy<strategy_any_tag> : std::true_type {};
 
 /// Provides support for extracting the signature hint out
 /// of given types and parameters.
@@ -1109,7 +1147,8 @@ class all_result_submitter : public std::enable_shared_from_this<
 
 public:
   explicit all_result_submitter(T callback)
-      : callback_(std::move(callback)), left_(Submissions) {}
+      : callback_(std::move(callback)), left_(Submissions) {
+  }
 
   /// Creates a submitter which submits it's result into the tuple
   template <std::size_t From, std::size_t To>
@@ -1160,7 +1199,8 @@ class any_result_submitter
   std::once_flag flag_;
 
 public:
-  explicit any_result_submitter(T callback) : callback_(std::move(callback)) {}
+  explicit any_result_submitter(T callback) : callback_(std::move(callback)) {
+  }
 
   /// Creates a submitter which submits it's result to the callback
   auto create_callback() {
@@ -1171,7 +1211,8 @@ public:
 
 private:
   // Invokes the callback with the given arguments
-  template <typename... Args> void invoke(Args&&... args) {
+  template <typename... Args>
+  void invoke(Args&&... args) {
     std::call_once(flag_, std::move(callback_), std::forward<Args>(args)...);
   }
 };
@@ -1408,7 +1449,8 @@ auto sequential_connect(Left&& left, Right&& right) {
 namespace transforms {
 /// Provides helper functions and typedefs for converting callback arguments
 /// to their types a promise can accept.
-template <typename... Args> struct future_trait {
+template <typename... Args>
+struct future_trait {
   /// The promise type used to create the future
   using promise_t = std::promise<std::tuple<Args...>>;
   /// Boxes the argument pack into a tuple
@@ -1416,13 +1458,17 @@ template <typename... Args> struct future_trait {
     promise.set_value(std::make_tuple(std::move(args)...));
   }
 };
-template <> struct future_trait<> {
+template <>
+struct future_trait<> {
   /// The promise type used to create the future
   using promise_t = std::promise<void>;
   /// Boxes the argument pack into void
-  static void resolve(promise_t& promise) { promise.set_value(); }
+  static void resolve(promise_t& promise) {
+    promise.set_value();
+  }
 };
-template <typename First> struct future_trait<First> {
+template <typename First>
+struct future_trait<First> {
   /// The promise type used to create the future
   using promise_t = std::promise<First>;
   /// Boxes the argument pack into nothing
@@ -1431,7 +1477,8 @@ template <typename First> struct future_trait<First> {
   }
 };
 
-template <typename Hint> class promise_callback;
+template <typename Hint>
+class promise_callback;
 
 template <typename... Args>
 class promise_callback<signature_hint_tag<Args...>>
@@ -1447,9 +1494,13 @@ public:
   promise_callback& operator=(promise_callback&&) = delete;
 
   /// Resolves the promise
-  void operator()(Args... args) { this->resolve(promise_, std::move(args)...); }
+  void operator()(Args... args) {
+    this->resolve(promise_, std::move(args)...);
+  }
   /// Returns the future from the promise
-  auto get_future() { return promise_.get_future(); }
+  auto get_future() {
+    return promise_.get_future();
+  }
 };
 
 /// Transforms the continuation to a future
@@ -1472,9 +1523,11 @@ auto as_future(continuable_base<Data, Annotation>&& continuable) {
 } // end namespace transforms
 } // end namespace detail
 
-template <typename Data, typename Annotation> class continuable_base {
+template <typename Data, typename Annotation>
+class continuable_base {
   /// \cond false
-  template <typename, typename> friend class continuable_base;
+  template <typename, typename>
+  friend class continuable_base;
   friend struct detail::base::attorney;
 
   // The continuation type or intermediate result
@@ -1485,17 +1538,20 @@ template <typename Data, typename Annotation> class continuable_base {
 
   /// Constructor accepting the data object while erasing the annotation
   explicit continuable_base(Data data, detail::ownership ownership)
-      : data_(std::move(data)), ownership_(std::move(ownership)) {}
+      : data_(std::move(data)), ownership_(std::move(ownership)) {
+  }
 
 public:
   /// Constructor accepting the data object while erasing the annotation
-  explicit continuable_base(Data data) : data_(std::move(data)) {}
+  explicit continuable_base(Data data) : data_(std::move(data)) {
+  }
 
   /// Constructor accepting any object convertible to the data object,
   /// while erasing the annotation
   template <typename OData, std::enable_if_t<std::is_convertible<
                                 std::decay_t<OData>, Data>::value>* = nullptr>
-  continuable_base(OData&& data) : data_(std::forward<OData>(data)) {}
+  continuable_base(OData&& data) : data_(std::forward<OData>(data)) {
+  }
 
   /// Constructor taking the data of other continuable_base objects
   /// while erasing the hint.
@@ -1504,7 +1560,8 @@ public:
   /// the continuable by any object which is useful for type-erasure.
   template <typename OData, typename OAnnotation>
   continuable_base(continuable_base<OData, OAnnotation>&& other)
-      : continuable_base(std::move(other).materialize().consume_data()) {}
+      : continuable_base(std::move(other).materialize().consume_data()) {
+  }
 
   /// \cond false
   continuable_base(continuable_base&&) = default;
@@ -1783,7 +1840,9 @@ public:
   ///            continuable_base was released already.
   ///
   /// \since version 1.0.0
-  void done() && { detail::base::finalize_continuation(std::move(*this)); }
+  void done() && {
+    detail::base::finalize_continuation(std::move(*this));
+  }
 
   /// Predicate to check whether the cti::continuable_base is frozen or not.
   ///
@@ -1828,7 +1887,9 @@ public:
   }
 
 private:
-  void release() noexcept { ownership_.release(); }
+  void release() noexcept {
+    ownership_.release();
+  }
 
   auto materialize() &&
       noexcept(std::is_nothrow_move_constructible<Data>::value) {
@@ -1971,8 +2032,8 @@ auto when_all(Continuables&&... continuables) {
 ///
 /// \deprecated Use the `when_all` function instead.
 template <typename... Continuables>
-[[deprecated("Replaced by cti::when_all")]]
-auto all_of(Continuables&&... continuables) {
+[[deprecated("Replaced by cti::when_all")]] auto
+all_of(Continuables&&... continuables) {
   return when_all(std::forward<Continuables>(continuables)...);
 }
 
@@ -1998,8 +2059,8 @@ auto when_any(Continuables&&... continuables) {
 ///
 /// \deprecated Use the `when_any` function instead.
 template <typename... Continuables>
-[[deprecated("Replaced by cti::when_any")]]
-auto any_of(Continuables&&... continuables) {
+[[deprecated("Replaced by cti::when_any")]] auto
+any_of(Continuables&&... continuables) {
   return when_any(std::forward<Continuables>(continuables)...);
 }
 
@@ -2025,8 +2086,8 @@ auto when_seq(Continuables&&... continuables) {
 ///
 /// \deprecated Use the `when_seq` function instead.
 template <typename... Continuables>
-[[deprecated("Replaced by cti::when_seq")]]
-auto seq_of(Continuables&&... continuables) {
+[[deprecated("Replaced by cti::when_seq")]] auto
+seq_of(Continuables&&... continuables) {
   return when_seq(std::forward<Continuables>(continuables)...);
 }
 
@@ -2057,7 +2118,7 @@ struct continuable_trait {
 };
 
 /// \cond false
-} // end inline namespace abi_...
+} // namespace abi_v1
 /// \endcond
 } // end namespace cti
 
