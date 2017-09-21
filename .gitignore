@@ -50,7 +50,3 @@ bld/
 
 doc/doxygen/
 
-format.sh
-push.sh
-commit.sh
-pull.sh
