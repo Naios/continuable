@@ -5,7 +5,7 @@
                         \_,(_)| | | || ||_|(_||_)|(/_
 
                     https://github.com/Naios/continuable
-                                   v1.1.0
+                                   v2.0.0
 
   Copyright(c) 2015 - 2017 Denis Blank <denis.blank at outlook dot com>
 
@@ -36,9 +36,6 @@
 #include "continuable/continuable-base.hpp"
 
 namespace cti {
-/// \cond false
-inline namespace abi_v1 {
-/// \endcond
 namespace detail {
 namespace testing {
 template <typename C> void assert_async_completion(C&& continuable) {
@@ -125,9 +122,6 @@ void assert_async_types(C&& continuable, util::identity<Args...> expected) {
 }
 } // end namespace testing
 } // end namespace detail
-/// \cond false
-} // end inline namespace abi_...
-/// \endcond
 } // end namespace cti
 
 /// Asserts that the final callback of the given continuable was called

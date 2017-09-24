@@ -5,7 +5,7 @@
                         \_,(_)| | | || ||_|(_||_)|(/_
 
                     https://github.com/Naios/continuable
-                                   v1.1.0
+                                   v2.0.0
 
   Copyright(c) 2015 - 2017 Denis Blank <denis.blank at outlook dot com>
 
@@ -36,9 +36,6 @@
 
 namespace cti {
 // clang-format off
-/// \cond false
-inline namespace abi_v1 {
-/// \endcond
 namespace detail {
 template<typename... Args>
 using trait_of = continuable_trait<
@@ -90,9 +87,6 @@ template <typename... Args>
 using unique_callback = typename detail::unique_trait_of<
   Args...
 >::callback;
-/// \cond false
-} // end inline namespace abi_...
-/// \endcond
 // clang-format on
 } // end namespace cti
 

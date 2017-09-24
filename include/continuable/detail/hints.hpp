@@ -5,7 +5,7 @@
                         \_,(_)| | | || ||_|(_||_)|(/_
 
                     https://github.com/Naios/continuable
-                                   v1.1.0
+                                   v2.0.0
 
   Copyright(c) 2015 - 2017 Denis Blank <denis.blank at outlook dot com>
 
@@ -28,4 +28,15 @@
   SOFTWARE.
 **/
 
-}
+#ifndef CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED__
+#define CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED__
+
+#include "continuable/detail/api.hpp"
+
+namespace cti {
+namespace detail {
+//
+} // namespace detail
+} // namespace cti
+
+#endif // CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED__
