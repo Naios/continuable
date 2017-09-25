@@ -9,6 +9,7 @@ set(LIB_SOURCES_DETAIL
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/hints.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/features.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/traits.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/detail/transforms.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/util.hpp)
 set(TEST
   ${CMAKE_CURRENT_LIST_DIR}/test-playground.cpp)

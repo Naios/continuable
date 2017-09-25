@@ -236,7 +236,7 @@ constexpr auto pack_size_of(identity<Args...>) noexcept {
 
 /// Returns an index sequence of the given type
 template <typename T>
-constexpr auto sequenceOf(T&& /*sequenceable*/) noexcept {
+constexpr auto sequence_of(T&& /*sequenceable*/) noexcept {
   return std::make_index_sequence<decltype(
       pack_size_of(std::declval<T>()))::value>();
 }
@@ -244,7 +244,7 @@ constexpr auto sequenceOf(T&& /*sequenceable*/) noexcept {
 /// Returns a check which returns a true type if the current value
 /// is below the
 template <std::size_t End>
-constexpr auto isLessThen(size_constant<End> end) noexcept {
+constexpr auto is_less_than(size_constant<End> end) noexcept {
   return [=](auto current) { return end > current; };
 }
 
@@ -256,7 +256,7 @@ constexpr auto is_valid(T&& /*type*/, Check&& /*check*/) noexcept {
 
 /// Creates a static functional validator object.
 template <typename Check>
-constexpr auto validatorOf(Check&& check) noexcept(
+constexpr auto validator_of(Check&& check) noexcept(
     std::is_nothrow_move_constructible<std::decay_t<Check>>::value) {
   return [check = std::forward<Check>(check)](auto&& matchable) {
     return is_valid(std::forward<decltype(matchable)>(matchable), check);
@@ -340,7 +340,7 @@ constexpr auto unpack(F&& firstSequenceable, S&& secondSequenceable,
 template <typename F, typename U>
 auto unpack(F&& firstSequenceable, U&& unpacker) {
   return unpack(std::forward<F>(firstSequenceable), std::forward<U>(unpacker),
-                sequenceOf(identity_of(firstSequenceable)));
+                sequence_of(identity_of(firstSequenceable)));
 }
 /// Calls the given unpacker with the content of the given sequenceables
 template <typename F, typename S, typename U>
@@ -348,8 +348,8 @@ constexpr auto unpack(F&& firstSequenceable, S&& secondSequenceable,
                       U&& unpacker) {
   return unpack(std::forward<F>(firstSequenceable),
                 std::forward<S>(secondSequenceable), std::forward<U>(unpacker),
-                sequenceOf(identity_of(firstSequenceable)),
-                sequenceOf(identity_of(secondSequenceable)));
+                sequence_of(identity_of(firstSequenceable)),
+                sequence_of(identity_of(secondSequenceable)));
 }
 
 /// Applies the handler function to each element contained in the sequenceable

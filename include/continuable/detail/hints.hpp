@@ -31,11 +31,25 @@
 #ifndef CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED__
 #define CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED__
 
+#include <type_traits>
+
 #include "continuable/detail/api.hpp"
+#include "continuable/detail/util.hpp"
 
 namespace cti {
 namespace detail {
-//
+namespace hints {
+/// Represents a present signature hint
+template <typename... Args>
+using signature_hint_tag = util::identity<Args...>;
+/// Represents an absent signature hint
+struct absent_signature_hint_tag {};
+
+template <typename>
+struct is_absent_hint : std::false_type {};
+template <>
+struct is_absent_hint<absent_signature_hint_tag> : std::true_type {};
+} // namespace hints
 } // namespace detail
 } // namespace cti
 
