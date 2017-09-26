@@ -33,8 +33,8 @@
 
 #include <future>
 
-#include "continuable/detail/api.hpp"
-#include "continuable/detail/hints.hpp"
+#include <continuable/detail/api.hpp>
+#include <continuable/detail/hints.hpp>
 
 namespace cti {
 namespace detail {

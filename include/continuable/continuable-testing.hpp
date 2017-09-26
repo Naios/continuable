@@ -33,7 +33,7 @@
 
 #include "gtest/gtest.h"
 
-#include "continuable/continuable-base.hpp"
+#include <continuable/continuable-base.hpp>
 
 namespace cti {
 namespace detail {

@@ -31,8 +31,9 @@
 #ifndef CONTINUABLE_HPP_INCLUDED__
 #define CONTINUABLE_HPP_INCLUDED__
 
-#include "continuable/continuable-base.hpp"
 #include "function2/function2.hpp"
+
+#include <continuable/continuable-base.hpp>
 
 namespace cti {
 // clang-format off

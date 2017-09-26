@@ -31,7 +31,7 @@
 #ifndef CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED__
 #define CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED__
 
-#include "continuable/detail/api.hpp"
+#include <continuable/detail/api.hpp>
 
 namespace cti {
 namespace detail {

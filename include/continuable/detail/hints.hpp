@@ -33,8 +33,8 @@
 
 #include <type_traits>
 
-#include "continuable/detail/api.hpp"
-#include "continuable/detail/util.hpp"
+#include <continuable/detail/api.hpp>
+#include <continuable/detail/util.hpp>
 
 namespace cti {
 namespace detail {

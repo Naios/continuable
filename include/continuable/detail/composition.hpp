@@ -33,14 +33,15 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 
-#include "continuable/detail/api.hpp"
-#include "continuable/detail/base.hpp"
-#include "continuable/detail/traits.hpp"
-#include "continuable/detail/util.hpp"
+#include <continuable/detail/api.hpp>
+#include <continuable/detail/base.hpp>
+#include <continuable/detail/traits.hpp>
+#include <continuable/detail/util.hpp>
 
 namespace cti {
 namespace detail {
@@ -380,7 +381,7 @@ auto finalize_composition(
 
   // Determine the shared result between all continuations
   auto signature = util::unpack(composition, [](auto const&... args) {
-    return common_result_of(signature_hint_tag<>{},
+    return common_result_of(hints::signature_hint_tag<>{},
                             base::hint_of(util::identity_of(args))...);
   });
 

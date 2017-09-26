@@ -37,12 +37,12 @@
 #include <type_traits>
 #include <utility>
 
-#include "continuable/detail/api.hpp"
-#include "continuable/detail/base.hpp"
-#include "continuable/detail/composition.hpp"
-#include "continuable/detail/traits.hpp"
-#include "continuable/detail/transforms.hpp"
-#include "continuable/detail/util.hpp"
+#include <continuable/detail/api.hpp>
+#include <continuable/detail/base.hpp>
+#include <continuable/detail/composition.hpp>
+#include <continuable/detail/traits.hpp>
+#include <continuable/detail/transforms.hpp>
+#include <continuable/detail/util.hpp>
 
 namespace cti {
 template <typename Data, typename Annotation>
@@ -639,7 +639,8 @@ struct continuable_trait {
 
   /// The continuable type for the given parameters.
   using continuable =
-      continuable_base<continuation, detail::signature_hint_tag<Args...>>;
+      continuable_base<continuation,
+                       detail::hints::signature_hint_tag<Args...>>;
 };
 } // end namespace cti
 

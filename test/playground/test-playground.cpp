@@ -20,6 +20,6 @@
   SOFTWARE.
 **/
 
-#include "continuable/continuable.hpp"
+#include <continuable/continuable.hpp>
 
 int main(int, char**) { return 0; }
