@@ -61,15 +61,15 @@ struct this_thread_executor_tag {};
 
 /// Returns the signature hint of the given continuable
 template <typename T>
-constexpr auto hint_of(util::identity<T>) {
-  static_assert(util::fail<T>::value,
+constexpr auto hint_of(traits::identity<T>) {
+  static_assert(traits::fail<T>::value,
                 "Expected a continuation with an existing signature hint!");
-  return util::identity_of<void>();
+  return traits::identity_of<void>();
 }
 /// Returns the signature hint of the given continuable
 template <typename Data, typename... Args>
 constexpr auto
-hint_of(util::identity<
+hint_of(traits::identity<
         continuable_base<Data, hints::signature_hint_tag<Args...>>>) {
   return hints::signature_hint_tag<Args...>{};
 }
@@ -155,7 +155,8 @@ constexpr auto make_invoker(T&& invoke, hints::signature_hint_tag<Args...>) {
 
 /// - continuable<?...> -> result(nextCallback);
 template <typename Data, typename Annotation>
-constexpr auto invoker_of(util::identity<continuable_base<Data, Annotation>>) {
+constexpr auto
+invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
   /// Get the hint of the unwrapped returned continuable
   using Type = decltype(attorney::materialize(
       std::declval<continuable_base<Data, Annotation>>()));
@@ -169,12 +170,12 @@ constexpr auto invoker_of(util::identity<continuable_base<Data, Annotation>>) {
             std::move(continuation_),
             std::forward<decltype(nextCallback)>(nextCallback));
       },
-      hint_of(util::identity_of<Type>()));
+      hint_of(traits::identity_of<Type>()));
 }
 
 /// - ? -> nextCallback(?)
 template <typename T>
-auto invoker_of(util::identity<T>) {
+auto invoker_of(traits::identity<T>) {
   return make_invoker(
       [](auto&& callback, auto&& nextCallback, auto&&... args) {
         auto result = std::forward<decltype(callback)>(callback)(
@@ -182,11 +183,11 @@ auto invoker_of(util::identity<T>) {
 
         std::forward<decltype(nextCallback)>(nextCallback)(std::move(result));
       },
-      util::identity_of<T>());
+      traits::identity_of<T>());
 }
 
 /// - void -> nextCallback()
-inline auto invoker_of(util::identity<void>) {
+inline auto invoker_of(traits::identity<void>) {
   return make_invoker(
       [](auto&& callback, auto&& nextCallback, auto&&... args) {
         std::forward<decltype(callback)>(callback)(
@@ -194,7 +195,7 @@ inline auto invoker_of(util::identity<void>) {
 
         std::forward<decltype(nextCallback)>(nextCallback)();
       },
-      util::identity<>{});
+      traits::identity<>{});
 }
 
 /// Returns a sequenced invoker which is able to invoke
@@ -204,7 +205,7 @@ inline auto sequenced_unpack_invoker() {
     auto result = std::forward<decltype(callback)>(callback)(
         std::forward<decltype(args)>(args)...);
 
-    util::unpack(std::move(result), [&](auto&&... types) {
+    traits::unpack(std::move(result), [&](auto&&... types) {
       /// TODO Add inplace resolution here
 
       std::forward<decltype(nextCallback)>(nextCallback)(
@@ -215,15 +216,15 @@ inline auto sequenced_unpack_invoker() {
 
 // - std::pair<?, ?> -> nextCallback(?, ?)
 template <typename First, typename Second>
-constexpr auto invoker_of(util::identity<std::pair<First, Second>>) {
+constexpr auto invoker_of(traits::identity<std::pair<First, Second>>) {
   return make_invoker(sequenced_unpack_invoker(),
-                      util::identity<First, Second>{});
+                      traits::identity<First, Second>{});
 }
 
 // - std::tuple<?...>  -> nextCallback(?...)
 template <typename... Args>
-constexpr auto invoker_of(util::identity<std::tuple<Args...>>) {
-  return make_invoker(sequenced_unpack_invoker(), util::identity<Args...>{});
+constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
+  return make_invoker(sequenced_unpack_invoker(), traits::identity<Args...>{});
 }
 } // end namespace decoration
 
@@ -255,7 +256,7 @@ void packed_dispatch(Executor&& executor, Invoker&& invoker,
     nextCallback = std::forward<NextCallback>(nextCallback),
     args = std::make_tuple(std::forward<Args>(args)...)
   ]() mutable {
-    util::unpack(std::move(args), [&](auto&&... captured_args) {
+    traits::unpack(std::move(args), [&](auto&&... captured_args) {
       // Just use the packed dispatch method which dispatches the work on
       // the current thread.
       packed_dispatch(this_thread_executor_tag{}, std::move(invoker),
@@ -294,8 +295,8 @@ void invoke_proxy(hints::signature_hint_tag<Args...>,
 
     // In order to retrieve the correct decorator we must know what the
     // result type is.
-    auto result =
-        util::identity_of<decltype(std::move(callback)(std::move(args)...))>();
+    auto result = traits::identity_of<decltype(
+        std::move(callback)(std::move(args)...))>();
 
     // Pick the correct invoker that handles decorating of the result
     auto invoker = decoration::invoker_of(result);
@@ -309,9 +310,9 @@ void invoke_proxy(hints::signature_hint_tag<Args...>,
 
 /// Returns the next hint when the callback is invoked with the given hint
 template <typename T, typename... Args>
-constexpr auto next_hint_of(util::identity<T> /*callback*/,
+constexpr auto next_hint_of(traits::identity<T> /*callback*/,
                             hints::signature_hint_tag<Args...> /*current*/) {
-  return decoration::invoker_of(util::identity_of<decltype(std::declval<T>()(
+  return decoration::invoker_of(traits::identity_of<decltype(std::declval<T>()(
                                     std::declval<Args>()...))>())
       .hint();
 }
@@ -338,8 +339,8 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
                                 std::forward<decltype(args)>(args)...);
   };
 
-  auto hint = hint_of(util::identity_of(continuation));
-  auto next_hint = next_hint_of(util::identity_of(partial_callable), hint);
+  auto hint = hint_of(traits::identity_of(continuation));
+  auto next_hint = next_hint_of(traits::identity_of(partial_callable), hint);
 
   auto ownership_ = attorney::ownership_of(continuation);
   continuation.freeze();
@@ -351,7 +352,7 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
         partial_callable = std::move(partial_callable),
         executor = std::forward<Executor>(executor)
       ](auto&& nextCallback) mutable {
-        invoke_proxy(hint_of(util::identity_of(continuation)),
+        invoke_proxy(hint_of(traits::identity_of(continuation)),
                      std::move(continuation), std::move(partial_callable),
                      std::move(executor),
                      std::forward<decltype(nextCallback)>(nextCallback));

@@ -36,7 +36,8 @@ target_compile_features(continuable-base
     cxx_defaulted_functions
     cxx_nullptr
     cxx_trailing_return_types
-    cxx_return_type_deduction)
+    cxx_return_type_deduction
+    $<$<COMPILE_FEATURES:cxx_std_17>:cxx_std_17>)
 
 add_library(continuable INTERFACE)
 

@@ -1,4 +1,3 @@
-
 /**
 
                         /~` _  _ _|_. _     _ |_ | _
@@ -33,10 +32,7 @@
 
 #include <continuable/detail/api.hpp>
 
-namespace cti {
-namespace detail {
-//
-} // namespace detail
-} // namespace cti
+#undef CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
+#undef CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
 
 #endif // CONTINUABLE_DETAIL_FEATURES_HPP_INCLUDED__

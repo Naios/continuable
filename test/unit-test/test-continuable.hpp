@@ -46,7 +46,8 @@
 
 #include "cxx_function/cxx_function.hpp"
 
-template <typename T> using cxx_function_fn = cxx_function::function<T>;
+template <typename T>
+using cxx_function_fn = cxx_function::function<T>;
 
 template <typename... Args>
 using cxx_trait_of =
@@ -75,17 +76,21 @@ using std_trait_of =
 template <typename... Args>
 using std_continuable = typename std_trait_of<Args...>::continuable;
 
-using cti::detail::util::identity;
+using cti::detail::traits::identity;
 
-inline auto to_hint(identity<> /*hint*/) { return identity<void>{}; }
-template <typename... Args> auto to_hint(identity<Args...> hint) {
+inline auto to_hint(identity<> /*hint*/) {
+  return identity<void>{};
+}
+template <typename... Args>
+auto to_hint(identity<Args...> hint) {
   return hint;
 }
 
-template <typename... Args> auto supplier_of(Args&&... args) {
+template <typename... Args>
+auto supplier_of(Args&&... args) {
   return [values = std::make_tuple(std::forward<Args>(args)...)](
       auto&& callback) mutable {
-    cti::detail::util::unpack(std::move(values), [&](auto&&... passed) {
+    cti::detail::traits::unpack(std::move(values), [&](auto&&... passed) {
       // ...
       std::forward<decltype(callback)>(callback)(
           std::forward<decltype(passed)>(passed)...);
@@ -96,14 +101,16 @@ template <typename... Args> auto supplier_of(Args&&... args) {
 template <typename Provider>
 class continuation_provider : public ::testing::Test, public Provider {
 public:
-  template <typename T> auto invoke(T&& type) {
+  template <typename T>
+  auto invoke(T&& type) {
     return this->make(identity<>{}, identity<void>{},
                       [type = std::forward<T>(type)](auto&& callback) mutable {
                         std::forward<decltype(callback)>(callback)();
                       });
   }
 
-  template <typename... Args> auto supply(Args&&... args) {
+  template <typename... Args>
+  auto supply(Args&&... args) {
     identity<std::decay_t<Args>...> arg_types;
     auto hint_types = to_hint(arg_types);
 
@@ -142,14 +149,16 @@ struct provide_unique {
   }
 };
 
-template <template <typename...> class Erasure> struct provide_erasure {
+template <template <typename...> class Erasure>
+struct provide_erasure {
   template <typename... Args, typename... Hint, typename T>
   Erasure<Args...> make(identity<Args...>, identity<Hint...>, T&& callback) {
     return cti::make_continuable<Hint...>(std::forward<T>(callback));
   }
 };
 
-template <typename Provider> struct provide_continuation_and_left {
+template <typename Provider>
+struct provide_continuation_and_left {
   Provider provider_;
 
   template <typename... Args, typename... Hint, typename T>
@@ -159,7 +168,8 @@ template <typename Provider> struct provide_continuation_and_left {
   }
 };
 
-template <typename Provider> struct provide_continuation_and_right {
+template <typename Provider>
+struct provide_continuation_and_right {
   Provider provider_;
 
   template <typename... Args, typename... Hint, typename T>
@@ -169,7 +179,8 @@ template <typename Provider> struct provide_continuation_and_right {
   }
 };
 
-template <typename Provider> struct provide_continuation_seq_right {
+template <typename Provider>
+struct provide_continuation_seq_right {
   Provider provider_;
 
   template <typename... Args, typename... Hint, typename T>
@@ -222,7 +233,8 @@ struct single_dimension_tests : continuation_provider<Provider> {};
 
 TYPED_TEST_CASE(single_dimension_tests, single_types);
 
-template <typename T> auto make_step(T* me, unsigned& current, unsigned step) {
+template <typename T>
+auto make_step(T* me, unsigned& current, unsigned step) {
   return me->invoke([=]() mutable {
     ASSERT_EQ(step, current);
     ++current;

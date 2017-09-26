@@ -41,7 +41,6 @@
 #include <continuable/detail/api.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/traits.hpp>
-#include <continuable/detail/util.hpp>
 
 namespace cti {
 namespace detail {
@@ -63,12 +62,12 @@ struct is_strategy<strategy_any_tag> : std::true_type {};
 namespace annotating {
 namespace detail {
 /// Void hints are equal to an empty signature
-constexpr auto make_hint_of(util::identity<void>) noexcept {
+constexpr auto make_hint_of(traits::identity<void>) noexcept {
   return hints::signature_hint_tag<>{};
 }
 /// All other hints are the obvious hints...
 template <typename... HintArgs>
-constexpr auto make_hint_of(util::identity<HintArgs...> args) noexcept {
+constexpr auto make_hint_of(traits::identity<HintArgs...> args) noexcept {
   return args; // Identity is equal to signature_hint_tag
 }
 } // end namespace detail
@@ -89,30 +88,31 @@ constexpr auto make_hint_of(util::identity<HintArgs...> args) noexcept {
 /// - absent_signature_hint_tag
 ///
 template <typename T, typename... HintArgs>
-constexpr auto extract(util::identity<T> /*type*/,
-                       util::identity<HintArgs...> hint) {
-  return util::static_if(hint, util::is_empty(),
-                         [=](auto /*hint*/) {
-                           /// When the arguments are the hint is absent
-                           return hints::absent_signature_hint_tag{};
-                         },
-                         [](auto hint) {
-                           // When hint arguments are given just take it as hint
-                           return detail::make_hint_of(hint);
-                         });
+constexpr auto extract(traits::identity<T> /*type*/,
+                       traits::identity<HintArgs...> hint) {
+  return traits::static_if(hint, traits::is_empty(),
+                           [=](auto /*hint*/) {
+                             /// When the arguments are the hint is absent
+                             return hints::absent_signature_hint_tag{};
+                           },
+                           [](auto hint) {
+                             // When hint arguments are given just take it as
+                             // hint
+                             return detail::make_hint_of(hint);
+                           });
 }
 } // end namespace annotating
 
 namespace detail {
 template <std::size_t Pos, typename T>
-constexpr void assign(util::size_constant<Pos> /*pos*/, T& /*storage*/) {
+constexpr void assign(traits::size_constant<Pos> /*pos*/, T& /*storage*/) {
   // ...
 }
 template <std::size_t Pos, typename T, typename Current, typename... Args>
-void assign(util::size_constant<Pos> pos, T& storage, Current&& current,
+void assign(traits::size_constant<Pos> pos, T& storage, Current&& current,
             Args&&... args) {
   std::get<Pos>(storage) = std::forward<Current>(current);
-  assign(pos + util::size_constant_of<1>(), storage,
+  assign(pos + traits::size_constant_of<1>(), storage,
          std::forward<Args>(args)...);
 }
 
@@ -134,8 +134,8 @@ public:
 
   /// Creates a submitter which submits it's result into the tuple
   template <std::size_t From, std::size_t To>
-  auto create_callback(util::size_constant<From> from,
-                       util::size_constant<To> to) {
+  auto create_callback(traits::size_constant<From> from,
+                       traits::size_constant<To> to) {
 
     return [ me = this->shared_from_this(), from, to ](auto&&... args) {
       static_assert(sizeof...(args) == (To - From),
@@ -156,7 +156,7 @@ private:
   void invoke() {
     assert((left_ == 0U) && "Expected that the submitter is finished!");
     std::atomic_thread_fence(std::memory_order_acquire);
-    util::unpack(std::move(result_), [&](auto&&... args) {
+    traits::unpack(std::move(result_), [&](auto&&... args) {
       std::move(callback_)(std::forward<decltype(args)>(args)...);
     });
   }
@@ -205,7 +205,7 @@ template <typename... LeftArgs, typename... RightArgs>
 auto chain_composition(std::tuple<LeftArgs...> leftPack,
                        std::tuple<RightArgs...> rightPack) {
 
-  return util::merge(std::move(leftPack), std::move(rightPack));
+  return traits::merge(std::move(leftPack), std::move(rightPack));
 }
 
 /// Normalizes a continuation to a tuple holding an arbitrary count of
@@ -268,8 +268,8 @@ auto connect(Strategy strategy, continuable_base<LData, LAnnotation>&& left,
 /// Creates a submitter which caches the intermediate results of `all` chains
 template <typename Callback, std::size_t Submissions, typename... Args>
 auto make_all_result_submitter(Callback&& callback,
-                               util::size_constant<Submissions>,
-                               util::identity<Args...>) {
+                               traits::size_constant<Submissions>,
+                               traits::identity<Args...>) {
   return std::make_shared<detail::all_result_submitter<
       std::decay_t<decltype(callback)>, Submissions, Args...>>(
       std::forward<decltype(callback)>(callback));
@@ -285,8 +285,8 @@ auto finalize_composition(
   auto composition = base::attorney::consume_data(std::move(continuation));
 
   // Merge all signature hints together
-  auto signature = util::unpack(composition, [](auto&... entries) {
-    return util::merge(base::hint_of(util::identity_of(entries))...);
+  auto signature = traits::unpack(composition, [](auto&... entries) {
+    return traits::merge(base::hint_of(traits::identity_of(entries))...);
   });
 
   return base::attorney::create(
@@ -296,10 +296,10 @@ auto finalize_composition(
         // std::pair<size_constant<?>, size_constant<?>>
         //           ~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~
         //           Continuation pos     Result pos
-        auto begin = std::make_pair(util::size_constant_of<0>(),
-                                    util::size_constant_of<0>());
-        auto pack = util::identity_of(composition);
-        auto end = util::pack_size_of(pack);
+        auto begin = std::make_pair(traits::size_constant_of<0>(),
+                                    traits::size_constant_of<0>());
+        auto pack = traits::identity_of(composition);
+        auto end = traits::pack_size_of(pack);
         auto condition = [=](auto pos) { return pos.first < end; };
 
         // Create the result submitter which caches all results and invokes
@@ -308,13 +308,13 @@ auto finalize_composition(
             std::forward<decltype(callback)>(callback), end, signature);
 
         // Invoke every continuation with it's callback of the submitter
-        util::static_while(begin, condition, [&](auto current) mutable {
+        traits::static_while(begin, condition, [&](auto current) mutable {
           auto entry =
               std::move(std::get<decltype(current.first)::value>(composition));
 
           // This is the length of the arguments of the current continuable
           auto arg_size =
-              util::pack_size_of(base::hint_of(util::identity_of(entry)));
+              traits::pack_size_of(base::hint_of(traits::identity_of(entry)));
 
           // The next position in the result tuple
           auto next = current.second + arg_size;
@@ -324,7 +324,7 @@ auto finalize_composition(
               std::move(entry),
               submitter->create_callback(current.second, next));
 
-          return std::make_pair(current.first + util::size_constant_of<1>(),
+          return std::make_pair(current.first + traits::size_constant_of<1>(),
                                 next);
         });
       },
@@ -340,15 +340,16 @@ auto make_any_result_submitter(Callback&& callback) {
 }
 
 template <typename T, typename... Args>
-constexpr T first_of(util::identity<T, Args...>) noexcept;
+constexpr T first_of(traits::identity<T, Args...>) noexcept;
 
 template <typename Signature, typename... Args>
 constexpr auto common_result_of(Signature signature,
                                 hints::signature_hint_tag<>, Args... /*args*/) {
   /// Assert that the other signatures are empty too which means all signatures
   /// had the same size.
-  util::static_for_each_in(util::identity<Args...>{}, [&](auto rest) {
-    auto is_empty = (util::pack_size_of(rest) == util::size_constant_of<0>());
+  traits::static_for_each_in(traits::identity<Args...>{}, [&](auto rest) {
+    auto is_empty =
+        (traits::pack_size_of(rest) == traits::size_constant_of<0>());
     static_assert(is_empty.value, "Expected all continuations to have the same"
                                   "count of arguments!");
   });
@@ -363,11 +364,11 @@ template <typename Signature, typename First, typename... Args>
 constexpr auto common_result_of(Signature signature, First first,
                                 Args... args) {
   using Common =
-      util::identity<std::common_type_t<decltype(first_of(first)),
-                                        decltype(first_of(args))...>>;
+      traits::identity<std::common_type_t<decltype(first_of(first)),
+                                          decltype(first_of(args))...>>;
 
-  return common_result_of(util::push(signature, Common{}),
-                          util::pop_first(first), util::pop_first(args)...);
+  return common_result_of(traits::push(signature, Common{}),
+                          traits::pop_first(first), traits::pop_first(args)...);
 }
 
 /// Finalizes the any logic of a given composition
@@ -380,9 +381,9 @@ auto finalize_composition(
   auto composition = base::attorney::consume_data(std::move(continuation));
 
   // Determine the shared result between all continuations
-  auto signature = util::unpack(composition, [](auto const&... args) {
+  auto signature = traits::unpack(composition, [](auto const&... args) {
     return common_result_of(hints::signature_hint_tag<>{},
-                            base::hint_of(util::identity_of(args))...);
+                            base::hint_of(traits::identity_of(args))...);
   });
 
   return base::attorney::create(
@@ -393,14 +394,14 @@ auto finalize_composition(
         auto submitter = make_any_result_submitter(
             std::forward<decltype(callback)>(callback));
 
-        util::static_for_each_in(std::move(composition),
-                                 [&](auto&& entry) mutable {
-                                   // Invoke the continuation with a submission
-                                   // callback
-                                   base::attorney::invoke_continuation(
-                                       std::forward<decltype(entry)>(entry),
-                                       submitter->create_callback());
-                                 });
+        traits::static_for_each_in(std::move(composition),
+                                   [&](auto&& entry) mutable {
+                                     // Invoke the continuation with a
+                                     // submission callback
+                                     base::attorney::invoke_continuation(
+                                         std::forward<decltype(entry)>(entry),
+                                         submitter->create_callback());
+                                   });
       },
       signature, std::move(ownership_));
 }
@@ -419,7 +420,7 @@ auto sequential_connect(Left&& left, Right&& right) {
     return std::move(right).then([previous = std::make_tuple(
                                       std::forward<decltype(args)>(args)...)](
         auto&&... args) mutable {
-      return util::merge(
+      return traits::merge(
           std::move(previous),
           std::make_tuple(std::forward<decltype(args)>(args)...));
     });

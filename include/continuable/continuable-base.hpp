@@ -527,8 +527,8 @@ private:
 template <typename... Args, typename Continuation>
 auto make_continuable(Continuation&& continuation) {
   auto hint = detail::composition::annotating::extract(
-      detail::util::identity_of(continuation),
-      detail::util::identity<Args...>{});
+      detail::traits::identity_of(continuation),
+      detail::traits::identity<Args...>{});
 
   return detail::base::attorney::create(
       std::forward<Continuation>(continuation), hint,
@@ -547,8 +547,8 @@ template <typename... Continuables>
 auto when_all(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,
                 "Requires at least 2 continuables!");
-  return detail::util::fold(detail::util::and_folding(),
-                            std::forward<Continuables>(continuables)...);
+  return detail::traits::fold(detail::traits::and_folding(),
+                              std::forward<Continuables>(continuables)...);
 }
 
 /// \copydoc when_all
@@ -574,8 +574,8 @@ template <typename... Continuables>
 auto when_any(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,
                 "Requires at least 2 continuables!");
-  return detail::util::fold(detail::util::or_folding(),
-                            std::forward<Continuables>(continuables)...);
+  return detail::traits::fold(detail::traits::or_folding(),
+                              std::forward<Continuables>(continuables)...);
 }
 
 /// \copydoc when_any
@@ -601,8 +601,8 @@ template <typename... Continuables>
 auto when_seq(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,
                 "Requires at least 2 continuables!");
-  return detail::util::fold(detail::util::seq_folding(),
-                            std::forward<Continuables>(continuables)...);
+  return detail::traits::fold(detail::traits::seq_folding(),
+                              std::forward<Continuables>(continuables)...);
 }
 
 /// \copydoc when_seq

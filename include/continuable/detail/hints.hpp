@@ -41,7 +41,7 @@ namespace detail {
 namespace hints {
 /// Represents a present signature hint
 template <typename... Args>
-using signature_hint_tag = util::identity<Args...>;
+using signature_hint_tag = traits::identity<Args...>;
 /// Represents an absent signature hint
 struct absent_signature_hint_tag {};
 

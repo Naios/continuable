@@ -45,7 +45,7 @@ template <typename C> void assert_async_completion(C&& continuable) {
     *called = true;
 
     // Workaround for our known GCC bug.
-    util::unused(std::forward<decltype(args)>(args)...);
+    traits::unused(std::forward<decltype(args)>(args)...);
   });
   ASSERT_TRUE(*called);
 }
@@ -53,7 +53,7 @@ template <typename C> void assert_async_completion(C&& continuable) {
 template <typename C> void assert_async_never_completed(C&& continuable) {
   std::forward<C>(continuable).then([](auto&&... args) {
     // Workaround for our known GCC bug.
-    util::unused(std::forward<decltype(args)>(args)...);
+    traits::unused(std::forward<decltype(args)>(args)...);
 
     FAIL();
   });
@@ -81,13 +81,13 @@ void assert_async_binary_validation(V&& validator, C&& continuable,
 
     auto actual_pack = std::make_tuple(std::forward<decltype(args)>(args)...);
 
-    auto size = util::pack_size_of(util::identity_of(expected_pack));
+    auto size = traits::pack_size_of(traits::identity_of(expected_pack));
 
     static_assert(size.value == std::tuple_size<decltype(actual_pack)>::value,
                   "Async completion handler called with a different count "
                   "of arguments!");
 
-    util::static_for_each_in(
+    traits::static_for_each_in(
         std::make_index_sequence<size.value>{}, [&](auto current) mutable {
           auto expected = std::get<current.value>(std::move(expected_pack));
           auto actual = std::get<current.value>(std::move(actual_pack));
@@ -107,11 +107,11 @@ inline auto asserting_eq_check() {
 }
 
 template <typename C, typename... Args>
-void assert_async_types(C&& continuable, util::identity<Args...> expected) {
+void assert_async_types(C&& continuable, traits::identity<Args...> expected) {
   assert_async_validation(
       std::forward<C>(continuable), [&](auto... actualPack) {
-        auto actual = util::identity<decltype(actualPack)...>{};
-        util::unused(expected, actual,
+        auto actual = traits::identity<decltype(actualPack)...>{};
+        traits::unused(expected, actual,
                      std::forward<decltype(actualPack)>(actualPack)...);
 
         static_assert(
@@ -217,6 +217,6 @@ void assert_async_types(C&& continuable, util::identity<Args...> expected) {
 /// \since version 1.0.0
 #define ASSERT_ASYNC_TYPES(CONTINUABLE, ...)                                   \
   cti::detail::testing::assert_async_types(                                    \
-      CONTINUABLE, cti::detail::util::identity<__VA_ARGS__>{})
+      CONTINUABLE, cti::detail::traits::identity<__VA_ARGS__>{})
 
 #endif // CONTINUABLE_TESTING_HPP_INCLUDED__
