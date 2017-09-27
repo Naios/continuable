@@ -57,7 +57,12 @@ namespace detail {
 ///    base::finalize_continuation(base::continuation<auto> continuation)
 ///     -> void
 namespace base {
+/// A tag which is used to execute the continuation inside the current thread
 struct this_thread_executor_tag {};
+/// A tag which is used to continue with a real result
+struct dispatch_result {};
+/// A tag which is used to continue with an error
+struct dispatch_error {};
 
 /// Returns the signature hint of the given continuable
 template <typename T>
@@ -285,7 +290,7 @@ void invoke_proxy(hints::signature_hint_tag<Args...>,
                   Executor&& executor, NextCallback&& nextCallback) {
 
   // Invoke the continuation with a proxy callback.
-  // The proxy callback is responsible for passing the
+  // The proxy callback is responsible for passing
   // the result to the callback as well as decorating it.
   attorney::invoke_continuation(std::forward<Continuation>(continuation), [
     callback = std::forward<Callback>(callback),
@@ -351,11 +356,11 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
         continuation = std::forward<Continuation>(continuation),
         partial_callable = std::move(partial_callable),
         executor = std::forward<Executor>(executor)
-      ](auto&& nextCallback) mutable {
+      ](auto&& next_callback) mutable {
         invoke_proxy(hint_of(traits::identity_of(continuation)),
                      std::move(continuation), std::move(partial_callable),
                      std::move(executor),
-                     std::forward<decltype(nextCallback)>(nextCallback));
+                     std::forward<decltype(next_callback)>(next_callback));
       },
       next_hint, ownership_);
 }

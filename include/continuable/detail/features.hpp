@@ -30,7 +30,20 @@
 #ifndef CONTINUABLE_DETAIL_FEATURES_HPP_INCLUDED__
 #define CONTINUABLE_DETAIL_FEATURES_HPP_INCLUDED__
 
-#include <continuable/detail/api.hpp>
+// Defines CONTINUABLE_WITH_NO_EXCEPTIONS when exception support is disabled
+#if defined(_MSC_VER)
+#if !defined(_HAS_EXCEPTIONS) || (_HAS_EXCEPTIONS == 0)
+#define CONTINUABLE_WITH_NO_EXCEPTIONS
+#endif
+#elif defined(__clang__)
+#if !(__EXCEPTIONS && __has_feature(cxx_exceptions))
+#define CONTINUABLE_WITH_NO_EXCEPTIONS
+#endif
+#elif defined(__GNUC__)
+#if !__EXCEPTIONS
+#define CONTINUABLE_WITH_NO_EXCEPTIONS
+#endif
+#endif
 
 #undef CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
 #undef CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION

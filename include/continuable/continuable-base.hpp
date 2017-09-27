@@ -225,6 +225,52 @@ public:
         detail::base::wrap_continuation(std::move(continuation).materialize()));
   }
 
+  /// Main method of the continuable_base to catch exceptions and error codes
+  ///
+  /// \param callback The callback which is used to process the current
+  ///        asynchronous error result on arrival.
+  ///        In case the continuable_base is using exceptions, the usage is as
+  ///        shown below:
+  ///
+  /// ```cpp
+  /// http_request("github.com")
+  ///   .then([](std::string github) { })
+  ///   .catching([](std::exception_ptr ptr) {
+  ///     // Handle the error here
+  ///     try {
+  ///       std::rethrow_exception(ptr);
+  ///     } catch (std::exception& e) {
+  ///       e.what(); // Handle the exception
+  ///     }
+  ///   });
+  /// ```
+  ///        In case exceptions are disabled, `std::error_condition` is
+  ///        used as error result instead of `std::exception_ptr`.
+  /// ```cpp
+  /// http_request("github.com")
+  ///   .then([](std::string github) { })
+  ///   .catching([](std::error_condition error) {
+  ///     // Handle the error here
+  ///     // ...
+  ///   });
+  /// ```
+  ///
+  /// \param executor The optional executor which is used to dispatch
+  ///        the callback. See the description in `then` above.
+  ///
+  /// \returns Returns a continuable_base with an asynchronous return type
+  ///          depending on the current result type.
+  ///
+  ///
+  /// \since version 2.0.0
+  template <typename T, typename E = detail::base::this_thread_executor_tag>
+  auto catching(T&& callback,
+                E&& executor = detail::base::this_thread_executor_tag{}) && {
+    /*return detail::base::chain_continuation(std::move(*this).materialize(),
+                                            std::forward<T>(callback),
+                                            std::forward<E>(executor));*/
+  }
+
   /// Invokes both continuable_base objects parallel and calls the
   /// callback with the result of both continuable_base objects.
   ///

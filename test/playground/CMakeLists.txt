@@ -1,6 +1,7 @@
 set(LIB_SOURCES
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-base.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-promise-base.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-testing.hpp)
 set(LIB_SOURCES_DETAIL
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/base.hpp
