@@ -67,19 +67,19 @@ public:
   /// Resolves the continuation with the given values
   template <typename... Args>
   void set_value(Args&&... args) {
-    data_(detail::base::dispatch_result{}, std::forward<Args>(args)...);
+    data_(detail::base::dispatch_result_tag{}, std::forward<Args>(args)...);
   }
 
   /// Resolves the continuation with the given values
   template <typename... Args>
   void operator()(Args&&... args) {
-    data_(detail::base::dispatch_result{}, std::forward<Args>(args)...);
+    data_(detail::base::dispatch_result_tag{}, std::forward<Args>(args)...);
   }
 
   /// Resolves the continuation with the given error variable.
   template <typename Arg>
   void set_error(Arg&& arg) {
-    data_(detail::base::dispatch_error{}, std::forward<Arg>(arg));
+    data_(detail::base::dispatch_error_tag{}, std::forward<Arg>(arg));
   }
 };
 } // end namespace cti
