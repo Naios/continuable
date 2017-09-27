@@ -250,8 +250,7 @@ public:
   /// http_request("github.com")
   ///   .then([](std::string github) { })
   ///   .catching([](std::error_condition error) {
-  ///     // Handle the error here
-  ///     // ...
+  ///     error.message(); // Handle the error here
   ///   });
   /// ```
   ///

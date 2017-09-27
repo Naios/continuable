@@ -34,6 +34,7 @@
 #include "function2/function2.hpp"
 
 #include <continuable/continuable-base.hpp>
+#include <continuable/continuable-promise-base.hpp>
 
 namespace cti {
 // clang-format off
