@@ -67,13 +67,13 @@ public:
   /// Resolves the continuation with the given values
   template <typename... Args>
   void set_value(Args&&... args) {
-    data_(detail::base::dispatch_result_tag{}, std::forward<Args>(args)...);
+    data_(std::forward<Args>(args)...);
   }
 
   /// Resolves the continuation with the given values
   template <typename... Args>
   void operator()(Args&&... args) {
-    data_(detail::base::dispatch_result_tag{}, std::forward<Args>(args)...);
+    data_(std::forward<Args>(args)...);
   }
 
   /// Resolves the continuation with the given error variable.
