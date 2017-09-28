@@ -217,7 +217,7 @@ constexpr auto invoker_of(traits::identity<void>) {
 
 /// Returns a sequenced invoker which is able to invoke
 /// objects where std::get is applicable.
-constexpr auto sequenced_unpack_invoker() {
+inline auto sequenced_unpack_invoker() {
   return [](auto&& callback, auto&& next_callback, auto&&... args) {
     auto result = std::forward<decltype(callback)>(callback)(
         std::forward<decltype(args)>(args)...);
@@ -286,9 +286,14 @@ void packed_dispatch(Executor&& executor, Invoker&& invoker,
   std::forward<Executor>(executor)(std::move(work));
 }
 
-template <typename Callback, typename Executor, typename NextCallback,
-          typename... Args>
-struct result_proxy {
+template <typename Hint, typename Callback, typename Executor,
+          typename NextCallback>
+struct result_proxy;
+
+template <typename... Args, typename Callback, typename Executor,
+          typename NextCallback>
+struct result_proxy<hints::signature_hint_tag<Args...>, Callback, Executor,
+                    NextCallback> {
   Callback callback_;
   Executor executor_;
   NextCallback next_callback_;
@@ -315,33 +320,6 @@ struct result_proxy {
     std::move(next_callback_)(tag, std::move(error));
   }
 };
-
-/// Invokes a continuation with a given callback.
-/// Passes the next callback to the resulting continuable or
-/// invokes the next callback directly if possible.
-///
-/// For example given:
-/// - Continuation: continuation<[](auto&& callback) { callback("hi"); }>
-/// - Callback: [](std::string) { }
-/// - NextCallback: []() { }
-///
-template <typename... Args, typename Continuation, typename Callback,
-          typename Executor, typename NextCallback>
-void invoke_proxy(hints::signature_hint_tag<Args...>,
-                  Continuation&& continuation, Callback&& callback,
-                  Executor&& executor, NextCallback&& next_callback) {
-
-  result_proxy<std::decay_t<Callback>, std::decay_t<Executor>,
-               std::decay_t<NextCallback>, Args...>
-      proxy{std::forward<Callback>(callback), std::forward<Executor>(executor),
-            std::forward<NextCallback>(next_callback)};
-
-  // Invoke the continuation with a proxy callback.
-  // The proxy callback is responsible for passing
-  // the result to the callback as well as decorating it.
-  attorney::invoke_continuation(std::forward<Continuation>(continuation),
-                                std::move(proxy));
-}
 
 /// Returns the next hint when the callback is invoked with the given hint
 template <typename T, typename... Args>
@@ -387,10 +365,27 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
         partial_callable = std::move(partial_callable),
         executor = std::forward<Executor>(executor)
       ](auto&& next_callback) mutable {
-        invoke_proxy(hint_of(traits::identity_of(continuation)),
-                     std::move(continuation), std::move(partial_callable),
-                     std::move(executor),
-                     std::forward<decltype(next_callback)>(next_callback));
+
+        // Invokes a continuation with a given callback.
+        // Passes the next callback to the resulting continuable or
+        // invokes the next callback directly if possible.
+        //
+        // For example given:
+        // - Continuation: continuation<[](auto&& callback) { callback("hi"); }>
+        // - Callback: [](std::string) { }
+        // - NextCallback: []() { }
+        using Hint = decltype(hint_of(traits::identity_of(continuation)));
+        result_proxy<Hint, std::decay_t<decltype(partial_callable)>,
+                     std::decay_t<decltype(executor)>,
+                     std::decay_t<decltype(next_callback)>>
+            proxy{std::move(partial_callable), std::move(executor),
+                  std::forward<decltype(next_callback)>(next_callback)};
+
+        // Invoke the continuation with a proxy callback.
+        // The proxy callback is responsible for passing
+        // the result to the callback as well as decorating it.
+        attorney::invoke_continuation(std::forward<Continuation>(continuation),
+                                      std::move(proxy));
       },
       next_hint, ownership_);
 }
