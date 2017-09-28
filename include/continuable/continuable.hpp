@@ -89,6 +89,10 @@ template <typename... Args>
 using unique_callback = typename detail::unique_trait_of<
   Args...
 >::callback;
+
+// TODO channel
+// TODO sink
+
 // clang-format on
 } // end namespace cti
 

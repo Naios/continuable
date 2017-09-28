@@ -20,7 +20,16 @@
   SOFTWARE.
 **/
 
+#include <string>
+
 #include <continuable/continuable.hpp>
+
+cti::continuable<std::string> http_request(std::string url) {
+  return [](cti::promise<std::string> promise) {
+    // ...
+    promise.set_value("");
+  };
+}
 
 int main(int, char**) {
   return 0;
