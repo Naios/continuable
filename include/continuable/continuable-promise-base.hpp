@@ -36,10 +36,13 @@
 
 #include <continuable/detail/api.hpp>
 #include <continuable/detail/base.hpp>
+#include <continuable/detail/hints.hpp>
 
 namespace cti {
-template <typename Data>
-class promise_base {
+template <typename Hint, typename Data>
+class promise_base;
+template <typename... Args, typename Data>
+class promise_base<detail::hints::signature_hint_tag<Args...>, Data> {
   /// \cond false
   // The callback type
   Data data_;
@@ -65,21 +68,18 @@ public:
   /// \endcond
 
   /// Resolves the continuation with the given values
-  template <typename... Args>
-  void set_value(Args&&... args) {
-    data_(std::forward<Args>(args)...);
+  void set_value(Args... args) {
+    data_(std::move(args)...);
   }
 
   /// Resolves the continuation with the given values
-  template <typename... Args>
-  void operator()(Args&&... args) {
-    data_(std::forward<Args>(args)...);
+  void operator()(Args... args) {
+    data_(std::move(args)...);
   }
 
   /// Resolves the continuation with the given error variable.
-  template <typename Arg>
-  void set_error(Arg&& arg) {
-    data_(detail::base::dispatch_error_tag{}, std::forward<Arg>(arg));
+  void set_error(detail::base::error_type error) {
+    data_(detail::base::dispatch_error_tag{}, std::move(error));
   }
 };
 } // end namespace cti
