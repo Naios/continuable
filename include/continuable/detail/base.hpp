@@ -65,8 +65,6 @@ namespace detail {
 namespace base {
 /// A tag which is used to execute the continuation inside the current thread
 struct this_thread_executor_tag {};
-/// A tag which is used to continue with a real result
-struct dispatch_result_tag {};
 /// A tag which is used to continue with an error
 struct dispatch_error_tag {};
 
@@ -200,8 +198,7 @@ constexpr auto invoker_of(traits::identity<T>) {
         auto result = std::forward<decltype(callback)>(callback)(
             std::forward<decltype(args)>(args)...);
 
-        std::forward<decltype(next_callback)>(next_callback)(
-            dispatch_result_tag{}, std::move(result));
+        std::forward<decltype(next_callback)>(next_callback)(std::move(result));
       },
       traits::identity_of<T>());
 }
@@ -213,8 +210,7 @@ constexpr auto invoker_of(traits::identity<void>) {
         std::forward<decltype(callback)>(callback)(
             std::forward<decltype(args)>(args)...);
 
-        std::forward<decltype(next_callback)>(next_callback)(
-            dispatch_result_tag{});
+        std::forward<decltype(next_callback)>(next_callback)();
       },
       traits::identity<>{});
 }
@@ -230,7 +226,7 @@ constexpr auto sequenced_unpack_invoker() {
       /// TODO Add inplace resolution here
 
       std::forward<decltype(next_callback)>(next_callback)(
-          dispatch_result_tag{}, std::forward<decltype(types)>(types)...);
+          std::forward<decltype(types)>(types)...);
     });
   };
 }
@@ -298,7 +294,7 @@ struct result_proxy {
   NextCallback next_callback_;
 
   /// The operator which is called when the result was provided
-  void operator()(dispatch_result_tag, Args... args) {
+  void operator()(Args... args) {
     // In order to retrieve the correct decorator we must know what the
     // result type is.
     auto result = traits::identity_of<decltype(
@@ -315,7 +311,8 @@ struct result_proxy {
 
   /// The operator which is called when an error occurred
   void operator()(dispatch_error_tag tag, error_type error) {
-    // TODO forward the error
+    // Forward the error to the next callback
+    std::move(next_callback_)(tag, std::move(error));
   }
 };
 
@@ -380,12 +377,12 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   auto hint = hint_of(traits::identity_of(continuation));
   auto next_hint = next_hint_of(traits::identity_of(partial_callable), hint);
 
+  // TODO consume only the data here so the freeze isn't needed
   auto ownership_ = attorney::ownership_of(continuation);
   continuation.freeze();
 
   return attorney::create(
       [
-        // TODO consume only the data here
         continuation = std::forward<Continuation>(continuation),
         partial_callable = std::move(partial_callable),
         executor = std::forward<Executor>(executor)
