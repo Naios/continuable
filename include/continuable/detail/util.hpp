@@ -43,6 +43,18 @@ namespace cti {
 namespace detail {
 /// Utility namespace which provides useful meta-programming support
 namespace util {
+/// Helper to trick compilers about that a parameter pack is used
+template <typename... T>
+void unused(T&&... args) {
+  auto use = [](auto&& type) mutable {
+    (void)type;
+    return 0;
+  };
+  auto deduce = {0, use(std::forward<decltype(args)>(args))...};
+  (void)deduce;
+  (void)use;
+}
+
 namespace detail {
 template <typename T, typename Args, typename = traits::void_t<>>
 struct is_invokable_impl : std::common_type<std::false_type> {};

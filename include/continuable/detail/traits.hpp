@@ -159,18 +159,6 @@ constexpr auto get(identity<T...>) noexcept {
   return identity_of<at_t<I, T...>>();
 }
 
-/// Helper to trick compilers about that a parameter pack is used
-template <typename... T>
-void unused(T&&... args) {
-  auto use = [](auto&& type) mutable {
-    (void)type;
-    return 0;
-  };
-  auto deduce = {0, use(std::forward<decltype(args)>(args))...};
-  (void)deduce;
-  (void)use;
-}
-
 namespace detail {
 // Equivalent to C++17's std::void_t which targets a bug in GCC,
 // that prevents correct SFINAE behavior.

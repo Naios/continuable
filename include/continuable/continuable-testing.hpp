@@ -45,7 +45,7 @@ template <typename C> void assert_async_completion(C&& continuable) {
     *called = true;
 
     // Workaround for our known GCC bug.
-    traits::unused(std::forward<decltype(args)>(args)...);
+    util::unused(std::forward<decltype(args)>(args)...);
   });
   ASSERT_TRUE(*called);
 }
@@ -53,7 +53,7 @@ template <typename C> void assert_async_completion(C&& continuable) {
 template <typename C> void assert_async_never_completed(C&& continuable) {
   std::forward<C>(continuable).then([](auto&&... args) {
     // Workaround for our known GCC bug.
-    traits::unused(std::forward<decltype(args)>(args)...);
+    util::unused(std::forward<decltype(args)>(args)...);
 
     FAIL();
   });
@@ -111,7 +111,7 @@ void assert_async_types(C&& continuable, traits::identity<Args...> expected) {
   assert_async_validation(
       std::forward<C>(continuable), [&](auto... actualPack) {
         auto actual = traits::identity<decltype(actualPack)...>{};
-        traits::unused(expected, actual,
+        util::unused(expected, actual,
                      std::forward<decltype(actualPack)>(actualPack)...);
 
         static_assert(

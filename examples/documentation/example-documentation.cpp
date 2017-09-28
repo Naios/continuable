@@ -20,7 +20,8 @@
   SOFTWARE.
 **/
 
-#include "continuable/continuable.hpp"
+#include <continuable/continuable.hpp>
+#include <continuable/detail/util.hpp>
 
 using cti::detail::util::unused;
 
@@ -40,7 +41,9 @@ void creating_continuables() {
 }
 
 struct ResultSet {};
-template <typename... Args> void mysql_handle_async_query(Args&&...) {}
+template <typename... Args>
+void mysql_handle_async_query(Args&&...) {
+}
 
 auto mysql_query(std::string query) {
   return cti::make_continuable<ResultSet>([query = std::move(query)](
