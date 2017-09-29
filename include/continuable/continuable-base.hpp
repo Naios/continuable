@@ -596,17 +596,6 @@ auto when_all(Continuables&&... continuables) {
                               std::forward<Continuables>(continuables)...);
 }
 
-/// \copydoc when_all
-///
-/// \since version 1.0.0
-///
-/// \deprecated Use the `when_all` function instead.
-template <typename... Continuables>
-[[deprecated("Replaced by cti::when_all")]] auto
-all_of(Continuables&&... continuables) {
-  return when_all(std::forward<Continuables>(continuables)...);
-}
-
 /// Connects the given continuables with an *any* logic.
 ///
 /// \param continuables The continuable_base objects to connect.
@@ -623,17 +612,6 @@ auto when_any(Continuables&&... continuables) {
                               std::forward<Continuables>(continuables)...);
 }
 
-/// \copydoc when_any
-///
-/// \since version 1.0.0
-///
-/// \deprecated Use the `when_any` function instead.
-template <typename... Continuables>
-[[deprecated("Replaced by cti::when_any")]] auto
-any_of(Continuables&&... continuables) {
-  return when_any(std::forward<Continuables>(continuables)...);
-}
-
 /// Connects the given continuables with a *seq* logic.
 ///
 /// \param continuables The continuable_base objects to connect.
@@ -648,17 +626,6 @@ auto when_seq(Continuables&&... continuables) {
                 "Requires at least 2 continuables!");
   return detail::traits::fold(detail::traits::seq_folding(),
                               std::forward<Continuables>(continuables)...);
-}
-
-/// \copydoc when_seq
-///
-/// \since version 1.0.0
-///
-/// \deprecated Use the `when_seq` function instead.
-template <typename... Continuables>
-[[deprecated("Replaced by cti::when_seq")]] auto
-seq_of(Continuables&&... continuables) {
-  return when_seq(std::forward<Continuables>(continuables)...);
 }
 
 /// Trait to retrieve a continuable_base type with a given type-erasure backend.
