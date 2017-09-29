@@ -165,7 +165,7 @@ namespace detail {
 // See http://stackoverflow.com/questions/35753920 for details.
 template <typename...>
 struct deduce_to_void : std::common_type<void> {};
-} // end namespace detail
+} // namespace detail
 
 /// C++17 like void_t type
 template <typename... T>
@@ -204,7 +204,7 @@ constexpr auto static_if_impl(std::false_type, Type&& type,
                               FalseCallback&& falseCallback) {
   return std::forward<FalseCallback>(falseCallback)(std::forward<Type>(type));
 }
-} // end namespace detail
+} // namespace detail
 
 /// Returns the pack size of the given type
 template <typename... Args>

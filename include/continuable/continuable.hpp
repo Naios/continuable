@@ -52,7 +52,7 @@ using unique_trait_of = continuable_trait<
   fu2::unique_function,
   Args...
 >;
-} // end namespace detail
+} // namespace detail
 
 /// Defines a copyable continuation type which uses the
 /// function2 backend for type erasure.
@@ -94,6 +94,6 @@ using unique_callback = typename detail::unique_trait_of<
 // TODO sink
 
 // clang-format on
-} // end namespace cti
+} // namespace cti
 
 #endif // CONTINUABLE_HPP_INCLUDED__

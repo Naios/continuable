@@ -243,7 +243,7 @@ template <typename... Args>
 constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
   return make_invoker(sequenced_unpack_invoker(), traits::identity<Args...>{});
 }
-} // end namespace decoration
+} // namespace decoration
 
 /// Invoke the callback immediately
 template <typename Invoker, typename Callback, typename NextCallback,
@@ -390,6 +390,79 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
       next_hint, ownership_);
 }
 
+template <typename Hint, typename Callback, typename Executor,
+          typename NextCallback>
+struct error_proxy;
+
+template <typename... Args, typename Callback, typename Executor,
+          typename NextCallback>
+struct error_proxy<hints::signature_hint_tag<Args...>, Callback, Executor,
+                   NextCallback> {
+  Callback callback_;
+  Executor executor_;
+  NextCallback next_callback_;
+
+  /// The operator which is called when the result was provided
+  void operator()(Args... args) {
+    // Forward the arguments to the next callback
+    std::move(next_callback_)(std::move(args)...);
+  }
+
+  /// The operator which is called when an error occurred
+  void operator()(dispatch_error_tag /*tag*/, error_type error) {
+    // Forwárd the error to the error handler
+    // TODO
+  }
+};
+
+/// Chains an error handler together with a continuation and
+/// returns a continuation. The current future result of the continuation
+//// stays unchanged.
+///
+template <typename Continuation, typename Callback, typename Executor>
+auto chain_error_handler(Continuation&& continuation, Callback&& callback,
+                         Executor&& executor) {
+  static_assert(is_continuation<std::decay_t<Continuation>>{},
+                "Expected a continuation!");
+
+  // The current hint will also be the next one
+  auto hint = hint_of(traits::identity_of(continuation));
+
+  // TODO consume only the data here so the freeze isn't needed
+  auto ownership_ = attorney::ownership_of(continuation);
+  continuation.freeze();
+
+  return attorney::create(
+      [
+        continuation = std::forward<Continuation>(continuation),
+        callback = std::forward<Callback>(callback),
+        executor = std::forward<Executor>(executor)
+      ](auto&& next_callback) mutable {
+          // Invokes a continuation with a given callback.
+          // Passes the next callback to the resulting continuable or
+          // invokes the next callback directly if possible.
+          //
+          // For example given:
+          // - Continuation: continuation<[](auto&& callback) { callback("hi");
+          // }>
+          // - Callback: [](std::string) { }
+          // - NextCallback: []() { }
+          /*using Hint = decltype(hint_of(traits::identity_of(continuation)));
+          result_proxy<Hint, std::decay_t<decltype(partial_callable)>,
+                       std::decay_t<decltype(executor)>,
+                       std::decay_t<decltype(next_callback)>>
+              proxy{std::move(partial_callable), std::move(executor),
+                    std::forward<decltype(next_callback)>(next_callback)};*/
+
+          // Invoke the continuation with a proxy callback.
+          // The proxy callback is responsible for passing
+          // the result to the callback as well as decorating it.
+          /*attorney::invoke_continuation(std::forward<Continuation>(continuation),
+                                        std::move(proxy));*/
+      },
+      hint, ownership_);
+}
+
 /// Workaround for GCC bug:
 /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095
 struct empty_callback {
@@ -431,8 +504,7 @@ auto wrap_continuation(Continuation&& continuation) {
   return supplier_callback<std::decay_t<Continuation>>(
       std::forward<Continuation>(continuation));
 }
-} // end namespace base
-
+} // namespace base
 } // namespace detail
 } // namespace cti
 

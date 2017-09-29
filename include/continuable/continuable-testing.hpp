@@ -120,9 +120,9 @@ void assert_async_types(C&& continuable, traits::identity<Args...> expected) {
             "The called arguments don't match with the expected ones!");
       });
 }
-} // end namespace testing
-} // end namespace detail
-} // end namespace cti
+} // namespace testing
+} // namespace detail
+} // namespace cti
 
 /// Asserts that the final callback of the given continuable was called
 /// with any result.

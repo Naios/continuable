@@ -64,7 +64,7 @@ struct is_invokable_impl<
     T, std::tuple<Args...>,
     traits::void_t<decltype(std::declval<T>()(std::declval<Args>()...))>>
     : std::common_type<std::true_type> {};
-} // end namespace detail
+} // namespace detail
 
 /// Deduces to a std::true_type if the given type is callable with the arguments
 /// inside the given tuple.
@@ -148,7 +148,7 @@ auto partial_invoke_impl_shortcut(std::false_type failed, T&& callable,
       failed, std::forward<T>(callable),
       std::forward_as_tuple(std::forward<Args>(args)...));
 }
-} // end namespace detail
+} // namespace detail
 
 /// Partially invokes the given callable with the given arguments.
 ///

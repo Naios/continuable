@@ -82,6 +82,6 @@ public:
     data_(detail::base::dispatch_error_tag{}, std::move(error));
   }
 };
-} // end namespace cti
+} // namespace cti
 
 #endif // CONTINUABLE_PROMISE_BASE_HPP_INCLUDED__

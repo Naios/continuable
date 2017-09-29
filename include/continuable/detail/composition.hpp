@@ -70,7 +70,7 @@ template <typename... HintArgs>
 constexpr auto make_hint_of(traits::identity<HintArgs...> args) noexcept {
   return args; // Identity is equal to signature_hint_tag
 }
-} // end namespace detail
+} // namespace detail
 
 /// Extracts the signature hint of a given continuation and it's optional
 /// present hint arguments.
@@ -101,7 +101,7 @@ constexpr auto extract(traits::identity<T> /*type*/,
                              return detail::make_hint_of(hint);
                            });
 }
-} // end namespace annotating
+} // namespace annotating
 
 namespace detail {
 template <std::size_t Pos, typename T>
@@ -198,7 +198,7 @@ private:
     std::call_once(flag_, std::move(callback_), std::forward<Args>(args)...);
   }
 };
-} // end namespace detail
+} // namespace detail
 
 /// Adds the given continuation tuple to the left composition
 template <typename... LeftArgs, typename... RightArgs>

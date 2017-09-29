@@ -687,6 +687,6 @@ struct continuable_trait {
       continuable_base<continuation,
                        detail::hints::signature_hint_tag<Args...>>;
 };
-} // end namespace cti
+} // namespace cti
 
 #endif // CONTINUABLE_BASE_HPP_INCLUDED__
