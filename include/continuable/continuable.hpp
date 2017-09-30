@@ -31,10 +31,10 @@
 #ifndef CONTINUABLE_HPP_INCLUDED__
 #define CONTINUABLE_HPP_INCLUDED__
 
-#include "function2/function2.hpp"
+#include <function2/function2.hpp>
 
-#include <continuable/continuable-base.hpp>
-#include <continuable/continuable-promise-base.hpp>
+#include <continuable/detail/api.hpp>
+#include <continuable/continuable-trait.hpp>
 
 namespace cti {
 // clang-format off
@@ -67,19 +67,20 @@ using continuable = typename detail::trait_of<
 /// function2 backend for the continuable type erasure.
 ///
 /// Usable like: `callback<int, float>`
-template <typename... Args>
-using callback = typename detail::trait_of<
-  Args...
->::callback;
+// TODO Decide whether promises are copyable
+// template <typename... Args>
+// using promise = typename detail::trait_of<
+//   Args...
+// >::promise;
 
-/// Defines a non-copyable continuation type which uses the
+/// Defines a non-copyable promise type which using the
 /// function2 backend for type erasure.
 ///
-/// Usable like: `unique_continuable<int, float>`
+/// Usable like: `promise<int, float>`
 template <typename... Args>
-using unique_continuable = typename detail::unique_trait_of<
+using promise = typename detail::unique_trait_of<
   Args...
->::continuable;
+>::promise;
 
 /// Defines a non-copyable callback type which uses the
 /// function2 backend for the continuable type erasure.

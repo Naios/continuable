@@ -42,6 +42,7 @@
 #include <continuable/detail/composition.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/transforms.hpp>
+#include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
 
 namespace cti {
@@ -192,9 +193,9 @@ public:
   /// ```
   ///
   /// \since version 1.0.0
-  template <typename T, typename E = detail::base::this_thread_executor_tag>
+  template <typename T, typename E = detail::types::this_thread_executor_tag>
   auto then(T&& callback,
-            E&& executor = detail::base::this_thread_executor_tag{}) && {
+            E&& executor = detail::types::this_thread_executor_tag{}) && {
     return detail::base::chain_continuation(std::move(*this).materialize(),
                                             std::forward<T>(callback),
                                             std::forward<E>(executor));
@@ -262,12 +263,12 @@ public:
   ///
   ///
   /// \since version 2.0.0
-  template <typename T, typename E = detail::base::this_thread_executor_tag>
+  template <typename T, typename E = detail::types::this_thread_executor_tag>
   auto catching(T&& callback,
-                E&& executor = detail::base::this_thread_executor_tag{}) && {
-    /*return detail::base::chain_continuation(std::move(*this).materialize(),
-                                            std::forward<T>(callback),
-                                            std::forward<E>(executor));*/
+                E&& executor = detail::types::this_thread_executor_tag{}) && {
+    return detail::base::chain_error_handler(std::move(*this).materialize(),
+                                             std::forward<T>(callback),
+                                             std::forward<E>(executor));
   }
 
   /// Invokes both continuable_base objects parallel and calls the
@@ -627,33 +628,6 @@ auto when_seq(Continuables&&... continuables) {
   return detail::traits::fold(detail::traits::seq_folding(),
                               std::forward<Continuables>(continuables)...);
 }
-
-/// Trait to retrieve a continuable_base type with a given type-erasure backend.
-///
-/// Every object may me used as type-erasure backend as long as the
-/// requirements of a `std::function` like wrapper are satisfied.
-///
-/// \tparam CallbackWrapper The type which is used to erase the callback.
-///
-/// \tparam ContinuationWrapper The type which is used to erase the
-///         continuation data.
-///
-/// \tparam Args The current signature of the continuable.
-template <template <typename> class CallbackWrapper,
-          template <typename> class ContinuationWrapper, typename... Args>
-struct continuable_trait {
-  /// The callback type which is passed to continuations
-  using callback = CallbackWrapper<void(Args...)>;
-
-  /// The continuation type which is used to erase the internal data.
-  using continuation =
-      ContinuationWrapper<void(CallbackWrapper<void(Args...)>)>;
-
-  /// The continuable type for the given parameters.
-  using continuable =
-      continuable_base<continuation,
-                       detail::hints::signature_hint_tag<Args...>>;
-};
 } // namespace cti
 
 #endif // CONTINUABLE_BASE_HPP_INCLUDED__

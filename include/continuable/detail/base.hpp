@@ -35,15 +35,10 @@
 #include <type_traits>
 #include <utility>
 
-#ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
-#include <exception>
-#else // CONTINUABLE_WITH_NO_EXCEPTIONS
-#include <error>
-#endif // CONTINUABLE_WITH_NO_EXCEPTIONS
-
 #include <continuable/detail/api.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>
+#include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
 
 namespace cti {
@@ -63,19 +58,6 @@ namespace detail {
 ///    base::finalize_continuation(base::continuation<auto> continuation)
 ///     -> void
 namespace base {
-/// A tag which is used to execute the continuation inside the current thread
-struct this_thread_executor_tag {};
-/// A tag which is used to continue with an error
-struct dispatch_error_tag {};
-
-#ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
-/// Represents the error type when exceptions are enabled
-using error_type = std::exception_ptr;
-#else  // CONTINUABLE_WITH_NO_EXCEPTIONS
-/// Represents the error type when exceptions are disabled
-using error_type = std::error_category;
-#endif // CONTINUABLE_WITH_NO_EXCEPTIONS
-
 /// Returns the signature hint of the given continuable
 template <typename T>
 constexpr auto hint_of(traits::identity<T>) {
@@ -204,7 +186,7 @@ constexpr auto invoker_of(traits::identity<T>) {
 }
 
 /// - void -> next_callback()
-constexpr auto invoker_of(traits::identity<void>) {
+inline auto invoker_of(traits::identity<void>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         std::forward<decltype(callback)>(callback)(
@@ -248,7 +230,7 @@ constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
 /// Invoke the callback immediately
 template <typename Invoker, typename Callback, typename NextCallback,
           typename... Args>
-void packed_dispatch(this_thread_executor_tag, Invoker&& invoker,
+void packed_dispatch(types::this_thread_executor_tag, Invoker&& invoker,
                      Callback&& callback, NextCallback&& next_callback,
                      Args&&... args) {
 
@@ -276,7 +258,7 @@ void packed_dispatch(Executor&& executor, Invoker&& invoker,
     traits::unpack(std::move(args), [&](auto&&... captured_args) {
       // Just use the packed dispatch method which dispatches the work on
       // the current thread.
-      packed_dispatch(this_thread_executor_tag{}, std::move(invoker),
+      packed_dispatch(types::this_thread_executor_tag{}, std::move(invoker),
                       std::move(callback), std::move(next_callback),
                       std::forward<decltype(captured_args)>(captured_args)...);
     });
@@ -286,14 +268,15 @@ void packed_dispatch(Executor&& executor, Invoker&& invoker,
   std::forward<Executor>(executor)(std::move(work));
 }
 
+namespace callbacks {
 template <typename Hint, typename Callback, typename Executor,
           typename NextCallback>
-struct result_proxy;
+struct result_callback;
 
 template <typename... Args, typename Callback, typename Executor,
           typename NextCallback>
-struct result_proxy<hints::signature_hint_tag<Args...>, Callback, Executor,
-                    NextCallback> {
+struct result_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
+                       NextCallback> {
   Callback callback_;
   Executor executor_;
   NextCallback next_callback_;
@@ -315,11 +298,76 @@ struct result_proxy<hints::signature_hint_tag<Args...>, Callback, Executor,
   }
 
   /// The operator which is called when an error occurred
-  void operator()(dispatch_error_tag tag, error_type error) {
+  void operator()(types::dispatch_error_tag tag, types::error_type error) {
     // Forward the error to the next callback
     std::move(next_callback_)(tag, std::move(error));
   }
+
+  /// Resolves the continuation with the given values
+  void set_value(Args... args) {
+    std::move(next_callback_)(std::move(args)...);
+  }
+
+  /// Resolves the continuation with the given error variable.
+  void set_error(types::error_type error) {
+    std::move(next_callback_)(types::dispatch_error_tag{}, std::move(error));
+  }
 };
+
+template <typename Hint, typename Callback, typename Executor,
+          typename NextCallback>
+struct error_callback;
+
+template <typename... Args, typename Callback, typename Executor,
+          typename NextCallback>
+struct error_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
+                      NextCallback> {
+  Callback callback_;
+  Executor executor_;
+  NextCallback next_callback_;
+
+  /// The operator which is called when the result was provided
+  void operator()(Args... args) {
+    // Forward the arguments to the next callback
+    std::move(next_callback_)(std::move(args)...);
+  }
+
+  /// The operator which is called when an error occurred
+  void operator()(types::dispatch_error_tag /*tag*/, types::error_type error) {
+    auto invoker = [] {};
+
+    // Forward the error to the error handler
+    packed_dispatch(std::move(executor_), std::move(invoker),
+                    std::move(callback_), std::move(next_callback_),
+                    std::move(error));
+  }
+
+  /// Resolves the continuation with the given values
+  void set_value(Args... args) {
+    std::move(next_callback_)(std::move(args)...);
+  }
+
+  /// Resolves the continuation with the given error variable.
+  void set_error(types::error_type error) {
+    std::move(next_callback_)(types::dispatch_error_tag{}, std::move(error));
+  }
+};
+
+/// Workaround for GCC bug:
+/// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095
+struct empty_callback {
+  template <typename... Args>
+  void operator()(Args... /*error*/) const {
+  }
+
+  template <typename... Args>
+  void set_value(Args... /*error*/) {
+  }
+
+  void set_error(types::error_type /*error*/) {
+  }
+};
+} // namespace callbacks
 
 /// Returns the next hint when the callback is invoked with the given hint
 template <typename T, typename... Args>
@@ -375,9 +423,10 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
         // - Callback: [](std::string) { }
         // - NextCallback: []() { }
         using Hint = decltype(hint_of(traits::identity_of(continuation)));
-        result_proxy<Hint, std::decay_t<decltype(partial_callable)>,
-                     std::decay_t<decltype(executor)>,
-                     std::decay_t<decltype(next_callback)>>
+        callbacks::result_callback<Hint,
+                                   std::decay_t<decltype(partial_callable)>,
+                                   std::decay_t<decltype(executor)>,
+                                   std::decay_t<decltype(next_callback)>>
             proxy{std::move(partial_callable), std::move(executor),
                   std::forward<decltype(next_callback)>(next_callback)};
 
@@ -389,31 +438,6 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
       },
       next_hint, ownership_);
 }
-
-template <typename Hint, typename Callback, typename Executor,
-          typename NextCallback>
-struct error_proxy;
-
-template <typename... Args, typename Callback, typename Executor,
-          typename NextCallback>
-struct error_proxy<hints::signature_hint_tag<Args...>, Callback, Executor,
-                   NextCallback> {
-  Callback callback_;
-  Executor executor_;
-  NextCallback next_callback_;
-
-  /// The operator which is called when the result was provided
-  void operator()(Args... args) {
-    // Forward the arguments to the next callback
-    std::move(next_callback_)(std::move(args)...);
-  }
-
-  /// The operator which is called when an error occurred
-  void operator()(dispatch_error_tag /*tag*/, error_type error) {
-    // Forwárd the error to the error handler
-    // TODO
-  }
-};
 
 /// Chains an error handler together with a continuation and
 /// returns a continuation. The current future result of the continuation
@@ -437,7 +461,7 @@ auto chain_error_handler(Continuation&& continuation, Callback&& callback,
         continuation = std::forward<Continuation>(continuation),
         callback = std::forward<Callback>(callback),
         executor = std::forward<Executor>(executor)
-      ](auto&& next_callback) mutable {
+      ](auto&& /*next_callback*/) mutable {
           // Invokes a continuation with a given callback.
           // Passes the next callback to the resulting continuable or
           // invokes the next callback directly if possible.
@@ -448,7 +472,8 @@ auto chain_error_handler(Continuation&& continuation, Callback&& callback,
           // - Callback: [](std::string) { }
           // - NextCallback: []() { }
           /*using Hint = decltype(hint_of(traits::identity_of(continuation)));
-          result_proxy<Hint, std::decay_t<decltype(partial_callable)>,
+          callbacks::result_callback<Hint,
+          std::decay_t<decltype(partial_callable)>,
                        std::decay_t<decltype(executor)>,
                        std::decay_t<decltype(next_callback)>>
               proxy{std::move(partial_callable), std::move(executor),
@@ -463,14 +488,6 @@ auto chain_error_handler(Continuation&& continuation, Callback&& callback,
       hint, ownership_);
 }
 
-/// Workaround for GCC bug:
-/// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095
-struct empty_callback {
-  template <typename... Args>
-  void operator()(Args...) const {
-  }
-};
-
 /// Final invokes the given continuation chain:
 ///
 /// For example given:
@@ -478,7 +495,7 @@ struct empty_callback {
 template <typename Continuation>
 void finalize_continuation(Continuation&& continuation) {
   attorney::invoke_continuation(std::forward<Continuation>(continuation),
-                                empty_callback{});
+                                callbacks::empty_callback{});
 }
 
 /// Workaround for GCC bug:

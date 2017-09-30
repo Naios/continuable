@@ -26,11 +26,35 @@
 
 cti::continuable<std::string> http_request(std::string url) {
   return [](cti::promise<std::string> promise) {
-    // ...
+    promise.set_error(nullptr);
     promise.set_value("");
+    promise("");
   };
 }
 
+auto http_request2(std::string url) {
+  return cti::make_continuable<std::string>([](auto&& promise) {
+    promise.set_error(nullptr);
+    promise.set_value("");
+    promise("");
+  });
+}
+
 int main(int, char**) {
+  http_request("github.com")
+      .then([](std::string /*response*/) {
+        // ...
+      })
+      .catching([](std::exception_ptr /*e*/) {
+        // ...
+      });
+
+  http_request2("github.com")
+      .then([](std::string /*response*/) {
+        // ...
+      })
+      .catching([](std::exception_ptr /*e*/) {
+        // ...
+      });
   return 0;
 }

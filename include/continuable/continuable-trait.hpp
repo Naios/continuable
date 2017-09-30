@@ -1,0 +1,76 @@
+
+/**
+
+                        /~` _  _ _|_. _     _ |_ | _
+                        \_,(_)| | | || ||_|(_||_)|(/_
+
+                    https://github.com/Naios/continuable
+                                   v2.0.0
+
+  Copyright(c) 2015 - 2017 Denis Blank <denis.blank at outlook dot com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files(the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions :
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+**/
+
+#ifndef CONTINUABLE_TRAIT_HPP_INCLUDED__
+#define CONTINUABLE_TRAIT_HPP_INCLUDED__
+
+#include <continuable/continuable-base.hpp>
+#include <continuable/continuable-promise-base.hpp>
+#include <continuable/detail/api.hpp>
+#include <continuable/detail/hints.hpp>
+#include <continuable/detail/types.hpp>
+
+namespace cti {
+/// Trait to retrieve a continuable_base type with a given type-erasure backend.
+///
+/// Every object may me used as type-erasure backend as long as the
+/// requirements of a `std::function` like wrapper are satisfied.
+///
+/// \tparam CallbackWrapper The type which is used to erase the callback.
+///
+/// \tparam ContinuationWrapper The type which is used to erase the
+///         continuation data.
+///
+/// \tparam Args The current signature of the continuable.
+template <template <typename...> class CallbackWrapper,
+          template <typename...> class ContinuationWrapper, typename... Args>
+struct continuable_trait {
+  /// The callback type which is passed to continuations
+  using callback =
+      CallbackWrapper<void(Args...), void(detail::types::dispatch_error_tag,
+                                          detail::types::error_type)>;
+
+  /// The continuation type which is used to erase the internal data.
+  using continuation = ContinuationWrapper<void(
+      CallbackWrapper<void(Args...), void(detail::types::dispatch_error_tag,
+                                          detail::types::error_type)>)>;
+
+  /// The promise type which is used to resolve continuations
+  using promise =
+      promise_base<callback, detail::hints::signature_hint_tag<Args...>>;
+
+  /// The continuable type for the given parameters.
+  using continuable =
+      continuable_base<continuation,
+                       detail::hints::signature_hint_tag<Args...>>;
+};
+} // namespace cti
+
+#endif // CONTINUABLE_TRAIT_HPP_INCLUDED__

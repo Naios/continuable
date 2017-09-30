@@ -1,6 +1,7 @@
 set(LIB_SOURCES
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-base.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-trait.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-promise-base.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-testing.hpp)
 set(LIB_SOURCES_DETAIL
@@ -11,6 +12,7 @@ set(LIB_SOURCES_DETAIL
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/features.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/traits.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/transforms.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/detail/types.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/util.hpp)
 set(TEST
   ${CMAKE_CURRENT_LIST_DIR}/test-playground.cpp)

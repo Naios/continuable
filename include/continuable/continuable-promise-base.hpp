@@ -35,14 +35,14 @@
 #include <utility>
 
 #include <continuable/detail/api.hpp>
-#include <continuable/detail/base.hpp>
 #include <continuable/detail/hints.hpp>
+#include <continuable/detail/types.hpp>
 
 namespace cti {
-template <typename Hint, typename Data>
+template <typename Data, typename Hint>
 class promise_base;
-template <typename... Args, typename Data>
-class promise_base<detail::hints::signature_hint_tag<Args...>, Data> {
+template <typename Data, typename... Args>
+class promise_base<Data, detail::hints::signature_hint_tag<Args...>> {
   /// \cond false
   // The callback type
   Data data_;
@@ -78,8 +78,8 @@ public:
   }
 
   /// Resolves the continuation with the given error variable.
-  void set_error(detail::base::error_type error) {
-    data_(detail::base::dispatch_error_tag{}, std::move(error));
+  void set_error(detail::types::error_type error) {
+    data_(detail::types::dispatch_error_tag{}, std::move(error));
   }
 };
 } // namespace cti
