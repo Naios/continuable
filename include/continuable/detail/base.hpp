@@ -433,7 +433,7 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
         // Invoke the continuation with a proxy callback.
         // The proxy callback is responsible for passing
         // the result to the callback as well as decorating it.
-        attorney::invoke_continuation(std::forward<Continuation>(continuation),
+        attorney::invoke_continuation(std::move(continuation),
                                       std::move(proxy));
       },
       next_hint, ownership_);
