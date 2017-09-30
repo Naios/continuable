@@ -333,7 +333,8 @@ struct error_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
   }
 
   /// The operator which is called when an error occurred
-  void operator()(types::dispatch_error_tag /*tag*/, types::error_type error) {
+  void operator()(types::dispatch_error_tag /*tag*/,
+                  types::error_type /*error*/) {
     /*
      *TODO
      *auto invoker = [] {};
@@ -345,12 +346,12 @@ struct error_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
   }
 
   /// Resolves the continuation with the given values
-  void set_value(Args... args) {
+  void set_value(Args... /*args*/) {
     // std::move(next_callback_)(std::move(args)...);
   }
 
   /// Resolves the continuation with the given error variable.
-  void set_exception(types::error_type error) {
+  void set_exception(types::error_type /*error*/) {
     // std::move(next_callback_)(types::dispatch_error_tag{}, std::move(error));
   }
 };
