@@ -20,12 +20,11 @@
   SOFTWARE.
 **/
 
+#include <continuable/continuable.hpp>
 #include <string>
 
-#include <continuable/continuable.hpp>
-
 cti::continuable<std::string> http_request(std::string url) {
-  return [](cti::promise<std::string> promise) {
+  return [url = std::move(url)](cti::promise<std::string> promise) {
     promise.set_exception(nullptr);
     promise.set_value("");
     promise("");
@@ -33,7 +32,8 @@ cti::continuable<std::string> http_request(std::string url) {
 }
 
 auto http_request2(std::string url) {
-  return cti::make_continuable<std::string>([](auto&& promise) {
+  return cti::make_continuable<std::string>([url = std::move(url)](
+      auto&& promise) {
     promise.set_exception(nullptr);
     promise.set_value("");
     promise("");
