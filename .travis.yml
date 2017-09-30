@@ -1,6 +1,7 @@
-sudo: true
+sudo: false
 dist: trusty
 language: cpp
+cache: apt
 
 git:
   depth: 1
@@ -11,11 +12,13 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          packages:
-            - valgrind
-            - g++-5
           sources:
             - ubuntu-toolchain-r-test
+          packages:
+            - g++-5
+            - valgrind
+            - cmake
+            - cmake-data
       env:
         - COMPILER=g++-5
 
@@ -23,11 +26,13 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          packages:
-            - valgrind
-            - g++-6
           sources:
             - ubuntu-toolchain-r-test
+          packages:
+            - g++-6
+            - valgrind
+            - cmake
+            - cmake-data
       env:
         - COMPILER=g++-6
 
@@ -37,13 +42,12 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - sourceline: "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.7 main"
-              key_url: "http://apt.llvm.org/llvm-snapshot.gpg.key"
           packages:
             - g++-6
-            - clang-3.7
+            - cmake
+            - cmake-data
       env:
-        - COMPILER=clang++-3.7
+        - COMPILER=clang++
 
     - os: linux
       compiler: clang
@@ -51,13 +55,14 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - sourceline: "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.9 main"
-              key_url: "http://apt.llvm.org/llvm-snapshot.gpg.key"
+            - llvm-toolchain-trusty-5.0
           packages:
             - g++-6
-            - clang-3.9
+            - clang-5.0
+            - cmake
+            - cmake-data
       env:
-        - COMPILER=clang++-3.9
+        - COMPILER=clang++-5.0
 
 install:
   - export CXX=$COMPILER
