@@ -20,8 +20,10 @@
   SOFTWARE.
 **/
 
-#include <continuable/continuable.hpp>
 #include <string>
+#include <system_error>
+
+#include <continuable/continuable.hpp>
 
 static cti::continuable<std::string> http_request(std::string url) {
   return [url = std::move(url)](cti::promise<std::string> promise) {
@@ -29,7 +31,7 @@ static cti::continuable<std::string> http_request(std::string url) {
       promise.set_value("");
       promise("");
     }
-    promise.set_exception(nullptr);
+    promise.set_exception(std::error_condition{});
   };
 }
 
@@ -37,9 +39,11 @@ static cti::continuable<std::string> http_request(std::string url) {
  // TODO Fix this
 static cti::continuable<std::string> http_request(std::string url) {
   return [url = std::move(url)](auto promise) {
-    promise.set_exception(nullptr);
-    promise.set_value("");
-    promise("");
+    if (false) {
+      promise.set_value("");
+      promise("");
+    }
+    promise.set_exception(std::error_condition{});
   };
 }
 */
@@ -52,7 +56,7 @@ static auto http_request2(std::string url) {
           promise.set_value("");
           promise("");
         }
-        promise.set_exception(nullptr);
+        promise.set_exception(std::error_condition{});
       });
 }
 
@@ -61,7 +65,7 @@ int main(int, char**) {
       .then([](std::string) {
         // ...
       })
-      .catching([](std::exception_ptr) {
+      .catching([](std::error_condition) {
         // ...
       });
 
@@ -69,7 +73,7 @@ int main(int, char**) {
       .then([](std::string) {
         // ...
       })
-      .catching([](std::exception_ptr) {
+      .catching([](std::error_condition) {
         // ...
       });
 

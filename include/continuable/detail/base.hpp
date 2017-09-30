@@ -333,16 +333,18 @@ struct error_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
   }
 
   /// The operator which is called when an error occurred
-  void operator()(types::dispatch_error_tag /*tag*/,
-                  types::error_type /*error*/) {
-    /*
-     *TODO
-     *auto invoker = [] {};
+  void operator()(types::dispatch_error_tag /*tag*/, types::error_type error) {
 
-    // Forward the error to the error handler
+    // Just invoke the error handler, cancel the calling hierarchy then
+    auto invoker = [](Callback&& callback, NextCallback&&,
+                      types::error_type&& error) {
+      callback(std::move(error));
+    };
+
+    // Invoke the error handler
     packed_dispatch(std::move(executor_), std::move(invoker),
                     std::move(callback_), std::move(next_callback_),
-                    std::move(error));*/
+                    std::move(error));
   }
 
   /// Resolves the continuation with the given values

@@ -34,7 +34,7 @@
 #ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
 #include <exception>
 #else // CONTINUABLE_WITH_NO_EXCEPTIONS
-#include <error>
+#include <system_error>
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 
 #include <continuable/detail/api.hpp>
