@@ -46,17 +46,17 @@ int main(int, char**) {
       .then([](std::string /*response*/) {
         // ...
       })
-      .catching([](std::exception_ptr /*e*/) {
+      /*.catching([](std::exception_ptr) {
         // ...
-      });
+      })*/;
 
   http_request2("github.com")
       .then([](std::string /*response*/) {
         // ...
       })
-      .catching([](std::exception_ptr /*e*/) {
+      /*.catching([](std::exception_ptr) {
         // ...
-      });
+      })*/;
 
   return 0;
 }

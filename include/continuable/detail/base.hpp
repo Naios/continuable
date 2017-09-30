@@ -334,22 +334,24 @@ struct error_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
 
   /// The operator which is called when an error occurred
   void operator()(types::dispatch_error_tag /*tag*/, types::error_type error) {
-    auto invoker = [] {};
+    /*
+     *TODO
+     *auto invoker = [] {};
 
     // Forward the error to the error handler
     packed_dispatch(std::move(executor_), std::move(invoker),
                     std::move(callback_), std::move(next_callback_),
-                    std::move(error));
+                    std::move(error));*/
   }
 
   /// Resolves the continuation with the given values
   void set_value(Args... args) {
-    std::move(next_callback_)(std::move(args)...);
+    // std::move(next_callback_)(std::move(args)...);
   }
 
   /// Resolves the continuation with the given error variable.
   void set_exception(types::error_type error) {
-    std::move(next_callback_)(types::dispatch_error_tag{}, std::move(error));
+    // std::move(next_callback_)(types::dispatch_error_tag{}, std::move(error));
   }
 };
 
@@ -357,11 +359,11 @@ struct error_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
 /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095
 struct empty_callback {
   template <typename... Args>
-  void operator()(Args... /*error*/) const {
+  void operator()(Args... /*args*/) {
   }
 
   template <typename... Args>
-  void set_value(Args... /*error*/) {
+  void set_value(Args... /*args*/) {
   }
 
   void set_exception(types::error_type /*error*/) {
@@ -461,29 +463,18 @@ auto chain_error_handler(Continuation&& continuation, Callback&& callback,
         continuation = std::forward<Continuation>(continuation),
         callback = std::forward<Callback>(callback),
         executor = std::forward<Executor>(executor)
-      ](auto&& /*next_callback*/) mutable {
-          // Invokes a continuation with a given callback.
-          // Passes the next callback to the resulting continuable or
-          // invokes the next callback directly if possible.
-          //
-          // For example given:
-          // - Continuation: continuation<[](auto&& callback) { callback("hi");
-          // }>
-          // - Callback: [](std::string) { }
-          // - NextCallback: []() { }
-          /*using Hint = decltype(hint_of(traits::identity_of(continuation)));
-          callbacks::result_callback<Hint,
-          std::decay_t<decltype(partial_callable)>,
-                       std::decay_t<decltype(executor)>,
-                       std::decay_t<decltype(next_callback)>>
-              proxy{std::move(partial_callable), std::move(executor),
-                    std::forward<decltype(next_callback)>(next_callback)};*/
+      ](auto&& next_callback) mutable {
 
-          // Invoke the continuation with a proxy callback.
-          // The proxy callback is responsible for passing
-          // the result to the callback as well as decorating it.
-          /*attorney::invoke_continuation(std::forward<Continuation>(continuation),
-                                        std::move(proxy));*/
+        using Hint = decltype(hint_of(traits::identity_of(continuation)));
+        callbacks::error_callback<Hint, // ...
+                                  std::decay_t<decltype(callback)>,
+                                  std::decay_t<decltype(executor)>,
+                                  std::decay_t<decltype(next_callback)>>
+            proxy{std::move(callback), std::move(executor),
+                  std::forward<decltype(next_callback)>(next_callback)};
+
+        attorney::invoke_continuation(std::move(continuation),
+                                      std::move(proxy));
       },
       hint, ownership_);
 }
