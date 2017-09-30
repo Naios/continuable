@@ -228,38 +228,28 @@ constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
 } // namespace decoration
 
 /// Invoke the callback immediately
-template <typename Invoker, typename Callback, typename NextCallback,
-          typename... Args>
+template <typename Invoker, typename... Args>
 void packed_dispatch(types::this_thread_executor_tag, Invoker&& invoker,
-                     Callback&& callback, NextCallback&& next_callback,
                      Args&&... args) {
 
   // Invoke the callback with the decorated invoker immediately
-  std::forward<Invoker>(invoker)(std::forward<Callback>(callback),
-                                 std::forward<NextCallback>(next_callback),
-                                 std::forward<Args>(args)...);
+  std::forward<Invoker>(invoker)(std::forward<Args>(args)...);
 }
 
 /// Invoke the callback through the given executor
-template <typename Executor, typename Invoker, typename Callback,
-          typename NextCallback, typename... Args>
-void packed_dispatch(Executor&& executor, Invoker&& invoker,
-                     Callback&& callback, NextCallback&& next_callback,
-                     Args&&... args) {
+template <typename Executor, typename Invoker, typename... Args>
+void packed_dispatch(Executor&& executor, Invoker&& invoker, Args&&... args) {
 
   // Create a worker object which when invoked calls the callback with the
   // the returned arguments.
   auto work = [
     invoker = std::forward<Invoker>(invoker),
-    callback = std::forward<Callback>(callback),
-    next_callback = std::forward<NextCallback>(next_callback),
     args = std::make_tuple(std::forward<Args>(args)...)
   ]() mutable {
     traits::unpack(std::move(args), [&](auto&&... captured_args) {
       // Just use the packed dispatch method which dispatches the work on
       // the current thread.
       packed_dispatch(types::this_thread_executor_tag{}, std::move(invoker),
-                      std::move(callback), std::move(next_callback),
                       std::forward<decltype(captured_args)>(captured_args)...);
     });
   };
@@ -335,16 +325,14 @@ struct error_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
   /// The operator which is called when an error occurred
   void operator()(types::dispatch_error_tag /*tag*/, types::error_type error) {
 
-    // Just invoke the error handler, cancel the calling hierarchy then
-    auto invoker = [](Callback&& callback, NextCallback&&,
-                      types::error_type&& error) {
-      callback(std::move(error));
+    // Just invoke the error handler, cancel the calling hierarchy after
+    auto invoker = [](Callback&& callback, types::error_type&& error) {
+      std::move(callback)(std::move(error));
     };
 
     // Invoke the error handler
     packed_dispatch(std::move(executor_), std::move(invoker),
-                    std::move(callback_), std::move(next_callback_),
-                    std::move(error));
+                    std::move(callback_), std::move(error));
   }
 
   /// Resolves the continuation with the given values

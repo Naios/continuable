@@ -69,13 +69,13 @@ int main(int, char**) {
         // ...
       });
 
-  http_request2("github.com")
+  /*http_request2("github.com")
       .then([](std::string) {
         // ...
       })
       .catching([](std::error_condition) {
         // ...
-      });
+      });*/
 
   return 0;
 }
