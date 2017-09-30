@@ -37,12 +37,14 @@
 #include <continuable/detail/api.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/types.hpp>
+#include <continuable/detail/util.hpp>
 
 namespace cti {
 template <typename Data, typename Hint>
 class promise_base;
 template <typename Data, typename... Args>
-class promise_base<Data, detail::hints::signature_hint_tag<Args...>> {
+class promise_base<Data, detail::hints::signature_hint_tag<Args...>>
+    : detail::util::non_copyable {
   /// \cond false
   // The callback type
   Data data_;
@@ -59,27 +61,19 @@ public:
   promise_base(OData&& data) : data_(std::forward<OData>(data)) {
   }
 
-  /// \cond false
-  promise_base(promise_base&&) = default;
-  promise_base(promise_base const&) = default;
-
-  promise_base& operator=(promise_base&&) = default;
-  promise_base& operator=(promise_base const&) = default;
-  /// \endcond
+  /// Resolves the continuation with the given values
+  void operator()(Args... args) {
+    data_(std::move(args)...);
+  }
 
   /// Resolves the continuation with the given values
   void set_value(Args... args) {
     data_(std::move(args)...);
   }
 
-  /// Resolves the continuation with the given values
-  void operator()(Args... args) {
-    data_(std::move(args)...);
-  }
-
-  /// Resolves the continuation with the given error variable.
-  void set_error(detail::types::error_type error) {
-    data_(detail::types::dispatch_error_tag{}, std::move(error));
+  /// Resolves the continuation with the given exception
+  void set_exception(detail::types::error_type exception) {
+    data_(detail::types::dispatch_error_tag{}, std::move(exception));
   }
 };
 } // namespace cti
