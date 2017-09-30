@@ -135,7 +135,7 @@ public:
   /// Creates a submitter which submits it's result into the tuple
   template <std::size_t From, std::size_t To>
   auto create_callback(traits::size_constant<From> from,
-                       traits::size_constant<To> to) {
+                       traits::size_constant<To> /*to*/) {
 
     return [ me = this->shared_from_this(), from ](auto&&... args) {
       static_assert(sizeof...(args) == (To - From),

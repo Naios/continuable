@@ -25,25 +25,40 @@
 
 static cti::continuable<std::string> http_request(std::string url) {
   return [url = std::move(url)](cti::promise<std::string> promise) {
+    if (false) {
+      promise.set_value("");
+      promise("");
+    }
+    promise.set_exception(nullptr);
+  };
+}
+
+/*
+ // TODO Fix this
+static cti::continuable<std::string> http_request(std::string url) {
+  return [url = std::move(url)](auto promise) {
     promise.set_exception(nullptr);
     promise.set_value("");
     promise("");
   };
 }
+*/
 
 static auto http_request2(std::string url) {
   return cti::make_continuable<std::string>(
       // ...
       [url = std::move(url)](auto&& promise) {
+        if (false) {
+          promise.set_value("");
+          promise("");
+        }
         promise.set_exception(nullptr);
-        promise.set_value("");
-        promise("");
       });
 }
 
 int main(int, char**) {
   http_request("github.com")
-      .then([](std::string /*response*/) {
+      .then([](std::string) {
         // ...
       })
       .catching([](std::exception_ptr) {
@@ -51,7 +66,7 @@ int main(int, char**) {
       });
 
   http_request2("github.com")
-      .then([](std::string /*response*/) {
+      .then([](std::string) {
         // ...
       })
       .catching([](std::exception_ptr) {

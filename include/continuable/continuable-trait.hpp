@@ -53,6 +53,7 @@ template <template <typename...> class CallbackWrapper,
           template <typename...> class ContinuationWrapper, typename... Args>
 struct continuable_trait {
   /// The callback type which is passed to continuations
+  // TODO This should be void(promise<...>) I think
   using callback =
       CallbackWrapper<void(Args...), void(detail::types::dispatch_error_tag,
                                           detail::types::error_type)>;

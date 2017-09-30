@@ -305,12 +305,12 @@ struct result_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
 
   /// Resolves the continuation with the given values
   void set_value(Args... args) {
-    std::move(next_callback_)(std::move(args)...);
+    (*this)(std::move(args)...);
   }
 
   /// Resolves the continuation with the given error variable.
   void set_exception(types::error_type error) {
-    std::move(next_callback_)(types::dispatch_error_tag{}, std::move(error));
+    (*this)(types::dispatch_error_tag{}, std::move(error));
   }
 };
 
@@ -346,13 +346,13 @@ struct error_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
   }
 
   /// Resolves the continuation with the given values
-  void set_value(Args... /*args*/) {
-    // std::move(next_callback_)(std::move(args)...);
+  void set_value(Args... args) {
+    (*this)(std::move(args)...);
   }
 
   /// Resolves the continuation with the given error variable.
-  void set_exception(types::error_type /*error*/) {
-    // std::move(next_callback_)(types::dispatch_error_tag{}, std::move(error));
+  void set_exception(types::error_type error) {
+    (*this)(types::dispatch_error_tag{}, std::move(error));
   }
 };
 
