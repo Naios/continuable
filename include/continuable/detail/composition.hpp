@@ -137,7 +137,7 @@ public:
   auto create_callback(traits::size_constant<From> from,
                        traits::size_constant<To> to) {
 
-    return [ me = this->shared_from_this(), from, to ](auto&&... args) {
+    return [ me = this->shared_from_this(), from ](auto&&... args) {
       static_assert(sizeof...(args) == (To - From),
                     "Submission called with the wrong amount of arguments!");
 

@@ -23,7 +23,7 @@
 #include <continuable/continuable.hpp>
 #include <string>
 
-cti::continuable<std::string> http_request(std::string url) {
+static cti::continuable<std::string> http_request(std::string url) {
   return [url = std::move(url)](cti::promise<std::string> promise) {
     promise.set_exception(nullptr);
     promise.set_value("");
@@ -31,13 +31,14 @@ cti::continuable<std::string> http_request(std::string url) {
   };
 }
 
-auto http_request2(std::string url) {
-  return cti::make_continuable<std::string>([url = std::move(url)](
-      auto&& promise) {
-    promise.set_exception(nullptr);
-    promise.set_value("");
-    promise("");
-  });
+static auto http_request2(std::string url) {
+  return cti::make_continuable<std::string>(
+      // ...
+      [url = std::move(url)](auto&& promise) {
+        promise.set_exception(nullptr);
+        promise.set_value("");
+        promise("");
+      });
 }
 
 int main(int, char**) {
@@ -56,5 +57,6 @@ int main(int, char**) {
       .catching([](std::exception_ptr /*e*/) {
         // ...
       });
+
   return 0;
 }
