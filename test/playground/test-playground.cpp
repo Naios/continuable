@@ -64,18 +64,26 @@ int main(int, char**) {
   http_request("github.com")
       .then([](std::string) {
         // ...
+        return 0;
       })
-      .catching([](std::error_condition) {
+      .fail([](std::error_condition) {
+        // ...
+      })
+      .then([](int) {
         // ...
       });
 
-  /*http_request2("github.com")
+  http_request2("github.com")
       .then([](std::string) {
         // ...
+        return 0;
       })
-      .catching([](std::error_condition) {
+      .fail([](std::error_condition) {
         // ...
-      });*/
+      })
+      .then([](int) {
+        // ...
+      });
 
   return 0;
 }

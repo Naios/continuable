@@ -67,7 +67,6 @@ using continuable = typename detail::trait_of<
 /// function2 backend for the continuable type erasure.
 ///
 /// Usable like: `callback<int, float>`
-// TODO Decide whether promises are copyable
 // template <typename... Args>
 // using promise = typename detail::trait_of<
 //   Args...

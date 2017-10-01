@@ -227,16 +227,18 @@ public:
   }
 
   /// Main method of the continuable_base to catch exceptions and error codes
+  /// in case the asynchronous control flow failed and was resolved
+  /// through an error code or exception.
   ///
   /// \param callback The callback which is used to process the current
   ///        asynchronous error result on arrival.
-  ///        In case the continuable_base is using exceptions, the usage is as
-  ///        shown below:
+  ///        In case the continuable_base is using exceptions,
+  ///        the usage is as shown below:
   ///
   /// ```cpp
   /// http_request("github.com")
   ///   .then([](std::string github) { })
-  ///   .catching([](std::exception_ptr ptr) {
+  ///   .fail([](std::exception_ptr ptr) {
   ///     // Handle the error here
   ///     try {
   ///       std::rethrow_exception(ptr);
@@ -250,7 +252,7 @@ public:
   /// ```cpp
   /// http_request("github.com")
   ///   .then([](std::string github) { })
-  ///   .catching([](std::error_condition error) {
+  ///   .fail([](std::error_condition error) {
   ///     error.message(); // Handle the error here
   ///   });
   /// ```
@@ -264,8 +266,8 @@ public:
   ///
   /// \since version 2.0.0
   template <typename T, typename E = detail::types::this_thread_executor_tag>
-  auto catching(T&& callback,
-                E&& executor = detail::types::this_thread_executor_tag{}) && {
+  auto fail(T&& callback,
+            E&& executor = detail::types::this_thread_executor_tag{}) && {
     return detail::base::chain_error_handler(std::move(*this).materialize(),
                                              std::forward<T>(callback),
                                              std::forward<E>(executor));
