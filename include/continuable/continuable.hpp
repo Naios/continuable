@@ -41,7 +41,7 @@ namespace cti {
 namespace detail {
 template<typename... Args>
 using trait_of = continuable_trait<
-  fu2::function,
+  fu2::unique_function,
   fu2::function,
   Args...
 >;

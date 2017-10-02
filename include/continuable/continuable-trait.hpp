@@ -52,24 +52,15 @@ namespace cti {
 template <template <typename...> class CallbackWrapper,
           template <typename...> class ContinuationWrapper, typename... Args>
 struct continuable_trait {
-  /// The callback type which is passed to continuations
-  // TODO This should be void(promise<...>) I think
-  using callback =
-      CallbackWrapper<void(Args...), void(detail::types::dispatch_error_tag,
-                                          detail::types::error_type)>;
-
-  /// The continuation type which is used to erase the internal data.
-  using continuation = ContinuationWrapper<void(
-      CallbackWrapper<void(Args...), void(detail::types::dispatch_error_tag,
-                                          detail::types::error_type)>)>;
-
   /// The promise type which is used to resolve continuations
-  using promise =
-      promise_base<callback, detail::hints::signature_hint_tag<Args...>>;
+  using promise = promise_base<
+      CallbackWrapper<void(Args...), void(detail::types::dispatch_error_tag,
+                                          detail::types::error_type)>,
+      detail::hints::signature_hint_tag<Args...>>;
 
   /// The continuable type for the given parameters.
   using continuable =
-      continuable_base<continuation,
+      continuable_base<ContinuationWrapper<void(promise)>,
                        detail::hints::signature_hint_tag<Args...>>;
 };
 } // namespace cti
