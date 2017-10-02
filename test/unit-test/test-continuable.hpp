@@ -196,7 +196,6 @@ struct provide_continuation_seq_right {
 using single_types = ::testing::Types<
 #if UNIT_TEST_STEP == 0
   provide_copyable
-  // provide_unique,
   // provide_erasure<cti::continuable>,
   // provide_erasure<cti::unique_continuable>
 #elif UNIT_TEST_STEP == 1
@@ -211,9 +210,7 @@ using single_types = ::testing::Types<
 #elif UNIT_TEST_STEP == 2
   provide_continuation_and_left<provide_erasure<cti::unique_continuable>>
 #elif UNIT_TEST_STEP == 3
-#define NO_ERASURE_TESTS
-#define NO_FUTURE_TESTS
-  provide_erasure<std_continuable>
+  provide_unique
 #elif UNIT_TEST_STEP == 4
 //#define NO_ERASURE_TESTS
 //#define NO_FUTURE_TESTS

@@ -44,7 +44,7 @@ TYPED_TEST(single_dimension_tests, is_eraseable) {
 TYPED_TEST(single_dimension_tests, is_callable) {
 
   cti::unique_continuable<int, int> erased =
-      [](cti::unique_callback<int, int>&& callback) {
+      [](cti::promise<int, int>&& callback) {
 
         std::move(callback)(0xDF, 0xDD);
       };
