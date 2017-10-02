@@ -35,9 +35,7 @@ static cti::continuable<std::string> http_request(std::string url) {
   };
 }
 
-/*
- // TODO Fix this
-static cti::continuable<std::string> http_request(std::string url) {
+static cti::continuable<std::string> http_request3(std::string url) {
   return [url = std::move(url)](auto promise) {
     if (false) {
       promise.set_value("");
@@ -46,7 +44,6 @@ static cti::continuable<std::string> http_request(std::string url) {
     promise.set_exception(std::error_condition{});
   };
 }
-*/
 
 static auto http_request2(std::string url) {
   return cti::make_continuable<std::string>(
@@ -95,6 +92,14 @@ int main(int, char**) {
 
   (http_request("github.com") || http_request("github.com"))
       .then([](std::string) {
+        // ...
+      })
+      .fail([](std::error_condition) {
+        // ...
+      });
+
+  (http_request("github.com") >> http_request("github.com"))
+      .then([](std::string, std::string) {
         // ...
       })
       .fail([](std::error_condition) {

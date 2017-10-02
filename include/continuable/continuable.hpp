@@ -63,14 +63,14 @@ using continuable = typename detail::trait_of<
   Args...
 >::continuable;
 
-/// Defines a copyable callback type which uses the
-/// function2 backend for the continuable type erasure.
+/// Defines a non-copyable continuation type which uses the
+/// function2 backend for type erasure.
 ///
-/// Usable like: `callback<int, float>`
-// template <typename... Args>
-// using promise = typename detail::trait_of<
-//   Args...
-// >::promise;
+/// Usable like: `unique_continuable<int, float>`
+template <typename... Args>
+using unique_continuable = typename detail::unique_trait_of<
+  Args...
+>::continuable;
 
 /// Defines a non-copyable promise type which using the
 /// function2 backend for type erasure.
@@ -80,15 +80,6 @@ template <typename... Args>
 using promise = typename detail::unique_trait_of<
   Args...
 >::promise;
-
-/// Defines a non-copyable callback type which uses the
-/// function2 backend for the continuable type erasure.
-///
-/// Usable like: `unique_callback<int, float>`
-template <typename... Args>
-using unique_callback = typename detail::unique_trait_of<
-  Args...
->::callback;
 
 // TODO channel
 // TODO sink
