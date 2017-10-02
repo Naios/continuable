@@ -31,11 +31,13 @@
 #ifndef CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED__
 #define CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED__
 
+#ifndef CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
 #ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
 #include <exception>
 #else // CONTINUABLE_WITH_NO_EXCEPTIONS
 #include <system_error>
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
+#endif // CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
 
 #include <continuable/detail/api.hpp>
 #include <continuable/detail/features.hpp>
@@ -44,6 +46,9 @@ namespace cti {
 namespace detail {
 /// Contains types used globally across the library
 namespace types {
+#ifdef CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
+using error_type = CONTINUABLE_WITH_CUSTOM_ERROR_TYPE;
+#else // CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
 #ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
 /// Represents the error type when exceptions are enabled
 using error_type = std::exception_ptr;
@@ -51,6 +56,7 @@ using error_type = std::exception_ptr;
 /// Represents the error type when exceptions are disabled
 using error_type = std::error_condition;
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
+#endif // CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
 
 /// A tag which is used to execute the continuation inside the current thread
 struct this_thread_executor_tag {};
