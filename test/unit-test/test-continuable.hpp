@@ -195,10 +195,10 @@ struct provide_continuation_seq_right {
 // build time significantly.
 using single_types = ::testing::Types<
 #if UNIT_TEST_STEP == 0
-  provide_copyable,
+  provide_copyable
   // provide_unique,
   // provide_erasure<cti::continuable>,
-  provide_erasure<cti::unique_continuable>
+  // provide_erasure<cti::unique_continuable>
 #elif UNIT_TEST_STEP == 1
   // Some instantiations out commented for compilation speed reasons
   // provide_continuation_and_left<provide_copyable>,

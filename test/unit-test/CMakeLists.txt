@@ -4,7 +4,10 @@ foreach(STEP RANGE 4)
 
   add_executable(${PROJECT_NAME}
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-chaining.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-destruct.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-futurize.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-partial.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-all.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-any.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-seq.cpp
