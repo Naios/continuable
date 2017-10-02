@@ -69,7 +69,7 @@ int main(int, char**) {
       .fail([](std::error_condition) {
         // ...
       })
-      .then([](int) {
+      .then([] {
         // ...
       });
 
@@ -78,10 +78,26 @@ int main(int, char**) {
         // ...
         return 0;
       })
-      .fail([](std::error_condition) {
+      .then([](int) {
         // ...
       })
-      .then([](int) {
+      .fail([](std::error_condition) {
+        // ...
+      });
+
+  (http_request("github.com") && http_request("github.com"))
+      .then([](std::string, std::string) {
+        // ...
+      })
+      .fail([](std::error_condition) {
+        // ...
+      });
+
+  (http_request("github.com") || http_request("github.com"))
+      .then([](std::string) {
+        // ...
+      })
+      .fail([](std::error_condition) {
         // ...
       });
 
