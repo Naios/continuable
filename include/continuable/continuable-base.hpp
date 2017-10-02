@@ -583,6 +583,35 @@ auto make_continuable(Continuation&& continuation) {
       detail::util::ownership{});
 }
 
+/// Represents a tag which can be placed first in a signature
+/// in order to overload callables with the asynchronous result
+/// as well as an error.
+///
+/// See the example below:
+/// ```cpp
+/// struct my_callable {
+///   void operator() (std::string result) {
+///     // ...
+///   }
+///   void operator() (cti::dispatch_error_tag, cti::error_type) {
+///     // ...
+///   }
+/// };
+///
+/// // Will receive errors and results
+/// continuable.then(my_callable{});
+/// ```
+using detail::types::dispatch_error_tag;
+
+/// Represents the type that is used as error type
+///
+/// By default this type deduces to `std::exception_ptr`.
+/// If `CONTINUABLE_WITH_NO_EXCEPTIONS` is defined the type
+/// will be a `std::error_condition`.
+/// A custom error type may be set through
+/// defining `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`.
+using detail::types::error_type;
+
 /// Connects the given continuables with an *all* logic.
 ///
 /// \param continuables The continuable_base objects to connect.
