@@ -363,7 +363,7 @@ auto make_any_result_submitter(Callback&& callback) {
 }
 
 template <typename T, typename... Args>
-constexpr T first_of(traits::identity<T, Args...>) noexcept;
+T first_of(traits::identity<T, Args...>) noexcept;
 
 template <typename Signature, typename... Args>
 constexpr auto common_result_of(Signature signature,
