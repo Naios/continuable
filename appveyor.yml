@@ -1,6 +1,11 @@
 image:
   - Visual Studio 2017
 
+environment:
+  matrix:
+    - NO_EXCEPTIONS: OFF
+    - NO_EXCEPTIONS: ON
+
 configuration:
   - Debug
 
@@ -14,7 +19,7 @@ clone_script:
   - cmd: git submodule update --init --recursive
 
 before_build:
-  - cmd: cmake -H. -Bbuild -A%PLATFORM%
+  - cmd: cmake -H. -Bbuild -A%PLATFORM% -DTESTS_NO_EXCEPTIONS=%NO_EXCEPTIONS%
 
 build_script:
   - cmd: cmake --build build --config %CONFIGURATION% --target ALL_BUILD -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /verbosity:minimal /maxcpucount:2 /nologo
