@@ -33,7 +33,6 @@
 
 #include <cassert>
 #include <cstdint>
-#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -273,6 +272,52 @@ public:
                                              std::forward<T>(callback),
                                              std::forward<E>(executor));
   }
+
+  /// A method which allows to use an overloaded callable for the error
+  /// as well as the valid result path.
+  ///
+  /// \param callback The callback which is used to process the current
+  ///        asynchronous result and error on arrival.
+  ///
+  /// ```cpp
+  /// struct my_callable {
+  ///   void operator() (std::string result) {
+  ///     // ...
+  ///   }
+  ///   void operator() (cti::dispatch_error_tag, cti::error_type) {
+  ///     // ...
+  ///   }
+  ///
+  /// // Will receive errors and results
+  /// http_request("github.com")
+  ///   .flow(my_callable{});
+  /// ```
+  ///
+  /// \param executor The optional executor which is used to dispatch
+  ///        the callback. See the description in `then` above.
+  ///
+  /// \returns Returns a continuable_base with an asynchronous return type
+  ///          depending on the current result type.
+  ///
+  /// \since version 2.0.0
+  template <typename T, typename E = detail::types::this_thread_executor_tag>
+  auto flow(T&& callback,
+            E&& executor = detail::types::this_thread_executor_tag{}) && {
+    return detail::base::chain_flow_handler(std::move(*this).materialize(),
+                                            std::forward<T>(callback),
+                                            std::forward<E>(executor));
+  }
+
+  /// Ignores all error which ocured until the point the function was called
+  ///
+  /// \note This can be used to create a continuable which doesn't resolve
+  ///       the continuation on errors.
+  ///
+  /// \since version 2.0.0
+  /* TODO move to transforms
+   auto flat() && {
+    return std::move(*this).fail([](auto&&) {});
+  }*/
 
   /// Invokes both continuable_base objects parallel and calls the
   /// callback with the result of both continuable_base objects.
@@ -600,8 +645,10 @@ auto make_continuable(Continuation&& continuation) {
 /// };
 ///
 /// // Will receive errors and results
-/// continuable.then(my_callable{});
+/// continuable.flow(my_callable{});
 /// ```
+///
+/// \note see continuable::flow for details.
 ///
 /// \since version 2.0.0
 using detail::types::dispatch_error_tag;
