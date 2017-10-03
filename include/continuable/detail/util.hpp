@@ -238,9 +238,11 @@ private:
 
 /// Hint for the compiler that this point should be unreachable
 [[noreturn]] inline void unreachable() {
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
   __assume(false);
-#elif __has_builtin(__builtin_unreachable)
+#elif defined(__GNUC__)
+  __builtin_unreachable();
+#elif defined(__has_builtin) && __has_builtin(__builtin_unreachable)
   __builtin_unreachable();
 #endif
 }
@@ -248,9 +250,11 @@ private:
 /// Causes the application to exit abnormally because we are
 /// in an invalid state.
 [[noreturn]] inline void trap() {
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
   __debugbreak();
-#elif __has_builtin(__builtin_trap)
+#elif defined(__GNUC__)
+  __builtin_trap();
+#elif defined(__has_builtin) && __has_builtin(__builtin_trap)
   __builtin_trap();
 #else
   *(volatile int*)0 = 0;
