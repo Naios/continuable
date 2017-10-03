@@ -259,6 +259,39 @@ void packed_dispatch(Executor&& executor, Invoker&& invoker, Args&&... args) {
 }
 
 namespace callbacks {
+template <typename Base>
+struct error_handler_base {
+  void operator()(types::dispatch_error_tag, types::error_type error) {
+    // Just invoke the error handler, cancel the calling hierarchy after
+    auto invoker = [](typename Base::CallbackT&& callback,
+                      types::error_type&& error) {
+      std::move(callback)(std::move(error));
+    };
+
+    // Invoke the error handler
+    packed_dispatch(
+        std::move(static_cast<Base*>(this)->executor_), std::move(invoker),
+        std::move(static_cast<Base*>(this)->callback_), std::move(error));
+  }
+};
+
+template <typename Base, typename = void>
+struct result_callback_error_base {
+  /// The operator which is called when an error occurred
+  void operator()(types::dispatch_error_tag tag, types::error_type error) {
+    // Forward the error to the next callback
+    std::move(static_cast<Base*>(this)->next_callback_)(tag, std::move(error));
+  }
+};
+template <typename Base>
+struct result_callback_error_base<
+    Base, std::enable_if_t<util::is_invokable<
+              typename Base::Callback,
+              std::tuple<types::dispatch_error_tag, types::error_type>>::value>>
+    : error_handler_base<Base> {
+  using error_handler_base<Base>::operator();
+};
+
 template <typename Hint, typename Callback, typename Executor,
           typename NextCallback>
 struct result_callback;
@@ -266,10 +299,22 @@ struct result_callback;
 template <typename... Args, typename Callback, typename Executor,
           typename NextCallback>
 struct result_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
-                       NextCallback> {
+                       NextCallback>
+    : result_callback_error_base<
+          result_callback<hints::signature_hint_tag<Args...>, Callback,
+                          Executor, NextCallback>> {
+
+  using CallbackT = Callback;
+
   Callback callback_;
   Executor executor_;
   NextCallback next_callback_;
+
+  explicit result_callback(Callback callback, Executor executor,
+                           NextCallback next_callback)
+      : callback_(std::move(callback)), executor_(std::move(executor)),
+        next_callback_(std::move(next_callback)) {
+  }
 
   /// The operator which is called when the result was provided
   void operator()(Args... args) {
@@ -287,11 +332,7 @@ struct result_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
                     std::move(args)...);
   }
 
-  /// The operator which is called when an error occurred
-  void operator()(types::dispatch_error_tag tag, types::error_type error) {
-    // Forward the error to the next callback
-    std::move(next_callback_)(tag, std::move(error));
-  }
+  using result_callback_error_base<result_callback>::operator();
 
   /// Resolves the continuation with the given values
   void set_value(Args... args) {
@@ -311,10 +352,21 @@ struct error_callback;
 template <typename... Args, typename Callback, typename Executor,
           typename NextCallback>
 struct error_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
-                      NextCallback> {
+                      NextCallback>
+    : error_handler_base<error_callback<hints::signature_hint_tag<Args...>,
+                                        Callback, Executor, NextCallback>> {
+
+  using CallbackT = Callback;
+
   Callback callback_;
   Executor executor_;
   NextCallback next_callback_;
+
+  explicit error_callback(Callback callback, Executor executor,
+                          NextCallback next_callback)
+      : callback_(std::move(callback)), executor_(std::move(executor)),
+        next_callback_(std::move(next_callback)) {
+  }
 
   /// The operator which is called when the result was provided
   void operator()(Args... args) {
@@ -322,18 +374,7 @@ struct error_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
     std::move(next_callback_)(std::move(args)...);
   }
 
-  /// The operator which is called when an error occurred
-  void operator()(types::dispatch_error_tag /*tag*/, types::error_type error) {
-
-    // Just invoke the error handler, cancel the calling hierarchy after
-    auto invoker = [](Callback&& callback, types::error_type&& error) {
-      std::move(callback)(std::move(error));
-    };
-
-    // Invoke the error handler
-    packed_dispatch(std::move(executor_), std::move(invoker),
-                    std::move(callback_), std::move(error));
-  }
+  using error_handler_base<error_callback>::operator();
 
   /// Resolves the continuation with the given values
   void set_value(Args... args) {

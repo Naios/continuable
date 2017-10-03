@@ -73,10 +73,10 @@ struct is_invokable_impl<
 /// arguments inside lambda closures.
 ///
 /// ```cpp
-/// traits::is_invokable_t<object, std::tuple<Args...>>
+/// traits::is_invokable<object, std::tuple<Args...>>
 /// ```
 template <typename T, typename Args>
-using is_invokable_t = typename detail::is_invokable_impl<T, Args>::type;
+using is_invokable = typename detail::is_invokable_impl<T, Args>::type;
 
 namespace detail {
 /// Forwards every element in the tuple except the last one
@@ -124,7 +124,7 @@ auto partial_invoke_impl(std::false_type, T&& callable,
   auto next = forward_except_last(std::move(args));
 
   // Test whether we are able to call the function with the given tuple
-  is_invokable_t<decltype(callable), decltype(next)> is_invokable;
+  is_invokable<decltype(callable), decltype(next)> is_invokable;
 
   return partial_invoke_impl(is_invokable, std::forward<T>(callable),
                              std::move(next));
@@ -157,7 +157,7 @@ auto partial_invoke_impl_shortcut(std::false_type failed, T&& callable,
 template <typename T, typename... Args>
 auto partial_invoke(T&& callable, Args&&... args) {
   // Test whether we are able to call the function with the given arguments.
-  is_invokable_t<decltype(callable), std::tuple<Args...>> is_invokable;
+  is_invokable<decltype(callable), std::tuple<Args...>> is_invokable;
 
   // The implementation is done in a shortcut way so there are less
   // type instantiations needed to call the callable with its full signature.

@@ -57,7 +57,18 @@ static cti::continuable<std::string> http_request3(std::string url) {
   };
 }
 
+struct my_callable {
+  void operator()(std::string) {
+    // ...
+  }
+  void operator()(cti::dispatch_error_tag, cti::error_type) {
+    // ...
+  }
+};
+
 int main(int, char**) {
+  http_request("github.com").then(my_callable{});
+
   http_request("github.com")
       .then([](std::string) {
         // ...

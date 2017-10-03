@@ -65,6 +65,11 @@ public:
   void operator()(Args... args) {
     data_(std::move(args)...);
   }
+  /// Resolves the continuation with the given exception
+  void operator()(detail::types::dispatch_error_tag tag,
+                  detail::types::error_type exception) {
+    data_(tag, std::move(exception));
+  }
 
   /// Resolves the continuation with the given values
   void set_value(Args... args) {
