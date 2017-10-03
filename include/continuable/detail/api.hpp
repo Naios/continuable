@@ -51,6 +51,9 @@ namespace cti {
 /// The most important method is the cti::continuable_base::then() method,
 /// which allows to attach a callback to the continuable.
 ///
+/// Use the continuable types defined in `continuable/continuable.hpp`,
+/// in order to use this class.
+///
 /// \tparam Data The internal data which is used to store the current
 ///         continuation and intermediate lazy connection result.
 ///

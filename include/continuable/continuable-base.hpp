@@ -48,6 +48,7 @@
 namespace cti {
 template <typename Data, typename Annotation>
 class continuable_base {
+
   /// \cond false
   template <typename, typename>
   friend class continuable_base;
@@ -601,6 +602,8 @@ auto make_continuable(Continuation&& continuation) {
 /// // Will receive errors and results
 /// continuable.then(my_callable{});
 /// ```
+///
+/// \since version 2.0.0
 using detail::types::dispatch_error_tag;
 
 /// Represents the type that is used as error type
@@ -610,6 +613,8 @@ using detail::types::dispatch_error_tag;
 /// will be a `std::error_condition`.
 /// A custom error type may be set through
 /// defining `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`.
+///
+/// \since version 2.0.0
 using detail::types::error_type;
 
 /// Connects the given continuables with an *all* logic.

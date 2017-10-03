@@ -40,11 +40,19 @@
 #include <continuable/detail/util.hpp>
 
 namespace cti {
+/// The promise_base makes it possible to resolve an asynchronous
+/// continuable through it's result or through an error type.
+///
+/// Use the promise type defined in `continuable/continuable.hpp`,
+/// in order to use this class.
+///
+/// \since version 2.0.0
 template <typename Data, typename Hint>
 class promise_base;
 template <typename Data, typename... Args>
 class promise_base<Data, detail::hints::signature_hint_tag<Args...>>
     : detail::util::non_copyable {
+
   /// \cond false
   // The callback type
   Data data_;
@@ -62,21 +70,29 @@ public:
   }
 
   /// Resolves the continuation with the given values
+  ///
+  /// \since version 2.0.0
   void operator()(Args... args) {
     data_(std::move(args)...);
   }
   /// Resolves the continuation with the given exception
+  ///
+  /// \since version 2.0.0
   void operator()(detail::types::dispatch_error_tag tag,
                   detail::types::error_type exception) {
     data_(tag, std::move(exception));
   }
 
   /// Resolves the continuation with the given values
+  ///
+  /// \since version 2.0.0
   void set_value(Args... args) {
     data_(std::move(args)...);
   }
 
   /// Resolves the continuation with the given exception
+  ///
+  /// \since version 2.0.0
   void set_exception(detail::types::error_type exception) {
     data_(detail::types::dispatch_error_tag{}, std::move(exception));
   }
