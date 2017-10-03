@@ -100,6 +100,8 @@ public:
     !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
     promise_.set_exception(error);
 #else
+    (void)error;
+
     // Can't forward a std::error_condition or custom error type
     // to a std::promise. Handle the error first in order
     // to prevent this trap!

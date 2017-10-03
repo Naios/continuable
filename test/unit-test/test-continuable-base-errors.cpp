@@ -50,10 +50,12 @@ static auto supply_test_exception() {
 }
 #else
 struct my_error_category : std::error_category {
-  const char* name() const override noexcept {return "generic name"}
+  const char* name() const noexcept override {
+    return "generic name";
+  }
 
   std::string message(int) const override {
-    return "generic"
+    return "generic";
   }
 };
 
