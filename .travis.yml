@@ -15,39 +15,12 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - g++-5
+            - g++-7
             - valgrind
             - cmake
             - cmake-data
       env:
-        - COMPILER=g++-5
-
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-6
-            - valgrind
-            - cmake
-            - cmake-data
-      env:
-        - COMPILER=g++-6
-
-    - os: linux
-      compiler: clang
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-6
-            - cmake
-            - cmake-data
-      env:
-        - COMPILER=clang++
+        - COMPILER=g++-7
 
     - os: linux
       compiler: clang
@@ -57,7 +30,7 @@ matrix:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-5.0
           packages:
-            - g++-6
+            - g++-7
             - clang-5.0
             - cmake
             - cmake-data
