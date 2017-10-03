@@ -66,19 +66,19 @@ script:
       echo "Building with address sanitizer..."
       CMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer"
       renew_build
-      ninja
+      ninja -j2
       ctest --verbose
 
       # - UBSan:
       echo "Building with undefined behaviour sanitizer..."
       CMAKE_CXX_FLAGS="-fsanitize=undefined -fno-omit-frame-pointer"
       renew_build
-      ninja
+      ninja -j2
       ctest --verbose
     else
       # Build an run the tests suite with valgrind
       renew_build
-      ninja
+      ninja -j2
       valgrind --error-exitcode=1 --leak-check=full --show-reachable=yes ctest --verbose
     fi
 
