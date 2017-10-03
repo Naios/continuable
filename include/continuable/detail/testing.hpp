@@ -90,14 +90,12 @@ void assert_async_binary_validation(V&& validator, C&& continuable,
                   "Async completion handler called with a different count "
                   "of arguments!");
 
-    traits::static_for_each_in(
-        std::make_index_sequence<size.value>{}, [&](auto current) mutable {
-          auto expected = std::get<current.value>(std::move(expected_pack));
-          auto actual = std::get<current.value>(std::move(actual_pack));
-          (void)current;
-
-          validator(expected, actual);
-        });
+    traits::unpack(std::move(expected_pack), [&](auto&&... expected) {
+      std::initializer_list<int>{
+          0, ((void)validator(std::forward<decltype(args)>(args),
+                              std::forward<decltype(expected)>(expected)),
+              0)...};
+    });
   });
 }
 

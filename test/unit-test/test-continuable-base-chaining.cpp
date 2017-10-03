@@ -24,11 +24,9 @@
 #include "test-continuable.hpp"
 
 TYPED_TEST(single_dimension_tests, are_chainable) {
-  auto chain = this->supply().then([] {
+  EXPECT_ASYNC_RESULT(this->supply().then([] {
     return; // void
-  });
-
-  ASSERT_ASYNC_TYPES(std::move(chain));
+  }));
 }
 
 TYPED_TEST(single_dimension_tests, are_type_chainable) {
