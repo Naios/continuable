@@ -77,34 +77,35 @@ void assert_async_validation(C&& continuable, V&& validator) {
 template <typename V, typename C, typename... Args>
 void assert_async_binary_validation(V&& validator, C&& continuable,
                                     Args&&... expected) {
+
+  using size = std::integral_constant<std::size_t, sizeof...(expected)>;
+
   assert_async_validation(std::forward<C>(continuable), [
     expected_pack = std::make_tuple(std::forward<Args>(expected)...),
     validator = std::forward<V>(validator)
   ](auto&&... args) mutable {
 
-    auto actual_pack = std::make_tuple(std::forward<decltype(args)>(args)...);
-
-    auto size = traits::pack_size_of(traits::identity_of(expected_pack));
-
-    static_assert(size.value == std::tuple_size<decltype(actual_pack)>::value,
+    static_assert(size::value == sizeof...(args),
                   "Async completion handler called with a different count "
                   "of arguments!");
 
-    traits::unpack(std::move(expected_pack), [&](auto&&... expected) {
-      std::initializer_list<int>{
-          0, ((void)validator(std::forward<decltype(args)>(args),
-                              std::forward<decltype(expected)>(expected)),
-              0)...};
-    });
+    validator(std::make_tuple(std::forward<decltype(args)>(args)...),
+              expected_pack);
   });
 }
 
 inline auto expecting_eq_check() {
-  return [](auto expected, auto actual) { EXPECT_EQ(expected, actual); };
+  return [](auto&& expected, auto&& actual) {
+    EXPECT_EQ(std::forward<decltype(expected)>(expected),
+              std::forward<decltype(actual)>(actual));
+  };
 }
 
 inline auto asserting_eq_check() {
-  return [](auto expected, auto actual) { ASSERT_EQ(expected, actual); };
+  return [](auto&& expected, auto&& actual) {
+    ASSERT_EQ(std::forward<decltype(expected)>(expected),
+              std::forward<decltype(actual)>(actual));
+  };
 }
 
 template <typename C, typename... Args>
