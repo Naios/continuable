@@ -241,6 +241,27 @@ private:
   /// Is true when the automatic invocation on destruction is disabled
   bool frozen_ : 1;
 };
+
+/// Hint for the compiler that this point should be unreachable
+[[noreturn]] inline void unreachable() {
+#ifdef _MSC_VER
+  __assume(false);
+#elif __has_builtin(__builtin_unreachable)
+  __builtin_unreachable();
+#endif
+}
+
+/// Causes the application to exit abnormally because we are
+/// in an invalid state.
+[[noreturn]] inline void trap() {
+#ifdef _MSC_VER
+  __debugbreak();
+#elif __has_builtin(__builtin_trap)
+  __builtin_trap();
+#else
+  *(volatile int*)0 = 0;
+#endif
+}
 } // namespace util
 } // namespace detail
 } // namespace cti

@@ -387,9 +387,9 @@ struct error_callback<hints::signature_hint_tag<Args...>, Callback, Executor,
   }
 };
 
-/// Workaround for GCC bug:
+/// Once this was a workaround for GCC bug:
 /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095
-struct empty_callback {
+struct final_callback {
   template <typename... Args>
   void operator()(Args... /*args*/) {
   }
@@ -398,7 +398,14 @@ struct empty_callback {
   void set_value(Args... /*args*/) {
   }
 
-  void set_exception(types::error_type /*error*/) {
+  void set_exception(types::error_type error) {
+    (void)error;
+#ifndef CONTINUABLE_WITH_UNHANDLED_ERRORS
+    // There were unhandled errors inside the asynchronous call chain!
+    // Define `CONTINUABLE_WITH_UNHANDLED_ERRORS` in order
+    // to ignore unhandled errors!"
+    util::trap();
+#endif // CONTINUABLE_WITH_UNHANDLED_ERRORS
   }
 };
 } // namespace callbacks
@@ -518,7 +525,7 @@ auto chain_error_handler(Continuation&& continuation, Callback&& callback,
 template <typename Continuation>
 void finalize_continuation(Continuation&& continuation) {
   attorney::invoke_continuation(std::forward<Continuation>(continuation),
-                                callbacks::empty_callback{});
+                                callbacks::final_callback{});
 }
 
 /// Workaround for GCC bug:

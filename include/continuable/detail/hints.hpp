@@ -34,6 +34,7 @@
 #include <type_traits>
 
 #include <continuable/detail/api.hpp>
+#include <continuable/detail/traits.hpp>
 #include <continuable/detail/util.hpp>
 
 namespace cti {

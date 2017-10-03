@@ -37,6 +37,7 @@
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/types.hpp>
+#include <continuable/detail/util.hpp>
 
 namespace cti {
 namespace detail {
@@ -92,13 +93,19 @@ public:
   void operator()(Args... args) {
     this->resolve(promise_, std::move(args)...);
   }
-#if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
-    !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
+
   /// Resolves the promise through the exception
   void operator()(types::dispatch_error_tag, types::error_type error) {
+#if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
+    !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
     promise_.set_exception(error);
-  }
+#else
+    // Can't forward a std::error_condition or custom error type
+    // to a std::promise. Handle the error first in order
+    // to prevent this trap!
+    util::trap();
 #endif
+  }
 
   /// Returns the future from the promise
   auto get_future() {
