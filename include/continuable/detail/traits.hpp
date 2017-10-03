@@ -32,6 +32,7 @@
 #define CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED__
 
 #include <cstdint>
+#include <initializer_list>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -347,8 +348,8 @@ constexpr void static_for_each_in(Sequenceable&& sequenceable,
   unpack(
       std::forward<Sequenceable>(sequenceable), [&](auto&&... entries) mutable {
         // Apply the consume function to every entry inside the pack
-        (void)std::initializer_list<int>{0,
-               ((void)handler(std::forward<decltype(entries)>(entries)), 0)...};
+        (void)std::initializer_list<int>{
+            0, ((void)handler(std::forward<decltype(entries)>(entries)), 0)...};
       });
 }
 

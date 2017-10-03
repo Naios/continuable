@@ -31,9 +31,15 @@
 #ifndef CONTINUABLE_DETAIL_TESTING_HPP_INCLUDED__
 #define CONTINUABLE_DETAIL_TESTING_HPP_INCLUDED__
 
+#include <type_traits>
+#include <utility>
+
 #include <gtest/gtest.h>
 
-#include <continuable/continuable-base.hpp>
+#include <continuable/detail/api.hpp>
+#include <continuable/detail/traits.hpp>
+#include <continuable/detail/types.hpp>
+#include <continuable/detail/util.hpp>
 
 namespace cti {
 namespace detail {
@@ -41,25 +47,54 @@ namespace testing {
 template <typename C>
 void assert_async_completion(C&& continuable) {
   auto called = std::make_shared<bool>(false);
-  std::forward<C>(continuable).then([called](auto&&... args) {
-    ASSERT_FALSE(*called);
-    *called = true;
+  std::forward<C>(continuable)
+      .then([called](auto&&... args) {
+        ASSERT_FALSE(*called);
+        *called = true;
 
-    // Workaround for our known GCC bug.
-    util::unused(std::forward<decltype(args)>(args)...);
-  });
+        // Workaround for our known GCC bug.
+        util::unused(std::forward<decltype(args)>(args)...);
+      })
+      .fail([](cti::error_type /*error*/) {
+        // ...
+        FAIL();
+      });
+
+  ASSERT_TRUE(*called);
+}
+
+template <typename C>
+void assert_async_exception_completion(C&& continuable) {
+  auto called = std::make_shared<bool>(false);
+  std::forward<C>(continuable)
+      .then([](auto&&... args) {
+        // Workaround for our known GCC bug.
+        util::unused(std::forward<decltype(args)>(args)...);
+
+        // ...
+        FAIL();
+      })
+      .fail([called](cti::error_type /*error*/) {
+        ASSERT_FALSE(*called);
+        *called = true;
+      });
 
   ASSERT_TRUE(*called);
 }
 
 template <typename C>
 void assert_async_never_completed(C&& continuable) {
-  std::forward<C>(continuable).then([](auto&&... args) {
-    // Workaround for our known GCC bug.
-    util::unused(std::forward<decltype(args)>(args)...);
+  std::forward<C>(continuable)
+      .then([](auto&&... args) {
+        // Workaround for our known GCC bug.
+        util::unused(std::forward<decltype(args)>(args)...);
 
-    FAIL();
-  });
+        FAIL();
+      })
+      .fail([](cti::error_type /*error*/) {
+        // ...
+        FAIL();
+      });
 }
 
 template <typename C, typename V>
@@ -92,6 +127,43 @@ void assert_async_binary_validation(V&& validator, C&& continuable,
     validator(std::make_tuple(std::forward<decltype(args)>(args)...),
               expected_pack);
   });
+}
+
+/// Expects that the continuable is finished with the given arguments
+template <typename V, typename C, typename Args>
+void assert_async_binary_exception_validation(V&& validator, C&& continuable,
+                                              Args&& expected) {
+  auto called = std::make_shared<bool>(false);
+  std::forward<C>(continuable)
+      .then([](auto&&... args) {
+        // Workaround for our known GCC bug.
+        util::unused(std::forward<decltype(args)>(args)...);
+
+        // ...
+        FAIL();
+      })
+      .fail([
+        called, validator = std::forward<decltype(validator)>(validator),
+        expected = std::forward<decltype(expected)>(expected)
+      ](types::error_type error) {
+        ASSERT_FALSE(*called);
+        *called = true;
+
+#if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
+    !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
+        try {
+          std::rethrow_exception(error);
+        } catch (std::decay_t<decltype(expected)> const& exception) {
+          validator(exception, expected);
+        } catch (...) {
+          FAIL();
+        }
+#else
+        validator(error, expected);
+#endif
+      });
+
+  ASSERT_TRUE(*called);
 }
 
 inline auto expecting_eq_check() {

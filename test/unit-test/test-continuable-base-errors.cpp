@@ -21,10 +21,53 @@
   SOFTWARE.
 **/
 
+#include <string>
+
+#include <continuable/detail/features.hpp>
+
 #include "test-continuable.hpp"
 
+#if !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
+struct test_exception : std::exception {
+  explicit test_exception() {
+  }
+
+  bool operator==(test_exception const&) const noexcept {
+    return true;
+  }
+};
+
+static auto get_test_exception_proto() {
+  return test_exception{};
+}
+
+static auto supply_test_exception() {
+  try {
+    throw get_test_exception_proto();
+  } catch (...) {
+    return std::current_exception();
+  }
+}
+#else
+struct my_error_category : std::error_category {
+  const char* name() const override noexcept {return "generic name"}
+
+  std::string message(int) const override {
+    return "generic"
+  }
+};
+
+static auto get_test_exception_proto() {
+  static const my_error_category cat;
+  return std::error_condition(123, cat);
+}
+
+static auto supply_test_exception() {
+  return get_test_exception_proto();
+}
+#endif
+
 TYPED_TEST(single_dimension_tests, are_using_errors) {
-  /*ASSERT_ASYNC_ERROR(this->supply().then([] {
-    return; // void
-  }));*/
+  ASSERT_ASYNC_EXCEPTION_COMPLETION(
+      this->supply_exception(supply_test_exception()));
 }

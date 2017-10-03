@@ -24,57 +24,15 @@
 #ifndef TEST_CONTINUABLE_HPP__
 #define TEST_CONTINUABLE_HPP__
 
-#if UNIT_TEST_STEP >= 3
-#define THIRD_PARTY_TESTS
-#endif
-
-#ifdef THIRD_PARTY_TESTS
-// #if _MSC_VER
-// #pragma warning(push, 0)
-// #endif
-#endif // THIRD_PARTY_TESTS
-
 #include <cassert>
 
-#include "continuable/continuable-base.hpp"
-#include "continuable/continuable-testing.hpp"
-#include "continuable/continuable.hpp"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+
 #include <functional>
 
-#ifdef THIRD_PARTY_TESTS
-
-#include "cxx_function/cxx_function.hpp"
-
-template <typename T>
-using cxx_function_fn = cxx_function::function<T>;
-
-template <typename... Args>
-using cxx_trait_of =
-    cti::continuable_trait<cxx_function_fn, cxx_function_fn, Args...>;
-
-template <typename... Args>
-using cxx_continuable = typename cxx_trait_of<Args...>::continuable;
-
-template <typename T>
-using cxx_function_unique_fn = cxx_function::unique_function<T>;
-
-template <typename... Args>
-using unique_cxx_trait_of =
-    cti::continuable_trait<cxx_function_unique_fn, cxx_function_unique_fn,
-                           Args...>;
-
-template <typename... Args>
-using cxx_unique_continuable =
-    typename unique_cxx_trait_of<Args...>::continuable;
-#endif // THIRD_PARTY_TESTS
-
-template <typename... Args>
-using std_trait_of =
-    cti::continuable_trait<std::function, std::function, Args...>;
-
-template <typename... Args>
-using std_continuable = typename std_trait_of<Args...>::continuable;
+#include <continuable/continuable-base.hpp>
+#include <continuable/continuable-testing.hpp>
+#include <continuable/continuable.hpp>
 
 using cti::detail::traits::identity;
 
@@ -96,6 +54,13 @@ auto supplier_of(Args&&... args) {
   };
 }
 
+template <typename Arg>
+auto exception_supplier_of(Arg&& arg) {
+  return [arg = std::forward<Arg>(arg)](auto&& promise) mutable {
+    promise.set_exception(std::move(arg));
+  };
+}
+
 template <typename Provider>
 class continuation_provider : public ::testing::Test, public Provider {
 public:
@@ -114,6 +79,15 @@ public:
 
     return this->make(arg_types, hint_types,
                       supplier_of(std::forward<Args>(args)...));
+  }
+
+  template <typename Arg>
+  auto supply_exception(Arg&& arg) {
+    identity<> arg_types;
+    auto hint_types = to_hint(arg_types);
+
+    return this->make(arg_types, hint_types,
+                      exception_supplier_of(std::forward<Arg>(arg)));
   }
 };
 

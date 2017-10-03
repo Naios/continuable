@@ -31,6 +31,7 @@
 #ifndef CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED__
 #define CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED__
 
+#include <cassert>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -45,14 +46,7 @@ namespace detail {
 namespace util {
 /// Helper to trick compilers about that a parameter pack is used
 template <typename... T>
-void unused(T&&... args) {
-  auto use = [](auto&& type) mutable {
-    (void)type;
-    return 0;
-  };
-  auto deduce = {0, use(std::forward<decltype(args)>(args))...};
-  (void)deduce;
-  (void)use;
+void unused(T&&...) {
 }
 
 namespace detail {
