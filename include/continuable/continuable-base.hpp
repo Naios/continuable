@@ -196,9 +196,10 @@ public:
   template <typename T, typename E = detail::types::this_thread_executor_tag>
   auto then(T&& callback,
             E&& executor = detail::types::this_thread_executor_tag{}) && {
-    return detail::base::chain_continuation(std::move(*this).materialize(),
-                                            std::forward<T>(callback),
-                                            std::forward<E>(executor));
+    return detail::base::chain_continuation<detail::base::handle_results::yes,
+                                            detail::base::handle_errors::no>(
+        std::move(*this).materialize(), std::forward<T>(callback),
+        std::forward<E>(executor));
   }
 
   /// Additional overload of the continuable_base::then() method
@@ -268,9 +269,10 @@ public:
   template <typename T, typename E = detail::types::this_thread_executor_tag>
   auto fail(T&& callback,
             E&& executor = detail::types::this_thread_executor_tag{}) && {
-    return detail::base::chain_error_handler(std::move(*this).materialize(),
-                                             std::forward<T>(callback),
-                                             std::forward<E>(executor));
+    return detail::base::chain_continuation<detail::base::handle_results::no,
+                                            detail::base::handle_errors::plain>(
+        std::move(*this).materialize(), std::forward<T>(callback),
+        std::forward<E>(executor));
   }
 
   /// A method which allows to use an overloaded callable for the error
@@ -303,9 +305,11 @@ public:
   template <typename T, typename E = detail::types::this_thread_executor_tag>
   auto flow(T&& callback,
             E&& executor = detail::types::this_thread_executor_tag{}) && {
-    return detail::base::chain_flow_handler(std::move(*this).materialize(),
-                                            std::forward<T>(callback),
-                                            std::forward<E>(executor));
+    return detail::base::chain_continuation<
+        detail::base::handle_results::yes,
+        detail::base::handle_errors::forward>(std::move(*this).materialize(),
+                                              std::forward<T>(callback),
+                                              std::forward<E>(executor));
   }
 
   /// Ignores all error which ocured until the point the function was called

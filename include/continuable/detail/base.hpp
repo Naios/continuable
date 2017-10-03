@@ -261,12 +261,34 @@ void packed_dispatch(Executor&& executor, Invoker&& invoker, Args&&... args) {
   std::forward<Executor>(executor)(std::move(work));
 }
 
+/// Tells whether we potentially move the chain upwards and handle the result
+enum class handle_results {
+  no, //< The result is forwarded to the next callable
+  yes //< The result is handled by the current callable
+};
+
+/// Tells whether we handle the error through the callback
+enum class handle_errors {
+  no,     //< The error is forwarded to the next callable
+  plain,  //< The error is the only argument accepted by the callable
+  forward //< The error is forwarded to the callable while keeping its tag
+};
+
 namespace callbacks {
 namespace proto {
-template <typename Base, typename Hint>
-struct accept_result_base;
+template <handle_results HandleResults, typename Base, typename Hint>
+struct result_handler_base;
 template <typename Base, typename... Args>
-struct accept_result_base<Base, hints::signature_hint_tag<Args...>> {
+struct result_handler_base<handle_results::no, Base,
+                           hints::signature_hint_tag<Args...>> {
+  void operator()(Args... args) {
+    // Forward the arguments to the next callback
+    std::move(static_cast<Base*>(this)->next_callback_)(std::move(args)...);
+  }
+};
+template <typename Base, typename... Args>
+struct result_handler_base<handle_results::yes, Base,
+                           hints::signature_hint_tag<Args...>> {
   /// The operator which is called when the result was provided
   void operator()(Args... args) {
     // In order to retrieve the correct decorator we must know what the
@@ -286,25 +308,27 @@ struct accept_result_base<Base, hints::signature_hint_tag<Args...>> {
   }
 };
 
-template <typename Base, typename Hint>
-struct reject_result_base;
-template <typename Base, typename... Args>
-struct reject_result_base<Base, hints::signature_hint_tag<Args...>> {
-  void operator()(Args... args) {
-    // Forward the arguments to the next callback
-    std::move(static_cast<Base*>(this)->next_callback_)(std::move(args)...);
-  }
-};
+inline auto make_error_invoker(
+    std::integral_constant<handle_errors, handle_errors::plain>) noexcept {
+  return [](auto&& callback, types::error_type&& error) {
+    // Errors are not partial invoked
+    std::move(callback)(std::move(error));
+  };
+}
+inline auto make_error_invoker(
+    std::integral_constant<handle_errors, handle_errors::forward>) noexcept {
+  return [](auto&& callback, types::error_type&& error) {
+    // Errors are not partial invoked
+    std::move(callback)(types::dispatch_error_tag{}, std::move(error));
+  };
+}
 
-template <typename Base>
-struct accept_error_base {
+template <handle_errors HandleErrors /* = plain or forward*/, typename Base>
+struct error_handler_base {
   void operator()(types::dispatch_error_tag, types::error_type error) {
     // Just invoke the error handler, cancel the calling hierarchy after
-    auto invoker = [](typename Base::CallbackT&& callback,
-                      types::error_type&& error) {
-      // Errors are not partial invoked
-      std::move(callback)(std::move(error));
-    };
+    auto invoker = make_error_invoker(
+        std::integral_constant<handle_errors, HandleErrors>{});
 
     // Invoke the error handler
     packed_dispatch(
@@ -312,35 +336,35 @@ struct accept_error_base {
         std::move(static_cast<Base*>(this)->callback_), std::move(error));
   }
 };
-
 template <typename Base>
-struct reject_error_base {
+struct error_handler_base<handle_errors::no, Base> {
   /// The operator which is called when an error occurred
   void operator()(types::dispatch_error_tag tag, types::error_type error) {
     // Forward the error to the next callback
     std::move(static_cast<Base*>(this)->next_callback_)(tag, std::move(error));
   }
 };
+} // namespace proto
 
-template <typename Hint, typename Callback, typename Executor,
-          typename NextCallback,
-          template <typename, typename> class ResultCallbackBase,
-          template <typename> class ErrorCallbackBase>
+template <typename Hint, handle_results HandleResults,
+          handle_errors HandleErrors, typename Callback, typename Executor,
+          typename NextCallback>
 struct callback_base;
 
-template <typename... Args, typename Callback, typename Executor,
-          typename NextCallback,
-          template <typename, typename> class ResultCallbackBase,
-          template <typename> class ErrorCallbackBase>
-struct callback_base<hints::signature_hint_tag<Args...>, Callback, Executor,
-                     NextCallback, ResultCallbackBase, ErrorCallbackBase>
-    : ResultCallbackBase<
-          callback_base<hints::signature_hint_tag<Args...>, Callback, Executor,
-                        NextCallback, ResultCallbackBase, ErrorCallbackBase>,
+template <typename... Args, handle_results HandleResults,
+          handle_errors HandleErrors, typename Callback, typename Executor,
+          typename NextCallback>
+struct callback_base<hints::signature_hint_tag<Args...>, HandleResults,
+                     HandleErrors, Callback, Executor, NextCallback>
+    : proto::result_handler_base<
+          HandleResults,
+          callback_base<hints::signature_hint_tag<Args...>, HandleResults,
+                        HandleErrors, Callback, Executor, NextCallback>,
           hints::signature_hint_tag<Args...>>,
-      ErrorCallbackBase<
-          callback_base<hints::signature_hint_tag<Args...>, Callback, Executor,
-                        NextCallback, ResultCallbackBase, ErrorCallbackBase>> {
+      proto::error_handler_base<
+          HandleErrors,
+          callback_base<hints::signature_hint_tag<Args...>, HandleResults,
+                        HandleErrors, Callback, Executor, NextCallback>> {
 
   using CallbackT = Callback;
 
@@ -355,15 +379,17 @@ struct callback_base<hints::signature_hint_tag<Args...>, Callback, Executor,
   }
 
   /// Pull the result handling operator() in
-  using ResultCallbackBase<
-      callback_base<hints::signature_hint_tag<Args...>, Callback, Executor,
-                    NextCallback, ResultCallbackBase, ErrorCallbackBase>,
+  using proto::result_handler_base<
+      HandleResults,
+      callback_base<hints::signature_hint_tag<Args...>, HandleResults,
+                    HandleErrors, Callback, Executor, NextCallback>,
       hints::signature_hint_tag<Args...>>::operator();
 
   /// Pull the error handling operator() in
-  using ErrorCallbackBase<
-      callback_base<hints::signature_hint_tag<Args...>, Callback, Executor,
-                    NextCallback, ResultCallbackBase, ErrorCallbackBase>>::
+  using proto::error_handler_base<
+      HandleErrors,
+      callback_base<hints::signature_hint_tag<Args...>, HandleResults,
+                    HandleErrors, Callback, Executor, NextCallback>>::
   operator();
 
   /// Resolves the continuation with the given values
@@ -377,18 +403,17 @@ struct callback_base<hints::signature_hint_tag<Args...>, Callback, Executor,
   }
 };
 
-template <typename Hint, template <typename, typename> class ResultCallbackBase,
-          template <typename> class ErrorCallbackBase, typename Callback,
-          typename Executor, typename NextCallback>
+template <typename Hint, handle_results HandleResults,
+          handle_errors HandleErrors, typename Callback, typename Executor,
+          typename NextCallback>
 auto make_callback(Callback&& callback, Executor&& executor,
                    NextCallback&& next_callback) {
-  return callback_base<Hint, std::decay_t<Callback>, std::decay_t<Executor>,
-                       std::decay_t<NextCallback>, ResultCallbackBase,
-                       ErrorCallbackBase>{
+  return callback_base<Hint, HandleResults, HandleErrors,
+                       std::decay_t<Callback>, std::decay_t<Executor>,
+                       std::decay_t<NextCallback>>{
       std::forward<Callback>(callback), std::forward<Executor>(executor),
       std::forward<NextCallback>(next_callback)};
 }
-} // namespace proto
 
 /// Once this was a workaround for GCC bug:
 /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095
@@ -415,14 +440,24 @@ struct final_callback {
 
 /// Returns the next hint when the callback is invoked with the given hint
 template <typename T, typename... Args>
-constexpr auto next_hint_of(traits::identity<T> /*callback*/,
-                            hints::signature_hint_tag<Args...> /*current*/) {
+constexpr auto
+next_hint_of(std::integral_constant<handle_results, handle_results::yes>,
+             traits::identity<T> /*callback*/,
+             hints::signature_hint_tag<Args...> /*current*/) {
   // Partial Invoke the given callback
   using Result = decltype(
       util::partial_invoke(std::declval<T>(), std::declval<Args>()...));
 
   // Return the hint of thr given invoker
   return decoration::invoker_of(traits::identity_of<Result>()).hint();
+}
+/// Don't progress the hint when we don't continue
+template <typename T, typename... Args>
+constexpr auto
+next_hint_of(std::integral_constant<handle_results, handle_results::no>,
+             traits::identity<T> /*callback*/,
+             hints::signature_hint_tag<Args...> current) {
+  return current;
 }
 
 /// Chains a callback together with a continuation and returns a continuation:
@@ -434,14 +469,17 @@ constexpr auto next_hint_of(traits::identity<T> /*callback*/,
 /// This function returns a function accepting the next callback in the chain:
 /// - Result: continuation<[](auto&& callback) { /*...*/ }>
 ///
-template <typename Continuation, typename Callback, typename Executor>
+template <handle_results HandleResults, handle_errors HandleErrors,
+          typename Continuation, typename Callback, typename Executor>
 auto chain_continuation(Continuation&& continuation, Callback&& callback,
                         Executor&& executor) {
   static_assert(is_continuation<std::decay_t<Continuation>>{},
                 "Expected a continuation!");
 
-  auto hint = hint_of(traits::identity_of(continuation));
-  auto next_hint = next_hint_of(traits::identity_of(callback), hint);
+  using Hint = decltype(hint_of(traits::identity_of(continuation)));
+  auto next_hint =
+      next_hint_of(std::integral_constant<handle_results, HandleResults>{},
+                   traits::identity_of(callback), Hint{});
 
   // TODO consume only the data here so the freeze isn't needed
   auto ownership_ = attorney::ownership_of(continuation);
@@ -462,13 +500,10 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
         // - Continuation: continuation<[](auto&& callback) { callback("hi"); }>
         // - Callback: [](std::string) { }
         // - NextCallback: []() { }
-        using Hint = decltype(hint_of(traits::identity_of(continuation)));
-
-        auto proxy = callbacks::proto::make_callback<
-            Hint, callbacks::proto::accept_result_base,
-            callbacks::proto::reject_error_base>(
-            std::move(callback), std::move(executor),
-            std::forward<decltype(next_callback)>(next_callback));
+        auto proxy =
+            callbacks::make_callback<Hint, HandleResults, HandleErrors>(
+                std::move(callback), std::move(executor),
+                std::forward<decltype(next_callback)>(next_callback));
 
         // Invoke the continuation with a proxy callback.
         // The proxy callback is responsible for passing
@@ -477,49 +512,6 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
                                       std::move(proxy));
       },
       next_hint, ownership_);
-}
-
-/// Chains an error handler together with a continuation and
-/// returns a continuation. The current future result of the continuation
-//// stays unchanged.
-///
-template <typename Continuation, typename Callback, typename Executor>
-auto chain_error_handler(Continuation&& continuation, Callback&& callback,
-                         Executor&& executor) {
-  static_assert(is_continuation<std::decay_t<Continuation>>{},
-                "Expected a continuation!");
-
-  // The current hint will also be the next one
-  auto hint = hint_of(traits::identity_of(continuation));
-
-  // TODO consume only the data here so the freeze isn't needed
-  auto ownership_ = attorney::ownership_of(continuation);
-  continuation.freeze();
-
-  return attorney::create(
-      [
-        continuation = std::forward<Continuation>(continuation),
-        callback = std::forward<Callback>(callback),
-        executor = std::forward<Executor>(executor)
-      ](auto&& next_callback) mutable {
-
-        using Hint = decltype(hint_of(traits::identity_of(continuation)));
-
-        auto proxy = callbacks::proto::make_callback<
-            Hint, callbacks::proto::reject_result_base,
-            callbacks::proto::accept_error_base>(
-            std::move(callback), std::move(executor),
-            std::forward<decltype(next_callback)>(next_callback));
-
-        attorney::invoke_continuation(std::move(continuation),
-                                      std::move(proxy));
-      },
-      hint, ownership_);
-}
-
-template <typename Continuation, typename Callback, typename Executor>
-auto chain_flow_handler(Continuation&& /*continuation*/,
-                        Callback&& /*callback*/, Executor&& /*executor*/) {
 }
 
 /// Final invokes the given continuation chain:
