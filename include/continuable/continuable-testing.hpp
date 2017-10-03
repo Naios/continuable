@@ -130,4 +130,11 @@
   cti::detail::testing::assert_async_types(                                    \
       CONTINUABLE, cti::detail::traits::identity<__VA_ARGS__>{})
 
+/// Asserts that the continuable is finished with the given error
+/// TODO
+/// \since version 2.0.0
+#define ASSERT_ASYNC_ERROR(...)                                               \
+  ASSERT_ASYNC_BINARY_VALIDATION(cti::detail::testing::asserting_eq_check(),   \
+                                 __VA_ARGS__)
+
 #endif // CONTINUABLE_TESTING_HPP_INCLUDED__
