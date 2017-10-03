@@ -19,6 +19,7 @@ matrix:
             - valgrind
             - cmake
             - cmake-data
+            - ninja-build
       env:
         - COMPILER=g++-6
 
@@ -34,6 +35,7 @@ matrix:
             - clang-5.0
             - cmake
             - cmake-data
+            - ninja-build
       env:
         - COMPILER=clang++-5.0
 
@@ -53,7 +55,7 @@ install:
       cd build
 
       # Configure the project and build it
-      cmake -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS -Werror" -DCMAKE_BUILD_TYPE=Debug ..
+      cmake -GNinja -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS -Werror" -DCMAKE_BUILD_TYPE=Debug ..
     }
 
 script:
@@ -64,19 +66,19 @@ script:
       echo "Building with address sanitizer..."
       CMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer"
       renew_build
-      make -j2
+      ninja
       ctest --verbose
 
       # - UBSan:
       echo "Building with undefined behaviour sanitizer..."
       CMAKE_CXX_FLAGS="-fsanitize=undefined -fno-omit-frame-pointer"
       renew_build
-      make -j2
+      ninja
       ctest --verbose
     else
       # Build an run the tests suite with valgrind
       renew_build
-      make -j2
+      ninja
       valgrind --error-exitcode=1 --leak-check=full --show-reachable=yes ctest --verbose
     fi
 
