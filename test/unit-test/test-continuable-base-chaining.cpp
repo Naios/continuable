@@ -23,13 +23,12 @@
 
 #include "test-continuable.hpp"
 
-using namespace cti;
-using namespace cti::detail;
-
 TYPED_TEST(single_dimension_tests, are_chainable) {
-  EXPECT_ASYNC_RESULT(this->supply().then([] {
+  auto chain = this->supply().then([] {
     return; // void
-  }));
+  });
+
+  ASSERT_ASYNC_TYPES(std::move(chain));
 }
 
 TYPED_TEST(single_dimension_tests, are_type_chainable) {

@@ -13,6 +13,7 @@ set(LIB_SOURCES_DETAIL
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/traits.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/transforms.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/types.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/detail/testing.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/util.hpp)
 set(TEST
   ${CMAKE_CURRENT_LIST_DIR}/test-playground.cpp)
@@ -28,6 +29,7 @@ source_group(test FILES ${TEST})
 
 target_link_libraries(test-playground
   PRIVATE
+    gtest
     continuable)
 
 target_compile_definitions(test-playground
