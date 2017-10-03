@@ -346,14 +346,9 @@ constexpr void static_for_each_in(Sequenceable&& sequenceable,
                                   Handler&& handler) {
   unpack(
       std::forward<Sequenceable>(sequenceable), [&](auto&&... entries) mutable {
-        auto consume = [&](auto&& entry) mutable {
-          handler(std::forward<decltype(entry)>(entry));
-          return 0;
-        };
         // Apply the consume function to every entry inside the pack
-        auto deduce = {0, consume(std::forward<decltype(entries)>(entries))...};
-        (void)deduce;
-        (void)consume;
+        std::initializer_list<int>{0,
+               ((void)handler(std::forward<decltype(entries)>(entries)), 0)...};
       });
 }
 

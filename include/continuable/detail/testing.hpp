@@ -48,6 +48,7 @@ void assert_async_completion(C&& continuable) {
     // Workaround for our known GCC bug.
     util::unused(std::forward<decltype(args)>(args)...);
   });
+
   ASSERT_TRUE(*called);
 }
 
