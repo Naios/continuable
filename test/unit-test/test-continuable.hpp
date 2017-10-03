@@ -89,11 +89,9 @@ auto to_hint(identity<Args...> hint) {
 template <typename... Args>
 auto supplier_of(Args&&... args) {
   return [values = std::make_tuple(std::forward<Args>(args)...)](
-      auto&& callback) mutable {
+      auto&& promise) mutable {
     cti::detail::traits::unpack(std::move(values), [&](auto&&... passed) {
-      // ...
-      std::forward<decltype(callback)>(callback)(
-          std::forward<decltype(passed)>(passed)...);
+      promise.set_value(std::forward<decltype(passed)>(passed)...);
     });
   };
 }
@@ -104,8 +102,8 @@ public:
   template <typename T>
   auto invoke(T&& type) {
     return this->make(identity<>{}, identity<void>{},
-                      [type = std::forward<T>(type)](auto&& callback) mutable {
-                        std::forward<decltype(callback)>(callback)();
+                      [type = std::forward<T>(type)](auto&& promise) mutable {
+                        promise.set_value();
                       });
   }
 
@@ -120,10 +118,7 @@ public:
 };
 
 inline auto empty_caller() {
-  return [](auto&& callback) {
-    // ...
-    std::forward<decltype(callback)>(callback)();
-  };
+  return [](auto&& promise) { promise.set_value(); };
 }
 
 inline auto empty_continuable() {

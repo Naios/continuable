@@ -38,8 +38,10 @@
 #include <type_traits>
 #include <utility>
 
+#include <continuable/continuable-promise-base.hpp>
 #include <continuable/detail/api.hpp>
 #include <continuable/detail/base.hpp>
+#include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 
@@ -130,6 +132,26 @@ class all_result_submitter : public std::enable_shared_from_this<
   std::once_flag flag_;
   std::tuple<Args...> result_;
 
+  template <std::size_t From, std::size_t To>
+  struct partial_callback {
+    std::shared_ptr<all_result_submitter> me_;
+
+    template <typename... PartialArgs>
+    void operator()(PartialArgs&&... args) {
+      me_->resolve(traits::size_constant<From>{}, traits::size_constant<To>{},
+                   std::forward<PartialArgs>(args)...);
+    }
+
+    template <typename... PartialArgs>
+    void set_value(PartialArgs&&... args) {
+      (*this)(std::forward<PartialArgs>(args)...);
+    }
+
+    void set_exception(types::error_type error) {
+      (*this)(types::dispatch_error_tag{}, std::move(error));
+    }
+  };
+
 public:
   explicit all_result_submitter(T callback)
       : callback_(std::move(callback)), left_(Submissions) {
@@ -139,13 +161,7 @@ public:
   template <std::size_t From, std::size_t To>
   auto create_callback(traits::size_constant<From> /*from*/,
                        traits::size_constant<To> /*to*/) {
-
-    return [me = this->shared_from_this()](auto&&... args) {
-      // Resolve the and composition with the given arguments at the
-      // stored position
-      me->resolve(traits::size_constant<From>{}, traits::size_constant<To>{},
-                  std::forward<decltype(args)>(args)...);
-    };
+    return partial_callback<From, To>{this->shared_from_this()};
   }
 
 private:
@@ -195,9 +211,12 @@ private:
 };
 
 /// Invokes the callback with the first arriving result
-template <typename T>
-class any_result_submitter
-    : public std::enable_shared_from_this<any_result_submitter<T>>,
+template <typename Signature, typename T>
+class any_result_submitter;
+template <typename... Args, typename T>
+class any_result_submitter<hints::signature_hint_tag<Args...>, T>
+    : public std::enable_shared_from_this<
+          any_result_submitter<hints::signature_hint_tag<Args...>, T>>,
       public util::non_movable {
 
   T callback_;
@@ -209,16 +228,21 @@ public:
 
   /// Creates a submitter which submits it's result to the callback
   auto create_callback() {
-    return [me = this->shared_from_this()](auto&&... args) {
+    auto callback = [me = this->shared_from_this()](auto&&... args) {
       me->invoke(std::forward<decltype(args)>(args)...);
     };
+
+    return promise_base<std::decay_t<decltype(callback)>,
+                        hints::signature_hint_tag<Args...>>(
+        std::move(callback));
   }
 
 private:
   // Invokes the callback with the given arguments
-  template <typename... Args>
-  void invoke(Args&&... args) {
-    std::call_once(flag_, std::move(callback_), std::forward<Args>(args)...);
+  template <typename... ActualArgs>
+  void invoke(ActualArgs&&... args) {
+    std::call_once(flag_, std::move(callback_),
+                   std::forward<ActualArgs>(args)...);
   }
 };
 } // namespace detail
@@ -355,10 +379,10 @@ auto finalize_composition(
 }
 
 /// Creates a submitter that continues `any` chains
-template <typename Callback>
-auto make_any_result_submitter(Callback&& callback) {
-  return std::make_shared<
-      detail::any_result_submitter<std::decay_t<decltype(callback)>>>(
+template <typename Signature, typename Callback>
+auto make_any_result_submitter(Signature&& /*signature*/, Callback&& callback) {
+  return std::make_shared<detail::any_result_submitter<
+      std::decay_t<Signature>, std::decay_t<decltype(callback)>>>(
       std::forward<decltype(callback)>(callback));
 }
 
@@ -409,13 +433,15 @@ auto finalize_composition(
                             base::hint_of(traits::identity_of(args))...);
   });
 
+  using Signature = decltype(signature);
+
   return base::attorney::create(
       [composition = std::move(composition)](auto&& callback) mutable {
 
         // Create the submitter which calls the given callback once at the first
         // callback invocation.
         auto submitter = make_any_result_submitter(
-            std::forward<decltype(callback)>(callback));
+            Signature{}, std::forward<decltype(callback)>(callback));
 
         traits::static_for_each_in(std::move(composition),
                                    [&](auto&& entry) mutable {
