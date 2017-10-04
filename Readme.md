@@ -44,10 +44,6 @@ The continuable library was designed in order to provide you as much as flexibil
 - There is no enforced type erasure which means there is less memory allocation and thus the callback chains are heavily optimizable by the compiler. That's why the library is well usable in the embedded or gaming field. **Don't pay for what you don't use!**
 - The library provides support for **dispatching callbacks on a given executor**, however, it doesn't provide it's own one. You probably will use your own executor like [asio](https://github.com/chriskohlhoff/asio), [libuv](https://github.com/libuv/libuv) or a corresponding [lock-free concurrentqueue](https://github.com/cameron314/concurrentqueue) anyway. In most cases, the executor will do the type erasure for you, so there is no reason to do it twice.
 - The library provides as much as **syntactic sugar** as it's possible, in order to make continuation chaining expressive and simple. For instance, it allows you to logical connect continuables through the well-known operators `&&` and `||`.
-- The library is header only and has **fewer dependencies**:
-  - The `continuable-base.hpp` header only depends on the standard library and provides the basic continuation logic.
-  - The `continuable-test.hpp` header also depends on `gtest` because it adds various test macros for asserting on the result of asynchronous continuations.
-  - The `continuable.hpp`header depends on my header-only [function2](https://github.com/Naios/function2) library for providing efficient type erasure - non-copyable objects are natively supported without any workaround.
 
 
 ## Installation
