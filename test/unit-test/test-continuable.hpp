@@ -177,7 +177,7 @@ using single_types = ::testing::Types<
   // provide_continuation_and_right<provide_unique>,
   // provide_continuation_and_left<provide_erasure<cti::continuable>>
 #elif UNIT_TEST_STEP == 2
-  provide_continuation_and_left<provide_erasure<cti::unique_continuable>>
+  provide_continuation_and_right<provide_unique>
 #elif UNIT_TEST_STEP == 3
   provide_unique
 #elif UNIT_TEST_STEP == 4
