@@ -149,7 +149,7 @@ auto partial_invoke_impl_shortcut(std::false_type failed, T&& callable,
 /// \note This function will assert statically if there is no way to call the
 ///       given object with less arguments.
 template <typename T, typename... Args>
-auto partial_invoke(T&& callable, Args&&... args) {
+/*keep this inline*/ inline auto partial_invoke(T&& callable, Args&&... args) {
   // Test whether we are able to call the function with the given arguments.
   is_invokable<decltype(callable), std::tuple<Args...>> is_invokable;
 
