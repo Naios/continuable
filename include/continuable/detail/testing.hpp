@@ -153,7 +153,7 @@ void assert_async_binary_exception_validation(V&& validator, C&& continuable,
     !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
         try {
           std::rethrow_exception(error);
-        } catch (std::decay_t<decltype(expected)> const& exception) {
+        } catch (std::decay_t<decltype(expected)>& exception) {
           validator(exception, expected);
         } catch (...) {
           FAIL();

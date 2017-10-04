@@ -62,31 +62,31 @@ TYPED_TEST(single_dimension_tests, are_incomplete_when_frozen) {
   {
     auto chain = this->supply();
     chain.freeze();
-    ASSERT_ASYNC_NEVER_COMPLETED(std::move(chain));
+    ASSERT_ASYNC_INCOMPLETION(std::move(chain));
   }
 
   {
     auto chain = this->supply();
     chain.freeze();
-    ASSERT_ASYNC_NEVER_COMPLETED(std::move(chain).then(this->supply()));
+    ASSERT_ASYNC_INCOMPLETION(std::move(chain).then(this->supply()));
   }
 }
 
 TYPED_TEST(single_dimension_tests, are_not_dispatched_when_frozen) {
   auto chain = assert_invocation(this);
   chain.freeze();
-  ASSERT_ASYNC_NEVER_COMPLETED(std::move(chain));
+  ASSERT_ASYNC_INCOMPLETION(std::move(chain));
 }
 
 TYPED_TEST(single_dimension_tests, are_not_finished_when_not_continued) {
   {
     auto chain = create_incomplete(this);
-    ASSERT_ASYNC_NEVER_COMPLETED(std::move(chain));
+    ASSERT_ASYNC_INCOMPLETION(std::move(chain));
   }
 
   {
     auto chain = create_incomplete(this);
-    ASSERT_ASYNC_NEVER_COMPLETED(std::move(chain).then(this->supply()));
+    ASSERT_ASYNC_INCOMPLETION(std::move(chain).then(this->supply()));
   }
 }
 

@@ -53,7 +53,7 @@
 /// with any result.
 ///
 /// \since version 1.0.0
-#define ASSERT_ASYNC_NEVER_COMPLETED(CONTINUABLE)                              \
+#define ASSERT_ASYNC_INCOMPLETION(CONTINUABLE)                                 \
   cti::detail::testing::assert_async_never_completed(CONTINUABLE);
 
 /// Expects the continuation to be called and forwards it's arguments to
