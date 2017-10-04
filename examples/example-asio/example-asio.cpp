@@ -99,7 +99,7 @@ int main(int, char**) {
         // auto socket = std::make_shared<udp::socket>(service);
         // socket->async_send_to()
       })
-      .fail([](cti::error_type error) {
+      .fail([](cti::error_type /*error*/) {
         // ...
       });
 
