@@ -1,5 +1,5 @@
 
-/**
+/*
 
                         /~` _  _ _|_. _     _ |_ | _
                         \_,(_)| | | || ||_|(_||_)|(/_
@@ -33,7 +33,7 @@
 
 #include <function2/function2.hpp>
 
-#include <continuable/detail/api.hpp>
+#include <continuable/continuable-api.hpp>
 #include <continuable/continuable-trait.hpp>
 
 namespace cti {

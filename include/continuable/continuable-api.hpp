@@ -1,5 +1,5 @@
 
-/**
+/*
 
                         /~` _  _ _|_. _     _ |_ | _
                         \_,(_)| | | || ||_|(_||_)|(/_
@@ -26,7 +26,7 @@
   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
-**/
+*/
 
 #ifndef CONTINUABLE_DETAIL_API_HPP_INCLUDED__
 #define CONTINUABLE_DETAIL_API_HPP_INCLUDED__

@@ -1,5 +1,5 @@
 
-/**
+/*
 
                         /~` _  _ _|_. _     _ |_ | _
                         \_,(_)| | | || ||_|(_||_)|(/_
@@ -33,7 +33,7 @@
 
 #include <type_traits>
 
-#include <continuable/detail/api.hpp>
+#include <continuable/continuable-api.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/util.hpp>
 

@@ -1,5 +1,5 @@
 
-/**
+/*
 
                         /~` _  _ _|_. _     _ |_ | _
                         \_,(_)| | | || ||_|(_||_)|(/_
@@ -36,7 +36,7 @@
 #include <type_traits>
 #include <utility>
 
-#include <continuable/detail/api.hpp>
+#include <continuable/continuable-api.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/composition.hpp>
 #include <continuable/detail/traits.hpp>
@@ -328,7 +328,7 @@ public:
   ///
   /// \param right The argument on the right-hand side to connect.
   ///
-  /// \returns See the corresponding continuable::then method for the
+  /// \returns See the corresponding continuable_base::then method for the
   ///          explanation of the return type.
   ///
   /// \since version 2.0.0

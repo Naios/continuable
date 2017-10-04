@@ -1,5 +1,5 @@
 
-/**
+/*
 
                         /~` _  _ _|_. _     _ |_ | _
                         \_,(_)| | | || ||_|(_||_)|(/_
@@ -33,7 +33,7 @@
 
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-promise-base.hpp>
-#include <continuable/detail/api.hpp>
+#include <continuable/continuable-api.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/types.hpp>
 

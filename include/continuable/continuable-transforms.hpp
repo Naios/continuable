@@ -1,5 +1,5 @@
 
-/**
+/*
 
                         /~` _  _ _|_. _     _ |_ | _
                         \_,(_)| | | || ||_|(_||_)|(/_
@@ -31,7 +31,7 @@
 #ifndef CONTINUABLE_TRANSFORMS_HPP_INCLUDED__
 #define CONTINUABLE_TRANSFORMS_HPP_INCLUDED__
 
-#include <continuable/detail/api.hpp>
+#include <continuable/continuable-api.hpp>
 #include <continuable/detail/transforms.hpp>
 
 namespace cti {
@@ -48,11 +48,11 @@ namespace cti {
 /// | `continuable_base with <Arg>`     | `std::future<Arg>`                 |
 /// | `continuable_base with <Args...>` | `std::future<std::tuple<Args...>>` |
 ///
-/// \alert If exceptions are used, exceptions that are thrown, are forwarded
-///        to the returned future. If there are no exceptions supported,
-///        you shall not pass any errors to the end of the asynchronous
-///        call chain!
-///        Otherwise this will yield a trap that causes application exit.
+/// \attention If exceptions are used, exceptions that are thrown, are forwarded
+///            to the returned future. If there are no exceptions supported,
+///            you shall not pass any errors to the end of the asynchronous
+///            call chain!
+///            Otherwise this will yield a trap that causes application exit.
 ///
 /// \since version 2.0.0
 inline auto futurize() {
@@ -67,8 +67,8 @@ inline auto futurize() {
 ///
 /// \returns Returns a continuable with the same signature as applied to.
 ///
-/// \note This can be used to create a continuable which doesn't resolve
-///       the continuation on errors.
+/// \attention This can be used to create a continuable which doesn't resolve
+///            the continuation on errors.
 ///
 /// \since version 2.0.0
 inline auto flatten() {

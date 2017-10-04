@@ -1,5 +1,5 @@
 
-/**
+/*
 
                         /~` _  _ _|_. _     _ |_ | _
                         \_,(_)| | | || ||_|(_||_)|(/_
@@ -31,7 +31,7 @@
 #ifndef CONTINUABLE_TESTING_HPP_INCLUDED__
 #define CONTINUABLE_TESTING_HPP_INCLUDED__
 
-#include <continuable/detail/api.hpp>
+#include <continuable/continuable-api.hpp>
 #include <continuable/detail/testing.hpp>
 #include <continuable/detail/traits.hpp>
 

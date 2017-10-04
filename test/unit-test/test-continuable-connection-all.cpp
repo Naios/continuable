@@ -1,5 +1,5 @@
 
-/**
+/*
   Copyright(c) 2015 - 2017 Denis Blank <denis.blank at outlook dot com>
 
   Permission is hereby granted, free of charge, to any person obtaining a copy

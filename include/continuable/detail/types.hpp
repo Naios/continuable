@@ -1,5 +1,5 @@
 
-/**
+/*
 
                         /~` _  _ _|_. _     _ |_ | _
                         \_,(_)| | | || ||_|(_||_)|(/_
@@ -39,7 +39,7 @@
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 #endif // CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
 
-#include <continuable/detail/api.hpp>
+#include <continuable/continuable-api.hpp>
 #include <continuable/detail/features.hpp>
 
 namespace cti {

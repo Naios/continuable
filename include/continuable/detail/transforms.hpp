@@ -1,5 +1,5 @@
 
-/**
+/*
 
                         /~` _  _ _|_. _     _ |_ | _
                         \_,(_)| | | || ||_|(_||_)|(/_
@@ -33,7 +33,7 @@
 
 #include <future>
 
-#include <continuable/detail/api.hpp>
+#include <continuable/continuable-api.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/hints.hpp>
