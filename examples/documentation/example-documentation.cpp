@@ -29,14 +29,14 @@ void creating_continuables() {
   auto void_continuable = cti::make_continuable<void>([](auto&& callback) {
     //                                          ^^^^
 
-    // Call the callback later when you have finished your work
-    callback();
+    // Call the promise later when you have finished your work
+    callback.set_value();
   });
 
   auto str_continuable =
       cti::make_continuable<std::string>([](auto&& callback) {
         //                                         ^^^^^^^^^^^
-        callback("Hello, World!");
+        callback.set_value("Hello, World!");
       });
 }
 
@@ -99,8 +99,10 @@ void chaining_continuables() {
 }
 
 auto http_request(std::string /*url*/) {
-  return cti::make_continuable<std::string>(
-      [](auto&& callback) { callback("<html>...</html>"); });
+  return cti::make_continuable<std::string>([](auto&& callback) {
+    // ...
+    callback.set_value("<html>...</html>");
+  });
 }
 
 void connecting_continuables() {
