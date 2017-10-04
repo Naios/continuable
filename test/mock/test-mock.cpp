@@ -25,22 +25,48 @@
 #include <string>
 #include <system_error>
 
-template <typename... A> struct continuable {
-  template <typename T = int> continuable(T&& = 0) {}
+template <typename... A>
+struct continuable {
+  template <typename T = int>
+  continuable(T&& = 0) {
+  }
 
-  template <typename T> continuable& then(T&&) { return *this; }
+  template <typename T>
+  continuable& then(T&&) {
+    return *this;
+  }
 
-  template <typename T> continuable& dropped(T&&) { return *this; }
+  template <typename T>
+  continuable& dropped(T&&) {
+    return *this;
+  }
 
-  template <typename T> continuable& thrown(T&&) { return *this; }
+  template <typename T>
+  continuable& thrown(T&&) {
+    return *this;
+  }
 
-  template <typename T> continuable& failed(T&&) { return *this; }
+  template <typename T>
+  continuable& failed(T&&) {
+    return *this;
+  }
+
+  template <typename T>
+  continuable& operator|(T&&) {
+    return *this;
+  }
 };
 
-template <typename... A> struct promise {
-  void set_value(A...) noexcept {}
+template <typename... Args>
+using channel = continuable<Args...>;
 
-  void operator()(A...) && noexcept {}
+template <typename... A>
+struct promise {
+  void set_value(A...) noexcept {
+  }
+
+  void operator()(A...) && noexcept {
+  }
 
   void set_exception(std::exception_ptr exception) noexcept {
     // ...
@@ -52,12 +78,16 @@ template <typename... A> struct promise {
     (void)error;
   }
 
-  void cancel() noexcept {}
+  void cancel() noexcept {
+  }
 
-  bool is_canceled() const noexcept { return false; }
+  bool is_canceled() const noexcept {
+    return false;
+  }
 };
 
-template <typename... Result> struct accumulator {
+template <typename... Result>
+struct accumulator {
   auto accumulate() {
     return [] {};
   }

@@ -48,7 +48,7 @@ namespace cti {
 /// | `continuable_base with <Arg>`     | `std::future<Arg>`                 |
 /// | `continuable_base with <Args...>` | `std::future<std::tuple<Args...>>` |
 ///
-/// \alert If exceptions are used, exceptions that are thrown are forwarded
+/// \alert If exceptions are used, exceptions that are thrown, are forwarded
 ///        to the returned future. If there are no exceptions supported,
 ///        you shall not pass any errors to the end of the asynchronous
 ///        call chain!
