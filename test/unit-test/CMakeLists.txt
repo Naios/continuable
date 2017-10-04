@@ -4,6 +4,7 @@ foreach(STEP RANGE 4)
 
   add_executable(${PROJECT_NAME}
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-chaining.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-destruct.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-errors.cpp
@@ -14,6 +15,10 @@ foreach(STEP RANGE 4)
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-erasure.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-regression.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-transforms.cpp)
+
+  target_include_directories(${PROJECT_NAME}
+    PRIVATE
+      ${CMAKE_CURRENT_LIST_DIR})
 
   target_link_libraries(${PROJECT_NAME}
     PRIVATE

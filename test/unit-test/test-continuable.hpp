@@ -181,10 +181,8 @@ using single_types = ::testing::Types<
 #elif UNIT_TEST_STEP == 3
   provide_unique
 #elif UNIT_TEST_STEP == 4
-//#define NO_ERASURE_TESTS
-//#define NO_FUTURE_TESTS
-//  provide_erasure<cxx_continuable>,
-//  provide_erasure<cxx_unique_continuable>
+  //  provide_erasure<cxx_continuable>,
+  //  provide_erasure<cxx_unique_continuable>
   provide_continuation_seq_right<provide_unique>
 #endif
 >;
@@ -206,5 +204,42 @@ auto make_step(T* me, unsigned& current, unsigned step) {
     ++current;
   });
 }
+
+#if !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
+struct test_exception : std::exception {
+  explicit test_exception() {
+  }
+
+  bool operator==(test_exception const&) const noexcept {
+    return true;
+  }
+};
+
+test_exception get_test_exception_proto();
+
+inline auto supply_test_exception() {
+  try {
+    throw get_test_exception_proto();
+  } catch (...) {
+    return std::current_exception();
+  }
+}
+#else
+struct my_error_category : std::error_category {
+  const char* name() const noexcept override {
+    return "generic name";
+  }
+
+  std::string message(int) const override {
+    return "generic";
+  }
+};
+
+std::error_condition get_test_exception_proto();
+
+inline std::error_condition supply_test_exception() {
+  return get_test_exception_proto();
+}
+#endif
 
 #endif // TEST_CONTINUABLE_HPP__

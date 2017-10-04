@@ -28,15 +28,13 @@
 using namespace cti;
 using namespace cti::detail;
 
-#ifndef NO_FUTURE_TESTS
+template <typename T>
+bool is_ready(T& future) {
+  // Check that the future is ready
+  return future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+}
 
 TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
-  auto is_ready = [](auto& future) {
-    // Check that the future is ready
-    return future.wait_for(std::chrono::seconds(0)) ==
-           std::future_status::ready;
-  };
-
   {
     auto future = this->supply().apply(cti::futurize());
     ASSERT_TRUE(is_ready(future));
@@ -70,4 +68,9 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
   }
 }
 
-#endif // NO_FUTURE_TESTS
+TYPED_TEST(single_dimension_tests, are_flattable) {
+  auto continuation =
+      this->supply_exception(supply_test_exception()).apply(cti::flatten());
+
+  ASSERT_ASYNC_INCOMPLETION(std::move(continuation));
+}
