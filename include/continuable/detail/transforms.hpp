@@ -128,7 +128,7 @@ auto as_future(continuable_base<Data, Annotation>&& continuable) {
   auto future = callback.get_future();
 
   // Dispatch the continuation with the promise resolving callback
-  std::move(continuable).then(std::move(callback)).done();
+  std::move(continuable).flow(std::move(callback)).done();
 
   return future;
 }

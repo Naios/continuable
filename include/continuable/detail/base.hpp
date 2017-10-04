@@ -35,6 +35,11 @@
 #include <type_traits>
 #include <utility>
 
+#if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
+    !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
+#include <exception>
+#endif
+
 #include <continuable/detail/api.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>
@@ -235,8 +240,18 @@ template <typename Invoker, typename... Args>
 void packed_dispatch(types::this_thread_executor_tag, Invoker&& invoker,
                      Args&&... args) {
 
+    !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
+  // Make it possible to throw exceptions from continuations chained
+  // through `then` or `flow`.
+  try {
+    std::forward<Invoker>(invoker)(std::forward<Args>(args)...);
+  } catch (...) {
+    std::current_exception();
+  }
+#else
   // Invoke the callback with the decorated invoker immediately
   std::forward<Invoker>(invoker)(std::forward<Args>(args)...);
+#endif
 }
 
 /// Invoke the callback through the given executor
