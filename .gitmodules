@@ -7,3 +7,6 @@
 [submodule "dep/cxx_function/cxx_function"]
 	path = dep/cxx_function/cxx_function
 	url = https://github.com/potswa/cxx_function.git
+[submodule "dep/asio/asio"]
+	path = dep/asio/asio
+	url = https://github.com/chriskohlhoff/asio.git
