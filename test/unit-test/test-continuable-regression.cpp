@@ -39,7 +39,7 @@ TEST(regression_tests, are_multiple_args_mergeable) {
                            std::make_tuple(1, 2, 3, 4));
 
   auto count = traits::unpack(tp2, [](auto... args) {
-    return traits::fold(std::plus<int>{}, args...);
+    return CONTINUABLE_FOLD_EXPRESSION(+, args...);
   });
   EXPECT_EQ(count, 20);
 }

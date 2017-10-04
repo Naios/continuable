@@ -260,8 +260,44 @@ private:
   *(volatile int*)0 = 0;
 #endif
 }
+
+/// Exposes functionality to emulate later standard features
+namespace emulation {
+#ifndef CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
+/// Combines the given arguments with the given folding function
+template <typename F, typename First>
+constexpr auto fold(F&& /*folder*/, First&& first) {
+  return std::forward<First>(first);
+}
+/// Combines the given arguments with the given folding function
+template <typename F, typename First, typename Second, typename... Rest>
+auto fold(F&& folder, First&& first, Second&& second, Rest&&... rest) {
+  auto res = folder(std::forward<First>(first), std::forward<Second>(second));
+  return fold(std::forward<F>(folder), std::move(res),
+              std::forward<Rest>(rest)...);
+}
+#endif // CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
+} // namespace emulation
 } // namespace util
 } // namespace detail
 } // namespace cti
+
+#ifdef CONTINUABLE_CONSTEXPR_IF
+#define CONTINUABLE_CONSTEXPR_IF(EXPR, TRUE_BRANCH, FALSE_BRANCH)
+#else
+#define CONTINUABLE_CONSTEXPR_IF(EXPR, TRUE_BRANCH, FALSE_BRANCH)
+#endif // CONTINUABLE_CONSTEXPR_IF
+
+#ifdef CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
+#define CONTINUABLE_FOLD_EXPRESSION(OP, PACK) (... OP PACK)
+#else
+#define CONTINUABLE_FOLD_EXPRESSION(OP, PACK)                                  \
+  cti::detail::util::emulation::fold(                                          \
+      [](auto&& left, auto&& right) {                                          \
+        return std::forward<decltype(left)>(left)                              \
+            OP std::forward<decltype(right)>(right);                           \
+      },                                                                       \
+      PACK);
+#endif // CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
 
 #endif // CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED__

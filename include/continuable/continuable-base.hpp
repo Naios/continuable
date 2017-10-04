@@ -677,8 +677,8 @@ template <typename... Continuables>
 auto when_all(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,
                 "Requires at least 2 continuables!");
-  return detail::traits::fold(detail::traits::and_folding(),
-                              std::forward<Continuables>(continuables)...);
+  return CONTINUABLE_FOLD_EXPRESSION(
+      &&, std::forward<Continuables>(continuables)...);
 }
 
 /// Connects the given continuables with an *any* logic.
@@ -693,8 +693,8 @@ template <typename... Continuables>
 auto when_any(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,
                 "Requires at least 2 continuables!");
-  return detail::traits::fold(detail::traits::or_folding(),
-                              std::forward<Continuables>(continuables)...);
+  return CONTINUABLE_FOLD_EXPRESSION(
+      ||, std::forward<Continuables>(continuables)...);
 }
 
 /// Connects the given continuables with a *seq* logic.
@@ -709,8 +709,8 @@ template <typename... Continuables>
 auto when_seq(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,
                 "Requires at least 2 continuables!");
-  return detail::traits::fold(detail::traits::seq_folding(),
-                              std::forward<Continuables>(continuables)...);
+  return CONTINUABLE_FOLD_EXPRESSION(
+      >>, std::forward<Continuables>(continuables)...);
 }
 } // namespace cti
 

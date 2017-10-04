@@ -401,49 +401,11 @@ constexpr auto merge(identity<LeftArgs...> /*left*/,
                std::forward<Rest>(rest)...);
 }
 
-/// Combines the given arguments with the given folding function
-template <typename F, typename First>
-constexpr auto fold(F&& /*folder*/, First&& first) {
-  return std::forward<First>(first);
-}
-/// Combines the given arguments with the given folding function
-template <typename F, typename First, typename Second, typename... Rest>
-auto fold(F&& folder, First&& first, Second&& second, Rest&&... rest) {
-  auto res = folder(std::forward<First>(first), std::forward<Second>(second));
-  return fold(std::forward<F>(folder), std::move(res),
-              std::forward<Rest>(rest)...);
-}
-
-/// Returns a folding function using operator `&&`.
-inline auto and_folding() noexcept {
-  return [](auto&& left, auto&& right) {
-    return std::forward<decltype(left)>(left) &&
-           std::forward<decltype(right)>(right);
-  };
-}
-/// Returns a folding function using operator `||`.
-inline auto or_folding() noexcept {
-  return [](auto&& left, auto&& right) {
-    return std::forward<decltype(left)>(left) ||
-           std::forward<decltype(right)>(right);
-  };
-}
-/// Returns a folding function using operator `>>`.
-inline auto seq_folding() noexcept {
-  return [](auto&& left, auto&& right) {
-    return std::forward<decltype(left)>(left) >>
-           std::forward<decltype(right)>(right);
-  };
-}
-
 /// Deduces to a std::false_type
 template <typename T>
 using fail = std::integral_constant<bool, !std::is_same<T, T>::value>;
 } // namespace traits
 } // namespace detail
 } // namespace cti
-
-#define CONTINUABLE_CONSTEXPR_IF(EXPR, TRUE_BRANCH, FALSE_BRANCH)
-#define CONTINUABLE_FOLD_EXPRESSION(OPERATOR, SEQUENCE)
 
 #endif // CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED__
