@@ -151,6 +151,21 @@ public:
   }
 };
 
+#if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
+    !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
+#define CONTINUABLE_BLOCK_TRY_BEGIN try {
+#define CONTINUABLE_BLOCK_TRY_END                                              \
+  }                                                                            \
+  catch (...) {                                                                \
+    std::forward<decltype(next_callback)>(next_callback)(                      \
+        types::dispatch_error_tag{}, std::current_exception());                \
+  }
+
+#else
+#define CONTINUABLE_BLOCK_TRY_BEGIN {
+#define CONTINUABLE_BLOCK_TRY_END }
+#endif
+
 template <typename T, typename... Args>
 constexpr auto make_invoker(T&& invoke, hints::signature_hint_tag<Args...>) {
   return invoker<std::decay_t<T>, hints::signature_hint_tag<Args...>>(
@@ -167,13 +182,15 @@ invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
 
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
-        auto continuation_ =
-            util::partial_invoke(std::forward<decltype(callback)>(callback),
-                                 std::forward<decltype(args)>(args)...);
+        CONTINUABLE_BLOCK_TRY_BEGIN
+          auto continuation_ =
+              util::partial_invoke(std::forward<decltype(callback)>(callback),
+                                   std::forward<decltype(args)>(args)...);
 
-        attorney::invoke_continuation(
-            std::move(continuation_),
-            std::forward<decltype(next_callback)>(next_callback));
+          attorney::invoke_continuation(
+              std::move(continuation_),
+              std::forward<decltype(next_callback)>(next_callback));
+        CONTINUABLE_BLOCK_TRY_END
       },
       hint_of(traits::identity_of<Type>()));
 }
@@ -183,11 +200,14 @@ template <typename T>
 constexpr auto invoker_of(traits::identity<T>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
-        auto result =
-            util::partial_invoke(std::forward<decltype(callback)>(callback),
-                                 std::forward<decltype(args)>(args)...);
+        CONTINUABLE_BLOCK_TRY_BEGIN
+          auto result =
+              util::partial_invoke(std::forward<decltype(callback)>(callback),
+                                   std::forward<decltype(args)>(args)...);
 
-        std::forward<decltype(next_callback)>(next_callback)(std::move(result));
+          std::forward<decltype(next_callback)>(next_callback)(
+              std::move(result));
+        CONTINUABLE_BLOCK_TRY_END
       },
       traits::identity_of<T>());
 }
@@ -196,10 +216,11 @@ constexpr auto invoker_of(traits::identity<T>) {
 inline auto invoker_of(traits::identity<void>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
-        util::partial_invoke(std::forward<decltype(callback)>(callback),
-                             std::forward<decltype(args)>(args)...);
-
-        std::forward<decltype(next_callback)>(next_callback)();
+        CONTINUABLE_BLOCK_TRY_BEGIN
+          util::partial_invoke(std::forward<decltype(callback)>(callback),
+                               std::forward<decltype(args)>(args)...);
+          std::forward<decltype(next_callback)>(next_callback)();
+        CONTINUABLE_BLOCK_TRY_END
       },
       traits::identity<>{});
 }
@@ -208,18 +229,20 @@ inline auto invoker_of(traits::identity<void>) {
 /// objects where std::get is applicable.
 inline auto sequenced_unpack_invoker() {
   return [](auto&& callback, auto&& next_callback, auto&&... args) {
-    auto result =
-        util::partial_invoke(std::forward<decltype(callback)>(callback),
-                             std::forward<decltype(args)>(args)...);
+    CONTINUABLE_BLOCK_TRY_BEGIN
+      auto result =
+          util::partial_invoke(std::forward<decltype(callback)>(callback),
+                               std::forward<decltype(args)>(args)...);
 
-    traits::unpack(std::move(result), [&](auto&&... types) {
-      /// TODO Add inplace resolution here
+      traits::unpack(std::move(result), [&](auto&&... types) {
+        /// TODO Add inplace resolution here
 
-      std::forward<decltype(next_callback)>(next_callback)(
-          std::forward<decltype(types)>(types)...);
-    });
+        std::forward<decltype(next_callback)>(next_callback)(
+            std::forward<decltype(types)>(types)...);
+      });
+    CONTINUABLE_BLOCK_TRY_END
   };
-}
+} // namespace decoration
 
 // - std::pair<?, ?> -> next_callback(?, ?)
 template <typename First, typename Second>
@@ -233,6 +256,9 @@ template <typename... Args>
 constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
   return make_invoker(sequenced_unpack_invoker(), traits::identity<Args...>{});
 }
+
+#undef CONTINUABLE_BLOCK_TRY_BEGIN
+#undef CONTINUABLE_BLOCK_TRY_END
 } // namespace decoration
 
 /// Invoke the callback immediately
@@ -240,18 +266,8 @@ template <typename Invoker, typename... Args>
 void packed_dispatch(types::this_thread_executor_tag, Invoker&& invoker,
                      Args&&... args) {
 
-    !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
-  // Make it possible to throw exceptions from continuations chained
-  // through `then` or `flow`.
-  try {
-    std::forward<Invoker>(invoker)(std::forward<Args>(args)...);
-  } catch (...) {
-    std::current_exception();
-  }
-#else
   // Invoke the callback with the decorated invoker immediately
   std::forward<Invoker>(invoker)(std::forward<Args>(args)...);
-#endif
 }
 
 /// Invoke the callback through the given executor
