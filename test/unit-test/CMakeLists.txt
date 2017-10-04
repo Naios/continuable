@@ -24,7 +24,10 @@ foreach(STEP RANGE 4)
     PRIVATE
       gtest-main
       cxx_function
-      continuable)
+      continuable
+      continuable-features-flags
+      continuable-features-warnings
+      continuable-features-noexcept)
 
   target_compile_definitions(${PROJECT_NAME}
     PUBLIC

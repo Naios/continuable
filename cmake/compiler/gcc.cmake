@@ -1,7 +1,14 @@
 # Enable full warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
+target_compile_options(continuable-features-warnings
+  INTERFACE
+    -Wall
+    -pedantic
+    -Wextra)
 
 if (TESTS_NO_EXCEPTIONS)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+  target_compile_options(continuable-features-noexcept
+    INTERFACE
+      -fno-exceptions)
+
   message(STATUS "GCC: Disabled exceptions")
 endif()
