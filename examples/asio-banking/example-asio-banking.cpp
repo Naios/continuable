@@ -28,10 +28,44 @@
   SOFTWARE.
 **/
 
-#include <asio/io_service.hpp>
+#include <chrono>
+
+#include <asio.hpp>
+
 #include <continuable/continuable.hpp>
 
-int main(int, char**) {
+using namespace std::chrono_literals;
 
+struct functional_io_service : asio::io_service {
+  auto post() const noexcept {
+    return [this](auto&& work) {
+      asio::io_service::post(std::forward<decltype(work)>(work));
+    };
+  }
+};
+
+static functional_io_service service;
+
+auto wait_async(std::chrono::milliseconds time) {
+  return cti::make_continuable<void>([](auto&& promise) {
+    // ...
+    promise.set_value();
+  });
+}
+
+int main(int, char**) {
+  wait_async(10s)
+      .then([] {
+        // ...
+
+        return wait_async(2s);
+      })
+      .then([] {
+        // ...
+      });
+
+      asio::tim
+
+  service.run();
   return 0;
 }

@@ -2,8 +2,8 @@ add_library(asio STATIC
   ${CMAKE_CURRENT_LIST_DIR}/asio/asio/src/asio.cpp)
 
 target_include_directories(asio
-    PUBLIC
-      ${CMAKE_CURRENT_LIST_DIR}/asio/asio/include)
+  PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}/asio/asio/include)
 
 target_compile_definitions(asio
   PUBLIC
