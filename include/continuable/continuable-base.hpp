@@ -321,7 +321,7 @@ public:
   /// \since version 2.0.0
   template <typename T>
   auto apply(T&& transform) && {
-    return std::forward<T>(transform)(std::move(*this));
+    return std::forward<T>(transform)(std::move(*this).materialize());
   }
 
   /// The pipe operator | is an alias for the continuable::then method.

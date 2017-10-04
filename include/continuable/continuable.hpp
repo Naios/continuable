@@ -72,7 +72,7 @@ using unique_continuable = typename detail::unique_trait_of<
   Args...
 >::continuable;
 
-/// Defines a non-copyable promise type which using the
+/// Defines a non-copyable promise type which is using the
 /// function2 backend for type erasure.
 ///
 /// Usable like: `promise<int, float>`
