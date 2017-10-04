@@ -42,6 +42,7 @@ target_compile_features(continuable-base
     cxx_return_type_deduction)
 
 add_library(continuable INTERFACE)
+add_library(continuable::continuable ALIAS continuable)
 
 target_link_libraries(continuable
   INTERFACE
@@ -49,20 +50,20 @@ target_link_libraries(continuable
     function2)
 
 # Create an install target
-install(TARGETS continuable-base
-        EXPORT ContinuableConfig
+install(TARGETS continuable-base continuable
+        EXPORT continuable-config
         INCLUDES DESTINATION include)
 
-install(EXPORT ContinuableConfig
-        FILE ContinuableConfig.cmake
+install(EXPORT continuable-config
+        FILE continuable-config.cmake
         NAMESPACE continuable::
-        DESTINATION lib/cmake/continuable)
+        DESTINATION share/continuable/cmake)
 
 install(DIRECTORY include/continuable
         DESTINATION include FILES_MATCHING PATTERN "*.hpp")
 
-install(FILES LICENSE Readme.md
-        DESTINATION .)
+install(FILES LICENSE.txt DESTINATION . RENAME continuable-LICENSE.txt)
+install(FILES Readme.md DESTINATION . RENAME continuable-Readme.md)
 
 # Setup CPack for bundling
 set(CPACK_GENERATOR "ZIP")
