@@ -1,2 +1,0 @@
-add_subdirectory(documentation)
-add_subdirectory(slideshow)

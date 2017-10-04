@@ -58,7 +58,7 @@ if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 
   include(cmake/CMakeLists.txt)
 
-
+  add_subdirectory(doc)
   add_subdirectory(examples)
   add_subdirectory(test)
 endif ()

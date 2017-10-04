@@ -579,8 +579,8 @@ private:
 /// which represents the object invokable with the asynchronous result of this
 /// continuable.
 /// ```cpp
-/// auto ct = cti::make_continuable([](auto&& callback) {
-///   std::forward<decltype(callback)>(callback)("result");
+/// auto ct = cti::make_continuable([](auto&& promise) {
+///   promise.set_value("result");
 /// });
 /// ```
 /// The callback may be stored or moved.
@@ -589,14 +589,14 @@ private:
 /// It's recommended to accept any callback instead of erasing it.
 /// ```cpp
 /// // Good practice:
-/// auto ct = cti::make_continuable([](auto&& callback) {
-///   std::forward<decltype(callback)>(callback)("result");
+/// auto ct = cti::make_continuable([](auto&& promise) {
+///   promise.set_value("result");
 /// });
 ///
 /// // Good practice using a functional object:
 /// struct Continuation {
 ///   template<typename T>
-///   void operator() (T&& continuation) const {
+///   void operator() (T&& continuation) && {
 ///     // ...
 ///   }
 /// }
@@ -605,8 +605,8 @@ private:
 ///
 /// // Bad practice (because of unnecessary type erasure):
 /// auto ct = cti::make_continuable(
-///   [](std::function<void(std::string)> callback) {
-///     callback("result");
+///   [](cti::promise<std::string> promise) {
+///     promise.set_value("result");
 ///   });
 /// ```
 ///
