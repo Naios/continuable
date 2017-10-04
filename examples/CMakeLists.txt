@@ -1,1 +1,1 @@
-add_subdirectory(asio-banking)
+add_subdirectory(example-asio)
