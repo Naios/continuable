@@ -23,7 +23,11 @@ before_build:
 
 build_script:
   - cmd: cmake --build build --config %CONFIGURATION% --target ALL_BUILD -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /verbosity:minimal /maxcpucount:2 /nologo
+  - cmd: cmake --build build --config %CONFIGURATION% --target PACKAGE -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /verbosity:minimal /maxcpucount:2 /nologo
 
 test_script:
   - cmd: cd build
   - cmd: ctest -C %CONFIGURATION% -V .
+
+artifacts:
+  - path: 'build/*.zip'
