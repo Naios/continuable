@@ -94,6 +94,10 @@ int main(int, char**) {
       })
       .fail([](std::error_condition) {
         // ...
+      })
+      .apply([](auto&& me) {
+        // ...
+        return std::forward<decltype(me)>(me);
       });
 
   (http_request("github.com") || http_request("github.com"))

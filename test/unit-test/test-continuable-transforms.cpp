@@ -21,6 +21,8 @@
   SOFTWARE.
 **/
 
+#include <continuable/continuable-transforms.hpp>
+
 #include "test-continuable.hpp"
 
 using namespace cti;
@@ -36,7 +38,7 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
   };
 
   {
-    auto future = this->supply().futurize();
+    auto future = this->supply().apply(cti::to_future());
     ASSERT_TRUE(is_ready(future));
     future.get();
   }
@@ -47,7 +49,7 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
                         // ...
                         return 0xFD;
                       })
-                      .futurize();
+                      .apply(cti::to_future());
 
     ASSERT_TRUE(is_ready(future));
     EXPECT_EQ(future.get(), 0xFD);
@@ -61,7 +63,7 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
                         // ...
                         return canary;
                       })
-                      .futurize();
+                      .apply(cti::to_future());
 
     ASSERT_TRUE(is_ready(future));
     EXPECT_EQ(future.get(), canary);

@@ -6,14 +6,14 @@ foreach(STEP RANGE 4)
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable.hpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-chaining.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-destruct.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-futurize.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-errors.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-partial.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-all.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-any.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-seq.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-erasure.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-regression.cpp)
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-regression.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-transforms.cpp)
 
   target_link_libraries(${PROJECT_NAME}
     PRIVATE

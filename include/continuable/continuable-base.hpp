@@ -40,7 +40,6 @@
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/composition.hpp>
 #include <continuable/detail/traits.hpp>
-#include <continuable/detail/transforms.hpp>
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
 
@@ -312,6 +311,19 @@ public:
                                               std::forward<E>(executor));
   }
 
+  /// A method which allows to apply this continuable to the given callable.
+  ///
+  /// \param transform A transform which shall accept this continuable
+  ///
+  /// \returns Returns the result of the given transform when this
+  ///          continuable is passed into it.
+  ///
+  /// \since version 2.0.0
+  template <typename T>
+  auto apply(T&& transform) && {
+    return std::forward<T>(transform)(std::move(*this));
+  }
+
   /// Ignores all error which ocured until the point the function was called
   ///
   /// \note This can be used to create a continuable which doesn't resolve
@@ -444,23 +456,6 @@ public:
   auto operator>>(continuable_base<OData, OAnnotation>&& right) && {
     return detail::composition::sequential_connect(std::move(*this),
                                                    std::move(right));
-  }
-
-  /// Starts the continuation chain and returns the asynchronous
-  /// result as `std::future<...>`.
-  ///
-  /// \returns Returns a `std::future<...>` which becomes ready as soon
-  ///          as the the continuation chain has finished.
-  ///          The signature of the future depends on the result type:
-  /// |          Continuation type        |             Return type            |
-  /// | : ------------------------------- | : -------------------------------- |
-  /// | `continuable_base with <>`        | `std::future<void>`                |
-  /// | `continuable_base with <Arg>`     | `std::future<Arg>`                 |
-  /// | `continuable_base with <Args...>` | `std::future<std::tuple<Args...>>` |
-  ///
-  /// \since version 1.0.0
-  auto futurize() && {
-    return detail::transforms::as_future(std::move(*this).materialize());
   }
 
   /// Invokes the continuation chain manually even before the
