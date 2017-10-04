@@ -297,7 +297,7 @@ auto fold(F&& folder, First&& first, Second&& second, Rest&&... rest) {
         return std::forward<decltype(left)>(left)                              \
             OP std::forward<decltype(right)>(right);                           \
       },                                                                       \
-      PACK);
+      PACK)
 #endif // CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
 
 #endif // CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED__
