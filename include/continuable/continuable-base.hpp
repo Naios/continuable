@@ -323,6 +323,19 @@ public:
     return std::move(*this).fail([](auto&&) {});
   }*/
 
+  /// The pipe operator | is an alias for the continuable::then method.
+  ///
+  /// \param right The argument on the right-hand side to connect.
+  ///
+  /// \returns See the corresponding continuable::then method for the
+  ///          explanation of the return type.
+  ///
+  /// \since version 2.0.0
+  template <typename T>
+  auto operator|(T&& right) && {
+    return std::move(*this).then(std::forward<T>(right));
+  }
+
   /// Invokes both continuable_base objects parallel and calls the
   /// callback with the result of both continuable_base objects.
   ///

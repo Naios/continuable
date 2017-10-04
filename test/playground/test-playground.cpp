@@ -69,17 +69,12 @@ struct my_callable {
 int main(int, char**) {
   http_request("github.com").flow(my_callable{});
 
-  http_request("github.com")
-      .then([](std::string) {
-        // ...
-        return 0;
-      })
-      .fail([](std::error_condition) {
-        // ...
-      })
-      .then([] {
-        // ...
-      });
+  http_request("github.com") | [](std::string) {
+    // ...
+    return 0;
+  } | [] {
+    // ...
+  };
 
   http_request2("github.com")
       .then([](std::string) {
