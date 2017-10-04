@@ -324,17 +324,6 @@ public:
     return std::forward<T>(transform)(std::move(*this));
   }
 
-  /// Ignores all error which ocured until the point the function was called
-  ///
-  /// \note This can be used to create a continuable which doesn't resolve
-  ///       the continuation on errors.
-  ///
-  /// \since version 2.0.0
-  /* TODO move to transforms
-   auto flat() && {
-    return std::move(*this).fail([](auto&&) {});
-  }*/
-
   /// The pipe operator | is an alias for the continuable::then method.
   ///
   /// \param right The argument on the right-hand side to connect.

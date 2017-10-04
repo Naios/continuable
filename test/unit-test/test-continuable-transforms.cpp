@@ -38,7 +38,7 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
   };
 
   {
-    auto future = this->supply().apply(cti::to_future());
+    auto future = this->supply().apply(cti::futurize());
     ASSERT_TRUE(is_ready(future));
     future.get();
   }
@@ -49,7 +49,7 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
                         // ...
                         return 0xFD;
                       })
-                      .apply(cti::to_future());
+                      .apply(cti::futurize());
 
     ASSERT_TRUE(is_ready(future));
     EXPECT_EQ(future.get(), 0xFD);
@@ -63,7 +63,7 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
                         // ...
                         return canary;
                       })
-                      .apply(cti::to_future());
+                      .apply(cti::futurize());
 
     ASSERT_TRUE(is_ready(future));
     EXPECT_EQ(future.get(), canary);

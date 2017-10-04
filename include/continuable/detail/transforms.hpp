@@ -34,6 +34,7 @@
 #include <future>
 
 #include <continuable/detail/api.hpp>
+#include <continuable/detail/base.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/types.hpp>

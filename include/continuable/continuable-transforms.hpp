@@ -55,10 +55,25 @@ namespace cti {
 ///        Otherwise this will yield a trap that causes application exit.
 ///
 /// \since version 2.0.0
-inline auto to_future() {
+inline auto futurize() {
   return [](auto&& continuable) {
     using detail::transforms::as_future;
     return as_future(std::forward<decltype(continuable)>(continuable));
+  };
+}
+
+/// Returns a transform that if applied to a continuable, it will ignores all
+/// error which ocured until the point the transform was applied.
+///
+/// \returns Returns a continuable with the same signature as applied to.
+///
+/// \note This can be used to create a continuable which doesn't resolve
+///       the continuation on errors.
+///
+/// \since version 2.0.0
+inline auto flatten() {
+  return [](auto&& continuable) {
+    return std::forward<decltype(continuable)>(continuable).fail([](auto&&) {});
   };
 }
 } // namespace cti
