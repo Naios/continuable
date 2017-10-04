@@ -72,29 +72,29 @@ public:
   /// Resolves the continuation with the given values
   ///
   /// \since version 2.0.0
-  void operator()(Args... args) {
-    data_(std::move(args)...);
+  void operator()(Args... args) && {
+    std::move(data_)(std::move(args)...);
   }
   /// Resolves the continuation with the given exception
   ///
   /// \since version 2.0.0
   void operator()(detail::types::dispatch_error_tag tag,
-                  detail::types::error_type exception) {
-    data_(tag, std::move(exception));
+                  detail::types::error_type exception) && {
+    std::move(data_)(tag, std::move(exception));
   }
 
   /// Resolves the continuation with the given values
   ///
   /// \since version 2.0.0
   void set_value(Args... args) {
-    data_(std::move(args)...);
+    std::move(data_)(std::move(args)...);
   }
 
   /// Resolves the continuation with the given exception
   ///
   /// \since version 2.0.0
   void set_exception(detail::types::error_type exception) {
-    data_(detail::types::dispatch_error_tag{}, std::move(exception));
+    std::move(data_)(detail::types::dispatch_error_tag{}, std::move(exception));
   }
 };
 } // namespace cti

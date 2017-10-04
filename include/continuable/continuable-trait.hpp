@@ -54,8 +54,8 @@ template <template <typename...> class CallbackWrapper,
 struct continuable_trait {
   /// The promise type which is used to resolve continuations
   using promise = promise_base<
-      CallbackWrapper<void(Args...), void(detail::types::dispatch_error_tag,
-                                          detail::types::error_type)>,
+      CallbackWrapper<void(Args...)&&, void(detail::types::dispatch_error_tag,
+                                            detail::types::error_type) &&>,
       detail::hints::signature_hint_tag<Args...>>;
 
   /// The continuable type for the given parameters.

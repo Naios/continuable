@@ -181,18 +181,18 @@ class all_result_submitter : public std::enable_shared_from_this<
     std::shared_ptr<all_result_submitter> me_;
 
     template <typename... PartialArgs>
-    void operator()(PartialArgs&&... args) {
+    void operator()(PartialArgs&&... args) && {
       me_->resolve(traits::size_constant<From>{}, traits::size_constant<To>{},
                    std::forward<PartialArgs>(args)...);
     }
 
     template <typename... PartialArgs>
     void set_value(PartialArgs&&... args) {
-      (*this)(std::forward<PartialArgs>(args)...);
+      std::move (*this)(std::forward<PartialArgs>(args)...);
     }
 
     void set_exception(types::error_type error) {
-      (*this)(types::dispatch_error_tag{}, std::move(error));
+      std::move (*this)(types::dispatch_error_tag{}, std::move(error));
     }
   };
 
@@ -222,17 +222,17 @@ class any_result_submitter
     std::shared_ptr<any_result_submitter> me_;
 
     template <typename... PartialArgs>
-    void operator()(PartialArgs&&... args) {
+    void operator()(PartialArgs&&... args) && {
       me_->invoke(std::forward<decltype(args)>(args)...);
     }
 
     template <typename... PartialArgs>
     void set_value(PartialArgs&&... args) {
-      (*this)(std::forward<PartialArgs>(args)...);
+      std::move (*this)(std::forward<PartialArgs>(args)...);
     }
 
     void set_exception(types::error_type error) {
-      (*this)(types::dispatch_error_tag{}, std::move(error));
+      std::move (*this)(types::dispatch_error_tag{}, std::move(error));
     }
   };
 

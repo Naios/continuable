@@ -29,7 +29,7 @@ static cti::continuable<std::string> http_request(std::string url) {
   return [url = std::move(url)](cti::promise<std::string> promise) {
     if (false) {
       promise.set_value("");
-      promise("");
+      std::forward<decltype(promise)>(promise)("");
     }
     promise.set_exception(std::error_condition{});
   };
@@ -41,7 +41,7 @@ static auto http_request2(std::string url) {
       [url = std::move(url)](auto&& promise) {
         if (false) {
           promise.set_value("");
-          promise("");
+          std::forward<decltype(promise)>(promise)("");
         }
         promise.set_exception(std::error_condition{});
       });
@@ -51,17 +51,17 @@ static cti::continuable<std::string> http_request3(std::string url) {
   return [url = std::move(url)](auto&& promise) {
     if (false) {
       promise.set_value("");
-      promise("");
+      std::forward<decltype(promise)>(promise)("");
     }
     promise.set_exception(std::error_condition{});
   };
 }
 
 struct my_callable {
-  void operator()(std::string) {
+  void operator()(std::string) && {
     // ...
   }
-  void operator()(cti::dispatch_error_tag, cti::error_type) {
+  void operator()(cti::dispatch_error_tag, cti::error_type) && {
     // ...
   }
 };

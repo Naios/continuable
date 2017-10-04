@@ -234,10 +234,14 @@ inline auto sequenced_unpack_invoker() {
           util::partial_invoke(std::forward<decltype(callback)>(callback),
                                std::forward<decltype(args)>(args)...);
 
+      // Workaround for MSVC not capturing the reference correctly inside
+      // the lambda.
+      using Next = decltype(next_callback);
+
       traits::unpack(std::move(result), [&](auto&&... types) {
         /// TODO Add inplace resolution here
 
-        std::forward<decltype(next_callback)>(next_callback)(
+        std::forward<Next>(next_callback)(
             std::forward<decltype(types)>(types)...);
       });
     CONTINUABLE_BLOCK_TRY_END
@@ -312,7 +316,7 @@ struct result_handler_base;
 template <typename Base, typename... Args>
 struct result_handler_base<handle_results::no, Base,
                            hints::signature_hint_tag<Args...>> {
-  void operator()(Args... args) {
+  void operator()(Args... args) && {
     // Forward the arguments to the next callback
     std::move(static_cast<Base*>(this)->next_callback_)(std::move(args)...);
   }
@@ -321,7 +325,7 @@ template <typename Base, typename... Args>
 struct result_handler_base<handle_results::yes, Base,
                            hints::signature_hint_tag<Args...>> {
   /// The operator which is called when the result was provided
-  void operator()(Args... args) {
+  void operator()(Args... args) && {
     // In order to retrieve the correct decorator we must know what the
     // result type is.
     auto result = traits::identity_of<decltype(util::partial_invoke(
@@ -356,7 +360,7 @@ inline auto make_error_invoker(
 
 template <handle_errors HandleErrors /* = plain or forward*/, typename Base>
 struct error_handler_base {
-  void operator()(types::dispatch_error_tag, types::error_type error) {
+  void operator()(types::dispatch_error_tag, types::error_type error) && {
     // Just invoke the error handler, cancel the calling hierarchy after
     auto invoker = make_error_invoker(
         std::integral_constant<handle_errors, HandleErrors>{});
@@ -370,7 +374,7 @@ struct error_handler_base {
 template <typename Base>
 struct error_handler_base<handle_errors::no, Base> {
   /// The operator which is called when an error occurred
-  void operator()(types::dispatch_error_tag tag, types::error_type error) {
+  void operator()(types::dispatch_error_tag tag, types::error_type error) && {
     // Forward the error to the next callback
     std::move(static_cast<Base*>(this)->next_callback_)(tag, std::move(error));
   }
@@ -425,12 +429,12 @@ struct callback_base<hints::signature_hint_tag<Args...>, HandleResults,
 
   /// Resolves the continuation with the given values
   void set_value(Args... args) {
-    (*this)(std::move(args)...);
+    std::move (*this)(std::move(args)...);
   }
 
   /// Resolves the continuation with the given error variable.
   void set_exception(types::error_type error) {
-    (*this)(types::dispatch_error_tag{}, std::move(error));
+    std::move (*this)(types::dispatch_error_tag{}, std::move(error));
   }
 };
 
@@ -450,7 +454,7 @@ auto make_callback(Callback&& callback, Executor&& executor,
 /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095
 struct final_callback {
   template <typename... Args>
-  void operator()(Args... /*args*/) {
+  void operator()(Args... /*args*/) && {
   }
 
   template <typename... Args>
