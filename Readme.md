@@ -1,20 +1,55 @@
 ![](https://raw.githubusercontent.com/Naios/continuable/master/doc/slideshow.gif)
 
-![](https://img.shields.io/badge/Release-v1.0.0-0091EA.svg) [![Build Status](https://travis-ci.org/Naios/continuable.svg?branch=master)](https://travis-ci.org/Naios/continuable) [![Build status](https://ci.appveyor.com/api/projects/status/328ta3r5x92f3byv/branch/master?svg=true)](https://ci.appveyor.com/project/Naios/continuable/branch/master) ![](https://img.shields.io/badge/License-MIT-00838F.svg) [![](https://img.shields.io/badge/Documentation-Doxygen-26A69A.svg)](https://naios.github.io/continuable/) [![](https://img.shields.io/badge/Try-online-4DB6AC.svg)](http://melpon.org/wandbox/permlink/xVM2szjDLEge3YLV)
+[![](https://img.shields.io/badge/Beta-v2.0.0-0091EA.svg)](https://github.com/Naios/continuable/releases/tag/2.0.0) [![Build Status](https://travis-ci.org/Naios/continuable.svg?branch=master)](https://travis-ci.org/Naios/continuable) [![Build status](https://ci.appveyor.com/api/projects/status/328ta3r5x92f3byv/branch/master?svg=true)](https://ci.appveyor.com/project/Naios/continuable/branch/master) ![](https://img.shields.io/badge/License-MIT-00838F.svg) [![](https://img.shields.io/badge/Documentation-Doxygen-26A69A.svg)](https://naios.github.io/continuable/) [![](https://img.shields.io/badge/Try-online-4DB6AC.svg)](http://melpon.org/wandbox/permlink/xVM2szjDLEge3YLV)
 
 ------
 
-> Async C++14 platform independent continuation chainer providing light and allocation aware futures
-
 This library provides full feature support of:
 
-* async continuation chaining using **callbacks** (*then*).
-* **no enforced type-erasure** which means we need **extremely fewer heap allocations** .
-* support for **finite logical connections** between continuables through an **all, any or sequence** strategy.
-* **syntactic sugar** for attaching callbacks to a continuation like partial invocation or tuple unpacking.
+* lazy async continuation chaining based on **callbacks** (*then*).
+* **no enforced type-erasure** which means we need **less heap allocations**, strictly following the **"don't pay for what you don't use" ** principle. 
+* support for **connections** between continuables through an **all, any or sequence** strategy.
+* **error handling** through exceptions or custom types.
+* **syntactic sugar** for instance: partial invocation, tuple unpacking and executors.
 
 
-> **Note:** This library only provides the facility for building asynchronous functions. Thus functions shown in the examples and the documentation like `http_request`, `mysql_query` or `read_file` aren't provided by this library.
+
+## The basics
+
+
+* Supply a continuable which is invoked lazily upon request:
+  ```cpp
+  auto http_request(std::string url) {
+    return cti::make_continuable<std::string>([url = std::move(url)](auto&& promise) {
+      // Perform the actual request through a different library,
+      // resolve the promise upon completion of the task.
+      promise.set_value("<html> ... </html>");
+    });
+  }
+  ```
+* Continue the continuation using `.then(...)` and `.fail(...)`
+
+  ```cpp
+  http_request("example.com")
+    .then([] (std::string result) {
+      // Do something...
+      return http_request("example.com/2")
+    })
+    .then([] (std::string result) {
+      // Do more...
+    });
+  ```
+* b
+  ```cpp
+  h
+  ```
+* c
+  ```cpp
+  h
+  ```
+* d
+
+
 
 ## Table of contents
 
