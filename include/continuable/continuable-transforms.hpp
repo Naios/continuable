@@ -35,6 +35,12 @@
 #include <continuable/detail/transforms.hpp>
 
 namespace cti {
+/// The namespace transforms declares callable objects that transform
+/// any continuable_base to an object or to a continuable_base itself.
+///
+/// Transforms can be applied to continuables through using
+/// the continuable-base::apply method accordingly.
+namespace transforms {
 /// Returns a transform that if applied to a continuable,
 /// it will start the continuation chain and returns the asynchronous
 /// result as `std::future<...>`.
@@ -76,6 +82,7 @@ inline auto flatten() {
     return std::forward<decltype(continuable)>(continuable).fail([](auto&&) {});
   };
 }
+} // namespace transforms
 } // namespace cti
 
 #endif // CONTINUABLE_TRANSFORMS_HPP_INCLUDED__

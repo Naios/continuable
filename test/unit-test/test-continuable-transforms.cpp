@@ -36,7 +36,7 @@ bool is_ready(T& future) {
 
 TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
   {
-    auto future = this->supply().apply(cti::futurize());
+    auto future = this->supply().apply(cti::transforms::futurize());
     ASSERT_TRUE(is_ready(future));
     future.get();
   }
@@ -47,7 +47,7 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
                         // ...
                         return 0xFD;
                       })
-                      .apply(cti::futurize());
+                      .apply(cti::transforms::futurize());
 
     ASSERT_TRUE(is_ready(future));
     EXPECT_EQ(future.get(), 0xFD);
@@ -69,8 +69,8 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
 }
 
 TYPED_TEST(single_dimension_tests, are_flattable) {
-  auto continuation =
-      this->supply_exception(supply_test_exception()).apply(cti::flatten());
+  auto continuation = this->supply_exception(supply_test_exception())
+                          .apply(cti::transforms::flatten());
 
   ASSERT_ASYNC_INCOMPLETION(std::move(continuation));
 }
