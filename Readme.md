@@ -4,6 +4,10 @@
 
 ------
 
+**Note: This readme refers to the in-progress version 2.0.0**
+
+
+
 This library provides full feature support of:
 
 * lazy async continuation chaining based on **callbacks** (*then*).
@@ -32,6 +36,8 @@ This library provides full feature support of:
 * Continue the continuation using `.then(...)` and `.fail(...)`
 
   ```cpp
+
+
   http_request("github.com")
     .then([] (std::string result) {
       // Do something...
@@ -94,12 +100,14 @@ The continuable library was designed in order to provide you as much as flexibil
 
 As mentioned earlier the library is header-only. There is a cmake project provided for simple setup:
 
+#### As git submodule
+
 ```sh
 # Shell:
 git submodule add https://github.com/Naios/continuable.git
 ```
 
-```cma
+```cmake
 # CMake file:
 add_subdirectory(continuable)
 # continuable provides an interface target which makes it's
@@ -108,6 +116,10 @@ target_link_libraries(my_project continuable)
 ```
 
 On POSIX platforms you are required to link your application against a corresponding thread library, otherwise `std::future's` won't work properly, this is done automatically by the provided cmake project.
+
+#### As CMake library
+
+TODO
 
 ### Building the unit-tests
 
@@ -129,22 +141,22 @@ This chapter only overflies the functionality of the continuable library, the fu
 
 ### Creating Continuables 
 
-Create a continuable from a callback taking function:
+Create a continuable from a promise taking function:
 
 ```c++
-#include "continuable/continuable-base.hpp"
+#include <continuable/continuable-base.hpp>
 // ...
 
-auto void_continuable = cti::make_continuable<void>([](auto&& callback) {
+auto void_continuable = cti::make_continuable<void>([](auto&& promise) {
   //                                          ^^^^
   
-  // Call the callback later when you have finished your work
-  callback();
+  // Resolve the promise later when you have finished your work
+  promise.set_value();
 });
 
-auto str_continuable = cti::make_continuable<std::string>([](auto&& callback) {
+auto str_continuable = cti::make_continuable<std::string>([](auto&& promise) {
   //                                         ^^^^^^^^^^^
-  callback("Hello, World!");
+  promise.set_value("Hello, World!");
 });
 ```
 
@@ -183,15 +195,15 @@ mysql_query("SELECT `id`, `name` FROM `users`")
 Returning continuables from helper functions makes chaining simple and expressive:
 
 ```c++
-#include "continuable/continuable-base.hpp"
+#include <continuable/continuable-base.hpp>
 // ...
 
 auto mysql_query(std::string query) {
-  return cti::make_continuable<ResultSet>([query = std::move(query)](auto&& callback) mutable {
+  return cti::make_continuable<ResultSet>([query = std::move(query)](auto&& promise) mutable {
     // Pass the callback to the handler which calls the callback when finished.
     // Every function accepting callbacks works with continuables.
     mysql_handle_async_query(std::move(query),
-                             std::forward<decltype(callback)>(callback));
+                             std::forward<decltype(promise)>(promise));
   });
 }
 
@@ -217,8 +229,8 @@ Continuables provide the operators **&&** and **||** for logical connection:
 
 ```C++
 auto http_request(std::string url) {
-  return cti::make_continuable<std::string>([](auto&& callback) {
-    callback("<html>...</html>");
+  return cti::make_continuable<std::string>([](auto&& promise) {
+    promise.set_value("<html>...</html>");
   });
 }
 
@@ -248,9 +260,9 @@ auto http_request(std::string url) {
   });
 
 // There are helper functions for connecting continuables:
-auto all = cti::all_of(http_request("github.com"), http_request("travis-ci.org"));
-auto any = cti::any_of(http_request("github.com"), http_request("travis-ci.org"));
-auto seq = cti::seq_of(http_request("github.com"), http_request("travis-ci.org"));
+auto all = cti::when_all(http_request("github.com"), http_request("travis-ci.org"));
+auto any = cti::when_any(http_request("github.com"), http_request("travis-ci.org"));
+auto seq = cti::when_seq(http_request("github.com"), http_request("travis-ci.org"));
 ```
 
 > **Note:** Logical connections are ensured to be **thread-safe** and **wait-free** by library design (when assuming that *std::call_once* is wait-free - which depends on the toolchain).
@@ -292,8 +304,7 @@ The library was designed in order to avoid type-erasure until really needed. Thu
 The library provides aliases for using my [function2 library](https://github.com/Naios/function2) as backend which provides efficient and qualifier correct function wrappers for copyable and non-copyable objects.
 
 ```c++
-#include "continuable/continuable.hpp"
-// ...
+#include <continuable/continuable.hpp>
 
 cti::unique_continuable<int, std::string> unique =
       cti::make_continuable([value = std::make_unique<int>(0)](auto&& callback) {
