@@ -24,30 +24,37 @@ This library provides full feature support of:
       // Perform the actual request through a different library,
       // resolve the promise upon completion of the task.
       promise.set_value("<html> ... </html>");
+
+      // Or promise.set_exception(...);
     });
   }
   ```
 * Continue the continuation using `.then(...)` and `.fail(...)`
 
   ```cpp
-  http_request("example.com")
+  http_request("github.com")
     .then([] (std::string result) {
       // Do something...
-      return http_request("example.com/2")
+      return http_request("travis-ci.org")
     })
     .then([] (std::string result) {
-      // Do more...
+      // Handle the response from 'travis-ci.org'
+    })
+    .fail([] (std::exception_ptr ptr) {
+      try {
+        std::rethrow_exception(ptr);
+      } catch(std::exception const& e) {
+        // Handle the exception or error code here
+      }
     });
   ```
-* b
+* Create connections between the continuables
   ```cpp
-  h
+  (http_request("github.com") && (http_request("travis-ci.org") || http_request("atom.io")))
+    .then([](std::string github, std::string travis_or_atom) {
+      // The callback is called with the response of github and travis or atom.
+    });
   ```
-* c
-  ```cpp
-  h
-  ```
-* d
 
 
 
