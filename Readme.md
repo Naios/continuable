@@ -10,11 +10,11 @@
 
 This library provides full feature support of:
 
-* lazy async continuation chaining based on **callbacks** (*then*).
+* lazy async continuation chaining based on **callbacks** (*then*) and expression templates.
 * **no enforced type-erasure** which means we need **less heap allocations**, strictly following the **"don't pay for what you don't use" ** principle. 
-* support for **connections** between continuables through an **all, any or sequence** strategy.
+* support for **connections** between continuables through an **all, any or sequential** strategy through expressive operator overloads **&&**, **||** and **>>**.
 * **error handling** through exceptions or custom types.
-* **syntactic sugar** for instance: partial invocation, tuple unpacking and executors.
+* **syntactic sugar** for instance: **partial invocation**, **tuple unpacking** and **executors**.
 
 
 
@@ -33,11 +33,9 @@ This library provides full feature support of:
     });
   }
   ```
-* Continue the continuation using `.then(...)` and `.fail(...)`
+* Continue the continuation using `.then(...)` and `.fail(...)`, exceptions are passed to the first available handler:
 
   ```cpp
-
-
   http_request("github.com")
     .then([] (std::string result) {
       // Do something...
@@ -54,7 +52,7 @@ This library provides full feature support of:
       }
     });
   ```
-* Create connections between the continuables
+* Create connections between the continuables and use its compound result:
   ```cpp
   (http_request("github.com") && (http_request("travis-ci.org") || http_request("atom.io")))
     .then([](std::string github, std::string travis_or_atom) {
@@ -66,7 +64,6 @@ This library provides full feature support of:
 
 ## Table of contents
 
-- [The library design](#the-library-design)
 - [Installation](#installation)
     - [How-to use](#how-to-use)
     - [Building the unit-tests](#building-the-unit-tests)
@@ -75,6 +72,7 @@ This library provides full feature support of:
     - [Creating Continuables](#creating-continuables)
     - [Chaining Continuables](#chaining-continuables)
     - [Providing helper functions](#providing-helper-functions)
+    - [Error handling](#error-handling)
     - [Connecting Continuables {all, any or sequential}](#connecting-continuables-all-any-or-sequential)
     - [Partial argument application](#partial-argument-application)
     - [Dispatching callbacks through a specific executor](#dispatching-callbacks-through-a-specific-executor)
@@ -83,15 +81,6 @@ This library provides full feature support of:
 - [Compatibility](#compatibility)
 - [Similar implementations and alternatives](#similar-implementations-and-alternatives)
 - [License](#license)
-
-
-## The library design
-
-The continuable library was designed in order to provide you as much as flexibility as possible:
-
-- There is no enforced type erasure which means there is less memory allocation and thus the callback chains are heavily optimizable by the compiler. That's why the library is well usable in the embedded or gaming field. **Don't pay for what you don't use!**
-- The library provides support for **dispatching callbacks on a given executor**, however, it doesn't provide it's own one. You probably will use your own executor like [asio](https://github.com/chriskohlhoff/asio), [libuv](https://github.com/libuv/libuv) or a corresponding [lock-free concurrentqueue](https://github.com/cameron314/concurrentqueue) anyway. In most cases, the executor will do the type erasure for you, so there is no reason to do it twice.
-- The library provides as much as **syntactic sugar** as it's possible, in order to make continuation chaining expressive and simple. For instance, it allows you to logical connect continuables through the well-known operators `&&` and `||`.
 
 
 ## Installation
@@ -115,11 +104,24 @@ add_subdirectory(continuable)
 target_link_libraries(my_project continuable)
 ```
 
-On POSIX platforms you are required to link your application against a corresponding thread library, otherwise `std::future's` won't work properly, this is done automatically by the provided cmake project.
+On POSIX platforms you are required to link your application against a corresponding thread library, otherwise `std::future's` won't work properly, this is done automatically by the provided CMake project.
 
 #### As CMake library
 
-TODO
+Additionally the project exports a `continuable` target which is importable through CMake when installed:
+
+```sh
+mkdir build
+cd build
+cmake ..
+cmake --build . --target INSTALL --config Release
+```
+
+`CMakeLists.txt`:
+
+```cmake
+find_package(continuable REQUIRED)
+```
 
 ### Building the unit-tests
 
@@ -218,6 +220,46 @@ mysql_query("SELECT `id`, `name` FROM users")
   });
 ```
 
+### Error handling
+
+Continuables support asynchronous error handling through exceptions or custom error types. 
+
+The error type will be **`std::exception_ptr`** except if one of the following definition is defined:
+- **`CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`**:  Define this to use a user defined error type.
+- **`CONTINUABLE_WITH_NO_EXCEPTIONS`**: Define this to use **`std::error_condition`** as error type and to disable exception support. When exceptions are disabled this definition is set automatically.
+
+Resolving a promise through an error will skip all following result handlers attached through **`then`**:
+
+```cpp
+auto get_bad_continuable(std::exception const& e) {
+  return cti::make_continuable<void>([=] (auto&& promise) {
+    try {
+     throw e;
+    } catch(...) {
+      promise.set_exception(std::current_exception());
+    }
+  });
+}
+```
+
+You may handle the exception as following:
+
+```cpp
+get_bad_continuable()
+  .then([] {
+    // ... never invoked
+  })
+  .then([] {
+    // ... never invoked as well
+  })
+  .fail([] (std::exception_ptr e) {
+    try {
+      std::rethrow_exception(e);
+    } catch(std::exception const& e) {
+      // Handle the exception here
+    }
+  });
+```
 
 ### Connecting Continuables {all, any or sequential}
 
@@ -348,7 +390,7 @@ std::future<std::string> future = http_request("github.com")
     // Do sth...
     return http_request("travis-ci.org") || http_request("atom.io");
   })
-  .futurize();
+  .apply(cti::transform::futurize());
 // ^^^^^^^^
 
 std::future<std::tuple<std::string, std::string>> future =
@@ -361,15 +403,15 @@ std::future<std::tuple<std::string, std::string>> future =
 
 Tested & compatible with:
 
-- Visual Studio 2015+ Update 3
-- Clang 3.6+
-- GCC 5.0+
+- Visual Studio 2017+ Update 2
+- Clang 5.0+
+- GCC 6.0+
 
-Every compiler with modern C++14 support should work.
+Although the build is observed with the latest toolchains earlier ones might work.
 
 The library only depends on the standard library when using the `continuable/continuable-base.hpp` header, which provides the basic continuation logic.
 
-> **Note:** On Posix: don't  forget to **link a corresponding thread library** into your application otherwise `std::future's` won't work `(-pthread)`.
+> **Note:** On Posix: don't  forget to **link a corresponding thread library** into your application otherwise `std::future's` won't work `(-pthread)`  when using future based transforms.
 
 ## Similar implementations and alternatives
 
@@ -400,7 +442,7 @@ The continuable library is licensed under the MIT License:
                         \_,(_)| | | || ||_|(_||_)|(/_
 
                     https://github.com/Naios/continuable
-                                   v1.0.0
+                                   v2.0.0
 
   Copyright(c) 2015 - 2017 Denis Blank <denis.blank at outlook dot com>
 
