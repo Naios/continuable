@@ -61,7 +61,7 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
                         // ...
                         return canary;
                       })
-                      .apply(cti::futurize());
+                      .apply(cti::transforms::futurize());
 
     ASSERT_TRUE(is_ready(future));
     EXPECT_EQ(future.get(), canary);
