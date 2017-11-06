@@ -5,6 +5,16 @@ target_compile_options(continuable-features-warnings
     -pedantic
     -Wextra)
 
+if (WITH_COROUTINES)
+  target_compile_options(continuable-coroutines
+    INTERFACE
+      -fcoroutines-ts)
+
+  target_compile_definitions(continuable-coroutines
+    INTERFACE
+      -DCONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
+endif()
+
 if (TESTS_NO_EXCEPTIONS)
   target_compile_options(continuable-features-noexcept
     INTERFACE
@@ -12,4 +22,3 @@ if (TESTS_NO_EXCEPTIONS)
 
   message(STATUS "Clang: Disabled exceptions")
 endif()
-

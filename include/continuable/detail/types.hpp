@@ -39,6 +39,10 @@
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 #endif // CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
 
+#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+#include <experimental/coroutine>
+#endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+
 #include <continuable/continuable-api.hpp>
 #include <continuable/detail/features.hpp>
 
@@ -62,6 +66,10 @@ using error_type = std::error_condition;
 struct this_thread_executor_tag {};
 /// A tag which is used to continue with an error
 struct dispatch_error_tag {};
+
+#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+using std::experimental::coroutine_handle;
+#endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 } // namespace types
 } // namespace detail
 } // namespace cti

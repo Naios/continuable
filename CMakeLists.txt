@@ -10,6 +10,7 @@ if (NOT DEFINED CONTINUABLE_UNIT_TESTS
   set(CONTINUABLE_UNIT_TESTS ON)
 endif()
 
+include(cmake/CMakeLists.txt)
 add_subdirectory(dep)
 
 # continuable-base
@@ -23,7 +24,8 @@ target_include_directories(continuable-base
 
 target_link_libraries(continuable-base
   INTERFACE
-    Threads::Threads)
+    Threads::Threads
+    continuable-coroutines)
 
 target_compile_features(continuable-base
   INTERFACE
@@ -50,7 +52,7 @@ target_link_libraries(continuable
     function2)
 
 # Create an install target
-install(TARGETS continuable-base continuable
+install(TARGETS continuable-coroutines continuable-base continuable
         EXPORT continuable-config
         INCLUDES DESTINATION include)
 
@@ -91,8 +93,6 @@ if (CONTINUABLE_UNIT_TESTS)
   endif()
 
   enable_testing()
-
-  include(cmake/CMakeLists.txt)
 
   add_subdirectory(doc)
   add_subdirectory(examples)

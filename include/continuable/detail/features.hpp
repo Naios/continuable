@@ -52,4 +52,7 @@
 /// TODO Enable this
 #undef CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
 
+/// This is enabled by the CMake project
+// #undef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+
 #endif // CONTINUABLE_DETAIL_FEATURES_HPP_INCLUDED__

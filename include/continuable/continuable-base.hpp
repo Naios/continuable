@@ -503,6 +503,22 @@ public:
     return std::move(*this);
   }
 
+#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+  bool is_ready() const noexcept {
+    return false;
+  }
+
+  void await_suspend(detail::types::coroutine_handle<> h) && {
+
+    h.resume();
+  }
+
+  auto await_resume() {
+    // if ec throw
+    // return n;
+  }
+#endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+
 private:
   void release() noexcept {
     ownership_.release();
