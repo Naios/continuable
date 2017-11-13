@@ -5,6 +5,7 @@ foreach(STEP RANGE 4)
   add_executable(${PROJECT_NAME}
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable.hpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-await.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-chaining.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-destruct.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-errors.cpp

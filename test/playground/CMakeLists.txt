@@ -10,6 +10,7 @@ set(LIB_SOURCES_DETAIL
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/awaiting.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/base.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/composition.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/detail/expected.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/hints.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/features.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/traits.hpp
