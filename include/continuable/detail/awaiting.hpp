@@ -49,12 +49,14 @@ using std::experimental::coroutine_handle;
 /// An object which provides the internal buffer and helper methods
 /// for waiting on a continuable in a stackless coroutine.
 template <typename Continuable>
-struct awaitable {
+class awaitable {
+  /// The continuable which is invoked upon suspension
   Continuable continuable_;
+  /// A cache which is used to pass the result of the continuation
+  /// to the
+  expected::expected<int /*TODO*/> cache_;
 
-  /// A cache which is used to
-  // expected::expected<int> cache_;
-
+public:
   /// Since continuables are evaluated lazily we are not
   /// capable to say whether the resumption will be instantly.
   bool await_ready() const noexcept {
@@ -77,6 +79,7 @@ struct awaitable {
     // return
   }
 
+private:
   /// Resolve the continuation through the result
   template <typename... Args>
   void resolve(Args&&... args) {
