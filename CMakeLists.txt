@@ -1,16 +1,30 @@
 cmake_minimum_required(VERSION 3.2)
 project(continuable VERSION 2.0.0 LANGUAGES C CXX)
 
-# Dependencies
+string(COMPARE EQUAL ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}
+                     IS_TOP_LEVEL_PROJECT)
+
+option(CTI_CONTINUABLE_WITH_TESTS
+       "Build the continuable unit tests"
+       ${IS_TOP_LEVEL_PROJECT})
+
+option(CTI_CONTINUABLE_WITH_EXAMPLES
+       "Build the continuable examples"
+       ${IS_TOP_LEVEL_PROJECT})
+
+option(CTI_CONTINUABLE_WITH_NO_EXCEPTIONS
+       "Disable exception support"
+       OFF)
+
+option(CTI_CONTINUABLE_WITH_AWAIT
+       "Enable co_await support"
+       OFF)
+
+include(cmake/CMakeLists.txt)
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-if (NOT DEFINED CONTINUABLE_UNIT_TESTS
-    AND CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-  set(CONTINUABLE_UNIT_TESTS ON)
-endif()
-
-include(cmake/CMakeLists.txt)
 add_subdirectory(dep)
 
 # continuable-base
@@ -73,11 +87,10 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 
-
 include(CPack)
 
-# Testing
-if (CONTINUABLE_UNIT_TESTS)
+# Testing and examples
+if (CTI_CONTINUABLE_WITH_TESTS OR CTI_CONTINUABLE_WITH_EXAMPLES)
   if (MSVC)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
     string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -88,6 +101,12 @@ if (CONTINUABLE_UNIT_TESTS)
   enable_testing()
 
   add_subdirectory(doc)
-  add_subdirectory(examples)
-  add_subdirectory(test)
+
+  if (CTI_CONTINUABLE_WITH_TESTS)
+    add_subdirectory(test)
+  endif()
+
+  if (CTI_CONTINUABLE_WITH_EXAMPLES)
+    add_subdirectory(examples)
+  endif()
 endif ()

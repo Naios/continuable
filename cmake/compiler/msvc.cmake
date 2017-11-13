@@ -19,7 +19,7 @@ target_compile_options(continuable-features-warnings
   INTERFACE
     /W4)
 
-if (WITH_COROUTINES)
+if (CTI_CONTINUABLE_WITH_AWAIT)
   target_compile_options(continuable-coroutines
     INTERFACE
       /await)
@@ -29,7 +29,7 @@ if (WITH_COROUTINES)
       -DCONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
 endif()
 
-if (TESTS_NO_EXCEPTIONS)
+if (CTI_CONTINUABLE_WITH_NO_EXCEPTIONS)
   target_compile_definitions(continuable-features-noexcept
     INTERFACE
       -D_HAS_EXCEPTIONS=0)

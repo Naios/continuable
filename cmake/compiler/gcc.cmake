@@ -5,7 +5,7 @@ target_compile_options(continuable-features-warnings
     -pedantic
     -Wextra)
 
-if (TESTS_NO_EXCEPTIONS)
+if (CTI_CONTINUABLE_WITH_NO_EXCEPTIONS)
   target_compile_options(continuable-features-noexcept
     INTERFACE
       -fno-exceptions)
