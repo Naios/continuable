@@ -37,6 +37,7 @@
 #include <utility>
 
 #include <continuable/continuable-api.hpp>
+#include <continuable/detail/awaiting.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/composition.hpp>
 #include <continuable/detail/traits.hpp>
@@ -504,18 +505,8 @@ public:
   }
 
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
-  bool is_ready() const noexcept {
-    return false;
-  }
-
-  void await_suspend(detail::types::coroutine_handle<> h) && {
-
-    h.resume();
-  }
-
-  auto await_resume() {
-    // if ec throw
-    // return n;
+  auto operator co_await() && {
+    return detail::awaiting::create_awaiter(std::move(*this).materialize());
   }
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 

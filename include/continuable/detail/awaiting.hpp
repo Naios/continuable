@@ -28,43 +28,47 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED__
-#define CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED__
+#ifndef CONTINUABLE_DETAIL_AWAITING_HPP_INCLUDED__
+#define CONTINUABLE_DETAIL_AWAITING_HPP_INCLUDED__
 
-#ifndef CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
-#ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
-#include <exception>
-#else // CONTINUABLE_WITH_NO_EXCEPTIONS
-#include <system_error>
-#endif // CONTINUABLE_WITH_NO_EXCEPTIONS
-#endif // CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
+// Exlude this header when coroutines are not available
+#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+
+#include <experimental/coroutine>
 
 #include <continuable/continuable-api.hpp>
 #include <continuable/detail/features.hpp>
 
 namespace cti {
 namespace detail {
-/// Contains types used globally across the library
-namespace types {
-#ifdef CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
-using error_type = CONTINUABLE_WITH_CUSTOM_ERROR_TYPE;
-#else // CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
-#ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
-/// Represents the error type when exceptions are enabled
-using error_type = std::exception_ptr;
-#else  // CONTINUABLE_WITH_NO_EXCEPTIONS
-/// Represents the error type when exceptions are disabled
-using error_type = std::error_condition;
-#endif // CONTINUABLE_WITH_NO_EXCEPTIONS
-#endif // CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
+namespace awaiting {
+using std::experimental::coroutine_handle;
+/// Converts a continuable into an awaitable object as described by
+/// the C++ coroutine TS.
+template <typename T>
+auto create_awaiter(T&& continuable) {
+  struct Awaiter {
+    bool is_ready() const noexcept {
+      return false;
+    }
 
-/// A tag which is used to execute the continuation inside the current thread
-struct this_thread_executor_tag {};
-/// A tag which is used to continue with an error
-struct dispatch_error_tag {};
+    void await_suspend(coroutine_handle<> h) && {
 
-} // namespace types
+      h.resume();
+    }
+
+    auto await_resume() {
+      // if ec throw
+      // return n;
+      // return
+    }
+  };
+
+  return Awaiter();
+}
+} // namespace awaiting
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED__
+#endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+#endif // CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED__
