@@ -73,13 +73,6 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 
-# Since the header only library is platform independent
-# we name the packages after the native line feed
-if(WIN32)
-  set(CPACK_SYSTEM_NAME "crlf")
-else()
-  set(CPACK_SYSTEM_NAME "lf")
-endif()
 
 include(CPack)
 
