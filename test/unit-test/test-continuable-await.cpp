@@ -36,12 +36,12 @@ struct coroutine_traits<void, T...> {
     void set_exception(exception_ptr const&) noexcept {
     }
 
-    bool initial_suspend() noexcept {
-      return false;
+    suspend_never initial_suspend() noexcept {
+      return {};
     }
 
-    bool final_suspend() noexcept {
-      return false;
+    suspend_never final_suspend() noexcept {
+      return {};
     }
 
     void return_void() noexcept {

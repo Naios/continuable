@@ -40,13 +40,16 @@
 namespace cti {
 namespace detail {
 namespace expected {
+/// A tag which is passed to the visitor when the expected type is empty
+struct empty_guard_tag {};
+
 /// A class similar to the one in the expected proposal,
 /// however it is capable of carrying an exception_ptr if
 /// exceptions are used.
 template <typename T, typename Storage = std::aligned_storage_t<std::max(
                           sizeof(types::error_type), sizeof(T))>>
 class expected {
-  enum class slot_t { empty, type, error };
+  enum class slot_t { empty, value, error };
 
   Storage storage_;
   slot_t slot_;
@@ -55,7 +58,30 @@ public:
   explicit expected() : slot_(slot_t::empty) {
   }
 
-  explicit expected(T value) : slot_(slot_t::error) {
+  explicit expected(T value) : slot_(slot_t::value) {
+  }
+
+  explicit expected(types::error_type error) : slot_(slot_t::value) {
+  }
+
+  bool is_empty() const noexcept {
+    return slot_ == slot_t::empty;
+  }
+  bool is_value() const noexcept {
+    return slot_ == slot_t::value;
+  }
+  bool is_error() const noexcept {
+    return slot_ == slot_t::error;
+  }
+
+  template <typename T>
+  auto visit(T&& visitor)
+      -> decltype(std::forward<T>(visitor)(empty_guard_tag{})) {
+
+    switch(slot_)
+    {
+      
+    }
   }
 };
 } // namespace expected
