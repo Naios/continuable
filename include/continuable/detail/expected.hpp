@@ -36,12 +36,31 @@
 
 #include <continuable/continuable-api.hpp>
 #include <continuable/detail/types.hpp>
+#include <continuable/detail/util.hpp>
 
 namespace cti {
 namespace detail {
 namespace expected {
-/// A tag which is passed to the visitor when the expected type is empty
-struct empty_guard_tag {};
+namespace detail {
+template <bool IsCopyable, typename Base>
+struct expected_base {
+  explicit expected_base(expected_base const& right) {
+    static_cast<Base const*>(&right)->visit([&](auto&& value) {
+      using type = std::decay_t<decltype(value)>;
+      auto storage = &static_cast<Base*>(this)->storage_;
+      new (storage) type(std::forward<decltype(value)>(value));
+    });
+  }
+  expected_base& operator=(expected_base const& right) {
+    static_cast<Base const*>(&right)->visit([&](auto&& value) {
+      using type = std::decay_t<decltype(value)>;
+      auto storage = &static_cast<Base*>(this)->storage_;
+      new (storage) type(std::forward<decltype(value)>(value));
+    });
+    return *this;
+  }
+};
+} // namespace detail
 
 /// A class similar to the one in the expected proposal,
 /// however it is capable of carrying an exception_ptr if
@@ -49,6 +68,8 @@ struct empty_guard_tag {};
 template <typename T, typename Storage = std::aligned_storage_t<std::max(
                           sizeof(types::error_type), sizeof(T))>>
 class expected {
+  friend class expected_base;
+
   enum class slot_t { empty, value, error };
 
   Storage storage_;
@@ -74,14 +95,29 @@ public:
     return slot_ == slot_t::error;
   }
 
-  template <typename T>
-  auto visit(T&& visitor)
-      -> decltype(std::forward<T>(visitor)(empty_guard_tag{})) {
-
-    switch(slot_)
-    {
-      
+  template <typename V>
+  void visit(V&& visitor) {
+    switch (slot_) {
+      case slot_t::value:
+        return std::forward<V>(visitor)(static_cast<T*>(&storage_));
+      case slot_t::error:
+        return std::forward<V>(visitor)(
+            static_cast<types::error_type*>(&storage_));
     }
+
+    util::unreachable();
+  }
+  template <typename V>
+  void visit(V&& visitor) const {
+    switch (slot_) {
+      case slot_t::value:
+        return std::forward<V>(visitor)(static_cast<T*>(&storage_));
+      case slot_t::error:
+        return std::forward<V>(visitor)(
+            static_cast<types::error_type*>(&storage_));
+    }
+
+    util::unreachable();
   }
 };
 } // namespace expected
