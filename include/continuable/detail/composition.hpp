@@ -38,8 +38,8 @@
 #include <type_traits>
 #include <utility>
 
-#include <continuable/continuable-promise-base.hpp>
 #include <continuable/continuable-api.hpp>
+#include <continuable/continuable-promise-base.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>
@@ -431,7 +431,7 @@ template <typename Data>
 auto finalize_composition(
     continuable_base<Data, strategy_any_tag>&& continuation) {
 
-  auto ownership_ = base::attorney::ownership_of(continuation);
+  auto ownership = base::attorney::ownership_of(continuation);
 
   auto composition = base::attorney::consume_data(std::move(continuation));
 
@@ -458,7 +458,7 @@ auto finalize_composition(
                                          submitter->create_callback());
                                    });
       },
-      signature, std::move(ownership_));
+      signature, std::move(ownership));
 }
 
 /// Connects the left and the right continuable to a sequence

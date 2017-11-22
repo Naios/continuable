@@ -88,7 +88,7 @@ protected:
   }
 };
 
-template <bool IsCopyable, typename Base>
+template <bool IsCopyable /*= true */, typename Base>
 struct expected_base : expected_base_util<Base> {
   explicit expected_base(expected_base const& right) {
     right.visit([&](auto&& value) {
@@ -102,6 +102,24 @@ struct expected_base : expected_base_util<Base> {
       this->init(std::forward<decltype(value)>(value));
     });
     set(right.consume());
+    return *this;
+  }
+};
+template <bool IsCopyable /*= true */, typename Base>
+struct expected_base : expected_base_util<Base> {
+  explicit expected_base(expected_base const& right) {
+    right.visit([&](auto&& value) {
+      this->init(std::forward<decltype(value)>(value));
+    });
+    set(right.consume());
+  }
+  expected_base& operator=(expected_base const& right) {
+    this->weak_destroy();
+    right.visit([&](auto&& value) {
+      this->init(std::forward<decltype(value)>(value));
+    });
+    set(right.consume());
+    return *this;
   }
 };
 } // namespace detail
