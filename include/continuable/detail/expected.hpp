@@ -42,22 +42,66 @@ namespace cti {
 namespace detail {
 namespace expected {
 namespace detail {
-template <bool IsCopyable, typename Base>
-struct expected_base {
-  explicit expected_base(expected_base const& right) {
-    static_cast<Base const*>(&right)->visit([&](auto&& value) {
+enum class slot_t { empty, value, error };
+
+template <typename Base>
+struct expected_base_util {
+  slot_t slot_;
+
+protected:
+  template <typename T>
+  void init(T&& value, slot_t slot) {
+    set(slot);
+    using type = std::decay_t<decltype(value)>;
+    auto storage = &base()->storage_;
+    new (storage) type(std::forward<decltype(value)>(value));
+  }
+  void destroy() {
+    weak_destroy();
+    set(slot_t::empty);
+  }
+  void weak_destroy() {
+    base()->visit([&](auto&& value) {
       using type = std::decay_t<decltype(value)>;
-      auto storage = &static_cast<Base*>(this)->storage_;
-      new (storage) type(std::forward<decltype(value)>(value));
+      value.~type();
     });
   }
-  expected_base& operator=(expected_base const& right) {
-    static_cast<Base const*>(&right)->visit([&](auto&& value) {
-      using type = std::decay_t<decltype(value)>;
-      auto storage = &static_cast<Base*>(this)->storage_;
-      new (storage) type(std::forward<decltype(value)>(value));
+  slot_t get() const noexcept {
+    return slot_;
+  }
+  bool is(slot_t slot) const noexcept {
+    return get() == slot;
+  }
+  void set(slot_t slot) {
+    slot_ = slot;
+  }
+  slot_t consume(slot_t slot) {
+    auto current = get();
+    destroy();
+    return current;
+  }
+  Base* base() noexcept {
+    return static_cast<Base*>(this);
+  }
+  Base const* base() const noexcept {
+    return static_cast<Base*>(this);
+  }
+};
+
+template <bool IsCopyable, typename Base>
+struct expected_base : expected_base_util<Base> {
+  explicit expected_base(expected_base const& right) {
+    right.visit([&](auto&& value) {
+      this->init(std::forward<decltype(value)>(value));
     });
-    return *this;
+    set(right.consume());
+  }
+  expected_base& operator=(expected_base const& right) {
+    this->weak_destroy();
+    right.visit([&](auto&& value) {
+      this->init(std::forward<decltype(value)>(value));
+    });
+    set(right.consume());
   }
 };
 } // namespace detail
@@ -70,10 +114,7 @@ template <typename T, typename Storage = std::aligned_storage_t<std::max(
 class expected {
   friend class expected_base;
 
-  enum class slot_t { empty, value, error };
-
   Storage storage_;
-  slot_t slot_;
 
 public:
   explicit expected() : slot_(slot_t::empty) {
