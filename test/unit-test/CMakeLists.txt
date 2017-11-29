@@ -13,6 +13,7 @@ foreach(STEP RANGE 4)
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-all.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-any.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-seq.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-expected.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-erasure.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-regression.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-transforms.cpp)
