@@ -66,6 +66,7 @@ TYPED_TEST_CASE(expected_all_tests, expected_test_types);
 TYPED_TEST(expected_all_tests, can_carry_errors) {
   {
     TypeParam e(this->supply(CANARY));
+
     EXPECT_TRUE(bool(e));
     EXPECT_EQ(this->get(*e), CANARY);
     EXPECT_TRUE(e.is_value());
@@ -74,6 +75,7 @@ TYPED_TEST(expected_all_tests, can_carry_errors) {
 
   {
     TypeParam e(error_type{});
+
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
     EXPECT_TRUE(e.is_error());
@@ -88,6 +90,7 @@ TYPED_TEST(expected_all_tests, is_empty_constructible) {
 TYPED_TEST(expected_all_tests, is_move_constructible) {
   {
     TypeParam e(TypeParam(this->supply(CANARY)));
+
     EXPECT_TRUE(bool(e));
     EXPECT_EQ(this->get(*e), CANARY);
     EXPECT_TRUE(e.is_value());
@@ -102,10 +105,34 @@ TYPED_TEST(expected_all_tests, is_move_constructible) {
   }
 }
 
+TYPED_TEST(expected_all_tests, is_move_assignable) {
+  {
+    TypeParam old(this->supply(CANARY));
+    TypeParam e;
+    e = std::move(old);
+
+    EXPECT_TRUE(bool(e));
+    EXPECT_EQ(this->get(*e), CANARY);
+    EXPECT_TRUE(e.is_value());
+    EXPECT_FALSE(e.is_error());
+  }
+
+  {
+    TypeParam old(error_type{});
+    TypeParam e;
+    e = std::move(old);
+
+    EXPECT_FALSE(bool(e));
+    EXPECT_FALSE(e.is_value());
+    EXPECT_TRUE(e.is_error());
+  }
+}
+
 TEST(expected_copyable_tests, is_copy_constructible) {
   {
     copyable_type const e_old(CANARY);
     copyable_type e(e_old);
+
     EXPECT_TRUE(bool(e));
     EXPECT_EQ(*e, CANARY);
     EXPECT_TRUE(e.is_value());
@@ -115,6 +142,30 @@ TEST(expected_copyable_tests, is_copy_constructible) {
   {
     copyable_type const e_old(error_type{});
     copyable_type e(e_old);
+
+    EXPECT_FALSE(bool(e));
+    EXPECT_FALSE(e.is_value());
+    EXPECT_TRUE(e.is_error());
+  }
+}
+
+TEST(expected_copyable_tests, is_copy_assignable) {
+  {
+    copyable_type const e_old(CANARY);
+    copyable_type e;
+    e = e_old;
+
+    EXPECT_TRUE(bool(e));
+    EXPECT_EQ(*e, CANARY);
+    EXPECT_TRUE(e.is_value());
+    EXPECT_FALSE(e.is_error());
+  }
+
+  {
+    copyable_type const e_old(error_type{});
+    copyable_type e;
+    e = e_old;
+
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
     EXPECT_TRUE(e.is_error());

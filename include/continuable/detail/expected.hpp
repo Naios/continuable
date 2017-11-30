@@ -121,7 +121,7 @@ struct expected_move_base {
   expected_move_base& operator=(expected_move_base const&) = default;
   expected_move_base& operator=(expected_move_base&& right) {
     Base& me = *static_cast<Base*>(this);
-    Base const& other = *static_cast<Base*>(&right);
+    Base& other = *static_cast<Base*>(&right);
 
     me.weak_destroy();
 
