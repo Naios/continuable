@@ -22,6 +22,7 @@
 **/
 
 #include <memory>
+#include <utility>
 
 #include <continuable/detail/expected.hpp>
 #include <continuable/detail/types.hpp>
@@ -70,7 +71,7 @@ TYPED_TEST(expected_all_tests, can_carry_errors) {
     EXPECT_TRUE(bool(e));
     EXPECT_EQ(this->get(*e), CANARY);
     EXPECT_TRUE(e.is_value());
-    EXPECT_FALSE(e.is_error());
+    EXPECT_FALSE(e.is_exception());
   }
 
   {
@@ -78,7 +79,7 @@ TYPED_TEST(expected_all_tests, can_carry_errors) {
 
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
-    EXPECT_TRUE(e.is_error());
+    EXPECT_TRUE(e.is_exception());
   }
 }
 
@@ -94,14 +95,14 @@ TYPED_TEST(expected_all_tests, is_move_constructible) {
     EXPECT_TRUE(bool(e));
     EXPECT_EQ(this->get(*e), CANARY);
     EXPECT_TRUE(e.is_value());
-    EXPECT_FALSE(e.is_error());
+    EXPECT_FALSE(e.is_exception());
   }
 
   {
     TypeParam e(TypeParam(error_type{}));
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
-    EXPECT_TRUE(e.is_error());
+    EXPECT_TRUE(e.is_exception());
   }
 }
 
@@ -114,7 +115,7 @@ TYPED_TEST(expected_all_tests, is_move_assignable) {
     EXPECT_TRUE(bool(e));
     EXPECT_EQ(this->get(*e), CANARY);
     EXPECT_TRUE(e.is_value());
-    EXPECT_FALSE(e.is_error());
+    EXPECT_FALSE(e.is_exception());
   }
 
   {
@@ -124,7 +125,7 @@ TYPED_TEST(expected_all_tests, is_move_assignable) {
 
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
-    EXPECT_TRUE(e.is_error());
+    EXPECT_TRUE(e.is_exception());
   }
 }
 
@@ -136,7 +137,7 @@ TEST(expected_copyable_tests, is_copy_constructible) {
     EXPECT_TRUE(bool(e));
     EXPECT_EQ(*e, CANARY);
     EXPECT_TRUE(e.is_value());
-    EXPECT_FALSE(e.is_error());
+    EXPECT_FALSE(e.is_exception());
   }
 
   {
@@ -145,7 +146,7 @@ TEST(expected_copyable_tests, is_copy_constructible) {
 
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
-    EXPECT_TRUE(e.is_error());
+    EXPECT_TRUE(e.is_exception());
   }
 }
 
@@ -158,7 +159,7 @@ TEST(expected_copyable_tests, is_copy_assignable) {
     EXPECT_TRUE(bool(e));
     EXPECT_EQ(*e, CANARY);
     EXPECT_TRUE(e.is_value());
-    EXPECT_FALSE(e.is_error());
+    EXPECT_FALSE(e.is_exception());
   }
 
   {
@@ -168,6 +169,6 @@ TEST(expected_copyable_tests, is_copy_assignable) {
 
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
-    EXPECT_TRUE(e.is_error());
+    EXPECT_TRUE(e.is_exception());
   }
 }

@@ -181,7 +181,7 @@ public:
     assert(!is_empty());
     return slot_ == detail::slot_t::value;
   }
-  bool is_error() const noexcept {
+  bool is_exception() const noexcept {
     assert(!is_empty());
     return slot_ == detail::slot_t::error;
   }
@@ -189,13 +189,29 @@ public:
   explicit constexpr operator bool() const noexcept {
     return is_value();
   }
-  T& operator*() noexcept {
+
+  T& get_value() noexcept {
     assert(is_value());
     return cast<T>();
   }
-  T const& operator*() const noexcept {
+  T const& get_value() const noexcept {
     assert(is_value());
     return cast<T>();
+  }
+  T& get_exception() noexcept {
+    assert(is_exception());
+    return cast<types::error_type>();
+  }
+  T const& get_exception() const noexcept {
+    assert(is_exception());
+    return cast<types::error_type>();
+  }
+
+  T& operator*() noexcept {
+    return get_value();
+  }
+  T const& operator*() const noexcept {
+    return get_value();
   }
 
 private:
