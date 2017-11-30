@@ -37,8 +37,9 @@
 #include <experimental/coroutine>
 
 #include <continuable/continuable-api.hpp>
-#include <continuable/detail/expected.hpp>
+// #include <continuable/detail/expected.hpp>
 #include <continuable/detail/features.hpp>
+#include <continuable/detail/types.hpp>
 
 namespace cti {
 namespace detail {
@@ -54,7 +55,7 @@ class awaitable {
   Continuable continuable_;
   /// A cache which is used to pass the result of the continuation
   /// to the
-  util::expected<int /*TODO*/> cache_;
+  // util::expected<int /*TODO*/> cache_;
 
 public:
   /// Since continuables are evaluated lazily we are not

@@ -21,21 +21,100 @@
   SOFTWARE.
 **/
 
+#include <memory>
+
+#include <continuable/detail/expected.hpp>
+#include <continuable/detail/types.hpp>
+
 #include "test-continuable.hpp"
 
 using cti::detail::types::error_type;
 using cti::detail::util::expected;
 
-TEST(expected_tests, can_carry_errors) {
+static int const CANARY = 373671;
+
+template <typename T>
+struct expected_all_tests : testing::Test {
+  template <typename V>
+  auto supply(V&& value) const {
+    return std::forward<V>(value);
+  }
+  template <typename V>
+  auto get(V& value) const {
+    return value;
+  }
+};
+template <typename T>
+struct expected_all_tests<expected<std::unique_ptr<T>>> : testing::Test {
+  template <typename V>
+  auto supply(V&& value) const {
+    return std::make_unique<T>(std::forward<V>(value));
+  }
+  template <typename V>
+  auto get(std::unique_ptr<V>& value) const {
+    return *value;
+  }
+};
+
+using copyable_type = expected<int>;
+using unique_type = expected<std::unique_ptr<int>>;
+
+using expected_test_types = testing::Types<unique_type, copyable_type>;
+
+TYPED_TEST_CASE(expected_all_tests, expected_test_types);
+
+TYPED_TEST(expected_all_tests, can_carry_errors) {
   {
-    expected<int> e(1);
+    TypeParam e(this->supply(CANARY));
     EXPECT_TRUE(bool(e));
+    EXPECT_EQ(this->get(*e), CANARY);
     EXPECT_TRUE(e.is_value());
     EXPECT_FALSE(e.is_error());
   }
 
   {
-    expected<int> e(error_type{});
+    TypeParam e(error_type{});
+    EXPECT_FALSE(bool(e));
+    EXPECT_FALSE(e.is_value());
+    EXPECT_TRUE(e.is_error());
+  }
+}
+
+TYPED_TEST(expected_all_tests, is_empty_constructible) {
+  TypeParam e;
+  (void)e;
+}
+
+TYPED_TEST(expected_all_tests, is_move_constructible) {
+  {
+    TypeParam e(TypeParam(this->supply(CANARY)));
+    EXPECT_TRUE(bool(e));
+    EXPECT_EQ(this->get(*e), CANARY);
+    EXPECT_TRUE(e.is_value());
+    EXPECT_FALSE(e.is_error());
+  }
+
+  {
+    TypeParam e(TypeParam(error_type{}));
+    EXPECT_FALSE(bool(e));
+    EXPECT_FALSE(e.is_value());
+    EXPECT_TRUE(e.is_error());
+  }
+}
+
+TEST(expected_copyable_tests, is_copy_constructible) {
+  {
+    copyable_type const e_old(CANARY);
+    copyable_type e(e_old);
+    EXPECT_TRUE(bool(e));
+    EXPECT_EQ(*e, CANARY);
+    EXPECT_TRUE(e.is_value());
+    EXPECT_FALSE(e.is_error());
+  }
+
+  {
+    copyable_type const e_old(error_type{});
+    copyable_type e(e_old);
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
     EXPECT_TRUE(e.is_error());

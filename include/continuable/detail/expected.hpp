@@ -63,6 +63,10 @@ struct expected_copy_base {
     Base& me = *static_cast<Base*>(this);
     Base const& other = *static_cast<Base const*>(&right);
 
+#ifndef _NDEBUG
+    me.set(slot_t::empty);
+#endif
+
     other.visit([&](auto&& value) {
       // ...
       me.init(std::move(value));
@@ -103,6 +107,10 @@ struct expected_move_base {
   explicit expected_move_base(expected_move_base&& right) {
     Base& me = *static_cast<Base*>(this);
     Base& other = *static_cast<Base*>(&right);
+
+#ifndef _NDEBUG
+    me.set(slot_t::empty);
+#endif
 
     other.visit([&](auto&& value) {
       // ...
@@ -181,8 +189,12 @@ public:
   explicit constexpr operator bool() const noexcept {
     return is_value();
   }
-  T& operator*() const noexcept {
-    assert(!is_value());
+  T& operator*() noexcept {
+    assert(is_value());
+    return cast<T>();
+  }
+  T const& operator*() const noexcept {
+    assert(is_value());
     return cast<T>();
   }
 
