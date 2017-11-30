@@ -66,7 +66,7 @@ auto mk() {
 void teststhh() {
   auto c = mk();
 
-  co_await std::move(c);
+  // co_await std::move(c);
 }
 
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE

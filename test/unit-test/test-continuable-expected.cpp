@@ -23,11 +23,21 @@
 
 #include "test-continuable.hpp"
 
-using cti::detail::util::expected;
 using cti::detail::types::error_type;
+using cti::detail::util::expected;
 
 TEST(expected_tests, can_carry_errors) {
-  expected<int> e(1);
+  {
+    expected<int> e(1);
+    EXPECT_TRUE(bool(e));
+    EXPECT_TRUE(e.is_value());
+    EXPECT_FALSE(e.is_error());
+  }
 
-  auto i = e;
+  {
+    expected<int> e(error_type{});
+    EXPECT_FALSE(bool(e));
+    EXPECT_FALSE(e.is_value());
+    EXPECT_TRUE(e.is_error());
+  }
 }

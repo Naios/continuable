@@ -54,7 +54,7 @@ class awaitable {
   Continuable continuable_;
   /// A cache which is used to pass the result of the continuation
   /// to the
-  expected::expected<int /*TODO*/> cache_;
+  util::expected<int /*TODO*/> cache_;
 
 public:
   /// Since continuables are evaluated lazily we are not

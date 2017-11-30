@@ -31,6 +31,7 @@
 #ifndef CONTINUABLE_DETAIL_EXPECTED_HPP_INCLUDED__
 #define CONTINUABLE_DETAIL_EXPECTED_HPP_INCLUDED__
 
+#include <cassert>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -55,25 +56,25 @@ template <typename Base, bool IsCopyable /*= true*/>
 struct expected_copy_base {
   constexpr expected_copy_base() = default;
 
-  expected_copy_base(expected_copy_base const&) = default;
-  explicit expected_copy_base(expected_copy_base&& right)
+  expected_copy_base(expected_copy_base&&) = default;
+  explicit expected_copy_base(expected_copy_base const& right)
   // TODO noexcept(Base::is_nothrow_move_constructible)
   {
     Base& me = *static_cast<Base*>(this);
-    Base& other = *static_cast<Base*>(&right);
+    Base const& other = *static_cast<Base const*>(&right);
 
     other.visit([&](auto&& value) {
       // ...
       me.init(std::move(value));
     });
-    set(other.get());
+    me.set(other.get());
   }
-  expected_copy_base& operator=(expected_copy_base const&) = default;
-  expected_copy_base& operator=(expected_copy_base&& right)
+  expected_copy_base& operator=(expected_copy_base&&) = default;
+  expected_copy_base& operator=(expected_copy_base const& right)
   // TODO  noexcept(Base::is_nothrow_move_constructible)
   {
     Base& me = *static_cast<Base*>(this);
-    Base& other = *static_cast<Base*>(&right);
+    Base const& other = *static_cast<Base const*>(&right);
 
     me.weak_destroy();
 
@@ -81,7 +82,7 @@ struct expected_copy_base {
       // ...
       me.init(std::move(value));
     });
-    set(other.get());
+    me.set(other.get());
     return *this;
   }
 };
@@ -98,19 +99,19 @@ template <typename Base>
 struct expected_move_base {
   constexpr expected_move_base() = default;
 
-  expected_move_base(expected_move_base&&) = default;
-  explicit expected_move_base(expected_move_base const& right) {
+  expected_move_base(expected_move_base const&) = default;
+  explicit expected_move_base(expected_move_base&& right) {
     Base& me = *static_cast<Base*>(this);
-    Base const& other = *static_cast<Base const*>(&right);
+    Base& other = *static_cast<Base*>(&right);
 
     other.visit([&](auto&& value) {
       // ...
       me.init(std::move(value));
     });
-    set(other.consume());
+    me.set(other.consume());
   }
-  expected_move_base& operator=(expected_move_base&&) = default;
-  expected_move_base& operator=(expected_move_base const& right) {
+  expected_move_base& operator=(expected_move_base const&) = default;
+  expected_move_base& operator=(expected_move_base&& right) {
     Base& me = *static_cast<Base*>(this);
     Base const& other = *static_cast<Base*>(&right);
 
@@ -120,7 +121,7 @@ struct expected_move_base {
       // ...
       me.init(std::move(value));
     });
-    set(other.consume());
+    me.set(other.consume());
     return *this;
   }
 };
@@ -137,9 +138,11 @@ class expected
                            std::is_copy_constructible<T>::value> {
 
   template <typename>
-  friend class expected_move_base;
+  friend class expected;
+  template <typename>
+  friend struct detail::expected_move_base;
   template <typename, bool>
-  friend class expected_copy_base;
+  friend struct detail::expected_copy_base;
 
   detail::storage_of_t<T> storage_;
   detail::slot_t slot_ = detail::slot_t::empty;
@@ -152,6 +155,8 @@ class expected
   }
 
 public:
+  expected() = default;
+
   explicit expected(T value) //
       : expected(std::move(value), detail::slot_t::value) {
   }
@@ -165,25 +170,30 @@ public:
   expected& operator=(expected&& right) = default;
 
   bool is_value() const noexcept {
+    assert(!is_empty());
     return slot_ == detail::slot_t::value;
   }
   bool is_error() const noexcept {
+    assert(!is_empty());
     return slot_ == detail::slot_t::error;
   }
 
-protected:
-  bool is_empty() const noexcept {
-    return slot_ == detail::slot_t::empty;
+  explicit constexpr operator bool() const noexcept {
+    return is_value();
+  }
+  T& operator*() const noexcept {
+    assert(!is_value());
+    return cast<T>();
   }
 
+private:
   template <typename V>
   void visit(V&& visitor) {
     switch (slot_) {
       case detail::slot_t::value:
-        return std::forward<V>(visitor)(static_cast<T*>(&storage_));
+        return std::forward<V>(visitor)(cast<T>());
       case detail::slot_t::error:
-        return std::forward<V>(visitor)(
-            static_cast<types::error_type*>(&storage_));
+        return std::forward<V>(visitor)(cast<types::error_type>());
       default:
         // We don't visit when there is no value
         break;
@@ -193,20 +203,33 @@ protected:
   void visit(V&& visitor) const {
     switch (slot_) {
       case detail::slot_t::value:
-        return std::forward<V>(visitor)(static_cast<T*>(&storage_));
+        return std::forward<V>(visitor)(cast<T>());
       case detail::slot_t::error:
-        return std::forward<V>(visitor)(
-            static_cast<types::error_type*>(&storage_));
+        return std::forward<V>(visitor)(cast<types::error_type>());
       default:
         // We don't visit when there is no value
         break;
     }
   }
 
+  bool is_empty() const noexcept {
+    return slot_ == detail::slot_t::empty;
+  }
+
   template <typename V>
-  void init(V&& value, detail::slot_t const slot) {
-    assert(is(slot_t::empty));
-    set(slot);
+  V& cast() noexcept {
+    assert(!is_empty());
+    return *reinterpret_cast<V*>(&storage_);
+  }
+  template <typename V>
+  V const& cast() const noexcept {
+    assert(!is_empty());
+    return *reinterpret_cast<V const*>(&storage_);
+  }
+
+  template <typename V>
+  void init(V&& value) {
+    assert(is_empty());
     using type = std::decay_t<decltype(value)>;
     auto storage = &storage_;
     new (storage) type(std::forward<V>(value));
@@ -237,7 +260,7 @@ protected:
   void set(detail::slot_t const slot) {
     slot_ = slot;
   }
-  detail::slot_t consume(detail::slot_t slot) {
+  detail::slot_t consume() {
     auto const current = get();
     destroy();
     return current;
