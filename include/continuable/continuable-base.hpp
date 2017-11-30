@@ -292,7 +292,7 @@ public:
   ///
   /// // Will receive errors and results
   /// http_request("github.com")
-  ///   .flow(my_callable{});
+  ///   .next(my_callable{});
   /// ```
   ///
   /// \param executor The optional executor which is used to dispatch
@@ -303,7 +303,7 @@ public:
   ///
   /// \since version 2.0.0
   template <typename T, typename E = detail::types::this_thread_executor_tag>
-  auto flow(T&& callback,
+  auto next(T&& callback,
             E&& executor = detail::types::this_thread_executor_tag{}) && {
     return detail::base::chain_continuation<
         detail::base::handle_results::yes,
@@ -653,10 +653,10 @@ auto make_continuable(Continuation&& continuation) {
 /// };
 ///
 /// // Will receive errors and results
-/// continuable.flow(my_callable{});
+/// continuable.next(my_callable{});
 /// ```
 ///
-/// \note see continuable::flow for details.
+/// \note see continuable::next for details.
 ///
 /// \since version 2.0.0
 using detail::types::dispatch_error_tag;

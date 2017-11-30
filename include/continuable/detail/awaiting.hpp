@@ -96,7 +96,7 @@ public:
   void await_suspend(coroutine_handle<> h) {
     // Forward every result to the current awaitable
     std::move(continuable_)
-        .flow([h, this](auto&&... args) {
+        .next([h, this](auto&&... args) {
           resolve(std::forward<decltype(args)>(args)...);
           h.resume();
         })

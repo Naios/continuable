@@ -67,7 +67,7 @@ struct my_callable {
 };
 
 int main(int, char**) {
-  http_request("github.com").flow(my_callable{});
+  http_request("github.com").next(my_callable{});
 
   http_request("github.com") | [](std::string) {
     // ...

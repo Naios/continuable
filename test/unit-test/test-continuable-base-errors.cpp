@@ -65,7 +65,7 @@ TYPED_TEST(single_dimension_tests, are_yielding_errors_from_handlers) {
 TYPED_TEST(single_dimension_tests, are_result_error_accepting) {
   auto handled = std::make_shared<bool>(false);
   auto continuation = this->supply(supply_test_exception())
-                          .flow(fu2::overload(
+                          .next(fu2::overload(
                               [handled] {
                                 ASSERT_FALSE(*handled);
                                 *handled = true;
@@ -83,7 +83,7 @@ TYPED_TEST(single_dimension_tests, are_flow_error_accepting) {
   auto handled = std::make_shared<bool>(false);
   auto continuation =
       this->supply_exception(supply_test_exception())
-          .flow(fu2::overload(
+          .next(fu2::overload(
               [] {
                 // ...
                 FAIL();
