@@ -129,6 +129,27 @@ TYPED_TEST(expected_all_tests, is_move_assignable) {
   }
 }
 
+TYPED_TEST(expected_all_tests, is_value_assignable) {
+  {
+    TypeParam e;
+    e = this->supply(CANARY);
+
+    EXPECT_TRUE(bool(e));
+    EXPECT_EQ(this->get(*e), CANARY);
+    EXPECT_TRUE(e.is_value());
+    EXPECT_FALSE(e.is_exception());
+  }
+
+  {
+    TypeParam e;
+    e = error_type{};
+
+    EXPECT_FALSE(bool(e));
+    EXPECT_FALSE(e.is_value());
+    EXPECT_TRUE(e.is_exception());
+  }
+}
+
 TEST(expected_copyable_tests, is_copy_constructible) {
   {
     copyable_type const e_old(CANARY);

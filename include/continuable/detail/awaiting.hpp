@@ -34,6 +34,7 @@
 // Exlude this header when coroutines are not available
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 
+#include <cassert>
 #include <experimental/coroutine>
 
 #include <continuable/continuable-api.hpp>
@@ -47,20 +48,47 @@ namespace cti {
 namespace detail {
 namespace awaiting {
 namespace detail {
+struct void_guard_tag {};
+
 template <typename T>
-struct result_trait {
+struct result_trait;
+template <>
+struct result_trait<traits::identity<void>> {
+  using expected = util::expected<void_guard_tag>;
+
+  static auto wrap() {
+    return expected(void_guard_tag{});
+  }
+  static void unwrap(expected&& e) {
+    assert(e.is_value());
+    (void)e;
+  }
+};
+template <typename T>
+struct result_trait<traits::identity<T>> {
   using expected = util::expected<T>;
 
   static auto wrap(T arg) {
     return std::move(arg);
   }
+  static void unwrap(expected&& e) {
+    assert(e.is_value());
+    (void)e;
+    return std::move(e.get_value());
+  }
 };
-template <typename... T>
-struct result_trait<traits::identity<T...>> {
-  using expected = util::expected<std::tuple<T...>>;
+template <typename First, typename Second, typename... Rest>
+struct result_trait<traits::identity<First, Second, Rest...>> {
+  using expected = util::expected<std::tuple<First, Second, Rest...>>;
 
-  static auto wrap(T... args) {
-    return std::make_tuple(std::move(args)...);
+  static auto wrap(First first, Second second, Rest... rest) {
+    return std::make_tuple(std::move(first), std::move(second),
+                           std::move(rest)...);
+  }
+  static void unwrap(expected&& e) {
+    assert(e.is_value());
+    (void)e;
+    return std::move(e.get_value());
   }
 };
 

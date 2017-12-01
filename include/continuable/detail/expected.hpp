@@ -172,6 +172,15 @@ public:
       : expected(std::move(error), detail::slot_t::error) {
   }
 
+  expected& operator=(T value) {
+    set_value(std::move(value));
+    return *this;
+  }
+  expected& operator=(types::error_type error) {
+    set_error(std::move(error));
+    return *this;
+  }
+
   expected(expected const&) = default;
   expected(expected&& right) = default;
   expected& operator=(expected const&) = default;
@@ -188,6 +197,17 @@ public:
 
   explicit constexpr operator bool() const noexcept {
     return is_value();
+  }
+
+  void set_value(T value) {
+    weak_destroy();
+    init(std::move(value));
+    set(detail::slot_t::value);
+  }
+  void set_error(types::error_type error) {
+    weak_destroy();
+    init(std::move(error));
+    set(detail::slot_t::error);
   }
 
   T& get_value() noexcept {
