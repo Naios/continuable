@@ -106,27 +106,25 @@ TYPED_TEST(expected_all_tests, is_move_constructible) {
   }
 }
 
-TYPED_TEST(expected_all_tests, is_move_assignable) {
-  {
-    TypeParam old(this->supply(CANARY));
-    TypeParam e;
-    e = std::move(old);
+TYPED_TEST(expected_all_tests, is_value_move_assignable) {
+  TypeParam old(this->supply(CANARY));
+  TypeParam e;
+  e = std::move(old);
 
-    EXPECT_TRUE(bool(e));
-    EXPECT_EQ(this->get(*e), CANARY);
-    EXPECT_TRUE(e.is_value());
-    EXPECT_FALSE(e.is_exception());
-  }
+  EXPECT_TRUE(bool(e));
+  EXPECT_EQ(this->get(*e), CANARY);
+  EXPECT_TRUE(e.is_value());
+  EXPECT_FALSE(e.is_exception());
+}
 
-  {
-    TypeParam old(error_type{});
-    TypeParam e;
-    e = std::move(old);
+TYPED_TEST(expected_all_tests, is_error_move_assignable) {
+  TypeParam old(error_type{});
+  TypeParam e;
+  e = std::move(old);
 
-    EXPECT_FALSE(bool(e));
-    EXPECT_FALSE(e.is_value());
-    EXPECT_TRUE(e.is_exception());
-  }
+  EXPECT_FALSE(bool(e));
+  EXPECT_FALSE(e.is_value());
+  EXPECT_TRUE(e.is_exception());
 }
 
 TYPED_TEST(expected_all_tests, is_value_assignable) {

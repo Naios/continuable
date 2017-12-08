@@ -44,6 +44,10 @@
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
 
+#if defined(CONTINUABLE_WITH_EXCEPTIONS)
+#include <exception>
+#endif // CONTINUABLE_WITH_EXCEPTIONS
+
 namespace cti {
 namespace detail {
 namespace awaiting {
@@ -131,12 +135,18 @@ public:
         .done();
   }
 
-  void await_resume() {
+  auto await_resume() noexcept(false) {
     if (result_) {
-      return result_.get_value();
-    } else {
-      throw result_.get_error();
+      // When the result was resolved return it
+      trait_t::unwrap(std::move(result_));
     }
+
+#if defined(CONTINUABLE_WITH_EXCEPTIONS)
+    std::rethrow_exception(result_.get_error());
+#else  // CONTINUABLE_WITH_EXCEPTIONS
+    // Returning error types in await isn't supported as of now
+    util::trap();
+#endif // CONTINUABLE_WITH_EXCEPTIONS
   }
 
 private:

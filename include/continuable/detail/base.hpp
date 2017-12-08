@@ -35,16 +35,16 @@
 #include <type_traits>
 #include <utility>
 
-#if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
-    !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
-#include <exception>
-#endif
-
 #include <continuable/continuable-api.hpp>
+#include <continuable/detail/features.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
+
+#if defined(CONTINUABLE_WITH_EXCEPTIONS)
+#include <exception>
+#endif // CONTINUABLE_WITH_EXCEPTIONS
 
 namespace cti {
 namespace detail {
@@ -151,8 +151,7 @@ public:
   }
 };
 
-#if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
-    !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
+#if defined(CONTINUABLE_WITH_EXCEPTIONS)
 #define CONTINUABLE_BLOCK_TRY_BEGIN try {
 #define CONTINUABLE_BLOCK_TRY_END                                              \
   }                                                                            \
@@ -161,10 +160,10 @@ public:
         types::dispatch_error_tag{}, std::current_exception());                \
   }
 
-#else
+#else // CONTINUABLE_WITH_EXCEPTIONS
 #define CONTINUABLE_BLOCK_TRY_BEGIN {
 #define CONTINUABLE_BLOCK_TRY_END }
-#endif
+#endif // CONTINUABLE_WITH_EXCEPTIONS
 
 template <typename T, typename... Args>
 constexpr auto make_invoker(T&& invoke, hints::signature_hint_tag<Args...>) {

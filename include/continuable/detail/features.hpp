@@ -47,6 +47,14 @@
 #endif
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 
+/// Define CONTINUABLE_WITH_EXCEPTIONS when exceptions are used
+#if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
+    !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
+#define CONTINUABLE_WITH_EXCEPTIONS 1
+#else
+#undef CONTINUABLE_WITH_EXCEPTIONS
+#endif
+
 /// TODO Enable this
 #undef CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
 /// TODO Enable this

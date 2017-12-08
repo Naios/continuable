@@ -52,8 +52,46 @@ using storage_of_t = //
                                 ? sizeof(types::error_type)
                                 : sizeof(T))>;
 
+template <typename Base>
+struct expected_move_base {
+  constexpr expected_move_base() = default;
+
+  expected_move_base(expected_move_base const&) = default;
+  explicit expected_move_base(expected_move_base&& right) {
+    Base& me = *static_cast<Base*>(this);
+    Base& other = *static_cast<Base*>(&right);
+    assert(!other.is_empty());
+
+#ifndef _NDEBUG
+    me.set(slot_t::empty);
+#endif
+
+    other.visit([&](auto&& value) {
+      // ...
+      me.init(std::move(value));
+    });
+    me.set(other.get());
+    other.destroy();
+  }
+  expected_move_base& operator=(expected_move_base const&) = default;
+  expected_move_base& operator=(expected_move_base&& right) {
+    Base& me = *static_cast<Base*>(this);
+    Base& other = *static_cast<Base*>(&right);
+    assert(!other.is_empty());
+
+    me.weak_destroy();
+
+    other.visit([&](auto&& value) {
+      // ...
+      me.init(std::move(value));
+    });
+    me.set(other.get());
+    other.destroy();
+    return *this;
+  }
+};
 template <typename Base, bool IsCopyable /*= true*/>
-struct expected_copy_base {
+struct expected_copy_base : expected_move_base<Base> {
   constexpr expected_copy_base() = default;
 
   expected_copy_base(expected_copy_base&&) = default;
@@ -62,6 +100,7 @@ struct expected_copy_base {
   {
     Base& me = *static_cast<Base*>(this);
     Base const& other = *static_cast<Base const*>(&right);
+    assert(!other->is_empty());
 
 #ifndef _NDEBUG
     me.set(slot_t::empty);
@@ -79,6 +118,7 @@ struct expected_copy_base {
   {
     Base& me = *static_cast<Base*>(this);
     Base const& other = *static_cast<Base const*>(&right);
+    assert(!other.is_empty());
 
     me.weak_destroy();
 
@@ -91,47 +131,13 @@ struct expected_copy_base {
   }
 };
 template <typename Base /*, bool IsCopyable = false*/>
-struct expected_copy_base<Base, false> {
+struct expected_copy_base<Base, false> : expected_move_base<Base> {
   constexpr expected_copy_base() = default;
 
   expected_copy_base(expected_copy_base const&) = default;
   explicit expected_copy_base(expected_copy_base&& right) = delete;
   expected_copy_base& operator=(expected_copy_base const&) = default;
   expected_copy_base& operator=(expected_copy_base&& right) = delete;
-};
-template <typename Base>
-struct expected_move_base {
-  constexpr expected_move_base() = default;
-
-  expected_move_base(expected_move_base const&) = default;
-  explicit expected_move_base(expected_move_base&& right) {
-    Base& me = *static_cast<Base*>(this);
-    Base& other = *static_cast<Base*>(&right);
-
-#ifndef _NDEBUG
-    me.set(slot_t::empty);
-#endif
-
-    other.visit([&](auto&& value) {
-      // ...
-      me.init(std::move(value));
-    });
-    me.set(other.consume());
-  }
-  expected_move_base& operator=(expected_move_base const&) = default;
-  expected_move_base& operator=(expected_move_base&& right) {
-    Base& me = *static_cast<Base*>(this);
-    Base& other = *static_cast<Base*>(&right);
-
-    me.weak_destroy();
-
-    other.visit([&](auto&& value) {
-      // ...
-      me.init(std::move(value));
-    });
-    me.set(other.consume());
-    return *this;
-  }
 };
 } // namespace detail
 
@@ -140,8 +146,7 @@ struct expected_move_base {
 /// exceptions are used.
 template <typename T>
 class expected
-    : detail::expected_move_base<expected<T>>,
-      detail::expected_copy_base<
+    : detail::expected_copy_base<
           expected<T>, std::is_copy_constructible<types::error_type>::value &&
                            std::is_copy_constructible<T>::value> {
 
@@ -153,7 +158,7 @@ class expected
   friend struct detail::expected_copy_base;
 
   detail::storage_of_t<T> storage_;
-  detail::slot_t slot_ = detail::slot_t::empty;
+  detail::slot_t slot_;
 
   template <typename V>
   expected(V&& value, detail::slot_t const slot) {
@@ -163,7 +168,13 @@ class expected
   }
 
 public:
-  expected() = default;
+  constexpr expected() : slot_(detail::slot_t::empty) {
+  }
+
+  expected(expected const&) = default;
+  expected(expected&&) = default;
+  expected& operator=(expected const&) = default;
+  expected& operator=(expected&&) = default;
 
   explicit expected(T value) //
       : expected(std::move(value), detail::slot_t::value) {
@@ -181,18 +192,13 @@ public:
     return *this;
   }
 
-  expected(expected const&) = default;
-  expected(expected&& right) = default;
-  expected& operator=(expected const&) = default;
-  expected& operator=(expected&& right) = default;
-
   bool is_value() const noexcept {
     assert(!is_empty());
-    return slot_ == detail::slot_t::value;
+    return is(detail::slot_t::value);
   }
   bool is_exception() const noexcept {
     assert(!is_empty());
-    return slot_ == detail::slot_t::error;
+    return is(detail::slot_t::error);
   }
 
   explicit constexpr operator bool() const noexcept {
@@ -261,7 +267,7 @@ private:
   }
 
   bool is_empty() const noexcept {
-    return slot_ == detail::slot_t::empty;
+    return is(detail::slot_t::empty);
   }
 
   template <typename V>
@@ -307,11 +313,6 @@ private:
   }
   void set(detail::slot_t const slot) {
     slot_ = slot;
-  }
-  detail::slot_t consume() {
-    auto const current = get();
-    destroy();
-    return current;
   }
 };
 } // namespace util
