@@ -100,7 +100,7 @@ struct expected_copy_base : expected_move_base<Base> {
   {
     Base& me = *static_cast<Base*>(this);
     Base const& other = *static_cast<Base const*>(&right);
-    assert(!other->is_empty());
+    assert(!other.is_empty());
 
 #ifndef _NDEBUG
     me.set(slot_t::empty);
