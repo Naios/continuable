@@ -52,6 +52,26 @@ using storage_of_t = //
                                 ? sizeof(types::error_type)
                                 : sizeof(T))>;
 
+template <typename T>
+struct expected_base {
+  storage_of_t<T> storage_;
+  slot_t slot_;
+
+  constexpr expected_base() : slot_(slot_t::empty) {
+  }
+
+  expected_base(expected_base const&) noexcept {
+  }
+  expected_base(expected_base&&) noexcept {
+  }
+  expected_base& operator=(expected_base const&) {
+    return *this;
+  }
+  expected_base& operator=(expected_base&&) {
+    return *this;
+  }
+};
+
 template <typename Base>
 struct expected_move_base {
   constexpr expected_move_base() = default;
@@ -148,7 +168,8 @@ template <typename T>
 class expected
     : detail::expected_copy_base<
           expected<T>, std::is_copy_constructible<types::error_type>::value &&
-                           std::is_copy_constructible<T>::value> {
+                           std::is_copy_constructible<T>::value>,
+      detail::expected_base<T> {
 
   template <typename>
   friend class expected;
@@ -156,9 +177,6 @@ class expected
   friend struct detail::expected_move_base;
   template <typename, bool>
   friend struct detail::expected_copy_base;
-
-  detail::storage_of_t<T> storage_;
-  detail::slot_t slot_;
 
   template <typename V>
   expected(V&& value, detail::slot_t const slot) {
@@ -168,9 +186,7 @@ class expected
   }
 
 public:
-  constexpr expected() : slot_(detail::slot_t::empty) {
-  }
-
+  constexpr expected() = default;
   expected(expected const&) = default;
   expected(expected&&) = default;
   expected& operator=(expected const&) = default;
