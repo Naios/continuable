@@ -51,11 +51,6 @@ struct coroutine_traits<void, T...> {
 } // namespace experimental
 } // namespace std
 
-TYPED_TEST(single_dimension_tests, is_awaitable) {
-
-  {}
-}
-
 auto mk() {
   return cti::make_continuable<void>([](auto&& promise) {
     // ...
@@ -66,7 +61,15 @@ auto mk() {
 void teststhh() {
   auto c = mk();
 
-  // co_await std::move(c);
+  co_await std::move(c);
+
+  co_return;
 }
+
+TYPED_TEST(single_dimension_tests, is_awaitable) {
+
+  teststhh();
+}
+
 
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE

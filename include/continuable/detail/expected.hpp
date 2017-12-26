@@ -240,11 +240,11 @@ public:
     assert(is_value());
     return cast<T>();
   }
-  T& get_exception() noexcept {
+  types::error_type& get_exception() noexcept {
     assert(is_exception());
     return cast<types::error_type>();
   }
-  T const& get_exception() const noexcept {
+  types::error_type const& get_exception() const noexcept {
     assert(is_exception());
     return cast<types::error_type>();
   }
