@@ -154,10 +154,10 @@ template <typename Base /*, bool IsCopyable = false*/>
 struct expected_copy_base<Base, false> : expected_move_base<Base> {
   constexpr expected_copy_base() = default;
 
-  expected_copy_base(expected_copy_base const&) = default;
-  explicit expected_copy_base(expected_copy_base&& right) = delete;
-  expected_copy_base& operator=(expected_copy_base const&) = default;
-  expected_copy_base& operator=(expected_copy_base&& right) = delete;
+  expected_copy_base(expected_copy_base const&) = delete;
+  explicit expected_copy_base(expected_copy_base&& right) = default;
+  expected_copy_base& operator=(expected_copy_base const&) = delete;
+  expected_copy_base& operator=(expected_copy_base&& right) = default;
 };
 } // namespace detail
 
