@@ -51,25 +51,28 @@ struct coroutine_traits<void, T...> {
 } // namespace experimental
 } // namespace std
 
-auto mk() {
-  return cti::make_continuable<void>([](auto&& promise) {
-    // ...
-    promise.set_value();
-  });
-}
+/// Resolves the given promise asynchonously
+template <typename S, typename T>
+void resolve_async(S&& supplier, T&& promise) {
+  co_await supplier();
 
-void teststhh() {
-  auto c = mk();
+  co_await supplier();
 
-  co_await std::move(c);
-
+  promise.set_value();
   co_return;
 }
 
-TYPED_TEST(single_dimension_tests, is_awaitable) {
+TYPED_TEST(single_dimension_tests, are_awaitable) {
+  auto const& supply = [&] {
+    // Supplies the current tested continuable
+    return this->supply();
+  };
 
-  teststhh();
+  EXPECT_ASYNC_RESULT(
+      this->supply().then(cti::make_continuable<void>([&](auto&& promise) {
+        // Resolve the cotinuable through a coroutine
+        resolve_async(supply, std::forward<decltype(promise)>(promise));
+      })));
 }
-
 
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
