@@ -31,6 +31,9 @@
 #ifndef CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED__
 #define CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED__
 
+#include <continuable/continuable-api.hpp>
+#include <continuable/detail/features.hpp>
+
 #ifndef CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
 #ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
 #include <exception>
@@ -38,9 +41,6 @@
 #include <system_error>
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 #endif // CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
-
-#include <continuable/continuable-api.hpp>
-#include <continuable/detail/features.hpp>
 
 namespace cti {
 namespace detail {
