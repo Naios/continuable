@@ -41,6 +41,7 @@
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/expected.hpp>
 #include <continuable/detail/features.hpp>
+#include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
@@ -175,6 +176,39 @@ auto create_awaiter(T&& continuable) {
 } // namespace awaiting
 } // namespace detail
 } // namespace cti
+
+namespace std {
+namespace experimental {
+template <typename Data, typename... Args, typename... FunctionArgs>
+struct coroutine_traits<
+    cti::continuable_base<Data,
+                          cti::detail::hints::signature_hint_tag<Args...>>,
+    FunctionArgs...> /*{
+  struct promise_type {
+    // boost::promise<R> p;
+    auto get_return_object() {
+      // return p.get_future();
+    }
+    suspend_always initial_suspend() {
+      return {};
+    }
+    suspend_never final_suspend() {
+      return {};
+    }
+    void set_exception(std::exception_ptr e) {
+      // p.set_exception(std::move(e));
+    }
+    void unhandled_exception() {
+      // p.set_exception(std::current_exception());
+    }
+    template <typename U>
+    void return_value(U&& u) {
+      // p.set_value(std::forward<U>(u));
+    }
+  };
+}*/;
+} // namespace experimental
+} // namespace std
 
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 #endif // CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED__

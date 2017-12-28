@@ -117,6 +117,17 @@ TYPED_TEST(single_dimension_tests, are_awaitable_with_exceptions) {
       })));
 }
 
+// TODO Implement this later
+//
+//  static cti::continuable<int> async_await() {
+//   co_await cti::make_continuable<void>([](auto&& promise) {
+//      ...
+//     promise.set_value();
+//   });
+//
+//   co_return 1;
+// }
+
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
