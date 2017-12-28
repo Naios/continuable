@@ -23,6 +23,10 @@
 
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 
+#ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
+#include <exception>
+#endif // CONTINUABLE_WITH_NO_EXCEPTIONS
+
 #include "test-continuable.hpp"
 
 namespace std {
@@ -74,5 +78,45 @@ TYPED_TEST(single_dimension_tests, are_awaitable) {
         resolve_async(supply, std::forward<decltype(promise)>(promise));
       })));
 }
+
+#ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
+
+struct await_exception : std::exception {
+  char const* what() const noexcept override {
+    return "await_exception";
+  }
+
+  bool operator==(await_exception const&) const noexcept {
+    return true;
+  }
+};
+
+/// Resolves the given promise asynchonously through an exception
+template <typename S, typename T>
+void resolve_async_exceptional(S&& supplier, T&& promise) {
+  co_await supplier();
+
+  ASSERT_THROW(co_await supplier().then([] { throw await_exception{}; }),
+               await_exception);
+
+  promise.set_value();
+  co_return;
+}
+
+TYPED_TEST(single_dimension_tests, are_awaitable_with_exceptions) {
+  auto const& supply = [&] {
+    // Supplies the current tested continuable
+    return this->supply();
+  };
+
+  ASSERT_ASYNC_COMPLETION(
+      this->supply().then(cti::make_continuable<void>([&](auto&& promise) {
+        // Resolve the cotinuable through a coroutine
+        resolve_async_exceptional(supply,
+                                  std::forward<decltype(promise)>(promise));
+      })));
+}
+
+#endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE

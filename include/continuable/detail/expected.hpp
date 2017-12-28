@@ -204,7 +204,7 @@ public:
     return *this;
   }
   expected& operator=(types::error_type error) {
-    set_error(std::move(error));
+    set_exception(std::move(error));
     return *this;
   }
 
@@ -226,7 +226,7 @@ public:
     init(std::move(value));
     set(detail::slot_t::value);
   }
-  void set_error(types::error_type error) {
+  void set_exception(types::error_type error) {
     weak_destroy();
     init(std::move(error));
     set(detail::slot_t::error);
