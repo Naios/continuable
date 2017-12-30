@@ -181,7 +181,7 @@ class expected
   template <typename V>
   expected(V&& value, detail::slot_t const slot) {
     using type = std::decay_t<decltype(value)>;
-    new (&storage_) type(std::forward<V>(value));
+    new (&this->storage_) type(std::forward<V>(value));
     set(slot);
   }
 
@@ -259,7 +259,7 @@ public:
 private:
   template <typename V>
   void visit(V&& visitor) {
-    switch (slot_) {
+    switch (this->slot_) {
       case detail::slot_t::value:
         return std::forward<V>(visitor)(cast<T>());
       case detail::slot_t::error:
@@ -271,7 +271,7 @@ private:
   }
   template <typename V>
   void visit(V&& visitor) const {
-    switch (slot_) {
+    switch (this->slot_) {
       case detail::slot_t::value:
         return std::forward<V>(visitor)(cast<T>());
       case detail::slot_t::error:
@@ -289,20 +289,19 @@ private:
   template <typename V>
   V& cast() noexcept {
     assert(!is_empty());
-    return *reinterpret_cast<V*>(&storage_);
+    return *reinterpret_cast<V*>(&this->storage_);
   }
   template <typename V>
   V const& cast() const noexcept {
     assert(!is_empty());
-    return *reinterpret_cast<V const*>(&storage_);
+    return *reinterpret_cast<V const*>(&this->storage_);
   }
 
   template <typename V>
   void init(V&& value) {
     assert(is_empty());
     using type = std::decay_t<decltype(value)>;
-    auto storage = &storage_;
-    new (storage) type(std::forward<V>(value));
+    new (&this->storage_) type(std::forward<V>(value));
   }
   void destroy() {
     weak_destroy();
@@ -322,13 +321,13 @@ private:
 #endif
   }
   detail::slot_t get() const noexcept {
-    return slot_;
+    return this->slot_;
   }
   bool is(detail::slot_t const slot) const noexcept {
     return get() == slot;
   }
   void set(detail::slot_t const slot) {
-    slot_ = slot;
+    this->slot_ = slot;
   }
 };
 } // namespace util
