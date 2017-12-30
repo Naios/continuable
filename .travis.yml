@@ -33,7 +33,7 @@ matrix:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-5.0
           packages:
-            - g++-6
+            - llvm-5.0-dev
             - clang-5.0
             - cmake
             - cmake-data
@@ -51,7 +51,7 @@ matrix:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-5.0
           packages:
-            - g++-6
+            - llvm-5.0-dev
             - clang-5.0
             - cmake
             - cmake-data
@@ -86,14 +86,14 @@ script:
       # Build the test suite with various sanitizers:
       # - ASan (LSan):
       echo "Building with address sanitizer..."
-      CMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer"
+      CMAKE_CXX_FLAGS="-stdlib=libc++ -fsanitize=address -fno-omit-frame-pointer"
       renew_build
       ninja -j2
       ctest --verbose
 
       # - UBSan:
       echo "Building with undefined behaviour sanitizer..."
-      CMAKE_CXX_FLAGS="-fsanitize=undefined -fno-omit-frame-pointer"
+      CMAKE_CXX_FLAGS="-stdlib=libc++ -fsanitize=undefined -fno-omit-frame-pointer"
       renew_build
       ninja -j2
       ctest --verbose
