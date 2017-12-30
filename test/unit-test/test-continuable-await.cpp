@@ -27,6 +27,8 @@
 #include <exception>
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 
+#include <tuple>
+
 #include "test-continuable.hpp"
 
 namespace std {
@@ -58,18 +60,25 @@ struct coroutine_traits<void, T...> {
 /// Resolves the given promise asynchonously
 template <typename S, typename T>
 void resolve_async(S&& supplier, T&& promise) {
+  // 0 args
   co_await supplier();
 
-  co_await supplier();
+  // 1 args
+  int a1 = co_await supplier(1);
+  EXPECT_EQ(a1, 1);
+
+  // 2-n args
+  std::tuple<int, int> a2 = co_await supplier(1, 2);
+  EXPECT_EQ(a2, std::make_tuple(1, 2));
 
   promise.set_value();
   co_return;
 }
 
 TYPED_TEST(single_dimension_tests, are_awaitable) {
-  auto const& supply = [&] {
+  auto const& supply = [&](auto&&... args) {
     // Supplies the current tested continuable
-    return this->supply();
+    return this->supply(std::forward<decltype(args)>(args)...);
   };
 
   EXPECT_ASYNC_RESULT(
@@ -94,7 +103,16 @@ struct await_exception : std::exception {
 /// Resolves the given promise asynchonously through an exception
 template <typename S, typename T>
 void resolve_async_exceptional(S&& supplier, T&& promise) {
+  // 0 args
   co_await supplier();
+
+  // 1 args
+  int a1 = co_await supplier(1);
+  EXPECT_EQ(a1, 1);
+
+  // 2-n args
+  std::tuple<int, int> a2 = co_await supplier(1, 2);
+  EXPECT_EQ(a2, std::make_tuple(1, 2));
 
   ASSERT_THROW(co_await supplier().then([] { throw await_exception{}; }),
                await_exception);
@@ -104,9 +122,9 @@ void resolve_async_exceptional(S&& supplier, T&& promise) {
 }
 
 TYPED_TEST(single_dimension_tests, are_awaitable_with_exceptions) {
-  auto const& supply = [&] {
+  auto const& supply = [&](auto&&... args) {
     // Supplies the current tested continuable
-    return this->supply();
+    return this->supply(std::forward<decltype(args)>(args)...);
   };
 
   ASSERT_ASYNC_COMPLETION(
