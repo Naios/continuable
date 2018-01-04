@@ -64,23 +64,6 @@ matrix:
 install:
   - export CXX=$COMPILER
   - $CXX --version
-
-  # Function for creating a new 'build' directory
-  - |
-    function renew_build {
-      echo "Renew build directory..."
-      cd $TRAVIS_BUILD_DIR
-
-      # Remove any existing build directory
-      [ -e build ] && rm -r -f build
-      mkdir build
-      cd build
-
-      # Configure the project and build it
-      cmake -GNinja -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS -Werror" -DCTI_CONTINUABLE_WITH_NO_EXCEPTIONS=$NO_EXCEPTIONS -DCTI_CONTINUABLE_WITH_AWAIT=$WITH_AWAIT -DCMAKE_BUILD_TYPE=Debug ..
-    }
-
-script:
   ############################################################################
   # Install libc++ and libc++abi if needed
   # Taken from here: https://github.com/boostorg/hana/blob/master/.travis.yml
@@ -105,10 +88,26 @@ script:
       (cd llvm/build && cmake .. -DCMAKE_INSTALL_PREFIX=${TRAVIS_BUILD_DIR}/llvm/install)
       (cd llvm/build/projects/libcxx && make install -j2)
       (cd llvm/build/projects/libcxxabi && make install -j2)
-      export CXXFLAGS="-isystem ${TRAVIS_BUILD_DIR}/llvm/install/include/c++/v1"
-      export LDFLAGS="-L ${TRAVIS_BUILD_DIR}/llvm/install/lib -l c++ -l c++abi"
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${TRAVIS_BUILD_DIR}/llvm/install/lib"
+      export STD_CXX_FLAGS="-isystem ${TRAVIS_BUILD_DIR}/llvm/install/include/c++/v1"
+      export STD_LINKER_FLAGS="-L ${TRAVIS_BUILD_DIR}/llvm/install/lib -l c++ -l c++abi"
+      export STD_LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${TRAVIS_BUILD_DIR}/llvm/install/lib"
     fi
+  # Function for creating a new 'build' directory
+  - |
+    function renew_build {
+      echo "Renew build directory..."
+      cd $TRAVIS_BUILD_DIR
+
+      # Remove any existing build directory
+      [ -e build ] && rm -r -f build
+      mkdir build
+      cd build
+
+      # Configure the project and build it
+      cmake -GNinja -DCMAKE_CXX_FLAGS="$STD_CXX_FLAGS $CMAKE_CXX_FLAGS -Werror" -DCMAKE_EXE_LINKER_FLAGS="$STD_LINKER_FLAGS" -DCTI_CONTINUABLE_WITH_NO_EXCEPTIONS=$NO_EXCEPTIONS -DCTI_CONTINUABLE_WITH_AWAIT=$WITH_AWAIT -DCMAKE_BUILD_TYPE=Debug ..
+    }
+
+script:
   - |
     if [[ $COMPILER == *"clang"* ]]; then
       # Build the test suite with various sanitizers:
