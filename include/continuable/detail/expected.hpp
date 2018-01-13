@@ -116,6 +116,7 @@ struct expected_copy_base : expected_move_base<Base> {
 
   expected_copy_base(expected_copy_base&&) = default;
   explicit expected_copy_base(expected_copy_base const& right)
+      : expected_move_base<Base>()
   // TODO noexcept(Base::is_nothrow_move_constructible)
   {
     Base& me = *static_cast<Base*>(this);
