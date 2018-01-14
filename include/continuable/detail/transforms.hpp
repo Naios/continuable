@@ -120,7 +120,7 @@ public:
 template <typename Data, typename Annotation>
 auto as_future(continuable_base<Data, Annotation>&& continuable) {
   // Create the promise which is able to supply the current arguments
-  auto hint = base::hint_of(traits::identity_of(continuable));
+  auto hint = hints::hint_of(traits::identity_of(continuable));
 
   promise_callback<std::decay_t<decltype(hint)>> callback;
   (void)hint;

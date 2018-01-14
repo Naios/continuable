@@ -36,6 +36,7 @@
 #include <utility>
 
 #include <continuable/continuable-api.hpp>
+#include <continuable/detail/expected.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>
@@ -63,21 +64,6 @@ namespace detail {
 ///    base::finalize_continuation(base::continuation<auto> continuation)
 ///     -> void
 namespace base {
-/// Returns the signature hint of the given continuable
-template <typename T>
-constexpr auto hint_of(traits::identity<T>) {
-  static_assert(traits::fail<T>::value,
-                "Expected a continuation with an existing signature hint!");
-  return traits::identity_of<void>();
-}
-/// Returns the signature hint of the given continuable
-template <typename Data, typename... Args>
-constexpr auto
-hint_of(traits::identity<
-        continuable_base<Data, hints::signature_hint_tag<Args...>>>) {
-  return hints::signature_hint_tag<Args...>{};
-}
-
 template <typename T>
 struct is_continuation : std::false_type {};
 template <typename Data, typename Annotation>
@@ -179,6 +165,8 @@ invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
   using Type = decltype(attorney::materialize(
       std::declval<continuable_base<Data, Annotation>>()));
 
+  auto constexpr const hint = hints::hint_of(traits::identity_of<Type>());
+
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         CONTINUABLE_BLOCK_TRY_BEGIN
@@ -191,7 +179,7 @@ invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
               std::forward<decltype(next_callback)>(next_callback));
         CONTINUABLE_BLOCK_TRY_END
       },
-      hint_of(traits::identity_of<Type>()));
+      hint);
 }
 
 /// - ? -> next_callback(?)
@@ -510,7 +498,7 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   static_assert(is_continuation<std::decay_t<Continuation>>{},
                 "Expected a continuation!");
 
-  using Hint = decltype(hint_of(traits::identity_of(continuation)));
+  using Hint = decltype(hints::hint_of(traits::identity_of(continuation)));
   auto next_hint =
       next_hint_of(std::integral_constant<handle_results, HandleResults>{},
                    traits::identity_of(callback), Hint{});

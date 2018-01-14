@@ -341,7 +341,7 @@ auto finalize_composition(
 
   // Merge all signature hints together
   auto signature = traits::unpack(composition, [](auto&... entries) {
-    return traits::merge(base::hint_of(traits::identity_of(entries))...);
+    return traits::merge(hints::hint_of(traits::identity_of(entries))...);
   });
 
   return base::attorney::create(
@@ -369,7 +369,7 @@ auto finalize_composition(
 
           // This is the length of the arguments of the current continuable
           auto arg_size =
-              traits::pack_size_of(base::hint_of(traits::identity_of(entry)));
+              traits::pack_size_of(hints::hint_of(traits::identity_of(entry)));
 
           // The next position in the result tuple
           auto next = current.second + arg_size;
@@ -438,7 +438,7 @@ auto finalize_composition(
   // Determine the shared result between all continuations
   auto signature = traits::unpack(composition, [](auto const&... args) {
     return common_result_of(hints::signature_hint_tag<>{},
-                            base::hint_of(traits::identity_of(args))...);
+                            hints::hint_of(traits::identity_of(args))...);
   });
 
   return base::attorney::create(

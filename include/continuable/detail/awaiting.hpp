@@ -42,7 +42,6 @@
 #include <continuable/detail/expected.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/hints.hpp>
-#include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
 
@@ -53,54 +52,6 @@
 namespace cti {
 namespace detail {
 namespace awaiting {
-namespace detail {
-struct void_guard_tag {};
-
-template <typename T>
-struct result_trait;
-template <>
-struct result_trait<traits::identity<>> {
-  using expected = util::expected<void_guard_tag>;
-
-  static constexpr void_guard_tag wrap() noexcept {
-    return {};
-  }
-  static void unwrap(expected&& e) {
-    assert(e.is_value());
-    (void)e;
-  }
-};
-template <typename T>
-struct result_trait<traits::identity<T>> {
-  using expected = util::expected<T>;
-
-  static auto wrap(T arg) {
-    return std::move(arg);
-  }
-  static auto unwrap(expected&& e) {
-    assert(e.is_value());
-    return std::move(e.get_value());
-  }
-};
-template <typename First, typename Second, typename... Rest>
-struct result_trait<traits::identity<First, Second, Rest...>> {
-  using expected = util::expected<std::tuple<First, Second, Rest...>>;
-
-  static auto wrap(First first, Second second, Rest... rest) {
-    return std::make_tuple(std::move(first), std::move(second),
-                           std::move(rest)...);
-  }
-  static auto unwrap(expected&& e) {
-    assert(e.is_value());
-    return std::move(e.get_value());
-  }
-};
-
-template <typename Continuable>
-using result_trait_t =
-    result_trait<decltype(base::hint_of(traits::identity_of<Continuable>()))>;
-} // namespace detail
-
 /// We import the coroutine handle in our namespace
 using std::experimental::coroutine_handle;
 
@@ -108,7 +59,7 @@ using std::experimental::coroutine_handle;
 /// for waiting on a continuable in a stackless coroutine.
 template <typename Continuable>
 class awaitable {
-  using trait_t = detail::result_trait_t<Continuable>;
+  using trait_t = util::expected_result_trait_t<Continuable>;
 
   /// The continuable which is invoked upon suspension
   Continuable continuable_;

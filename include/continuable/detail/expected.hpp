@@ -37,6 +37,8 @@
 #include <utility>
 
 #include <continuable/continuable-api.hpp>
+#include <continuable/detail/hints.hpp>
+#include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
 
@@ -331,6 +333,54 @@ private:
     this->slot_ = slot;
   }
 };
+
+namespace detail {
+struct void_guard_tag {};
+
+template <typename T>
+struct expected_result_trait;
+template <>
+struct expected_result_trait<traits::identity<>> {
+  using expected = util::expected<void_guard_tag>;
+
+  static constexpr void_guard_tag wrap() noexcept {
+    return {};
+  }
+  static void unwrap(expected&& e) {
+    assert(e.is_value());
+    (void)e;
+  }
+};
+template <typename T>
+struct expected_result_trait<traits::identity<T>> {
+  using expected = util::expected<T>;
+
+  static auto wrap(T arg) {
+    return std::move(arg);
+  }
+  static auto unwrap(expected&& e) {
+    assert(e.is_value());
+    return std::move(e.get_value());
+  }
+};
+template <typename First, typename Second, typename... Rest>
+struct expected_result_trait<traits::identity<First, Second, Rest...>> {
+  using expected = util::expected<std::tuple<First, Second, Rest...>>;
+
+  static auto wrap(First first, Second second, Rest... rest) {
+    return std::make_tuple(std::move(first), std::move(second),
+                           std::move(rest)...);
+  }
+  static auto unwrap(expected&& e) {
+    assert(e.is_value());
+    return std::move(e.get_value());
+  }
+};
+} // namespace detail
+
+template <typename Continuable>
+using expected_result_trait_t = detail::expected_result_trait<decltype(
+    hints::hint_of(traits::identity_of<Continuable>()))>;
 } // namespace util
 } // namespace detail
 } // namespace cti
