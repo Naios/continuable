@@ -341,7 +341,7 @@ template <typename T>
 struct expected_result_trait;
 template <>
 struct expected_result_trait<traits::identity<>> {
-  using expected = util::expected<void_guard_tag>;
+  using expected = expected<void_guard_tag>;
 
   static constexpr void_guard_tag wrap() noexcept {
     return {};
@@ -353,7 +353,7 @@ struct expected_result_trait<traits::identity<>> {
 };
 template <typename T>
 struct expected_result_trait<traits::identity<T>> {
-  using expected = util::expected<T>;
+  using expected = expected<T>;
 
   static auto wrap(T arg) {
     return std::move(arg);
@@ -365,7 +365,7 @@ struct expected_result_trait<traits::identity<T>> {
 };
 template <typename First, typename Second, typename... Rest>
 struct expected_result_trait<traits::identity<First, Second, Rest...>> {
-  using expected = util::expected<std::tuple<First, Second, Rest...>>;
+  using expected = expected<std::tuple<First, Second, Rest...>>;
 
   static auto wrap(First first, Second second, Rest... rest) {
     return std::make_tuple(std::move(first), std::move(second),
