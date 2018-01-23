@@ -83,7 +83,7 @@ struct attorney {
   template <typename Data, typename Annotation, typename Callback>
   static auto
   invoke_continuation(continuable_base<Data, Annotation>&& continuation,
-                      Callback&& callback) {
+                      Callback&& callback) noexcept {
     auto materialized = std::move(continuation).materialize();
     materialized.release();
     return materialized.data_(std::forward<Callback>(callback));
@@ -151,6 +151,13 @@ public:
 #define CONTINUABLE_BLOCK_TRY_END }
 #endif // CONTINUABLE_WITH_EXCEPTIONS
 
+/// Invokes the given callable object with the given arguments while
+/// marking the operation as non exceptional.
+template <typename T, typename... Args>
+constexpr auto invoke_no_except(T&& callable, Args&&... args) noexcept {
+  return std::forward<T>(callable)(std::forward<Args>(args)...);
+}
+
 template <typename T, typename... Args>
 constexpr auto make_invoker(T&& invoke, hints::signature_hint_tag<Args...>) {
   return invoker<std::decay_t<T>, hints::signature_hint_tag<Args...>>(
@@ -192,8 +199,8 @@ constexpr auto invoker_of(traits::identity<T>) {
               util::partial_invoke(std::forward<decltype(callback)>(callback),
                                    std::forward<decltype(args)>(args)...);
 
-          std::forward<decltype(next_callback)>(next_callback)(
-              std::move(result));
+          invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
+                           std::move(result));
         CONTINUABLE_BLOCK_TRY_END
       },
       traits::identity_of<T>());
@@ -206,7 +213,8 @@ inline auto invoker_of(traits::identity<void>) {
         CONTINUABLE_BLOCK_TRY_BEGIN
           util::partial_invoke(std::forward<decltype(callback)>(callback),
                                std::forward<decltype(args)>(args)...);
-          std::forward<decltype(next_callback)>(next_callback)();
+          invoke_no_except(
+              std::forward<decltype(next_callback)>(next_callback));
         CONTINUABLE_BLOCK_TRY_END
       },
       traits::identity<>{});
@@ -228,8 +236,8 @@ inline auto sequenced_unpack_invoker() {
       traits::unpack(std::move(result), [&](auto&&... types) {
         /// TODO Add inplace resolution here
 
-        std::forward<Next>(next_callback)(
-            std::forward<decltype(types)>(types)...);
+        invoke_no_except(std::forward<Next>(next_callback),
+                         std::forward<decltype(types)>(types)...);
       });
     CONTINUABLE_BLOCK_TRY_END
   };
