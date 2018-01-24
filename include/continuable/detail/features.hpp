@@ -55,10 +55,17 @@
 #undef CONTINUABLE_WITH_EXCEPTIONS
 #endif
 
-/// TODO Enable this
-#undef CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
-/// TODO Enable this
-#undef CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
+#if defined(__has_feature)
+#if __has_feature(cxx_if_constexpr)
+// PR not merged into the clang master yet
+#define CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
+#endif
+
+#if __has_feature(cxx_fold_expressions)
+// PR not merged into the clang master yet
+#define CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
+#endif
+#endif
 
 /// This is enabled by the CMake project
 // #undef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE

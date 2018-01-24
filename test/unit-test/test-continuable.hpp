@@ -207,8 +207,7 @@ auto make_step(T* me, unsigned& current, unsigned step) {
 
 #if !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
 struct test_exception : std::exception {
-  explicit test_exception() {
-  }
+  explicit test_exception() = default;
 
   bool operator==(test_exception const&) const noexcept {
     return true;
