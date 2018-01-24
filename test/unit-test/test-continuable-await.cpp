@@ -41,6 +41,9 @@ struct coroutine_traits<void, T...> {
 
     void set_exception(exception_ptr const&) noexcept {
     }
+    void unhandled_exception() {
+      GTEST_FATAL_FAILURE_("Unhandled async exception!");
+    }
 
     suspend_never initial_suspend() noexcept {
       return {};
@@ -114,7 +117,10 @@ void resolve_async_exceptional(S&& supplier, T&& promise) {
   std::tuple<int, int> a2 = co_await supplier(1, 2);
   EXPECT_EQ(a2, std::make_tuple(1, 2));
 
-  ASSERT_THROW(co_await supplier().then([] { throw await_exception{}; }),
+  // GTest ASSERT_THROW isn't co_await friendly yet:
+  // clang: 'return statement not allowed in coroutine; did you mean
+  //        'co_return'?'
+  EXPECT_THROW(co_await supplier().then([] { throw await_exception{}; }),
                await_exception);
 
   promise.set_value();
