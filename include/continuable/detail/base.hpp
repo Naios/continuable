@@ -36,7 +36,6 @@
 #include <utility>
 
 #include <continuable/continuable-api.hpp>
-#include <continuable/detail/expected.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>

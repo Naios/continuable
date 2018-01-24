@@ -139,7 +139,7 @@ TYPED_TEST(single_dimension_tests, are_awaitable_with_exceptions) {
 //
 //  static cti::continuable<int> async_await() {
 //   co_await cti::make_continuable<void>([](auto&& promise) {
-//      ...
+//     // ...
 //     promise.set_value();
 //   });
 //

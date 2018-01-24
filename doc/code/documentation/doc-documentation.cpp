@@ -20,6 +20,8 @@
   SOFTWARE.
 **/
 
+#include <string>
+
 #include <continuable/continuable.hpp>
 #include <continuable/detail/util.hpp>
 
