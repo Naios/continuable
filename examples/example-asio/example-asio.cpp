@@ -52,7 +52,7 @@ struct functional_io_service : asio::io_service {
     };
   }
 
-  auto wait_async(std::chrono::milliseconds time) {
+  auto wait_async(std::chrono::milliseconds /*time*/) {
     return cti::make_continuable<void>([](auto&& promise) {
       // ...
       promise.set_value();
@@ -95,7 +95,7 @@ int main(int, char**) {
         // ...
         return *iterator;
       })
-      .then([](udp::endpoint endpoint) {
+      .then([](udp::endpoint /*endpoint*/) {
         // auto socket = std::make_shared<udp::socket>(service);
         // socket->async_send_to()
       })
