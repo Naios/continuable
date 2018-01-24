@@ -22,7 +22,7 @@ matrix:
             - ninja-build
       env:
         - COMPILER=g++-6
-        - NO_EXCEPTIONS=OFF
+        - WITH_NO_EXCEPTIONS=OFF
         - WITH_AWAIT=OFF
 
     - os: linux
@@ -40,7 +40,7 @@ matrix:
             - ninja-build
       env:
         - COMPILER=clang++-5.0
-        - NO_EXCEPTIONS=OFF
+        - WITH_NO_EXCEPTIONS=OFF
         - WITH_AWAIT=OFF
 
     - os: linux
@@ -58,7 +58,7 @@ matrix:
             - ninja-build
       env:
         - COMPILER=clang++-5.0
-        - NO_EXCEPTIONS=ON
+        - WITH_NO_EXCEPTIONS=ON
         - WITH_AWAIT=ON
 
 install:
@@ -104,12 +104,14 @@ install:
       cd build
 
       # Configure the project and build it
-      cmake -GNinja -DCMAKE_CXX_FLAGS="$STD_CXX_FLAGS $CMAKE_CXX_FLAGS -Werror" -DCMAKE_EXE_LINKER_FLAGS="$STD_LINKER_FLAGS" -DCTI_CONTINUABLE_WITH_NO_EXCEPTIONS=$NO_EXCEPTIONS -DCTI_CONTINUABLE_WITH_AWAIT=$WITH_AWAIT -DCMAKE_BUILD_TYPE=Debug ..
+      cmake -GNinja -DCMAKE_CXX_FLAGS="$STD_CXX_FLAGS $CMAKE_CXX_FLAGS -Werror" -DCMAKE_EXE_LINKER_FLAGS="$STD_LINKER_FLAGS" -DCTI_CONTINUABLE_WITH_NO_EXCEPTIONS=$WITH_NO_EXCEPTIONS -DCTI_CONTINUABLE_WITH_AWAIT=$WITH_AWAIT -DCMAKE_BUILD_TYPE=Debug ..
     }
 
 script:
   - |
     if [[ $COMPILER == *"clang"* ]]; then
+      ASAN_OPTIONS=abort_on_error=1
+
       # Build the test suite with various sanitizers:
       # - ASan (LSan):
       echo "Building with address sanitizer..."
