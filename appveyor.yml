@@ -3,8 +3,8 @@ image:
 
 environment:
   matrix:
-    - NO_EXCEPTIONS: OFF
-    - NO_EXCEPTIONS: ON
+    - WITH_NO_EXCEPTIONS: OFF
+    - WITH_NO_EXCEPTIONS: ON
 
 configuration:
   - Debug
@@ -21,7 +21,7 @@ clone_script:
 before_build:
   - cmd: >
          cmake -H. -Bbuild -A%PLATFORM%
-         -DCTI_CONTINUABLE_WITH_NO_EXCEPTIONS=%NO_EXCEPTIONS%
+         -DCTI_CONTINUABLE_WITH_NO_EXCEPTIONS=%WITH_NO_EXCEPTIONS%
          -DCTI_CONTINUABLE_WITH_AWAIT=ON
 
 build_script:

@@ -60,7 +60,7 @@ if (CTI_CONTINUABLE_WITH_AWAIT)
   target_compile_options(continuable-base
     INTERFACE
       $<$<CXX_COMPILER_ID:MSVC>:/await>
-      $<$<CXX_COMPILER_ID:CLANG>:-fcoroutines-ts>)
+      $<$<CXX_COMPILER_ID:Clang>:-fcoroutines-ts>)
 
   target_compile_definitions(continuable-base
     INTERFACE
