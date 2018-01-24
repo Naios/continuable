@@ -20,6 +20,8 @@
   SOFTWARE.
 **/
 
+#include <string>
+
 #include "continuable/continuable.hpp"
 
 cti::continuable<std::string> http_request(std::string /*url*/) {
