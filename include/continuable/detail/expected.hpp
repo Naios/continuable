@@ -341,37 +341,37 @@ template <typename T>
 struct expected_result_trait;
 template <>
 struct expected_result_trait<traits::identity<>> {
-  using expected = expected<void_guard_tag>;
+  using expected_type = expected<void_guard_tag>;
 
   static constexpr void_guard_tag wrap() noexcept {
     return {};
   }
-  static void unwrap(expected&& e) {
+  static void unwrap(expected_type&& e) {
     assert(e.is_value());
     (void)e;
   }
 };
 template <typename T>
 struct expected_result_trait<traits::identity<T>> {
-  using expected = expected<T>;
+  using expected_type = expected<T>;
 
   static auto wrap(T arg) {
     return std::move(arg);
   }
-  static auto unwrap(expected&& e) {
+  static auto unwrap(expected_type&& e) {
     assert(e.is_value());
     return std::move(e.get_value());
   }
 };
 template <typename First, typename Second, typename... Rest>
 struct expected_result_trait<traits::identity<First, Second, Rest...>> {
-  using expected = expected<std::tuple<First, Second, Rest...>>;
+  using expected_type = expected<std::tuple<First, Second, Rest...>>;
 
   static auto wrap(First first, Second second, Rest... rest) {
     return std::make_tuple(std::move(first), std::move(second),
                            std::move(rest)...);
   }
-  static auto unwrap(expected&& e) {
+  static auto unwrap(expected_type&& e) {
     assert(e.is_value());
     return std::move(e.get_value());
   }

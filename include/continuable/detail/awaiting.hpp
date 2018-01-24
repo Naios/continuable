@@ -65,7 +65,7 @@ class awaitable {
   Continuable continuable_;
   /// A cache which is used to pass the result of the continuation
   /// to the coroutine.
-  typename trait_t::expected result_;
+  typename trait_t::expected_type result_;
 
 public:
   explicit awaitable(Continuable&& continuable)
