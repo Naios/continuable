@@ -19,16 +19,6 @@ target_compile_options(continuable-features-warnings
   INTERFACE
     /W4)
 
-if (CTI_CONTINUABLE_WITH_AWAIT)
-  target_compile_options(continuable-coroutines
-    INTERFACE
-      /await)
-
-  target_compile_definitions(continuable-coroutines
-    INTERFACE
-      -DCONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
-endif()
-
 if (CTI_CONTINUABLE_WITH_NO_EXCEPTIONS)
   target_compile_definitions(continuable-features-noexcept
     INTERFACE

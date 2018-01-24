@@ -38,8 +38,7 @@ target_include_directories(continuable-base
 
 target_link_libraries(continuable-base
   INTERFACE
-    Threads::Threads
-    continuable-coroutines)
+    Threads::Threads)
 
 target_compile_features(continuable-base
   INTERFACE
@@ -57,6 +56,17 @@ target_compile_features(continuable-base
     cxx_trailing_return_types
     cxx_return_type_deduction)
 
+if (CTI_CONTINUABLE_WITH_AWAIT)
+  target_compile_options(continuable-base
+    INTERFACE
+      $<$<CXX_COMPILER_ID:MSVC>:/await>
+      $<$<CXX_COMPILER_ID:CLANG>:-fcoroutines-ts>)
+
+  target_compile_definitions(continuable-base
+    INTERFACE
+      -DCONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
+endif()
+
 add_library(continuable INTERFACE)
 add_library(continuable::continuable ALIAS continuable)
 
@@ -66,7 +76,7 @@ target_link_libraries(continuable
     function2)
 
 # Create an install target
-install(TARGETS continuable-coroutines continuable-base continuable
+install(TARGETS continuable-base continuable
         EXPORT continuable-config
         INCLUDES DESTINATION include)
 
