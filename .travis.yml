@@ -90,7 +90,7 @@ install:
       (cd llvm/build/projects/libcxxabi && make install -j2)
       export STD_CXX_FLAGS="-isystem ${TRAVIS_BUILD_DIR}/llvm/install/include/c++/v1 -stdlib=libc++"
       export STD_LINKER_FLAGS="-L ${TRAVIS_BUILD_DIR}/llvm/install/lib -l c++ -l c++abi"
-      export STD_LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${TRAVIS_BUILD_DIR}/llvm/install/lib"
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${TRAVIS_BUILD_DIR}/llvm/install/lib"
     fi
   # Function for creating a new 'build' directory
   - |

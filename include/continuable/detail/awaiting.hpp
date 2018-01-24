@@ -83,7 +83,7 @@ public:
   void await_suspend(coroutine_handle<> h) {
     // Forward every result to the current awaitable
     std::move(continuable_)
-        .next([h, this](auto&&... args) {
+        .next([h, this](auto&&... args) mutable {
           resolve(std::forward<decltype(args)>(args)...);
           h.resume();
         })
