@@ -124,12 +124,26 @@ script:
       CMAKE_CXX_FLAGS="-fsanitize=undefined -fno-omit-frame-pointer"
       renew_build
       ninja -j2
+      if [ $? -ne 0 ] ; then
+        return -1
+      fi
+
       ctest --verbose
+      if [ $? -ne 0 ] ; then
+        return -1
+      fi
     else
       # Build an run the tests suite with valgrind
       renew_build
       ninja -j2
+      if [ $? -ne 0 ] ; then
+        return -1
+      fi
+
       valgrind --error-exitcode=1 --leak-check=full --show-reachable=yes ctest --verbose
+      if [ $? -ne 0 ] ; then
+        return -1
+      fi
     fi
 
 notifications:
