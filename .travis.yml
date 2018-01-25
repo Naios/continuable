@@ -59,24 +59,6 @@ matrix:
         - WITH_NO_EXCEPTIONS=ON
         - WITH_AWAIT=ON
 
-  allow_failures:
-    - os: linux
-      compiler: clang
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-5.0
-          packages:
-            - clang-5.0
-            - cmake
-            - cmake-data
-            - ninja-build
-      env:
-        - COMPILER=clang++-5.0
-        - WITH_NO_EXCEPTIONS=ON
-        - WITH_AWAIT=ON
-
 install:
   - export CXX=$COMPILER
   - $CXX --version

@@ -47,16 +47,21 @@ function renew_build {
 }
 
 if [[ $CXX == *"clang"* ]]; then
+  LSAN_OPTIONS=verbosity=1:log_threads=1
   ASAN_OPTIONS=abort_on_error=1
 
   # Build the test suite with various sanitizers:
-  # - ASan (LSan):
-  echo "Building with address sanitizer..."
-  CMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer"
-  renew_build
+  if [ $WITH_AWAIT != "ON" ]; then
+    # - ASan (LSan):
+    echo "Building with address sanitizer..."
+    CMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer"
+    renew_build
 
-  ninja -j2
-  ctest --verbose
+    ninja -j2
+    ctest --verbose
+  else
+    echo "Skipping ASan testing because we build with coroutine support...";
+  fi
 
   # - UBSan:
   echo "Building with undefined behaviour sanitizer..."
