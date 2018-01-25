@@ -49,6 +49,20 @@ TYPED_TEST(single_dimension_tests, are_never_completed_after_error_handled) {
   ASSERT_TRUE(*handled);
 }
 
+TYPED_TEST(single_dimension_tests, fail_is_accepting_plain_continuables) {
+  auto handled = std::make_shared<bool>(false);
+  auto handler = this->supply().then([handled] {
+    ASSERT_FALSE(*handled);
+    *handled = true;
+  });
+
+  auto continuation =
+      this->supply_exception(supply_test_exception()).fail(std::move(handler));
+
+  ASSERT_ASYNC_INCOMPLETION(std::move(continuation));
+  ASSERT_TRUE(*handled);
+}
+
 #if !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
 // Enable this test only if we support exceptions
 TYPED_TEST(single_dimension_tests, are_yielding_errors_from_handlers) {

@@ -262,7 +262,7 @@ public:
   ///        the callback. See the description in `then` above.
   ///
   /// \returns Returns a continuable_base with an asynchronous return type
-  ///          depending on the current result type.
+  ///          depending on the previous result type.
   ///
   ///
   /// \since version 2.0.0
@@ -273,6 +273,29 @@ public:
                                             detail::base::handle_errors::plain>(
         std::move(*this).materialize(), std::forward<T>(callback),
         std::forward<E>(executor));
+  }
+
+  /// Additional overload of the continuable_base::fail() method
+  /// which is accepting a continuable_base itself.
+  ///
+  /// \param continuation A continuable_base reflecting the continuation
+  ///        which is used to continue the call hierarchy on errors.
+  ///        The result of the current continuable is discarded and the given
+  ///        continuation is invoked as shown below.
+  /// ```cpp
+  /// http_request("github.com")
+  ///   .fail(http_request("atom.io"))
+  /// ```
+  ///
+  /// \returns Returns a continuable_base with an asynchronous return type
+  ///          depending on the previous result type.
+  ///
+  /// \since version 2.0.0
+  template <typename OData, typename OAnnotation>
+  auto fail(continuable_base<OData, OAnnotation>&& continuation) && {
+    continuation.freeze();
+    return std::move(*this).fail([continuation = std::move(continuation)](
+        detail::types::error_type) mutable { std::move(continuation).done(); });
   }
 
   /// A method which allows to use an overloaded callable for the error
