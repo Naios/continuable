@@ -31,6 +31,8 @@
 #ifndef CONTINUABLE_HPP_INCLUDED__
 #define CONTINUABLE_HPP_INCLUDED__
 
+#include <cstdint>
+
 #include <function2/function2.hpp>
 
 #include <continuable/continuable-api.hpp>
@@ -39,17 +41,34 @@
 namespace cti {
 // clang-format off
 namespace detail {
+/// A function which isn't size adjusted and copyable
+template<std::size_t Size, typename... Args>
+using function_adapter = fu2::function<Args...>;
+/// A function which isn't size adjusted and move only
+template<std::size_t, typename... Args>
+using unique_function_adapter = fu2::unique_function<Args...>;
+/// A function which is size adjusted and copyable
+template<std::size_t Size, typename... Args>
+using function_adjustable = fu2::function_base<true, true, Size,
+                                               true, false, Args...>;
+/// A function which is size adjusted and move only
+template<std::size_t Size, typename... Args>
+using unique_function_adjustable = fu2::function_base<true, false, Size,
+                                                      true, false, Args...>;
+
+/// We adjust the internal capacity of the outer function wrapper so
+/// we don't have to allocate twice when using `continuable<...>`.
 template<typename... Args>
 using trait_of = continuable_trait<
-  fu2::unique_function,
-  fu2::function,
+  unique_function_adapter,
+  function_adjustable,
   Args...
 >;
 
 template<typename... Args>
 using unique_trait_of = continuable_trait<
-  fu2::unique_function,
-  fu2::unique_function,
+  unique_function_adapter,
+  unique_function_adjustable,
   Args...
 >;
 } // namespace detail

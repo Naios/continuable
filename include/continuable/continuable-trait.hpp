@@ -31,9 +31,11 @@
 #ifndef CONTINUABLE_TRAIT_HPP_INCLUDED__
 #define CONTINUABLE_TRAIT_HPP_INCLUDED__
 
+#include <cstdint>
+
+#include <continuable/continuable-api.hpp>
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-promise-base.hpp>
-#include <continuable/continuable-api.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/types.hpp>
 
@@ -49,18 +51,23 @@ namespace cti {
 ///         continuation data.
 ///
 /// \tparam Args The current signature of the continuable.
-template <template <typename...> class CallbackWrapper,
-          template <typename...> class ContinuationWrapper, typename... Args>
-struct continuable_trait {
+template <template <std::size_t, typename...> class CallbackWrapper,
+          template <std::size_t, typename...> class ContinuationWrapper,
+          typename... Args>
+class continuable_trait {
+
+  using callback = CallbackWrapper<0U, void(Args...)&&,
+                                   void(detail::types::dispatch_error_tag,
+                                        detail::types::error_type) &&>;
+
+public:
   /// The promise type which is used to resolve continuations
-  using promise = promise_base<
-      CallbackWrapper<void(Args...)&&, void(detail::types::dispatch_error_tag,
-                                            detail::types::error_type) &&>,
-      detail::hints::signature_hint_tag<Args...>>;
+  using promise =
+      promise_base<callback, detail::hints::signature_hint_tag<Args...>>;
 
   /// The continuable type for the given parameters.
   using continuable =
-      continuable_base<ContinuationWrapper<void(promise)>,
+      continuable_base<ContinuationWrapper<sizeof(callback), void(promise)>,
                        detail::hints::signature_hint_tag<Args...>>;
 };
 } // namespace cti
