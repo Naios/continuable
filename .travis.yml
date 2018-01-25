@@ -42,6 +42,7 @@ matrix:
         - WITH_NO_EXCEPTIONS=OFF
         - WITH_AWAIT=OFF
 
+  allow_failures:
     - os: linux
       compiler: clang
       addons:
@@ -62,6 +63,7 @@ matrix:
 install:
   - export CXX=$COMPILER
   - $CXX --version
+
 script:
   ############################################################################
   # Install libc++ and libc++abi if needed
