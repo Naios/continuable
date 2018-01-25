@@ -33,7 +33,6 @@ matrix:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-5.0
           packages:
-            - g++-6
             - clang-5.0
             - cmake
             - cmake-data
@@ -51,7 +50,6 @@ matrix:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-5.0
           packages:
-            - g++-6
             - clang-5.0
             - cmake
             - cmake-data
