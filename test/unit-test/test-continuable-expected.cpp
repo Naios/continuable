@@ -191,3 +191,32 @@ TEST(expected_copyable_tests, is_copy_assignable) {
     EXPECT_TRUE(e.is_exception());
   }
 }
+
+// This regression test shows a memory leak which happens when using the
+// expected class move constructed from another expected object.
+TEST(expected_single_test, test_leak_regression) {
+  // expected_all_tests<cti::detail::util::expected<std::__1::unique_ptr<int,
+  //        std::__1::default_delete<int> > > >::supply<int const&>(int const&)
+  //        const
+  //        continuable/build/../test/unit-test/test-continuable-expected.cpp:52
+  // 3:     #3 0x11cf07a in
+  //        expected_all_tests_is_value_assignable_Test<cti::detail::util::expected<std::__1::unique_ptr<int,
+  //        std::__1::default_delete<int> > > >::TestBody()
+  //        continuable/build/../test/unit-test/test-continuable-expected.cpp:133:15
+  // 3:     #4 0x1339e4e in void
+  //        testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test,
+  //        void>(testing::Test*, void (testing::Test::*)(), char const*)
+  //        continuable/build/../dep/googletest/googletest/googletest/src/gtest.cc:2395:10
+
+  bool destroyed = false;
+  {
+    std::shared_ptr<int> ptr(new int(0), [&](int* val) {
+      destroyed = true;
+      delete val;
+    });
+
+    auto e(expected<std::shared_ptr<int>>(std::move(ptr)));
+  }
+
+  ASSERT_TRUE(destroyed);
+}
