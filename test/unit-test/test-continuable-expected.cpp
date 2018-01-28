@@ -216,6 +216,7 @@ TEST(expected_single_test, test_leak_regression) {
     });
 
     auto e(expected<std::shared_ptr<int>>(std::move(ptr)));
+    ASSERT_TRUE(e.is_value());
   }
 
   ASSERT_TRUE(destroyed);
