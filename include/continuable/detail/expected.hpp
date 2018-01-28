@@ -49,9 +49,11 @@ enum class slot_t { empty, value, error };
 
 template <typename T>
 using storage_of_t = //
-    std::aligned_storage_t<(sizeof(types::error_type) > sizeof(T)
-                                ? sizeof(types::error_type)
-                                : sizeof(T))>;
+    std::aligned_storage_t<
+        (sizeof(types::error_type) > sizeof(T) ? sizeof(types::error_type)
+                                               : sizeof(T)),
+        (alignof(types::error_type) > alignof(T) ? alignof(types::error_type)
+                                                 : alignof(T))>;
 
 template <typename T>
 struct expected_base {
@@ -297,11 +299,27 @@ private:
   template <typename V>
   V& cast() noexcept {
     assert(!is_empty());
+
+#ifndef _NDEBUG
+    void* ptr = &this->storage_;
+    auto space = sizeof(this->storage_);
+    void* aligned = std::align(alignof(V), sizeof(V), ptr, space);
+    assert(aligned && "Bad alignment!");
+#endif // _NDEBUG
+
     return *reinterpret_cast<V*>(&this->storage_);
   }
   template <typename V>
   V const& cast() const noexcept {
     assert(!is_empty());
+
+#ifndef _NDEBUG
+    void* ptr = const_cast<void*>(static_cast<void const*>(&this->storage_));
+    auto space = sizeof(this->storage_);
+    void* aligned = std::align(alignof(V), sizeof(V), ptr, space);
+    assert(aligned && "Bad alignment!");
+#endif // _NDEBUG
+
     return *reinterpret_cast<V const*>(&this->storage_);
   }
 
