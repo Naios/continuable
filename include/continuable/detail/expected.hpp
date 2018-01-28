@@ -43,6 +43,13 @@
 
 namespace cti {
 namespace detail {
+#ifndef _NDEBUG
+template <typename T>
+bool is_aligned(T const* p) {
+  return !(reinterpret_cast<uintptr_t>(p) % std::alignment_of<T>::value);
+}
+#endif // _NDEBUG
+
 namespace util {
 namespace detail {
 enum class slot_t { empty, value, error };
@@ -301,26 +308,34 @@ private:
     assert(!is_empty());
 
 #ifndef _NDEBUG
-    void* ptr = &this->storage_;
-    auto space = sizeof(this->storage_);
-    void* aligned = std::align(alignof(V), sizeof(V), ptr, space);
-    assert(aligned && "Bad alignment!");
+    {
+      void* ptr = &this->storage_;
+      auto space = sizeof(this->storage_);
+      void* aligned = std::align(alignof(V), sizeof(V), ptr, space);
+      assert(aligned && "Bad alignment!");
+    }
 #endif // _NDEBUG
 
-    return *reinterpret_cast<V*>(&this->storage_);
+    auto ptr = reinterpret_cast<V*>(&this->storage_);
+    assert(is_aligned(ptr) && "ptr not aligned!");
+    return *ptr;
   }
   template <typename V>
   V const& cast() const noexcept {
     assert(!is_empty());
 
 #ifndef _NDEBUG
-    void* ptr = const_cast<void*>(static_cast<void const*>(&this->storage_));
-    auto space = sizeof(this->storage_);
-    void* aligned = std::align(alignof(V), sizeof(V), ptr, space);
-    assert(aligned && "Bad alignment!");
+    {
+      void* ptr = const_cast<void*>(static_cast<void const*>(&this->storage_));
+      auto space = sizeof(this->storage_);
+      void* aligned = std::align(alignof(V), sizeof(V), ptr, space);
+      assert(aligned && "Bad alignment!");
+    }
 #endif // _NDEBUG
 
-    return *reinterpret_cast<V const*>(&this->storage_);
+    auto ptr = reinterpret_cast<V const*>(&this->storage_);
+    assert(is_aligned(ptr) && "ptr not aligned!");
+    return *ptr;
   }
 
   template <typename V>
