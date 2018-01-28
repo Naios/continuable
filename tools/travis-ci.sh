@@ -47,9 +47,17 @@ function renew_build {
 }
 
 if [[ $CXX == *"clang"* ]]; then
-  LSAN_OPTIONS=verbosity=1:log_threads=1:abort_on_error=1
-  ASAN_OPTIONS=verbosity=1:log_threads=1:abort_on_error=1
-  UBSAN_OPTIONS=print_stacktrace=1:symbolize=1:halt_on_error=1:print_summary=1
+  if [ $WITH_AWAIT != "ON" ]; then
+    # Abort when the sanitizers detect an error
+    LSAN_OPTIONS=verbosity=1:log_threads=1:abort_on_error=1
+    ASAN_OPTIONS=verbosity=1:log_threads=1:abort_on_error=1
+    UBSAN_OPTIONS=print_stacktrace=1:symbolize=1:halt_on_error=1:print_summary=1
+  else
+    # Continue when the sanitizers detect an error (when using await)
+    LSAN_OPTIONS=verbosity=1:log_threads=1
+    ASAN_OPTIONS=verbosity=1:log_threads=1
+    UBSAN_OPTIONS=print_stacktrace=1:symbolize=1:print_summary=1
+  fi
 
   # Build the test suite with various sanitizers:
   if [ $WITH_AWAIT != "ON" ]; then
