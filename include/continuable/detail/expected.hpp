@@ -40,7 +40,6 @@
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
-#include <continuable/detail/util.hpp>
 
 namespace cti {
 namespace detail {
