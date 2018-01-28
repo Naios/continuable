@@ -41,9 +41,13 @@ struct coroutine_traits<void, T...> {
 
     void set_exception(exception_ptr const&) noexcept {
     }
+
+    // FIXME This throws errors in MSVC but is required in clang
+#ifndef _MSC_VER
     void unhandled_exception() {
       GTEST_FATAL_FAILURE_("Unhandled async exception!");
     }
+#endif // _MSC_VER
 
     suspend_never initial_suspend() noexcept {
       return {};
