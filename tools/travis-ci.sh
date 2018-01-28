@@ -48,7 +48,7 @@ function renew_build {
 
 if [[ $CXX == *"clang"* ]]; then
   LSAN_OPTIONS=verbosity=1:log_threads=1
-  ASAN_OPTIONS=abort_on_error=1
+  ASAN_OPTIONS=verbosity=1:abort_on_error=1
 
   # Build the test suite with various sanitizers:
   # - ASan (LSan):
