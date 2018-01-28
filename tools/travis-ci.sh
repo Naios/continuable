@@ -51,17 +51,13 @@ if [[ $CXX == *"clang"* ]]; then
   ASAN_OPTIONS=abort_on_error=1
 
   # Build the test suite with various sanitizers:
-  if [ $WITH_AWAIT != "ON" ]; then
-    # - ASan (LSan):
-    echo "Building with address sanitizer..."
-    CMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer"
-    renew_build
+  # - ASan (LSan):
+  echo "Building with address sanitizer..."
+  CMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer"
+  renew_build
 
-    ninja -j2
-    ctest --verbose
-  else
-    echo "Skipping ASan testing because we build with coroutine support...";
-  fi
+  ninja -j2
+  ctest --verbose
 
   # - UBSan:
   echo "Building with undefined behaviour sanitizer..."
