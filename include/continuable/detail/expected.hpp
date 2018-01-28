@@ -194,6 +194,12 @@ public:
   expected& operator=(expected const&) = default;
   expected& operator=(expected&&) = default;
 
+  ~expected() noexcept(
+      std::is_nothrow_destructible<T>::value&&
+          std::is_nothrow_destructible<types::error_type>::value) {
+    weak_destroy();
+  }
+
   explicit expected(T value) //
       : expected(std::move(value), detail::slot_t::value) {
   }
