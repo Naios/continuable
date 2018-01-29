@@ -1,4 +1,4 @@
-Checks: '-*,cppcoreguidelines-*,modernize--*,llvm-*,misc-*,-misc-unused-parameters,readability-identifier-naming'
+Checks: '-*,cppcoreguidelines-*,-cppcoreguidelines-pro-type-vararg,modernize--*,llvm-*,misc-*,readability-identifier-naming'
 CheckOptions:
   - key:             readability-identifier-naming.ClassCase
     value:           lower_case
@@ -14,5 +14,6 @@ CheckOptions:
     value:           lower_case
   - key:             readability-identifier-naming.VariableCase
     value:           lower_case
-  - key:             readability-identifier-naming.VariableCase
+  - key:             readability-identifier-naming.Macro
     value:           UPPER_CASE
+HeaderFilterRegex: 'include/.(hpp)$'
