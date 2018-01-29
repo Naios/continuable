@@ -51,12 +51,12 @@ struct is_absent_hint : std::false_type {};
 template <>
 struct is_absent_hint<absent_signature_hint_tag> : std::true_type {};
 
-  /// Returns the signature hint of the given continuable
+/// Returns the signature hint of the given continuable
 template <typename T>
 constexpr auto hint_of(traits::identity<T>) {
   static_assert(traits::fail<T>::value,
                 "Expected a continuation with an existing signature hint!");
-  return traits::identity_of<void>();
+  return traits::identity<void>{};
 }
 /// Returns the signature hint of the given continuable
 template <typename Data, typename... Args>

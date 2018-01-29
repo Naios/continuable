@@ -170,7 +170,7 @@ class all_result_submitter : public std::enable_shared_from_this<
   void complete_one() {
     assert((left_ > 0U) && "Expected that the submitter isn't finished!");
 
-    auto current = --left_;
+    auto const current = --left_;
     if (!current) {
       invoke();
     }
@@ -330,6 +330,14 @@ auto make_all_result_submitter(Callback&& callback,
       std::forward<decltype(callback)>(callback));
 }
 
+/// A callable object to merge multiple signature hints together
+struct entry_merger {
+  template <typename... T>
+  constexpr auto operator()(T&... entries) noexcept {
+    return traits::merge(hints::hint_of(traits::identity_of(entries))...);
+  }
+};
+
 /// Finalizes the all logic of a given composition
 template <typename Data>
 auto finalize_composition(
@@ -340,9 +348,7 @@ auto finalize_composition(
   auto composition = base::attorney::consume_data(std::move(continuation));
 
   // Merge all signature hints together
-  auto signature = traits::unpack(composition, [](auto&... entries) {
-    return traits::merge(hints::hint_of(traits::identity_of(entries))...);
-  });
+  constexpr auto signature = traits::unpack(composition, entry_merger{});
 
   return base::attorney::create(
       [ signature,
@@ -351,10 +357,10 @@ auto finalize_composition(
         // std::pair<size_constant<?>, size_constant<?>>
         //           ~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~
         //           Continuation pos     Result pos
-        auto begin = std::make_pair(traits::size_constant_of<0>(),
-                                    traits::size_constant_of<0>());
-        auto pack = traits::identity_of(composition);
-        auto end = traits::pack_size_of(pack);
+        constexpr auto begin = std::make_pair(traits::size_constant_of<0>(),
+                                              traits::size_constant_of<0>());
+        constexpr auto pack = traits::identify<decltype(composition)>{};
+        constexpr auto end = traits::pack_size_of(pack);
         auto condition = [=](auto pos) { return pos.first < end; };
 
         // Create the result submitter which caches all results and invokes
@@ -368,11 +374,11 @@ auto finalize_composition(
               std::move(std::get<decltype(current.first)::value>(composition));
 
           // This is the length of the arguments of the current continuable
-          auto arg_size =
+          constexpr auto arg_size =
               traits::pack_size_of(hints::hint_of(traits::identity_of(entry)));
 
           // The next position in the result tuple
-          auto next = current.second + arg_size;
+          constexpr auto next = current.second + arg_size;
 
           // Invoke the continuation with the associated submission callback
           base::attorney::invoke_continuation(
@@ -395,7 +401,7 @@ auto make_any_result_submitter(Callback&& callback) {
 }
 
 template <typename T, typename... Args>
-T first_of(traits::identity<T, Args...>) noexcept;
+constexpr T first_of(traits::identity<T, Args...>) noexcept;
 
 template <typename Signature, typename... Args>
 constexpr auto common_result_of(Signature signature,

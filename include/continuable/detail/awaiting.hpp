@@ -68,7 +68,7 @@ class awaitable {
   typename trait_t::expected_type result_;
 
 public:
-  explicit awaitable(Continuable&& continuable)
+  explicit constexpr awaitable(Continuable&& continuable)
       : continuable_(std::move(continuable)) {
   }
 
@@ -121,7 +121,7 @@ private:
 /// Converts a continuable into an awaitable object as described by
 /// the C++ coroutine TS.
 template <typename T>
-auto create_awaiter(T&& continuable) {
+constexpr auto create_awaiter(T&& continuable) {
   return awaitable<std::decay_t<T>>(std::forward<T>(continuable));
 }
 } // namespace awaiting

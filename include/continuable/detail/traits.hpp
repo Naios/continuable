@@ -60,7 +60,7 @@ struct constant : std::integral_constant<T, Value> {
 /// \cond false
 #define CTI__INST(CTI__OP)                                                     \
   template <typename OT, OT OValue>                                            \
-  /*constexpr*/ auto operator CTI__OP(std::integral_constant<OT, OValue>)      \
+  constexpr auto operator CTI__OP(std::integral_constant<OT, OValue>)          \
       const noexcept {                                                         \
     return constant<decltype((Value CTI__OP OValue)),                          \
                     (Value CTI__OP OValue)>{};                                 \
@@ -68,7 +68,7 @@ struct constant : std::integral_constant<T, Value> {
   CTI__FOR_EACH_INTEGRAL_BIN_OP(CTI__INST)
 #undef CTI__INST
 #define CTI__INST(CTI__OP)                                                     \
-  /*constexpr*/ auto operator CTI__OP() const noexcept {                       \
+  constexpr auto operator CTI__OP() const noexcept {                           \
     return constant<decltype((CTI__OP Value)), (CTI__OP Value)>{};             \
   }
   CTI__FOR_EACH_INTEGRAL_UNA_OP(CTI__INST)
@@ -81,14 +81,14 @@ struct constant<bool, Value> : std::integral_constant<bool, Value> {
 /// \cond false
 #define CTI__INST(CTI__OP)                                                     \
   template <typename OT, OT OValue>                                            \
-  /*constexpr*/ auto operator CTI__OP(std::integral_constant<bool, OValue>)    \
+  constexpr auto operator CTI__OP(std::integral_constant<bool, OValue>)        \
       const noexcept {                                                         \
     return constant<bool, (Value CTI__OP OValue)>{};                           \
   }
   CTI__FOR_EACH_BOOLEAN_BIN_OP(CTI__INST)
 #undef CTI__INST
 #define CTI__INST(CTI__OP)                                                     \
-  /*constexpr*/ auto operator CTI__OP() const noexcept {                       \
+  constexpr auto operator CTI__OP() const noexcept {                           \
     return constant<bool, CTI__OP Value>{};                                    \
   }
   CTI__FOR_EACH_BOOLEAN_UNA_OP(CTI__INST)
@@ -142,7 +142,7 @@ template <typename... Args>
 struct is_identity<identity<Args...>> : std::true_type {};
 
 template <typename T>
-identity<std::decay_t<T>> constexpr identity_of(T const& /*type*/) noexcept {
+constexpr identity<std::decay_t<T>> identity_of(T const& /*type*/) noexcept {
   return {};
 }
 template <typename... Args>
@@ -150,14 +150,12 @@ constexpr identity<Args...> identity_of(identity<Args...> /*type*/) noexcept {
   return {};
 }
 template <typename T>
-constexpr auto identity_of() noexcept {
-  return std::conditional_t<is_identity<std::decay_t<T>>::value, T,
-                            identity<std::decay_t<T>>>{};
-}
+using identify = std::conditional_t<is_identity<std::decay_t<T>>::value, T,
+                                    identity<std::decay_t<T>>>;
 
 template <std::size_t I, typename... T>
 constexpr auto get(identity<T...>) noexcept {
-  return identity_of<at_t<I, T...>>();
+  return identify<at_t<I, T...>>{};
 }
 
 namespace detail {
@@ -327,9 +325,9 @@ constexpr auto unpack(F&& firstSequenceable, S&& secondSequenceable,
 }
 /// Calls the given unpacker with the content of the given sequenceable
 template <typename F, typename U>
-auto unpack(F&& firstSequenceable, U&& unpacker) {
+constexpr auto unpack(F&& firstSequenceable, U&& unpacker) {
   return unpack(std::forward<F>(firstSequenceable), std::forward<U>(unpacker),
-                sequence_of(identity_of(firstSequenceable)));
+                sequence_of(identify<decltype(firstSequenceable)>{}));
 }
 /// Calls the given unpacker with the content of the given sequenceables
 template <typename F, typename S, typename U>

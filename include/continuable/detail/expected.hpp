@@ -387,7 +387,7 @@ struct expected_result_trait<traits::identity<First, Second, Rest...>> {
 
 template <typename Continuable>
 using expected_result_trait_t = detail::expected_result_trait<decltype(
-    hints::hint_of(traits::identity_of<Continuable>()))>;
+    hints::hint_of(traits::identify<Continuable>{}))>;
 } // namespace util
 } // namespace detail
 } // namespace cti

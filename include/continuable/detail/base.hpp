@@ -171,7 +171,7 @@ invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
   using Type = decltype(attorney::materialize(
       std::declval<continuable_base<Data, Annotation>>()));
 
-  auto constexpr const hint = hints::hint_of(traits::identity_of<Type>());
+  auto constexpr const hint = hints::hint_of(traits::identify<Type>{});
 
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
@@ -202,7 +202,7 @@ constexpr auto invoker_of(traits::identity<T>) {
                            std::move(result));
         CONTINUABLE_BLOCK_TRY_END
       },
-      traits::identity_of<T>());
+      traits::identify<T>{});
 }
 
 /// - void -> next_callback()
@@ -322,8 +322,8 @@ struct result_handler_base<handle_results::yes, Base,
   void operator()(Args... args) && {
     // In order to retrieve the correct decorator we must know what the
     // result type is.
-    auto result = traits::identity_of<decltype(util::partial_invoke(
-        std::move(static_cast<Base*>(this)->callback_), std::move(args)...))>();
+    auto result = traits::identify<decltype(util::partial_invoke(
+        std::move(static_cast<Base*>(this)->callback_), std::move(args)...))>{};
 
     // Pick the correct invoker that handles decorating of the result
     auto invoker = decoration::invoker_of(result);
@@ -478,7 +478,7 @@ next_hint_of(std::integral_constant<handle_results, handle_results::yes>,
       util::partial_invoke(std::declval<T>(), std::declval<Args>()...));
 
   // Return the hint of thr given invoker
-  return decoration::invoker_of(traits::identity_of<Result>()).hint();
+  return decltype(decoration::invoker_of(traits::identify<Result>{}).hint()){};
 }
 /// Don't progress the hint when we don't continue
 template <typename T, typename... Args>
@@ -506,9 +506,9 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
                 "Expected a continuation!");
 
   using Hint = decltype(hints::hint_of(traits::identity_of(continuation)));
-  auto next_hint =
+  constexpr auto next_hint =
       next_hint_of(std::integral_constant<handle_results, HandleResults>{},
-                   traits::identity_of(callback), Hint{});
+                   traits::identify<decltype(callback)>{}, Hint{});
 
   // TODO consume only the data here so the freeze isn't needed
   auto ownership_ = attorney::ownership_of(continuation);
