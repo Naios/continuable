@@ -203,6 +203,18 @@ constexpr auto static_if_impl(std::false_type, Type&& type,
                               FalseCallback&& falseCallback) {
   return std::forward<FalseCallback>(falseCallback)(std::forward<Type>(type));
 }
+
+/// Applies the given callable to all objects in a sequence
+template <typename C>
+struct apply_to_all {
+  C callable;
+
+  template <typename... T>
+  constexpr void operator()(T&&... args) {
+    (void)std::initializer_list<int>{
+        0, ((void)callable(std::forward<decltype(args)>(args)), 0)...};
+  }
+};
 } // namespace detail
 
 /// Returns the pack size of the given type
@@ -340,22 +352,20 @@ constexpr auto unpack(F&& firstSequenceable, S&& secondSequenceable,
 }
 
 /// Applies the handler function to each element contained in the sequenceable
+// TODO Maybe crashes MSVC in constexpr mode
 template <typename Sequenceable, typename Handler>
 constexpr void static_for_each_in(Sequenceable&& sequenceable,
                                   Handler&& handler) {
-  unpack(
-      std::forward<Sequenceable>(sequenceable), [&](auto&&... entries) mutable {
-        // Apply the consume function to every entry inside the pack
-        (void)std::initializer_list<int>{
-            0, ((void)handler(std::forward<decltype(entries)>(entries)), 0)...};
-      });
+  unpack(std::forward<Sequenceable>(sequenceable),
+         detail::apply_to_all<std::decay_t<Handler>>{
+             std::forward<Handler>(handler)});
 }
 
 /// Adds the given type at the back of the left sequenceable
 template <typename Left, typename Element>
 constexpr auto push(Left&& left, Element&& element) {
-  return unpack(std::forward<Left>(left), [&](auto&&... leftArgs) {
-    return std::make_tuple(std::forward<decltype(leftArgs)>(leftArgs)...,
+  return unpack(std::forward<Left>(left), [&](auto&&... args) {
+    return std::make_tuple(std::forward<decltype(args)>(args)...,
                            std::forward<Element>(element));
   });
 }

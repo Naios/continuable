@@ -333,7 +333,7 @@ auto make_all_result_submitter(Callback&& callback,
 /// A callable object to merge multiple signature hints together
 struct entry_merger {
   template <typename... T>
-  constexpr auto operator()(T&... entries) noexcept {
+  constexpr auto operator()(T&... entries) const noexcept {
     return traits::merge(hints::hint_of(traits::identity_of(entries))...);
   }
 };
@@ -400,37 +400,53 @@ auto make_any_result_submitter(Callback&& callback) {
       std::forward<decltype(callback)>(callback));
 }
 
-template <typename T, typename... Args>
-constexpr T first_of(traits::identity<T, Args...>) noexcept;
+template <typename T>
+struct check_pack_empty {
+  static constexpr auto const is_empty =
+      (decltype(traits::pack_size_of(std::declval<T>())){} ==
+       traits::size_constant_of<0>());
+  static_assert(is_empty.value, "Expected all continuations to have the same"
+                                "count of arguments!");
+};
 
-template <typename Signature, typename... Args>
-constexpr auto common_result_of(Signature signature,
-                                hints::signature_hint_tag<>, Args... /*args*/) {
-  /// Assert that the other signatures are empty too which means all signatures
-  /// had the same size.
-  traits::static_for_each_in(traits::identity<Args...>{}, [&](auto rest) {
-    auto is_empty =
-        (traits::pack_size_of(rest) == traits::size_constant_of<0>());
-    static_assert(is_empty.value, "Expected all continuations to have the same"
-                                  "count of arguments!");
-  });
-  return signature;
-}
+/// A callable object to determine the shared result between all continuations
+struct determine_shared_result {
+  template <typename... T>
+  constexpr auto operator()(T&... args) const noexcept {
+    return common_result_of(hints::signature_hint_tag<>{},
+                            hints::hint_of(traits::identity_of(args))...);
+  }
 
-/// Determine the common result between all continuation which are chained
-/// with an `any` strategy, consider two continuations:
-/// c1 with `void(int)` and c2 with `void(float)`, the common result shared
-/// between both continuations is `void(int)`.
-template <typename Signature, typename First, typename... Args>
-constexpr auto common_result_of(Signature signature, First first,
-                                Args... args) {
-  using Common =
-      traits::identity<std::common_type_t<decltype(first_of(first)),
-                                          decltype(first_of(args))...>>;
+private:
+  template <typename Signature, typename... Args>
+  static constexpr auto common_result_of(Signature signature,
+                                         hints::signature_hint_tag<>,
+                                         Args... /*args*/) {
+    /// Assert that the other signatures are empty too which means all
+    /// signatures had the same size.
+    std::initializer_list<int>{0, ((void)check_pack_empty<Args>{}, 0)...};
+    return signature;
+  }
 
-  return common_result_of(traits::push(signature, Common{}),
-                          traits::pop_first(first), traits::pop_first(args)...);
-}
+  template <typename T, typename... Args>
+  static constexpr T first_of(traits::identity<T, Args...>) noexcept;
+
+  /// Determine the common result between all continuation which are chained
+  /// with an `any` strategy, consider two continuations:
+  /// c1 with `void(int)` and c2 with `void(float)`, the common result shared
+  /// between both continuations is `void(int)`.
+  template <typename Signature, typename First, typename... Args>
+  static constexpr auto common_result_of(Signature signature, First first,
+                                         Args... args) {
+    using common_type =
+        traits::identity<std::common_type_t<decltype(first_of(first)),
+                                            decltype(first_of(args))...>>;
+
+    return common_result_of(traits::push(signature, common_type{}),
+                            traits::pop_first(first),
+                            traits::pop_first(args)...);
+  }
+};
 
 /// Finalizes the any logic of a given composition
 template <typename Data>
@@ -441,11 +457,8 @@ auto finalize_composition(
 
   auto composition = base::attorney::consume_data(std::move(continuation));
 
-  // Determine the shared result between all continuations
-  auto signature = traits::unpack(composition, [](auto const&... args) {
-    return common_result_of(hints::signature_hint_tag<>{},
-                            hints::hint_of(traits::identity_of(args))...);
-  });
+  constexpr auto signature =
+      traits::unpack(composition, determine_shared_result{});
 
   return base::attorney::create(
       [composition = std::move(composition)](auto&& callback) mutable {
