@@ -424,7 +424,7 @@ private:
                                          Args... /*args*/) {
     /// Assert that the other signatures are empty too which means all
     /// signatures had the same size.
-    std::initializer_list<int>{0, ((void)check_pack_empty<Args>{}, 0)...};
+    (void)std::initializer_list<int>{0, ((void)check_pack_empty<Args>{}, 0)...};
     return signature;
   }
 
