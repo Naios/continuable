@@ -348,7 +348,7 @@ auto finalize_composition(
   auto composition = base::attorney::consume_data(std::move(continuation));
 
   // Merge all signature hints together
-  constexpr auto signature = traits::unpack(composition, entry_merger{});
+  constexpr auto const signature = traits::unpack(composition, entry_merger{});
 
   return base::attorney::create(
       [ signature,
@@ -357,11 +357,11 @@ auto finalize_composition(
         // std::pair<size_constant<?>, size_constant<?>>
         //           ~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~
         //           Continuation pos     Result pos
-        constexpr auto begin = std::make_pair(traits::size_constant_of<0>(),
+        constexpr auto const begin = std::make_pair(traits::size_constant_of<0>(),
                                               traits::size_constant_of<0>());
-        constexpr auto pack = traits::identify<decltype(composition)>{};
-        constexpr auto end = traits::pack_size_of(pack);
-        auto condition = [=](auto pos) { return pos.first < end; };
+        constexpr auto const pack = traits::identify<decltype(composition)>{};
+        constexpr auto const end = traits::pack_size_of(pack);
+        auto const condition = [=](auto pos) { return pos.first < end; };
 
         // Create the result submitter which caches all results and invokes
         // the final callback upon completion.
@@ -374,11 +374,11 @@ auto finalize_composition(
               std::move(std::get<decltype(current.first)::value>(composition));
 
           // This is the length of the arguments of the current continuable
-          constexpr auto arg_size =
+          constexpr auto const arg_size =
               traits::pack_size_of(hints::hint_of(traits::identity_of(entry)));
 
           // The next position in the result tuple
-          constexpr auto next = current.second + arg_size;
+          constexpr auto const next = current.second + arg_size;
 
           // Invoke the continuation with the associated submission callback
           base::attorney::invoke_continuation(
@@ -457,7 +457,7 @@ auto finalize_composition(
 
   auto composition = base::attorney::consume_data(std::move(continuation));
 
-  constexpr auto signature =
+  constexpr auto const signature =
       traits::unpack(composition, determine_shared_result{});
 
   return base::attorney::create(
