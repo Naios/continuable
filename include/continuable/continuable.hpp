@@ -34,7 +34,6 @@
 #include <continuable/continuable-api.hpp>
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-promise-base.hpp>
-#include <continuable/continuable-testing.hpp>
 #include <continuable/continuable-trait.hpp>
 #include <continuable/continuable-transforms.hpp>
 #include <continuable/continuable-types.hpp>
