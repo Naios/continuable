@@ -10,7 +10,7 @@
 
 This library provides full feature support of:
 
-* lazy async continuation chaining based on **callbacks** (*then*) and expression templates.
+* lazy async continuation chaining based on **callbacks** (*then*) and expression templates, callbacks are wrapped nicely as promises.
 * **no enforced type-erasure** which means we need **less heap allocations**, strictly following the **"don't pay for what you don't use" ** principle. 
 * support for **connections** between continuables through an **all, any or sequential** strategy through expressive operator overloads **&&**, **||** and **>>**.
 * **error handling** through exceptions or custom types.
@@ -56,7 +56,7 @@ This library provides full feature support of:
   ```cpp
   (http_request("github.com") && (http_request("travis-ci.org") || http_request("atom.io")))
     .then([](std::string github, std::string travis_or_atom) {
-      // The callback is called with the response of github and travis or atom.
+      // The promise is called with the response of github and travis or atom.
     });
   ```
 
@@ -371,8 +371,8 @@ Since version 2.0.0 coroutines (`co_await` and `co_return`) are supported by con
 You have to enable this capability through the `CTI_CONTINUABLE_WITH_AWAIT` define in CMake.
 
 ```c++
-int i = co_await cti::make_continuable<int>([](auto&& callback) {
-  callback.set_value(0);
+int i = co_await cti::make_continuable<int>([](auto&& promise) {
+  promise.set_value(0);
 });
 ```
 
