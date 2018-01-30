@@ -350,11 +350,11 @@ The library provides aliases for using my [function2 library](https://github.com
 #include <continuable/continuable.hpp>
 
 cti::unique_continuable<int, std::string> unique =
-      cti::make_continuable([value = std::make_unique<int>(0)](auto&& callback) {
+      cti::make_continuable([value = std::make_unique<int>(0)](auto&& promise) {
 
   // The use of non copyable objects is possible by design if
   // the type erasure backend supports it.
-  callback(*value, "Hello, World!");
+  promise.set_value(*value, "Hello, World!");
 });
 
 std::move(unique).then([](int i) {
@@ -362,24 +362,8 @@ std::move(unique).then([](int i) {
 });
 ```
 
-However you may still define your own continuation wrapper with the backend of your choice, but keep in mind that the capabilities of your wrapper determine the possible objects, the continuation is capable of carrying. This limits continuations using *std::function* as a backend to copyable types:
-
-```c++
-template <typename... Args>
-using my_continuation = typename cti::continuable_trait<
-  std::function, std::function, Args...
->::continuable;
-
-// ...
-
-my_continuation<int> myc = cti::make_continuable([](auto&& callback) {
-  //                                         ^^^^^
-  // Signatures may be omitted for continuables which are type erased
-  callback(0);
-});
-```
-
 We could also think about using  `std::future` as backend but this is even worse then using `std::function` because usually there is, even more, type erasure and allocations involved.
+Additionally `std::function` doesn't provide support for multiple function overloads
 
 ### Coroutines
 
@@ -402,11 +386,12 @@ std::future<std::string> future = http_request("github.com")
     // Do sth...
     return http_request("travis-ci.org") || http_request("atom.io");
   })
-  .apply(cti::transform::futurize());
+  .apply(cti::transforms::futurize());
 // ^^^^^^^^
 
 std::future<std::tuple<std::string, std::string>> future =
-  (http_request("travis-ci.org") && http_request("atom.io")).futurize();
+  (http_request("travis-ci.org") && http_request("atom.io"))
+    .apply(cti::transforms::futurize());
 ```
 
 > **Note:** See the [doxygen documentation](https://naios.github.io/continuable/) for detailed information about the return type of `futurize()`.
