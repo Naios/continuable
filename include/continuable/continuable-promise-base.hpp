@@ -43,15 +43,20 @@ namespace cti {
 /// The promise_base makes it possible to resolve an asynchronous
 /// continuable through it's result or through an error type.
 ///
-/// Use the promise type defined in `continuable/continuable.hpp`,
+/// Use the promise type defined in `continuable/continuable_types.hpp`,
 /// in order to use this class.
 ///
 /// \since version 2.0.0
+// clang-format off
 template <typename Data, typename Hint>
-class promise_base;
+class promise_base
+  /// \cond false
+  ;
 template <typename Data, typename... Args>
 class promise_base<Data, detail::hints::signature_hint_tag<Args...>>
-    : detail::util::non_copyable {
+    : detail::util::non_copyable
+  /// \endcond
+{ // clang-format on
 
   /// \cond false
   // The callback type
