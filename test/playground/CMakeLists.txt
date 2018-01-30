@@ -12,6 +12,9 @@ set(LIB_SOURCES_DETAIL
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/composition.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/expected.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/hints.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/detail/container-category.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/detail/pack-traversal.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/detail/pack-traversal-async.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/features.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/traits.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/transforms.hpp
