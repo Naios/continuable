@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_TYPES_HPP_INCLUDED__
-#define CONTINUABLE_TYPES_HPP_INCLUDED__
+#ifndef CONTINUABLE_TYPES_HPP_INCLUDED
+#define CONTINUABLE_TYPES_HPP_INCLUDED
 
 #include <cstdint>
 
@@ -106,4 +106,4 @@ using promise = typename detail::unique_trait_of<
 // clang-format on
 } // namespace cti
 
-#endif // CONTINUABLE_TYPES_HPP_INCLUDED__
+#endif // CONTINUABLE_TYPES_HPP_INCLUDED

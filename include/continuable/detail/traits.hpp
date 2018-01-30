@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED__
-#define CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED__
+#ifndef CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED
 
 #include <cstdint>
 #include <initializer_list>
@@ -416,4 +416,4 @@ using fail = std::integral_constant<bool, !std::is_same<T, T>::value>;
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED__
+#endif // CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED

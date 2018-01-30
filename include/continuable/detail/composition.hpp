@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_COMPOSITION_HPP_INCLUDED__
-#define CONTINUABLE_DETAIL_COMPOSITION_HPP_INCLUDED__
+#ifndef CONTINUABLE_DETAIL_COMPOSITION_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_COMPOSITION_HPP_INCLUDED
 
 #include <atomic>
 #include <memory>
@@ -504,4 +504,4 @@ auto sequential_connect(Left&& left, Right&& right) {
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_COMPOSITION_HPP_INCLUDED__
+#endif // CONTINUABLE_DETAIL_COMPOSITION_HPP_INCLUDED

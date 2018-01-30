@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_BASE_HPP_INCLUDED__
-#define CONTINUABLE_BASE_HPP_INCLUDED__
+#ifndef CONTINUABLE_BASE_HPP_INCLUDED
+#define CONTINUABLE_BASE_HPP_INCLUDED
 
 #include <cassert>
 #include <cstdint>
@@ -744,4 +744,4 @@ auto when_seq(Continuables&&... continuables) {
 }
 } // namespace cti
 
-#endif // CONTINUABLE_BASE_HPP_INCLUDED__
+#endif // CONTINUABLE_BASE_HPP_INCLUDED

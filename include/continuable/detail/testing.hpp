@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_TESTING_HPP_INCLUDED__
-#define CONTINUABLE_DETAIL_TESTING_HPP_INCLUDED__
+#ifndef CONTINUABLE_DETAIL_TESTING_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_TESTING_HPP_INCLUDED
 
 #include <type_traits>
 #include <utility>
@@ -198,4 +198,4 @@ void assert_async_types(C&& continuable, traits::identity<Args...> expected) {
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_TESTING_HPP_INCLUDED__
+#endif // CONTINUABLE_DETAIL_TESTING_HPP_INCLUDED

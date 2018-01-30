@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_BASE_HPP_INCLUDED__
-#define CONTINUABLE_DETAIL_BASE_HPP_INCLUDED__
+#ifndef CONTINUABLE_DETAIL_BASE_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_BASE_HPP_INCLUDED
 
 #include <tuple>
 #include <type_traits>
@@ -580,4 +580,4 @@ auto wrap_continuation(Continuation&& continuation) {
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_BASE_HPP_INCLUDED__
+#endif // CONTINUABLE_DETAIL_BASE_HPP_INCLUDED

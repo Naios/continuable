@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED__
-#define CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED__
+#ifndef CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED
 
 #include <continuable/continuable-api.hpp>
 #include <continuable/detail/features.hpp>
@@ -67,4 +67,4 @@ struct dispatch_error_tag {};
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED__
+#endif // CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED

@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_HPP_INCLUDED__
-#define CONTINUABLE_HPP_INCLUDED__
+#ifndef CONTINUABLE_HPP_INCLUDED
+#define CONTINUABLE_HPP_INCLUDED
 
 #include <continuable/continuable-api.hpp>
 #include <continuable/continuable-base.hpp>
@@ -38,4 +38,4 @@
 #include <continuable/continuable-transforms.hpp>
 #include <continuable/continuable-types.hpp>
 
-#endif // CONTINUABLE_HPP_INCLUDED__
+#endif // CONTINUABLE_HPP_INCLUDED

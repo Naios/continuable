@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_TRANSFORMS_HPP_INCLUDED__
-#define CONTINUABLE_DETAIL_TRANSFORMS_HPP_INCLUDED__
+#ifndef CONTINUABLE_DETAIL_TRANSFORMS_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_TRANSFORMS_HPP_INCLUDED
 
 #include <future>
 
@@ -138,4 +138,4 @@ auto as_future(continuable_base<Data, Annotation>&& continuable) {
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_TRANSFORMS_HPP_INCLUDED__
+#endif // CONTINUABLE_DETAIL_TRANSFORMS_HPP_INCLUDED

@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED__
-#define CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED__
+#ifndef CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED
 
 #include <cassert>
 #include <tuple>
@@ -300,4 +300,4 @@ auto fold(F&& folder, First&& first, Second&& second, Rest&&... rest) {
       PACK)
 #endif // CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
 
-#endif // CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED__
+#endif // CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED

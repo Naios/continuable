@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_EXPECTED_HPP_INCLUDED__
-#define CONTINUABLE_DETAIL_EXPECTED_HPP_INCLUDED__
+#ifndef CONTINUABLE_DETAIL_EXPECTED_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_EXPECTED_HPP_INCLUDED
 
 #include <cassert>
 #include <memory>
@@ -392,4 +392,4 @@ using expected_result_trait_t = detail::expected_result_trait<decltype(
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_EXPECTED_HPP_INCLUDED__
+#endif // CONTINUABLE_DETAIL_EXPECTED_HPP_INCLUDED

@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_TESTING_HPP_INCLUDED__
-#define CONTINUABLE_TESTING_HPP_INCLUDED__
+#ifndef CONTINUABLE_TESTING_HPP_INCLUDED
+#define CONTINUABLE_TESTING_HPP_INCLUDED
 
 #include <continuable/continuable-api.hpp>
 #include <continuable/detail/testing.hpp>
@@ -163,4 +163,4 @@
   ASSERT_ASYNC_BINARY_EXCEPTION_VALIDATION(                                    \
       cti::detail::testing::asserting_eq_check(), __VA_ARGS__)
 
-#endif // CONTINUABLE_TESTING_HPP_INCLUDED__
+#endif // CONTINUABLE_TESTING_HPP_INCLUDED

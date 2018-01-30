@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_TRANSFORMS_HPP_INCLUDED__
-#define CONTINUABLE_TRANSFORMS_HPP_INCLUDED__
+#ifndef CONTINUABLE_TRANSFORMS_HPP_INCLUDED
+#define CONTINUABLE_TRANSFORMS_HPP_INCLUDED
 
 #include <continuable/continuable-api.hpp>
 #include <continuable/detail/transforms.hpp>
@@ -85,4 +85,4 @@ inline auto flatten() {
 } // namespace transforms
 } // namespace cti
 
-#endif // CONTINUABLE_TRANSFORMS_HPP_INCLUDED__
+#endif // CONTINUABLE_TRANSFORMS_HPP_INCLUDED

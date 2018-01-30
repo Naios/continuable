@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED__
-#define CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED__
+#ifndef CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED
 
 #include <type_traits>
 
@@ -69,4 +69,4 @@ hint_of(traits::identity<
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED__
+#endif // CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED
