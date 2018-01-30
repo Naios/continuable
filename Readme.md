@@ -1,11 +1,8 @@
 ![](https://raw.githubusercontent.com/Naios/continuable/master/doc/slideshow.gif)
 
-[![](https://img.shields.io/badge/Beta-v2.0.0-0091EA.svg)](https://github.com/Naios/continuable/releases/tag/2.0.0) [![Build Status](https://travis-ci.org/Naios/continuable.svg?branch=master)](https://travis-ci.org/Naios/continuable) [![Build status](https://ci.appveyor.com/api/projects/status/328ta3r5x92f3byv/branch/master?svg=true)](https://ci.appveyor.com/project/Naios/continuable/branch/master) ![](https://img.shields.io/badge/License-MIT-00838F.svg) [![](https://img.shields.io/badge/Documentation-Doxygen-26A69A.svg)](https://naios.github.io/continuable/) [![](https://img.shields.io/badge/Try-online-4DB6AC.svg)](http://melpon.org/wandbox/permlink/xVM2szjDLEge3YLV)
+[![](https://img.shields.io/badge/Version-2.0.0-0091EA.svg)](https://github.com/Naios/continuable/releases/tag/2.0.0) [![Build Status](https://travis-ci.org/Naios/continuable.svg?branch=master)](https://travis-ci.org/Naios/continuable) [![Build status](https://ci.appveyor.com/api/projects/status/328ta3r5x92f3byv/branch/master?svg=true)](https://ci.appveyor.com/project/Naios/continuable/branch/master) ![](https://img.shields.io/badge/License-MIT-00838F.svg) [![](https://img.shields.io/badge/Documentation-Doxygen-26A69A.svg)](https://naios.github.io/continuable/) [![](https://img.shields.io/badge/Try-online-4DB6AC.svg)](http://melpon.org/wandbox/permlink/xVM2szjDLEge3YLV)
 
 ------
-
-**Note: This readme refers to the in-progress version 2.0.0**
-
 
 
 This library provides full feature support of:
