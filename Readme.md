@@ -77,6 +77,7 @@ This library provides full feature support of:
     - [Partial argument application](#partial-argument-application)
     - [Dispatching callbacks through a specific executor](#dispatching-callbacks-through-a-specific-executor)
     - [Type erasure](#type-erasure)
+    - [Coroutines](#coroutines)
     - [Future conversion](#future-conversion)
 - [Compatibility](#compatibility)
 - [Similar implementations and alternatives](#similar-implementations-and-alternatives)
@@ -380,6 +381,17 @@ my_continuation<int> myc = cti::make_continuable([](auto&& callback) {
 
 We could also think about using  `std::future` as backend but this is even worse then using `std::function` because usually there is, even more, type erasure and allocations involved.
 
+### Coroutines
+
+Since version 2.0.0 coroutines (`co_await` and `co_return`) are supported by continuables when the underlying toolchain supports the TS. Currently this works in MSVC 2017 and Clang 5.0.
+You have to enable this capability through the `CTI_CONTINUABLE_WITH_AWAIT` define in CMake.
+
+```c++
+int i = co_await cti::make_continuable<int>([](auto&& callback) {
+  callback.set_value(0);
+});
+```
+
 ### Future conversion
 
 The library is capable of converting (*futurizing*) every continuable into a fitting **std::future** through the `continuable<...>::futurize()` method.:
@@ -444,7 +456,7 @@ The continuable library is licensed under the MIT License:
                     https://github.com/Naios/continuable
                                    v2.0.0
 
-  Copyright(c) 2015 - 2017 Denis Blank <denis.blank at outlook dot com>
+  Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files(the "Software"), to deal
