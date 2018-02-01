@@ -8,7 +8,7 @@
 This library provides full feature support of:
 
 * lazy async continuation chaining based on **callbacks** (*then*) and expression templates, callbacks are wrapped nicely as promises.
-* **no enforced type-erasure** which means we need **less heap allocations**, strictly following the **"don't pay for what you don't use" ** principle. 
+* **no enforced type-erasure** which means we need **less heap allocations**, strictly following the **"don't pay for what you don't use"** principle. 
 * support for **connections** between continuables through an **all, any or sequential** strategy through expressive operator overloads **&&**, **||** and **>>**.
 * **error handling** through exceptions or custom types.
 * **syntactic sugar** for instance: **partial invocation**, **tuple unpacking** and **executors**.
@@ -77,7 +77,6 @@ This library provides full feature support of:
     - [Coroutines](#coroutines)
     - [Future conversion](#future-conversion)
 - [Compatibility](#compatibility)
-- [Similar implementations and alternatives](#similar-implementations-and-alternatives)
 - [License](#license)
 
 
@@ -407,29 +406,11 @@ The library only depends on the standard library when using the `continuable/con
 
 > **Note:** On Posix: don't  forget to **link a corresponding thread library** into your application otherwise `std::future's` won't work `(-pthread)`  when using future based transforms.
 
-## Similar implementations and alternatives
-
-You already thought it, the idea isn't new and thus it is well known in the JavaScript world already.
-
-There are some existing solutions with similar design thoughts already, which I don't want to hold back from you - you should choose the library fitting your needs best:
-
-#### **[q (C++)](https://github.com/grantila/q)**
-
-Is designed in a similar way, however, it orientates itself more on the corresponding JavaScript libraries which leaves some benefits behind we could reach with modern C++ meta-programming. Like previous approaches, the library uses type erasure excessively (and thus isn't memory allocation aware). What differentiates **q** from the continuable library is that it supports infinite logical connections and ships with built-in exception support as well as it's own executors (thread pools) - thus the library isn't header-only anymore (but the library is still proclaimed to work with other executors). My personal opinion is that a continuation library shouldn't include any other stuff then the continuation logic itself.
-
-#### [cpprestsdk](https://github.com/Microsoft/cpprestsdk)
-
-Basically, the same arguments as explained in the q section apply to the cpprestsdk as well, it's major drawbacks is the overwhelming use of type-erasure. Probably you will benefit a lot from the library if you intend to use it's provided asynchronously *http*, *websocket* and *filesystem* functionalities. The *continuable* library was designed with different thoughts in mind - it basically provides the continuation logic without any support methods so you can embed it into your application without depending on a heavy framework. This makes it possible to apply continuation chaning to esoteric domains such as C++ AI scripts with fast or immediately response times. Who knows - maybe someone will provide *continuable* wrappers for open-source libraries like *asio*, libuv or *uWebSockets* in the future too.
-
-
-> **Note:** If I forget to mention a library here let me know, so we can add the alternatives.
-
-
 ## License
 
 The continuable library is licensed under the MIT License:
 
-```c++
+```
 /**
 
                         /~` _  _ _|_. _     _ |_ | _
