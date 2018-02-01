@@ -35,7 +35,6 @@
 
 #include <function2/function2.hpp>
 
-#include <continuable/continuable-api.hpp>
 #include <continuable/continuable-trait.hpp>
 
 namespace cti {

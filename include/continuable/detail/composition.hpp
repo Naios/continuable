@@ -38,7 +38,6 @@
 #include <type_traits>
 #include <utility>
 
-#include <continuable/continuable-api.hpp>
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/hints.hpp>
@@ -357,8 +356,8 @@ auto finalize_composition(
         // std::pair<size_constant<?>, size_constant<?>>
         //           ~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~
         //           Continuation pos     Result pos
-        constexpr auto const begin = std::make_pair(traits::size_constant_of<0>(),
-                                              traits::size_constant_of<0>());
+        constexpr auto const begin = std::make_pair(
+            traits::size_constant_of<0>(), traits::size_constant_of<0>());
         constexpr auto const pack = traits::identify<decltype(composition)>{};
         constexpr auto const end = traits::pack_size_of(pack);
         auto const condition = [=](auto pos) { return pos.first < end; };

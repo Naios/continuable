@@ -31,7 +31,6 @@
 #ifndef CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED
 
-#include <continuable/continuable-api.hpp>
 #include <continuable/detail/features.hpp>
 
 #ifndef CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
@@ -43,6 +42,9 @@
 #endif // CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
 
 namespace cti {
+template <typename Data, typename Annotation>
+class continuable_base;
+
 namespace detail {
 /// Contains types used globally across the library
 namespace types {

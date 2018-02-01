@@ -31,7 +31,6 @@
 #ifndef CONTINUABLE_TESTING_HPP_INCLUDED
 #define CONTINUABLE_TESTING_HPP_INCLUDED
 
-#include <continuable/continuable-api.hpp>
 #include <continuable/detail/testing.hpp>
 #include <continuable/detail/traits.hpp>
 

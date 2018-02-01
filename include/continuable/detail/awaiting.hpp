@@ -37,7 +37,6 @@
 #include <cassert>
 #include <experimental/coroutine>
 
-#include <continuable/continuable-api.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/expected.hpp>
 #include <continuable/detail/features.hpp>

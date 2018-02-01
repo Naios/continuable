@@ -31,7 +31,20 @@
 #ifndef CONTINUABLE_HPP_INCLUDED
 #define CONTINUABLE_HPP_INCLUDED
 
-#include <continuable/continuable-api.hpp>
+/// Declares the continuable library namespace.
+///
+/// The most important class is cti::continuable_base, that provides the
+/// whole functionality for continuation chaining.
+///
+/// The class cti::continuable_base is created through the
+/// cti::make_continuable() function which accepts a callback taking function.
+///
+/// Also there are following support functions available:
+/// - cti::when_all() - connects cti::continuable_base's to an `all` connection.
+/// - cti::when_any() - connects cti::continuable_base's to an `any` connection.
+/// - cti::when_seq() - connects cti::continuable_base's to a sequence.
+namespace cti {}
+
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/continuable-trait.hpp>

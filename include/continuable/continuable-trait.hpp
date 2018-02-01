@@ -33,7 +33,6 @@
 
 #include <cstdint>
 
-#include <continuable/continuable-api.hpp>
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/detail/hints.hpp>

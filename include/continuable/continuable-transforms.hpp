@@ -31,7 +31,6 @@
 #ifndef CONTINUABLE_TRANSFORMS_HPP_INCLUDED
 #define CONTINUABLE_TRANSFORMS_HPP_INCLUDED
 
-#include <continuable/continuable-api.hpp>
 #include <continuable/detail/transforms.hpp>
 
 namespace cti {

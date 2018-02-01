@@ -36,7 +36,6 @@
 #include <type_traits>
 #include <utility>
 
-#include <continuable/continuable-api.hpp>
 #include <continuable/detail/awaiting.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/composition.hpp>
@@ -45,6 +44,33 @@
 #include <continuable/detail/util.hpp>
 
 namespace cti {
+/// The main class of the continuable library, it provides the functionality
+/// for chaining callbacks and continuations together to a unified hierarchy.
+///
+/// The most important method is the cti::continuable_base::then() method,
+/// which allows to attach a callback to the continuable.
+///
+/// Use the continuable types defined in `continuable/continuable.hpp`,
+/// in order to use this class.
+///
+/// \tparam Data The internal data which is used to store the current
+///         continuation and intermediate lazy connection result.
+///
+/// \tparam Annotation The internal data used to store the current signature
+///         hint or strategy used for combining lazy connections.
+///
+/// \note Nearly all methods of the cti::continuable_base are required to be
+///       called as r-value. This is required because the continuable carries
+///       variables which are consumed when the object is transformed as part
+///       of a method call. You may copy a continuable which underlying
+///       storages are copyable to split the call hierarchy into multiple parts.
+///
+/// \attention The continuable_base objects aren't intended to be stored.
+///            If you want to store a continuble_base you should always
+///            call the continuable_base::freeze method for disabling the
+///            invocation on destruction.
+///
+/// \since version 1.0.0
 template <typename Data, typename Annotation>
 class continuable_base {
 

@@ -36,7 +36,6 @@
 #include <type_traits>
 #include <utility>
 
-#include <continuable/continuable-api.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
