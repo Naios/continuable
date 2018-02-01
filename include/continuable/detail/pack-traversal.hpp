@@ -200,10 +200,10 @@ constexpr auto apply_spread_impl(std::true_type, C&& callable, T&&... args)
 /// Use the linear instantiation for variadic packs which don't
 /// contain spread types.
 template <typename C, typename... T>
-constexpr auto apply_spread_impl(std::false_type, C&& callable, T&&... args) ->
-    typename invoke_result<C, T...>::type {
-  return hpx::util::invoke(std::forward<C>(callable), std::forward<T>(args)...);
-}
+constexpr auto apply_spread_impl(std::false_type, C&& callable, T&&... args)
+    -> decltype(std::forward<C>(callable)(std::forward<T>(args)...)) {
+  return std::forward<C>(callable)(std::forward<T>(args)...);
+} // namespace spreading
 
 /// Deduces to a true_type if any of the given types marks
 /// the underlying type to be spread into the current context.
@@ -270,7 +270,7 @@ constexpr auto tupelize_or_void(T&&... args)
     -> decltype(voidify_empty_tuple(tupelize(std::forward<T>(args)...))) {
   return voidify_empty_tuple(tupelize(std::forward<T>(args)...));
 }
-} // end namespace spreading
+} // namespace spreading
 
 /// Just traverses the pack with the given callable object,
 /// no result is returned or preserved.
@@ -457,7 +457,7 @@ auto remap_container(container_mapping_tag<false, false>, M&& mapper,
 
   // We try to reserve the original size from the source
   // container to the destination container.
-  traits::detail::reserve_if_reservable(remapped, container.size());
+  // TODO traits::detail::reserve_if_reservable(remapped, container.size());
 
   // Perform the actual value remapping from the source to
   // the destination.
@@ -553,8 +553,8 @@ struct tuple_like_remapper<strategy_traverse_tag, M, Base<OldArgs...>,
   M mapper_;
 
   template <typename... Args>
-  auto operator()(Args&&... args) ->
-      typename always_void<typename invoke_result<M, OldArgs>::type...>::type {
+  auto operator()(Args&&... args)
+      -> std::void_t<typename invoke_result<M, OldArgs>::type...> {
     int dummy[] = {0, ((void)mapper_(std::forward<Args>(args)), 0)...};
     (void)dummy;
   }
@@ -795,10 +795,7 @@ public:
 
   /// \copybrief try_traverse
   template <typename T>
-  auto init_traverse(strategy_remap_tag, T&& element)
-      -> decltype(spreading::unpack_or_void(
-          std::declval<mapping_helper>().try_traverse(strategy_remap_tag{},
-                                                      std::declval<T>()))) {
+  auto init_traverse(strategy_remap_tag, T&& element) {
     return spreading::unpack_or_void(
         try_traverse(strategy_remap_tag{}, std::forward<T>(element)));
   }
@@ -811,14 +808,7 @@ public:
   /// and returns a tuple containing the remapped content.
   template <typename First, typename Second, typename... T>
   auto init_traverse(strategy_remap_tag strategy, First&& first,
-                     Second&& second, T&&... rest)
-      -> decltype(spreading::tupelize_or_void(
-          std::declval<mapping_helper>().try_traverse(
-              strategy, std::forward<First>(first)),
-          std::declval<mapping_helper>().try_traverse(
-              strategy, std::forward<Second>(second)),
-          std::declval<mapping_helper>().try_traverse(
-              strategy, std::forward<T>(rest))...)) {
+                     Second&& second, T&&... rest) {
     return spreading::tupelize_or_void(
         try_traverse(strategy, std::forward<First>(first)),
         try_traverse(strategy, std::forward<Second>(second)),
