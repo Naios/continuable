@@ -32,6 +32,7 @@
 #define CONTINUABLE_DETAIL_PACK_TRAVERSAL_ASYNC_HPP_INCLUDED
 
 #include <atomic>
+#include <cassert>
 #include <cstddef>
 #include <iterator>
 #include <memory>
@@ -105,7 +106,10 @@ auto make_resume_traversal_callable(Frame&& frame, State&& state)
 template <typename Visitor, typename... Args>
 class async_traversal_frame : public Visitor {
   tuple<Args...> args_;
+
+#ifndef _NDEBUG
   std::atomic<bool> finished_;
+#endif // _NDEBUG
 
   Visitor& visitor() noexcept {
     return *static_cast<Visitor*>(this);
@@ -117,13 +121,17 @@ class async_traversal_frame : public Visitor {
 
 public:
   explicit async_traversal_frame(Visitor visitor, Args... args)
-      : Visitor(std::move(visitor)),
-        args_(util::make_tuple(std::move(args)...)), finished_(false) {
+      : Visitor(std::move(visitor)), args_(util::make_tuple(std::move(args)...))
+#ifndef _NDEBUG
+        ,
+        finished_(false)
+#endif // _NDEBUG
+  {
   }
 
   /// We require a virtual base
   ~async_traversal_frame() override {
-    HPX_ASSERT(finished_);
+    assert(finished_.load());
   }
 
   template <typename MapperArg>
@@ -169,10 +177,14 @@ public:
   /// Calls the visitor with no arguments to signalize that the
   /// asynchronous traversal was finished.
   void async_complete() {
-    bool expected = false;
-    if (finished_.compare_exchange_strong(expected, true)) {
-      util::invoke(visitor(), async_traverse_complete_tag{}, std::move(args_));
+#ifndef _NDEBUG
+    {
+      bool expected = false;
+      assert(finished_.compare_exchange_strong(expected, true));
     }
+#endif // _NDEBUG
+
+    visitor()(async_traverse_complete_tag{}, std::move(args_));
   }
 };
 
@@ -291,7 +303,7 @@ public:
 
   // Abort the current control flow
   void detach() noexcept {
-    HPX_ASSERT(!detached_);
+    assert(!detached_);
     detached_ = true;
   }
 
