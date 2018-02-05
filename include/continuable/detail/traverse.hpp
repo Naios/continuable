@@ -412,13 +412,13 @@ using dereferenced_of_t =
 /// references we try to construct the container from a copied
 /// version.
 template <typename Container, typename Mapping>
-using mapped_type_from_t = dereferenced_of_t<spreading::unpacked_of_t<
-    typename invoke_result<Mapping, element_of_t<Container>>::type>>;
+using mapped_type_from_t = dereferenced_of_t<spreading::unpacked_of_t<decltype(
+    std::declval<Mapping>()(std::declval<element_of_t<Container>>()))>>;
 
 /// Deduces to a true_type if the mapping maps to zero elements.
 template <typename T, typename M>
-using is_empty_mapped = spreading::is_empty_spread<typename std::decay<
-    typename invoke_result<M, element_of_t<T>>::type>::type>;
+using is_empty_mapped = spreading::is_empty_spread<typename std::decay<decltype(
+    std::declval<M>()(std::declval<element_of_t<T>>()))>::type>;
 
 /// We are allowed to reuse the container if we map to the same
 /// type we are accepting and when we have
@@ -588,8 +588,8 @@ struct tuple_like_remapper<
   M mapper_;
 
   template <typename... Args>
-  auto operator()(Args&&... args) ->
-      typename invoke_result<typename invoke_result<M, OldArg>::type>::type {
+  auto operator()(Args&&... args)
+      -> decltype((std::declval<M>()(std::declval<OldArg>()))()) {
     int dummy[] = {0, ((void)mapper_(std::forward<Args>(args)), 0)...};
     (void)dummy;
   }
