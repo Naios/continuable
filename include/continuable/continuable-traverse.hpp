@@ -1,0 +1,106 @@
+
+/*
+
+                        /~` _  _ _|_. _     _ |_ | _
+                        \_,(_)| | | || ||_|(_||_)|(/_
+
+                    https://github.com/Naios/continuable
+                                   v2.0.0
+
+  Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files(the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions :
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+**/
+
+#ifndef CONTINUABLE_TRAVERSE_HPP_INCLUDED
+#define CONTINUABLE_TRAVERSE_HPP_INCLUDED
+
+#include <tuple>
+#include <type_traits>
+#include <utility>
+
+#include <continuable/detail/traverse.hpp>
+
+namespace cti {
+/// Maps the pack with the given mapper.
+///
+/// This function tries to visit all plain elements which may be wrapped in:
+/// - homogeneous containers (`std::vector`, `std::list`)
+/// - heterogenous containers `(hpx::tuple`, `std::pair`, `std::array`)
+/// and re-assembles the pack with the result of the mapper.
+/// Mapping from one type to a different one is supported.
+///
+/// Elements that aren't accepted by the mapper are routed through
+/// and preserved through the hierarchy.
+///
+///    ```cpp
+///    // Maps all integers to floats
+///    map_pack([](int value) {
+///        return float(value);
+///    },
+///    1, hpx::util::make_tuple(2, std::vector<int>{3, 4}), 5);
+///    ```
+///
+/// \throws       std::exception like objects which are thrown by an
+///               invocation to the mapper.
+///
+/// \param mapper A callable object, which accept an arbitrary type
+///               and maps it to another type or the same one.
+///
+/// \param pack   An arbitrary variadic pack which may contain any type.
+///
+/// \returns      The mapped element or in case the pack contains
+///               multiple elements, the pack is wrapped into
+///               a `hpx::tuple`.
+///
+template <typename Mapper, typename... T>
+auto map_pack(Mapper&& mapper, T&&... pack)
+    -> decltype(detail::apply_pack_transform(detail::strategy_remap_tag{},
+                                             std::forward<Mapper>(mapper),
+                                             std::forward<T>(pack)...)) {
+  return detail::apply_pack_transform(detail::strategy_remap_tag{},
+                                      std::forward<Mapper>(mapper),
+                                      std::forward<T>(pack)...);
+}
+
+/// Indicate that the result shall be spread across the parent container
+/// if possible. This can be used to create a mapper function used
+/// in map_pack that maps one element to an arbitrary count (1:n).
+template <typename... T>
+constexpr detail::spreading::spread_box<typename std::decay<T>::type...>
+spread_this(T&&... args) {
+  return detail::spreading::spread_box<typename std::decay<T>::type...>(
+      util::make_tuple(std::forward<T>(args)...));
+}
+
+/// Traverses the pack with the given visitor.
+///
+/// This function works in the same way as `map_pack`,
+/// however, the result of the mapper isn't preserved.
+///
+/// See `map_pack` for a detailed description.
+template <typename Mapper, typename... T>
+void traverse_pack(Mapper&& mapper, T&&... pack) {
+  detail::apply_pack_transform(detail::strategy_traverse_tag{},
+                               std::forward<Mapper>(mapper),
+                               std::forward<T>(pack)...);
+}
+} // namespace cti
+
+#endif // CONTINUABLE_TRAVERSE_HPP_INCLUDED

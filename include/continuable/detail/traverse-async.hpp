@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_PACK_TRAVERSAL_ASYNC_HPP_INCLUDED
-#define CONTINUABLE_DETAIL_PACK_TRAVERSAL_ASYNC_HPP_INCLUDED
+#ifndef CONTINUABLE_DETAIL_TRAVERSE_ASYNC_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_TRAVERSE_ASYNC_HPP_INCLUDED
 
 #include <atomic>
 #include <cassert>
@@ -558,4 +558,4 @@ auto apply_pack_transform_async(Visitor&& visitor, Args&&... args) ->
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_PACK_TRAVERSAL_ASYNC_HPP_INCLUDED
+#endif // CONTINUABLE_DETAIL_TRAVERSE_ASYNC_HPP_INCLUDED

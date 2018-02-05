@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_PACK_TRAVERSAL_HPP_INCLUDED
-#define CONTINUABLE_DETAIL_PACK_TRAVERSAL_HPP_INCLUDED
+#ifndef CONTINUABLE_DETAIL_TRAVERSE_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_TRAVERSE_HPP_INCLUDED
 
 #include <cstddef>
 #include <iterator>
@@ -842,4 +842,4 @@ auto apply_pack_transform(Strategy strategy, Mapper&& mapper, T&&... pack)
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_PACK_TRAVERSAL_HPP_INCLUDED
+#endif // CONTINUABLE_DETAIL_TRAVERSE_HPP_INCLUDED

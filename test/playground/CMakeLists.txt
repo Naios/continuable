@@ -5,6 +5,8 @@ set(LIB_SOURCES
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-trait.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-promise-base.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-transforms.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-traverse.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-traverse-async.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-testing.hpp)
 set(LIB_SOURCES_DETAIL
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/awaiting.hpp
@@ -13,8 +15,8 @@ set(LIB_SOURCES_DETAIL
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/expected.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/hints.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/container-category.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/pack-traversal.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/pack-traversal-async.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/detail/traverse.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/detail/traverse-async.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/features.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/traits.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/transforms.hpp
