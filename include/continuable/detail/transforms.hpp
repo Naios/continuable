@@ -96,8 +96,7 @@ public:
 
   /// Resolves the promise through the exception
   void operator()(types::dispatch_error_tag, types::error_type error) {
-#if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
-    !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
+#if defined(CONTINUABLE_WITH_EXCEPTIONS)
     promise_.set_exception(error);
 #else
     (void)error;
@@ -106,7 +105,7 @@ public:
     // to a std::promise. Handle the error first in order
     // to prevent this trap!
     util::trap();
-#endif
+#endif // CONTINUABLE_WITH_EXCEPTIONS
   }
 
   /// Returns the future from the promise

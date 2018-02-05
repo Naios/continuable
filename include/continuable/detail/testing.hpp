@@ -36,6 +36,7 @@
 
 #include <gtest/gtest.h>
 
+#include <continuable/detail/features.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
@@ -148,8 +149,7 @@ void assert_async_binary_exception_validation(V&& validator, C&& continuable,
         ASSERT_FALSE(*called);
         *called = true;
 
-#if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
-    !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
+#if defined(CONTINUABLE_WITH_EXCEPTIONS)
         try {
           std::rethrow_exception(error);
         } catch (std::decay_t<decltype(expected)>& exception) {
