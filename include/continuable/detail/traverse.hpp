@@ -555,7 +555,8 @@ struct tuple_like_remapper<strategy_traverse_tag, M, Base<OldArgs...>,
 
   template <typename... Args>
   auto operator()(Args&&... args)
-      -> traits::void_t<typename invoke_result<M, OldArgs>::type...> {
+      -> traits::void_t<decltype(std::declval<M>(),
+                                 std::declval<OldArgs>())...> {
     int dummy[] = {0, ((void)mapper_(std::forward<Args>(args)), 0)...};
     (void)dummy;
   }

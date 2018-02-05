@@ -16,7 +16,9 @@ foreach(STEP RANGE 4)
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-expected.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-erasure.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-regression.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-transforms.cpp)
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-transforms.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-traverse.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-traverse-async.cpp)
 
   target_include_directories(${PROJECT_NAME}
     PRIVATE
