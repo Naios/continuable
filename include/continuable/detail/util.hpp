@@ -49,29 +49,6 @@ void unused(T&&...) {
 }
 
 namespace detail {
-template <typename T, typename Args, typename = traits::void_t<>>
-struct is_invokable_impl : std::common_type<std::false_type> {};
-
-template <typename T, typename... Args>
-struct is_invokable_impl<
-    T, std::tuple<Args...>,
-    traits::void_t<decltype(std::declval<T>()(std::declval<Args>()...))>>
-    : std::common_type<std::true_type> {};
-} // namespace detail
-
-/// Deduces to a std::true_type if the given type is callable with the arguments
-/// inside the given tuple.
-/// The main reason for implementing it with the detection idiom instead of
-/// hana like detection is that MSVC has issues with capturing raw template
-/// arguments inside lambda closures.
-///
-/// ```cpp
-/// traits::is_invokable<object, std::tuple<Args...>>
-/// ```
-template <typename T, typename Args>
-using is_invokable = typename detail::is_invokable_impl<T, Args>::type;
-
-namespace detail {
 /// Forwards every element in the tuple except the last one
 template <typename T>
 auto forward_except_last(T&& sequenceable) {
@@ -117,7 +94,8 @@ auto partial_invoke_impl(std::false_type, T&& callable,
   auto next = forward_except_last(std::move(args));
 
   // Test whether we are able to call the function with the given tuple
-  is_invokable<decltype(callable), decltype(next)> is_invokable;
+  traits::is_invokable_from_tuple<decltype(callable), decltype(next)>
+      is_invokable;
 
   return partial_invoke_impl(is_invokable, std::forward<T>(callable),
                              std::move(next));
@@ -150,7 +128,8 @@ auto partial_invoke_impl_shortcut(std::false_type failed, T&& callable,
 template <typename T, typename... Args>
 /*keep this inline*/ inline auto partial_invoke(T&& callable, Args&&... args) {
   // Test whether we are able to call the function with the given arguments.
-  is_invokable<decltype(callable), std::tuple<Args...>> is_invokable;
+  traits::is_invokable_from_tuple<decltype(callable), std::tuple<Args...>>
+      is_invokable;
 
   // The implementation is done in a shortcut way so there are less
   // type instantiations needed to call the callable with its full signature.

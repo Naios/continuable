@@ -304,7 +304,8 @@ template <typename T, typename E, typename = void>
 struct has_push_back : std::false_type {};
 template <typename T, typename E>
 struct has_push_back<
-    T, E, std::void_t<decltype(std::declval<T>().push_back(std::declval<E>()))>>
+    T, E,
+    traits::void_t<decltype(std::declval<T>().push_back(std::declval<E>()))>>
     : std::true_type {};
 
 /// Specialization for a container with a single type T
@@ -554,7 +555,7 @@ struct tuple_like_remapper<strategy_traverse_tag, M, Base<OldArgs...>,
 
   template <typename... Args>
   auto operator()(Args&&... args)
-      -> std::void_t<typename invoke_result<M, OldArgs>::type...> {
+      -> traits::void_t<typename invoke_result<M, OldArgs>::type...> {
     int dummy[] = {0, ((void)mapper_(std::forward<Args>(args)), 0)...};
     (void)dummy;
   }

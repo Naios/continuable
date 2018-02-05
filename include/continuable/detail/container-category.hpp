@@ -31,8 +31,6 @@
 #ifndef CONTINUABLE_DETAIL_CONTAINER_CATEGORY_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_CONTAINER_CATEGORY_HPP_INCLUDED
 
-#include <continuable/continuable-api.hpp>
-
 namespace cti {
 namespace detail {
 namespace traversal {

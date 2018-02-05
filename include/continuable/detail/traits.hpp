@@ -408,6 +408,35 @@ constexpr auto merge(identity<LeftArgs...> /*left*/,
                std::forward<Rest>(rest)...);
 }
 
+namespace detail {
+template <typename T, typename Args, typename = traits::void_t<>>
+struct is_invokable_impl : std::common_type<std::false_type> {};
+
+template <typename T, typename... Args>
+struct is_invokable_impl<
+    T, std::tuple<Args...>,
+    void_t<decltype(std::declval<T>()(std::declval<Args>()...))>>
+    : std::common_type<std::true_type> {};
+} // namespace detail
+
+/// Deduces to a std::true_type if the given type is callable with the arguments
+/// inside the given tuple.
+/// The main reason for implementing it with the detection idiom instead of
+/// hana like detection is that MSVC has issues with capturing raw template
+/// arguments inside lambda closures.
+///
+/// ```cpp
+/// traits::is_invokable<object, std::tuple<Args...>>
+/// ```
+template <typename T, typename Args>
+using is_invokable_from_tuple =
+    typename detail::is_invokable_impl<T, Args>::type;
+
+// Checks whether the given callable object is invocable with the given
+// arguments. This doesn't take member functions into account!
+template <typename T, typename... Args>
+using is_invocable = is_invokable_from_tuple<T, std::tuple<Args...>>;
+
 /// Deduces to a std::false_type
 template <typename T>
 using fail = std::integral_constant<bool, !std::is_same<T, T>::value>;
@@ -415,6 +444,7 @@ using fail = std::integral_constant<bool, !std::is_same<T, T>::value>;
 #ifdef CONTINUABLE_HAS_CXX17_DISJUNCTION
 using std::disjunction;
 #else
+namespace detail {
 /// Declares a C++14 polyfill for C++17 std::disjunction.
 template <typename Args, typename = void_t<>>
 struct disjunction_impl : std::common_type<std::false_type> {};
@@ -422,8 +452,10 @@ template <typename... Args>
 struct disjunction_impl<identity<Args...>,
                         void_t<std::enable_if_t<bool(Args::value)>...>>
     : std::common_type<std::true_type> {};
+} // namespace detail
+
 template <typename... Args>
-using disjunction = disjunction_impl<identity<Args...>>;
+using disjunction = typename detail::disjunction_impl<identity<Args...>>::type;
 #endif // CONTINUABLE_HAS_CXX17_DISJUNCTION
 
 } // namespace traits
