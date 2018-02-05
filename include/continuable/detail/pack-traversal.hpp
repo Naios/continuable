@@ -38,7 +38,6 @@
 #include <type_traits>
 #include <utility>
 
-#include <continuable/continuable-api.hpp>
 #include <continuable/detail/container-category.hpp>
 
 namespace cti {

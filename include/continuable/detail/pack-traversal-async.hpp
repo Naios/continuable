@@ -40,7 +40,6 @@
 #include <type_traits>
 #include <utility>
 
-#include <continuable/continuable-api.hpp>
 #include <continuable/detail/container-category.hpp>
 
 namespace cti {
@@ -242,10 +241,9 @@ struct static_async_range<Target, Begin, Begin> {
 };
 
 /// Returns a static range for the given type
-template <typename T,
-          typename Range = static_async_range<
-              typename std::decay<T>::type, 0U,
-              util::tuple_size<typename std::decay<T>::type>::value>>
+template <typename T, typename Range = static_async_range<
+                          typename std::decay<T>::type, 0U,
+                          std::tuple_size<typename std::decay<T>::type>::value>>
 Range make_static_range(T&& element) {
   auto pointer = std::addressof(element);
   return Range{pointer};
@@ -291,11 +289,12 @@ Range make_dynamic_async_range(T&& element) {
 template <typename Frame, typename... Hierarchy>
 class async_traversal_point {
   Frame frame_;
-  tuple<Hierarchy...> hierarchy_;
+  std::tuple<Hierarchy...> hierarchy_;
   bool& detached_;
 
 public:
-  explicit async_traversal_point(Frame frame, tuple<Hierarchy...> hierarchy,
+  explicit async_traversal_point(Frame frame,
+                                 std::tuple<Hierarchy...> hierarchy,
                                  bool& detached)
       : frame_(std::move(frame)), hierarchy_(std::move(hierarchy)),
         detached_(detached) {
@@ -319,8 +318,8 @@ public:
                                Hierarchy...> {
     // Create a new hierarchy which contains the
     // the parent (the last traversed element).
-    auto hierarchy = util::tuple_cat(
-        util::make_tuple(std::forward<Parent>(parent)), hierarchy_);
+    auto hierarchy = std::tuple_cat(
+        std::make_tuple(std::forward<Parent>(parent)), hierarchy_);
 
     return async_traversal_point<Frame, typename std::decay<Parent>::type,
                                  Hierarchy...>(frame_, std::move(hierarchy),
@@ -359,7 +358,7 @@ public:
       // Store the current call hierarchy into a tuple for
       // later re-entrance.
       auto hierarchy =
-          util::tuple_cat(util::make_tuple(current.next()), hierarchy_);
+          std::tuple_cat(util::make_tuple(current.next()), hierarchy_);
 
       // First detach the current execution context
       detach();
