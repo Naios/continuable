@@ -31,24 +31,24 @@
 #ifndef CONTINUABLE_TRAVERSE_ASYNC_HPP_INCLUDED
 #define CONTINUABLE_TRAVERSE_ASYNC_HPP_INCLUDED
 
-#include <continuable/detail/traverse-async.hpp>
-
 #include <utility>
+
+#include <continuable/detail/traverse-async.hpp>
 
 namespace cti {
 /// A tag which is passed to the `operator()` of the visitor
 /// if an element is visited synchronously.
-using detail::async_traverse_visit_tag;
+using detail::traversal::async_traverse_visit_tag;
 /// A tag which is passed to the `operator()` of the visitor
 /// if an element is visited after the traversal was detached.
-using detail::async_traverse_detach_tag;
+using detail::traversal::async_traverse_detach_tag;
 /// A tag which is passed to the `operator()` of the visitor
 /// if the asynchronous pack traversal was finished.
-using detail::async_traverse_complete_tag;
+using detail::traversal::async_traverse_complete_tag;
 
 /// A tag to identify that a mapper shall be constructed in-place
 /// from the first argument passed.
-using detail::async_traverse_in_place_tag;
+using detail::traversal::async_traverse_in_place_tag;
 
 /// Traverses the pack with the given visitor in an asynchronous way.
 ///
@@ -58,36 +58,32 @@ using detail::async_traverse_in_place_tag;
 /// Thus we require a visitor callable object which provides three
 /// `operator()` overloads as depicted by the code sample below:
 ///    ```cpp
-///    struct my_async_visitor
-///    {
-///        /// The synchronous overload is called for each object,
-///        /// it may return false to suspend the current control.
-///        /// In that case the overload below is called.
-///        template <typename T>
-///        bool operator()(async_traverse_visit_tag, T&& element)
-///        {
-///            return true;
-///        }
+///    struct my_async_visitor {
+///      /// The synchronous overload is called for each object,
+///      /// it may return false to suspend the current control.
+///      /// In that case the overload below is called.
+///      template <typename T>
+///      bool operator()(async_traverse_visit_tag, T&& element) {
+///        return true;
+///      }
 ///
-///        /// The asynchronous overload this is called when the
-///        /// synchronous overload returned false.
-///        /// In addition to the current visited element the overload is
-///        /// called with a contnuation callable object which resumes the
-///        /// traversal when it's called later.
-///        /// The continuation next may be stored and called later or
-///        /// dropped completely to abort the traversal early.
-///        template <typename T, typename N>
-///        void operator()(async_traverse_detach_tag, T&& element, N&& next)
-///        {
-///        }
+///      /// The asynchronous overload this is called when the
+///      /// synchronous overload returned false.
+///      /// In addition to the current visited element the overload is
+///      /// called with a contnuation callable object which resumes the
+///      /// traversal when it's called later.
+///      /// The continuation next may be stored and called later or
+///      /// dropped completely to abort the traversal early.
+///      template <typename T, typename N>
+///      void operator()(async_traverse_detach_tag, T&& element, N&& next) {
+///      }
 ///
-///        /// The overload is called when the traversal was finished.
-///        /// As argument the whole pack is passed over which we
-///        /// traversed asynchrnously.
-///        template <typename T>
-///        void operator()(async_traverse_complete_tag, T&& pack)
-///        {
-///        }
+///      /// The overload is called when the traversal was finished.
+///      /// As argument the whole pack is passed over which we
+///      /// traversed asynchrnously.
+///      template <typename T>
+///      void operator()(async_traverse_complete_tag, T&& pack) {
+///      }
 ///    };
 ///    ```
 ///
@@ -108,11 +104,9 @@ using detail::async_traverse_in_place_tag;
 /// traversal behaviour and capabilities.
 ///
 template <typename Visitor, typename... T>
-auto traverse_pack_async(Visitor&& visitor, T&&... pack)
-    -> decltype(detail::apply_pack_transform_async(
-        std::forward<Visitor>(visitor), std::forward<T>(pack)...)) {
-  return detail::apply_pack_transform_async(std::forward<Visitor>(visitor),
-                                            std::forward<T>(pack)...);
+auto traverse_pack_async(Visitor&& visitor, T&&... pack) {
+  return detail::traversal::apply_pack_transform_async(
+      std::forward<Visitor>(visitor), std::forward<T>(pack)...);
 }
 } // namespace cti
 

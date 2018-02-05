@@ -67,6 +67,9 @@
 #endif
 #endif
 
+// TODO
+// #define CONTINUABLE_HAS_CXX17_DISJUNCTION
+
 /// This is enabled by the CMake project
 // #undef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 

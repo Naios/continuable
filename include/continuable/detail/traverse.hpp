@@ -39,6 +39,7 @@
 #include <utility>
 
 #include <continuable/detail/container-category.hpp>
+#include <continuable/detail/traits.hpp>
 
 namespace cti {
 namespace detail {
@@ -207,7 +208,7 @@ constexpr auto apply_spread_impl(std::false_type, C&& callable, T&&... args)
 /// Deduces to a true_type if any of the given types marks
 /// the underlying type to be spread into the current context.
 template <typename... T>
-using is_any_spread_t = any_of<is_spread<T>...>;
+using is_any_spread_t = traits::disjunction<is_spread<T>...>;
 
 template <typename C, typename... T>
 constexpr auto map_spread(C&& callable, T&&... args)

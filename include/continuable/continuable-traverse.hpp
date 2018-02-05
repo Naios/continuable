@@ -42,7 +42,7 @@ namespace cti {
 ///
 /// This function tries to visit all plain elements which may be wrapped in:
 /// - homogeneous containers (`std::vector`, `std::list`)
-/// - heterogenous containers `(hpx::tuple`, `std::pair`, `std::array`)
+/// - heterogenous containers `(std::tuple`, `std::pair`, `std::array`)
 /// and re-assembles the pack with the result of the mapper.
 /// Mapping from one type to a different one is supported.
 ///
@@ -52,9 +52,9 @@ namespace cti {
 ///    ```cpp
 ///    // Maps all integers to floats
 ///    map_pack([](int value) {
-///        return float(value);
+///      return float(value);
 ///    },
-///    1, hpx::util::make_tuple(2, std::vector<int>{3, 4}), 5);
+///    1, std::make_tuple(2, std::vector<int>{3, 4}), 5);
 ///    ```
 ///
 /// \throws       std::exception like objects which are thrown by an
@@ -67,26 +67,23 @@ namespace cti {
 ///
 /// \returns      The mapped element or in case the pack contains
 ///               multiple elements, the pack is wrapped into
-///               a `hpx::tuple`.
+///               a `std::tuple`.
 ///
 template <typename Mapper, typename... T>
-auto map_pack(Mapper&& mapper, T&&... pack)
-    -> decltype(detail::apply_pack_transform(detail::strategy_remap_tag{},
-                                             std::forward<Mapper>(mapper),
-                                             std::forward<T>(pack)...)) {
-  return detail::apply_pack_transform(detail::strategy_remap_tag{},
-                                      std::forward<Mapper>(mapper),
-                                      std::forward<T>(pack)...);
+auto map_pack(Mapper&& mapper, T&&... pack) {
+  return detail::traversal::apply_pack_transform(
+      detail::traversal::strategy_remap_tag{}, std::forward<Mapper>(mapper),
+      std::forward<T>(pack)...);
 }
 
 /// Indicate that the result shall be spread across the parent container
 /// if possible. This can be used to create a mapper function used
 /// in map_pack that maps one element to an arbitrary count (1:n).
 template <typename... T>
-constexpr detail::spreading::spread_box<typename std::decay<T>::type...>
-spread_this(T&&... args) {
-  return detail::spreading::spread_box<typename std::decay<T>::type...>(
-      util::make_tuple(std::forward<T>(args)...));
+constexpr auto spread_this(T&&... args) {
+  return detail::traversal::spreading::spread_box<
+      typename std::decay<T>::type...>(
+      std::make_tuple(std::forward<T>(args)...));
 }
 
 /// Traverses the pack with the given visitor.
@@ -97,9 +94,9 @@ spread_this(T&&... args) {
 /// See `map_pack` for a detailed description.
 template <typename Mapper, typename... T>
 void traverse_pack(Mapper&& mapper, T&&... pack) {
-  detail::apply_pack_transform(detail::strategy_traverse_tag{},
-                               std::forward<Mapper>(mapper),
-                               std::forward<T>(pack)...);
+  detail::traversal::apply_pack_transform(
+      detail::traversal::strategy_traverse_tag{}, std::forward<Mapper>(mapper),
+      std::forward<T>(pack)...);
 }
 } // namespace cti
 

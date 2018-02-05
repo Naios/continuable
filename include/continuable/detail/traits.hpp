@@ -411,6 +411,21 @@ constexpr auto merge(identity<LeftArgs...> /*left*/,
 /// Deduces to a std::false_type
 template <typename T>
 using fail = std::integral_constant<bool, !std::is_same<T, T>::value>;
+
+#ifdef CONTINUABLE_HAS_CXX17_DISJUNCTION
+using std::disjunction;
+#else
+/// Declares a C++14 polyfill for C++17 std::disjunction.
+template <typename Args, typename = void_t<>>
+struct disjunction_impl : std::common_type<std::false_type> {};
+template <typename... Args>
+struct disjunction_impl<identity<Args...>,
+                        void_t<std::enable_if_t<bool(Args::value)>...>>
+    : std::common_type<std::true_type> {};
+template <typename... Args>
+using disjunction = disjunction_impl<identity<Args...>>;
+#endif // CONTINUABLE_HAS_CXX17_DISJUNCTION
+
 } // namespace traits
 } // namespace detail
 } // namespace cti
