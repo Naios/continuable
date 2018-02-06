@@ -47,33 +47,48 @@
 #endif
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 
+// clang-format off
+// Detect if the whole standard is available
+#if (defined(_MSC_VER) && defined(_HAS_CXX17) && _HAS_CXX17) ||                \
+    (__cplusplus >= 201703L)
+  #define CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
+  #define CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
+  #define CONTINUABLE_HAS_CXX17_DISJUNCTION
+#else
+  // Generic feature detection based on __has_feature
+  #if defined(__has_feature)
+    #if !defined(CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION) &&                     \
+        __has_feature(cxx_if_constexpr)
+      #define CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
+    #endif
+
+    #if !defined(CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION) &&                     \
+        __has_feature(cxx_fold_expressions)
+      // PR not merged into the clang master yet
+      #define CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
+    #endif
+  #endif
+
+  #if !defined(CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION) &&                       \
+      defined(__cpp_lib_experimental_logical_traits) &&                        \
+      (__cpp_lib_experimental_logical_traits >= 201511)
+    #define CONTINUABLE_HAS_CXX17_DISJUNCTION
+  #endif
+#endif
+
+/// Usually this is enabled by the CMake project
+#if !defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE) &&                        \
+    defined(__cpp_coroutines) && (__cpp_coroutines >= 201707)
+  #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+#endif
+
 /// Define CONTINUABLE_WITH_EXCEPTIONS when exceptions are used
 #if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
     !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
-#define CONTINUABLE_WITH_EXCEPTIONS 1
+  #define CONTINUABLE_WITH_EXCEPTIONS 1
 #else
-#undef CONTINUABLE_WITH_EXCEPTIONS
+  #undef CONTINUABLE_WITH_EXCEPTIONS
 #endif
-
-#if (defined(_MSC_VER) && defined(_HAS_CXX17) && _HAS_CXX17) ||                \
-    (__cplusplus >= 201703L)
-#define CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
-#define CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
-#elif defined(__has_feature)
-#if __has_feature(cxx_if_constexpr)
-#define CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
-#endif
-
-#if __has_feature(cxx_fold_expressions)
-// PR not merged into the clang master yet
-#define CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
-#endif
-#endif
-
-// TODO
-// #define CONTINUABLE_HAS_CXX17_DISJUNCTION
-
-/// This is enabled by the CMake project
-// #undef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+// clang-format on
 
 #endif // CONTINUABLE_DETAIL_FEATURES_HPP_INCLUDED

@@ -7,5 +7,6 @@ AllowShortCaseLabelsOnASingleLine: false
 AlwaysBreakTemplateDeclarations: true
 BinPackArguments: true
 FixNamespaceComments: true
+# IndentPPDirectives: AfterHash
 MacroBlockBegin: "^CONTINUABLE_BLOCK_.*_BEGIN$"
 MacroBlockEnd: "^CONTINUABLE_BLOCK_.*_END$"
