@@ -67,7 +67,7 @@ struct my_mapper {
 
 struct all_map {
   template <typename T>
-  int operator()(T el) const {
+  int operator()(T) const {
     return 0;
   }
 };
@@ -94,14 +94,7 @@ TEST(traverse_single_test, test_container_categories) {
       "Wrong category!");
 }
 
-TEST(traverse_single_test, test_simple_mapping) {
-  /*auto res = map_pack(
-      [](int i) {
-        // ...
-        return i + 1;
-      },
-      0, 1, 2, std::vector<int>{3, 4, 5});*/
-
+TEST(traverse_single_test, test_mixed_traversal) {
   auto res =
       map_pack(all_map_float{}, 0, 1.f, make_tuple(1.f, 3),
                std::vector<std::vector<int>>{{1, 2}, {4, 5}},
@@ -111,72 +104,56 @@ TEST(traverse_single_test, test_simple_mapping) {
       1.f, 2.f, make_tuple(2.f, 4.f),
       std::vector<std::vector<float>>{{2.f, 3.f}, {5.f, 6.f}},
       std::vector<std::vector<float>>{{2.f, 3.f}, {5.f, 6.f}}, 3.f);
+
+  static_assert(std::is_same<decltype(res), decltype(expected)>::value,
+                "Type mismatch!");
+  EXPECT_TRUE((res == expected));
 }
 
-
-static void test_mixed_traversal() {
-  {
-    auto res =
-        map_pack(all_map_float{}, 0, 1.f, make_tuple(1.f, 3),
-                 std::vector<std::vector<int>>{{1, 2}, {4, 5}},
-                 std::vector<std::vector<float>>{{1.f, 2.f}, {4.f, 5.f}}, 2);
-
-    auto expected = make_tuple( // ...
-        1.f, 2.f, make_tuple(2.f, 4.f),
-        std::vector<std::vector<float>>{{2.f, 3.f}, {5.f, 6.f}},
-        std::vector<std::vector<float>>{{2.f, 3.f}, {5.f, 6.f}}, 3.f);
-
-    static_assert(std::is_same<decltype(res), decltype(expected)>::value,
-                  "Type mismatch!");
-    EXPECT_TRUE((res == expected));
-  }
-
-  {
-    // Broken build regression tests:
-    traverse_pack(my_mapper{}, int(0), 1.f);
-    map_pack(all_map{}, 0, std::vector<int>{1, 2});
-  }
-
-  {
-    // Also a regression test
-    auto res = map_pack(all_map{}, std::vector<std::vector<int>>{{1, 2}});
-    EXPECT_EQ((res[0][0]), (0));
-  }
-
-  {
-    auto res = map_pack(
-        my_mapper{}, 0, 1.f,
-        make_tuple(1.f, 3, std::vector<std::vector<int>>{{1, 2}, {4, 5}},
-                   std::vector<std::vector<float>>{{1.f, 2.f}, {4.f, 5.f}}),
-        2);
-
-    auto expected = make_tuple( // ...
-        1.f, 1.f,
-        make_tuple(1.f, 4.f,
-                   std::vector<std::vector<float>>{{2.f, 3.f}, {5.f, 6.f}},
-                   std::vector<std::vector<float>>{{1.f, 2.f}, {4.f, 5.f}}),
-        3.f);
-
-    static_assert(std::is_same<decltype(res), decltype(expected)>::value,
-                  "Type mismatch!");
-    EXPECT_TRUE((res == expected));
-  }
-
-  {
-    int count = 0;
-    traverse_pack(
-        [&](int el) {
-          EXPECT_EQ((el), (count + 1));
-          count = el;
-        },
-        1, make_tuple(2, 3, std::vector<std::vector<int>>{{4, 5}, {6, 7}}));
-
-    EXPECT_EQ((count), (7));
-  }
-
-  return;
+TEST(traverse_single_test, test_mixed_traversal_build_regression) {
+  // Broken build regression tests:
+  traverse_pack(my_mapper{}, int(0), 1.f);
+  map_pack(all_map{}, 0, std::vector<int>{1, 2});
 }
 
+TEST(traverse_single_test, test_mixed_traversal_container_container_map) {
+  // Also a regression test
+  auto res = map_pack(all_map{}, std::vector<std::vector<int>>{{1, 2}});
+  EXPECT_EQ((res[0][0]), (0));
+}
+
+TEST(traverse_single_test, test_mixed_traversal_result_tuple_mapped) {
+  auto res = map_pack(
+      my_mapper{}, 0, 1.f,
+      make_tuple(1.f, 3, std::vector<std::vector<int>>{{1, 2}, {4, 5}},
+                 std::vector<std::vector<float>>{{1.f, 2.f}, {4.f, 5.f}}),
+      2);
+
+  auto expected = make_tuple( // ...
+      1.f, 1.f,
+      make_tuple(1.f, 4.f,
+                 std::vector<std::vector<float>>{{2.f, 3.f}, {5.f, 6.f}},
+                 std::vector<std::vector<float>>{{1.f, 2.f}, {4.f, 5.f}}),
+      3.f);
+
+  static_assert(std::is_same<decltype(res), decltype(expected)>::value,
+                "Type mismatch!");
+  EXPECT_TRUE((res == expected));
+}
+
+TEST(traverse_single_test, test_mixed_traversal_all_elements_traversed) {
+  int count = 0;
+  traverse_pack(
+      [&](int el) {
+        EXPECT_EQ((el), (count + 1));
+        count = el;
+      },
+      1, make_tuple(2, 3, std::vector<std::vector<int>>{{4, 5}, {6, 7}}));
+
+  EXPECT_EQ((count), (7));
+}
+
+/*
 struct my_unwrapper {
   template <typename T,
             typename std::enable_if<is_future<T>::value>::type* = nullptr>
@@ -185,7 +162,6 @@ struct my_unwrapper {
   }
 };
 
-/*
 static void test_mixed_early_unwrapping() {
   {
     auto res = map_pack(my_unwrapper{}, // ...
