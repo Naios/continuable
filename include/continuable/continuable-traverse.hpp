@@ -71,19 +71,19 @@ namespace cti {
 ///
 template <typename Mapper, typename... T>
 auto map_pack(Mapper&& mapper, T&&... pack) {
-  return detail::traversal::apply_pack_transform(
-      detail::traversal::strategy_remap_tag{}, std::forward<Mapper>(mapper),
-      std::forward<T>(pack)...);
+  return detail::traversal::transform(detail::traversal::strategy_remap_tag{},
+                                      std::forward<Mapper>(mapper),
+                                      std::forward<T>(pack)...);
 }
 
 /// Indicate that the result shall be spread across the parent container
 /// if possible. This can be used to create a mapper function used
 /// in map_pack that maps one element to an arbitrary count (1:n).
 template <typename... T>
-constexpr auto spread_this(T&&... args) {
-  return detail::traversal::spreading::spread_box<
-      typename std::decay<T>::type...>(
-      std::make_tuple(std::forward<T>(args)...));
+constexpr auto spread_this(T&&... args) noexcept(
+    noexcept(std::make_tuple(std::forward<T>(args)...))) {
+  using type = detail::traversal::spreading::spread_box<std::decay_t<T>...>;
+  return type(std::make_tuple(std::forward<T>(args)...));
 }
 
 /// Traverses the pack with the given visitor.
@@ -94,9 +94,9 @@ constexpr auto spread_this(T&&... args) {
 /// See `map_pack` for a detailed description.
 template <typename Mapper, typename... T>
 void traverse_pack(Mapper&& mapper, T&&... pack) {
-  detail::traversal::apply_pack_transform(
-      detail::traversal::strategy_traverse_tag{}, std::forward<Mapper>(mapper),
-      std::forward<T>(pack)...);
+  detail::traversal::transform(detail::traversal::strategy_traverse_tag{},
+                               std::forward<Mapper>(mapper),
+                               std::forward<T>(pack)...);
 }
 } // namespace cti
 

@@ -31,9 +31,36 @@
 #ifndef CONTINUABLE_DETAIL_CONTAINER_CATEGORY_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_CONTAINER_CATEGORY_HPP_INCLUDED
 
+#include <tuple>
+#include <type_traits>
+
+#include <continuable/detail/traits.hpp>
+
 namespace cti {
 namespace detail {
 namespace traversal {
+namespace detail {
+/// Deduces to a true type if the given parameter T
+/// has a begin() and end() method.
+// TODO Find out whether we should use std::begin and std::end instead, which
+// could cause issues with plain arrays.
+template <typename T, typename = void>
+struct is_range : std::false_type {};
+template <typename T>
+struct is_range<T, traits::void_t<decltype(std::declval<T>().begin() ==
+                                           std::declval<T>().end())>>
+    : std::true_type {};
+
+/// Deduces to a true type if the given parameter T
+/// is accessible through std::tuple_size.
+template <typename T, typename = void>
+struct is_tuple_like : std::false_type {};
+template <typename T>
+struct is_tuple_like<T, traits::void_t<decltype(std::tuple_size<T>::value)>>
+    : std::true_type {};
+
+} // namespace detail
+
 /// A tag for dispatching based on the tuple like
 /// or container properties of a type.
 template <bool IsContainer, bool IsTupleLike>
@@ -42,9 +69,8 @@ struct container_category_tag {};
 /// Deduces to the container_category_tag of the given type T.
 template <typename T>
 using container_category_of_t =
-    container_category_tag<false, // TODO traits::is_range<T>::value,
-                           false  // TODO traits::is_tuple_like<T>::value
-                           >;
+    container_category_tag<detail::is_range<T>::value,
+                           detail::is_tuple_like<T>::value>;
 } // namespace traversal
 } // namespace detail
 } // namespace cti

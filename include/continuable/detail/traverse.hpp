@@ -833,11 +833,7 @@ public:
 
 /// Traverses the given pack with the given mapper and strategy
 template <typename Strategy, typename Mapper, typename... T>
-auto apply_pack_transform(Strategy strategy, Mapper&& mapper, T&&... pack)
-    -> decltype(
-        std::declval<
-            mapping_helper<Strategy, typename std::decay<Mapper>::type>>()
-            .init_traverse(strategy, std::forward<T>(pack)...)) {
+auto transform(Strategy strategy, Mapper&& mapper, T&&... pack) {
   mapping_helper<Strategy, typename std::decay<Mapper>::type> helper(
       std::forward<Mapper>(mapper));
   return helper.init_traverse(strategy, std::forward<T>(pack)...);
