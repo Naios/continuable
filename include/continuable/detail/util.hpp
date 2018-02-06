@@ -45,7 +45,7 @@ namespace detail {
 namespace util {
 /// Helper to trick compilers about that a parameter pack is used
 template <typename... T>
-void unused(T&&...) {
+constexpr void unused(T&&...) noexcept {
 }
 
 namespace detail {
