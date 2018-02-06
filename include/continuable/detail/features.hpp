@@ -55,9 +55,12 @@
 #undef CONTINUABLE_WITH_EXCEPTIONS
 #endif
 
-#if defined(__has_feature)
+#if (defined(_MSC_VER) && defined(_HAS_CXX17) && _HAS_CXX17) ||                \
+    (__cplusplus >= 201703L)
+#define CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
+#define CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
+#elif defined(__has_feature)
 #if __has_feature(cxx_if_constexpr)
-// PR not merged into the clang master yet
 #define CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
 #endif
 
