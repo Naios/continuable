@@ -3,20 +3,20 @@ foreach(STEP RANGE 4)
   set(TEST_NAME continuable-unit-tests-${STEP})
 
   add_executable(${PROJECT_NAME}
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-await.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-chaining.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-destruct.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-errors.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-partial.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-all.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-any.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-seq.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-expected.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-erasure.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-regression.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-transforms.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable.hpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-await.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-chaining.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-destruct.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-errors.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-partial.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-all.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-any.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-seq.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-expected.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-erasure.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-regression.cpp
+    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-transforms.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-traverse.cpp
     ${CMAKE_CURRENT_LIST_DIR}/test-continuable-traverse-async.cpp)
 

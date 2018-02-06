@@ -72,6 +72,48 @@ struct all_map {
   }
 };
 
+TEST(traverse_single_test, test_container_categories) {
+  using cti::detail::traversal::container_category_of_t;
+  using cti::detail::traversal::container_category_tag;
+
+  static_assert(std::is_same<container_category_tag<false, false>,
+                             container_category_of_t<int>>::value,
+                "Wrong category!");
+
+  static_assert(std::is_same<container_category_tag<true, false>,
+                             container_category_of_t<std::vector<int>>>::value,
+                "Wrong category!");
+
+  static_assert(std::is_same<container_category_tag<false, true>,
+                             container_category_of_t<std::tuple<int>>>::value,
+                "Wrong category!");
+
+  static_assert(
+      std::is_same<container_category_tag<true, true>,
+                   container_category_of_t<std::array<int, 2>>>::value,
+      "Wrong category!");
+}
+
+TEST(traverse_single_test, test_simple_mapping) {
+  /*auto res = map_pack(
+      [](int i) {
+        // ...
+        return i + 1;
+      },
+      0, 1, 2, std::vector<int>{3, 4, 5});*/
+
+  auto res =
+      map_pack(all_map_float{}, 0, 1.f, make_tuple(1.f, 3),
+               std::vector<std::vector<int>>{{1, 2}, {4, 5}},
+               std::vector<std::vector<float>>{{1.f, 2.f}, {4.f, 5.f}}, 2);
+
+  auto expected = make_tuple( // ...
+      1.f, 2.f, make_tuple(2.f, 4.f),
+      std::vector<std::vector<float>>{{2.f, 3.f}, {5.f, 6.f}},
+      std::vector<std::vector<float>>{{2.f, 3.f}, {5.f, 6.f}}, 3.f);
+}
+
+
 static void test_mixed_traversal() {
   {
     auto res =
@@ -143,6 +185,7 @@ struct my_unwrapper {
   }
 };
 
+/*
 static void test_mixed_early_unwrapping() {
   {
     auto res = map_pack(my_unwrapper{}, // ...
@@ -785,7 +828,6 @@ static void test_spread_tuple_like_traverse() {
   }
 }
 
-/*
   TODO Convert this to gtest
 int main(int, char**) {
   test_mixed_traversal();
