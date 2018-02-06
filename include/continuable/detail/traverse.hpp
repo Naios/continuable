@@ -191,10 +191,10 @@ struct flat_arraylizer {
 template <typename C, typename... T>
 constexpr auto apply_spread_impl(std::true_type, C&& callable, T&&... args)
     -> decltype(
-        invoke_fused(std::forward<C>(callable),
-                     std::tuple_cat(undecorate(std::forward<T>(args))...))) {
-  return invoke_fused(std::forward<C>(callable),
-                      std::tuple_cat(undecorate(std::forward<T>(args))...));
+        traits::unpack(std::tuple_cat(undecorate(std::forward<T>(args))...)),
+        std::forward<C>(callable)) {
+  return traits::unpack(std::tuple_cat(undecorate(std::forward<T>(args))...),
+                        std::forward<C>(callable));
 }
 
 /// Use the linear instantiation for variadic packs which don't
@@ -601,15 +601,15 @@ struct tuple_like_remapper<
 /// to a container of the same type which may contain
 /// different types.
 template <typename Strategy, typename T, typename M>
-auto remap(Strategy, T&& container, M&& mapper) -> decltype(invoke_fused(
+auto remap(Strategy, T&& container, M&& mapper) -> decltype(traits::unpack(
+    std::forward<T>(container),
     std::declval<tuple_like_remapper<Strategy, typename std::decay<M>::type,
-                                     typename std::decay<T>::type>>(),
-    std::forward<T>(container))) {
-  return invoke_fused(
+                                     typename std::decay<T>::type>>())) {
+  return traits::unpack(
+      std::forward<T>(container),
       tuple_like_remapper<Strategy, typename std::decay<M>::type,
                           typename std::decay<T>::type>{
-          std::forward<M>(mapper)},
-      std::forward<T>(container));
+          std::forward<M>(mapper)});
 }
 } // end namespace tuple_like_remapping
 
