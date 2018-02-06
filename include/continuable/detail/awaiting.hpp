@@ -44,9 +44,9 @@
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
 
-#if defined(CONTINUABLE_WITH_EXCEPTIONS)
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
 #include <exception>
-#endif // CONTINUABLE_WITH_EXCEPTIONS
+#endif // CONTINUABLE_HAS_EXCEPTIONS
 
 namespace cti {
 namespace detail {
@@ -96,12 +96,12 @@ public:
       return trait_t::unwrap(std::move(result_));
     }
 
-#if defined(CONTINUABLE_WITH_EXCEPTIONS)
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
     std::rethrow_exception(result_.get_exception());
-#else  // CONTINUABLE_WITH_EXCEPTIONS
+#else  // CONTINUABLE_HAS_EXCEPTIONS
     // Returning error types in await isn't supported as of now
     util::trap();
-#endif // CONTINUABLE_WITH_EXCEPTIONS
+#endif // CONTINUABLE_HAS_EXCEPTIONS
   }
 
 private:

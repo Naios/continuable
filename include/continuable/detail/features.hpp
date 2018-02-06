@@ -82,12 +82,12 @@
   #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 #endif
 
-/// Define CONTINUABLE_WITH_EXCEPTIONS when exceptions are used
+/// Define CONTINUABLE_HAS_EXCEPTIONS when exceptions are used
 #if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
     !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
-  #define CONTINUABLE_WITH_EXCEPTIONS 1
+  #define CONTINUABLE_HAS_EXCEPTIONS 1
 #else
-  #undef CONTINUABLE_WITH_EXCEPTIONS
+  #undef CONTINUABLE_HAS_EXCEPTIONS
 #endif
 // clang-format on
 

@@ -41,9 +41,9 @@
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
 
-#if defined(CONTINUABLE_WITH_EXCEPTIONS)
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
 #include <exception>
-#endif // CONTINUABLE_WITH_EXCEPTIONS
+#endif // CONTINUABLE_HAS_EXCEPTIONS
 
 namespace cti {
 namespace detail {
@@ -135,7 +135,7 @@ public:
   }
 };
 
-#if defined(CONTINUABLE_WITH_EXCEPTIONS)
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
 #define CONTINUABLE_BLOCK_TRY_BEGIN try {
 #define CONTINUABLE_BLOCK_TRY_END                                              \
   }                                                                            \
@@ -144,10 +144,10 @@ public:
         types::dispatch_error_tag{}, std::current_exception());                \
   }
 
-#else // CONTINUABLE_WITH_EXCEPTIONS
+#else // CONTINUABLE_HAS_EXCEPTIONS
 #define CONTINUABLE_BLOCK_TRY_BEGIN {
 #define CONTINUABLE_BLOCK_TRY_END }
-#endif // CONTINUABLE_WITH_EXCEPTIONS
+#endif // CONTINUABLE_HAS_EXCEPTIONS
 
 /// Invokes the given callable object with the given arguments while
 /// marking the operation as non exceptional.
