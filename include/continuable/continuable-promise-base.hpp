@@ -45,7 +45,7 @@ namespace cti {
 /// Use the promise type defined in `continuable/continuable_types.hpp`,
 /// in order to use this class.
 ///
-/// \since version 2.0.0
+/// \since 2.0.0
 // clang-format off
 template <typename Data, typename Hint>
 class promise_base
@@ -75,13 +75,13 @@ public:
 
   /// Resolves the continuation with the given values
   ///
-  /// \since version 2.0.0
+  /// \since 2.0.0
   void operator()(Args... args) && {
     std::move(data_)(std::move(args)...);
   }
   /// Resolves the continuation with the given exception
   ///
-  /// \since version 2.0.0
+  /// \since 2.0.0
   void operator()(detail::types::dispatch_error_tag tag,
                   detail::types::error_type exception) && {
     std::move(data_)(tag, std::move(exception));
@@ -89,14 +89,14 @@ public:
 
   /// Resolves the continuation with the given values
   ///
-  /// \since version 2.0.0
+  /// \since 2.0.0
   void set_value(Args... args) {
     std::move(data_)(std::move(args)...);
   }
 
   /// Resolves the continuation with the given exception
   ///
-  /// \since version 2.0.0
+  /// \since 2.0.0
   void set_exception(detail::types::error_type exception) {
     std::move(data_)(detail::types::dispatch_error_tag{}, std::move(exception));
   }

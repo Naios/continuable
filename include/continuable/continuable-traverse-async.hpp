@@ -38,16 +38,24 @@
 namespace cti {
 /// A tag which is passed to the `operator()` of the visitor
 /// if an element is visited synchronously.
+///
+/// \since 3.0.0
 using detail::traversal::async_traverse_visit_tag;
 /// A tag which is passed to the `operator()` of the visitor
 /// if an element is visited after the traversal was detached.
+///
+/// \since 3.0.0
 using detail::traversal::async_traverse_detach_tag;
 /// A tag which is passed to the `operator()` of the visitor
 /// if the asynchronous pack traversal was finished.
+///
+/// \since 3.0.0
 using detail::traversal::async_traverse_complete_tag;
 
 /// A tag to identify that a mapper shall be constructed in-place
 /// from the first argument passed.
+///
+/// \since 3.0.0
 using detail::traversal::async_traverse_in_place_tag;
 
 /// Traverses the pack with the given visitor in an asynchronous way.
@@ -103,6 +111,7 @@ using detail::traversal::async_traverse_in_place_tag;
 /// See `traverse_pack` for a detailed description about the
 /// traversal behaviour and capabilities.
 ///
+/// \since 3.0.0
 template <typename Visitor, typename... T>
 auto traverse_pack_async(Visitor&& visitor, T&&... pack) {
   return detail::traversal::apply_pack_transform_async(

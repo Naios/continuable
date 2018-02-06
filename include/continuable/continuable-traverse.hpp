@@ -69,6 +69,7 @@ namespace cti {
 ///               multiple elements, the pack is wrapped into
 ///               a `std::tuple`.
 ///
+/// \since        3.0.0
 template <typename Mapper, typename... T>
 auto map_pack(Mapper&& mapper, T&&... pack) {
   return detail::traversal::transform(detail::traversal::strategy_remap_tag{},
@@ -79,6 +80,8 @@ auto map_pack(Mapper&& mapper, T&&... pack) {
 /// Indicate that the result shall be spread across the parent container
 /// if possible. This can be used to create a mapper function used
 /// in map_pack that maps one element to an arbitrary count (1:n).
+///
+/// \since 3.0.0
 template <typename... T>
 constexpr auto spread_this(T&&... args) noexcept(
     noexcept(std::make_tuple(std::forward<T>(args)...))) {
@@ -92,6 +95,8 @@ constexpr auto spread_this(T&&... args) noexcept(
 /// however, the result of the mapper isn't preserved.
 ///
 /// See `map_pack` for a detailed description.
+///
+/// \since 3.0.0
 template <typename Mapper, typename... T>
 void traverse_pack(Mapper&& mapper, T&&... pack) {
   detail::traversal::transform(detail::traversal::strategy_traverse_tag{},

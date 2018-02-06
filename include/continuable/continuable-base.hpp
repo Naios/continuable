@@ -70,7 +70,7 @@ namespace cti {
 ///            call the continuable_base::freeze method for disabling the
 ///            invocation on destruction.
 ///
-/// \since version 1.0.0
+/// \since 1.0.0
 template <typename Data, typename Annotation>
 class continuable_base {
 
@@ -129,7 +129,7 @@ public:
   /// The continuable_base::freeze method disables the automatic
   /// invocation on destruction without invalidating the object.
   ///
-  /// \since version 1.0.0
+  /// \since 1.0.0
   ~continuable_base() {
     if (ownership_.is_acquired() && !ownership_.is_frozen()) {
       std::move(*this).done();
@@ -218,7 +218,7 @@ public:
   ///   .then([](std::string atom) { }); // <std::string>
   /// ```
   ///
-  /// \since version 1.0.0
+  /// \since 1.0.0
   template <typename T, typename E = detail::types::this_thread_executor_tag>
   auto then(T&& callback,
             E&& executor = detail::types::this_thread_executor_tag{}) && {
@@ -246,7 +246,7 @@ public:
   /// \returns Returns a continuable_base representing the next asynchronous
   ///          result to continue within the asynchronous call hierarchy.
   ///
-  /// \since version 1.0.0
+  /// \since 1.0.0
   template <typename OData, typename OAnnotation>
   auto then(continuable_base<OData, OAnnotation>&& continuation) && {
     return std::move(*this).then(
@@ -291,7 +291,7 @@ public:
   ///          depending on the previous result type.
   ///
   ///
-  /// \since version 2.0.0
+  /// \since 2.0.0
   template <typename T, typename E = detail::types::this_thread_executor_tag>
   auto fail(T&& callback,
             E&& executor = detail::types::this_thread_executor_tag{}) && {
@@ -316,7 +316,7 @@ public:
   /// \returns Returns a continuable_base with an asynchronous return type
   ///          depending on the previous result type.
   ///
-  /// \since version 2.0.0
+  /// \since 2.0.0
   template <typename OData, typename OAnnotation>
   auto fail(continuable_base<OData, OAnnotation>&& continuation) && {
     continuation.freeze();
@@ -350,7 +350,7 @@ public:
   /// \returns Returns a continuable_base with an asynchronous return type
   ///          depending on the current result type.
   ///
-  /// \since version 2.0.0
+  /// \since 2.0.0
   template <typename T, typename E = detail::types::this_thread_executor_tag>
   auto next(T&& callback,
             E&& executor = detail::types::this_thread_executor_tag{}) && {
@@ -368,7 +368,7 @@ public:
   /// \returns Returns the result of the given transform when this
   ///          continuable is passed into it.
   ///
-  /// \since version 2.0.0
+  /// \since 2.0.0
   template <typename T>
   auto apply(T&& transform) && {
     return std::forward<T>(transform)(std::move(*this).materialize());
@@ -381,7 +381,7 @@ public:
   /// \returns See the corresponding continuable_base::then method for the
   ///          explanation of the return type.
   ///
-  /// \since version 2.0.0
+  /// \since 2.0.0
   template <typename T>
   auto operator|(T&& right) && {
     return std::move(*this).then(std::forward<T>(right));
@@ -420,7 +420,7 @@ public:
   ///       Sequential invocation is also supported through the
   ///       continuable_base::operator>> method.
   ///
-  /// \since version 1.0.0
+  /// \since 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator&&(continuable_base<OData, OAnnotation>&& right) && {
     return detail::composition::connect(detail::composition::strategy_all_tag{},
@@ -462,7 +462,7 @@ public:
   ///       current thread, however, the callback is only called once with
   ///       the first result which becomes available.
   ///
-  /// \since version 1.0.0
+  /// \since 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator||(continuable_base<OData, OAnnotation>&& right) && {
     return detail::composition::connect(detail::composition::strategy_any_tag{},
@@ -490,7 +490,7 @@ public:
   ///       current thread. Parallel invocation is also supported through the
   ///       continuable_base::operator&& method.
   ///
-  /// \since version 1.0.0
+  /// \since 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator>>(continuable_base<OData, OAnnotation>&& right) && {
     return detail::composition::sequential_connect(std::move(*this),
@@ -506,7 +506,7 @@ public:
   /// \attention This method will trigger an assertion if the
   ///            continuable_base was released already.
   ///
-  /// \since version 1.0.0
+  /// \since 1.0.0
   void done() && {
     detail::base::finalize_continuation(std::move(*this));
   }
@@ -520,7 +520,7 @@ public:
   /// \attention This method will trigger an assertion if the
   ///            continuable_base was released already.
   ///
-  /// \since version 1.0.0
+  /// \since 1.0.0
   bool is_frozen() const noexcept {
     assert_acquired();
     return ownership_.is_frozen();
@@ -541,7 +541,7 @@ public:
   /// \attention This method will trigger an assertion if the
   ///            continuable_base was released already.
   ///
-  /// \since version 1.0.0
+  /// \since 1.0.0
   continuable_base& freeze(bool enabled = true) & noexcept {
     ownership_.freeze(enabled);
     return *this;
@@ -674,7 +674,7 @@ private:
 /// \note You should always turn the callback into a r-value if possible
 ///       (`std::move` or `std::forward`) for qualifier correct invokation.
 ///
-/// \since version 1.0.0
+/// \since 1.0.0
 template <typename... Args, typename Continuation>
 auto make_continuable(Continuation&& continuation) {
   auto hint = detail::composition::annotating::extract(
@@ -707,7 +707,7 @@ auto make_continuable(Continuation&& continuation) {
 ///
 /// \note see continuable::next for details.
 ///
-/// \since version 2.0.0
+/// \since 2.0.0
 using detail::types::dispatch_error_tag;
 
 /// Represents the type that is used as error type
@@ -718,7 +718,7 @@ using detail::types::dispatch_error_tag;
 /// A custom error type may be set through
 /// defining `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`.
 ///
-/// \since version 2.0.0
+/// \since 2.0.0
 using detail::types::error_type;
 
 /// Connects the given continuables with an *all* logic.
@@ -728,7 +728,7 @@ using detail::types::error_type;
 ///
 /// \see continuable_base::operator && for details.
 ///
-/// \since version 1.1.0
+/// \since 1.1.0
 template <typename... Continuables>
 auto when_all(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,
@@ -744,7 +744,7 @@ auto when_all(Continuables&&... continuables) {
 ///
 /// \see continuable_base::operator|| for details.
 ///
-/// \since version 1.1.0
+/// \since 1.1.0
 template <typename... Continuables>
 auto when_any(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,
@@ -760,7 +760,7 @@ auto when_any(Continuables&&... continuables) {
 ///
 /// \see continuable_base::operator>> for details.
 ///
-/// \since version 1.1.0
+/// \since 1.1.0
 template <typename... Continuables>
 auto when_seq(Continuables&&... continuables) {
   static_assert(sizeof...(continuables) >= 2,

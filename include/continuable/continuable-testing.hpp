@@ -37,21 +37,21 @@
 /// Asserts that the final callback of the given continuable was called
 /// with any result.
 ///
-/// \since version 1.0.0
+/// \since 1.0.0
 #define ASSERT_ASYNC_COMPLETION(CONTINUABLE)                                   \
   cti::detail::testing::assert_async_completion(CONTINUABLE);
 
 /// Asserts that the final callback of the given continuable was called
 /// with any exceptional result.
 ///
-/// \since version 2.0.0
+/// \since 2.0.0
 #define ASSERT_ASYNC_EXCEPTION_COMPLETION(CONTINUABLE)                         \
   cti::detail::testing::assert_async_exception_completion(CONTINUABLE);
 
 /// Asserts that the final callback of the given continuable is never called
 /// with any result.
 ///
-/// \since version 1.0.0
+/// \since 1.0.0
 #define ASSERT_ASYNC_INCOMPLETION(CONTINUABLE)                                 \
   cti::detail::testing::assert_async_never_completed(CONTINUABLE);
 
@@ -87,7 +87,7 @@
 /// \note This macro is mainly present for building other assertions
 ///       relying on custom validation logic.
 ///
-/// \since version 1.0.0
+/// \since 1.0.0
 #define ASSERT_ASYNC_BINARY_VALIDATION(VALIDATOR, ...)                         \
   cti::detail::testing::assert_async_binary_validation(VALIDATOR, __VA_ARGS__);
 
@@ -98,7 +98,7 @@
 /// \note This macro is mainly present for building other assertions
 ///       relying on custom validation logic.
 ///
-/// \since version 2.0.0
+/// \since 2.0.0
 #define ASSERT_ASYNC_BINARY_EXCEPTION_VALIDATION(VALIDATOR, ...)               \
   cti::detail::testing::assert_async_binary_exception_validation(VALIDATOR,    \
                                                                  __VA_ARGS__);
@@ -112,14 +112,14 @@
 /// EXPECT_ASYNC_RESULT(async_get("hello"), "hello");
 /// ```
 ///
-/// \since version 1.0.0
+/// \since 1.0.0
 #define EXPECT_ASYNC_RESULT(...)                                               \
   ASSERT_ASYNC_BINARY_VALIDATION(cti::detail::testing::expecting_eq_check(),   \
                                  __VA_ARGS__)
 
 /// Asserts that the continuable is finished with the given exception
 ///
-/// \since version 2.0.0
+/// \since 2.0.0
 #define EXPECT_ASYNC_EXCEPTION_RESULT(...)                                     \
   ASSERT_ASYNC_BINARY_EXCEPTION_VALIDATION(                                    \
       cti::detail::testing::expecting_eq_check(), __VA_ARGS__)
@@ -133,7 +133,7 @@
 /// ASSERT_ASYNC_RESULT(async_get("hello"), "hello");
 /// ```
 ///
-/// \since version 1.0.0
+/// \since 1.0.0
 #define ASSERT_ASYNC_RESULT(...)                                               \
   ASSERT_ASYNC_BINARY_VALIDATION(cti::detail::testing::asserting_eq_check(),   \
                                  __VA_ARGS__)
@@ -150,14 +150,14 @@
 ///
 /// \note This is a compile-time assertion.
 ///
-/// \since version 1.0.0
+/// \since 1.0.0
 #define ASSERT_ASYNC_TYPES(CONTINUABLE, ...)                                   \
   cti::detail::testing::assert_async_types(                                    \
       CONTINUABLE, cti::detail::traits::identity<__VA_ARGS__>{})
 
 /// Asserts that the continuable is finished with the given exception
 ///
-/// \since version 2.0.0
+/// \since 2.0.0
 #define ASSERT_ASYNC_EXCEPTION_RESULT(...)                                     \
   ASSERT_ASYNC_BINARY_EXCEPTION_VALIDATION(                                    \
       cti::detail::testing::asserting_eq_check(), __VA_ARGS__)

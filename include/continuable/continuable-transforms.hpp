@@ -59,7 +59,7 @@ namespace transforms {
 ///            call chain!
 ///            Otherwise this will yield a trap that causes application exit.
 ///
-/// \since version 2.0.0
+/// \since 2.0.0
 inline auto futurize() {
   return [](auto&& continuable) {
     using detail::transforms::as_future;
@@ -75,7 +75,7 @@ inline auto futurize() {
 /// \attention This can be used to create a continuable which doesn't resolve
 ///            the continuation on errors.
 ///
-/// \since version 2.0.0
+/// \since 2.0.0
 inline auto flatten() {
   return [](auto&& continuable) {
     return std::forward<decltype(continuable)>(continuable).fail([](auto&&) {});
