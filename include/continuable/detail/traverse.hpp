@@ -191,8 +191,8 @@ struct flat_arraylizer {
 template <typename C, typename... T>
 constexpr auto apply_spread_impl(std::true_type, C&& callable, T&&... args)
     -> decltype(
-        traits::unpack(std::tuple_cat(undecorate(std::forward<T>(args))...)),
-        std::forward<C>(callable)) {
+        traits::unpack(std::tuple_cat(undecorate(std::forward<T>(args))...),
+                       std::forward<C>(callable))) {
   return traits::unpack(std::tuple_cat(undecorate(std::forward<T>(args))...),
                         std::forward<C>(callable));
 }

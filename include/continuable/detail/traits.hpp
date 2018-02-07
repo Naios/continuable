@@ -315,41 +315,48 @@ constexpr decltype(auto) unpack(std::integer_sequence<std::size_t, I...>,
 
 /// Calls the given unpacker with the content of the given sequenceable
 template <typename F, typename U, std::size_t... I>
-constexpr decltype(auto) unpack(F&& firstSequenceable, U&& unpacker,
-                                std::integer_sequence<std::size_t, I...>) {
-  using std::get;
-  (void)firstSequenceable;
+constexpr auto unpack(F&& first_sequenceable, U&& unpacker,
+                      std::integer_sequence<std::size_t, I...>)
+    -> decltype(std::forward<U>(unpacker)(
+        get<I>(std::forward<F>(first_sequenceable))...)) {
   return std::forward<U>(unpacker)(
-      get<I>(std::forward<F>(firstSequenceable))...);
+      get<I>(std::forward<F>(first_sequenceable))...);
 }
 /// Calls the given unpacker with the content of the given sequenceable
 template <typename F, typename S, typename U, std::size_t... IF,
           std::size_t... IS>
-constexpr decltype(auto) unpack(F&& firstSequenceable, S&& secondSequenceable,
-                                U&& unpacker,
-                                std::integer_sequence<std::size_t, IF...>,
-                                std::integer_sequence<std::size_t, IS...>) {
-  using std::get;
-  (void)firstSequenceable;
-  (void)secondSequenceable;
+constexpr auto unpack(F&& first_sequenceable, S&& second_sequenceable,
+                      U&& unpacker, std::integer_sequence<std::size_t, IF...>,
+                      std::integer_sequence<std::size_t, IS...>)
+    -> decltype(std::forward<U>(unpacker)(
+        get<IF>(std::forward<F>(first_sequenceable))...,
+        get<IS>(std::forward<S>(second_sequenceable))...)) {
   return std::forward<U>(unpacker)(
-      get<IF>(std::forward<F>(firstSequenceable))...,
-      get<IS>(std::forward<S>(secondSequenceable))...);
+      get<IF>(std::forward<F>(first_sequenceable))...,
+      get<IS>(std::forward<S>(second_sequenceable))...);
 }
 /// Calls the given unpacker with the content of the given sequenceable
 template <typename F, typename U>
-constexpr decltype(auto) unpack(F&& firstSequenceable, U&& unpacker) {
-  return unpack(std::forward<F>(firstSequenceable), std::forward<U>(unpacker),
-                sequence_of(identify<decltype(firstSequenceable)>{}));
+constexpr auto unpack(F&& first_sequenceable, U&& unpacker)
+    -> decltype(unpack(std::forward<F>(first_sequenceable),
+                       std::forward<U>(unpacker),
+                       sequence_of(identify<decltype(first_sequenceable)>{}))) {
+  return unpack(std::forward<F>(first_sequenceable), std::forward<U>(unpacker),
+                sequence_of(identify<decltype(first_sequenceable)>{}));
 }
 /// Calls the given unpacker with the content of the given sequenceables
 template <typename F, typename S, typename U>
-constexpr decltype(auto) unpack(F&& firstSequenceable, S&& secondSequenceable,
-                                U&& unpacker) {
-  return unpack(std::forward<F>(firstSequenceable),
-                std::forward<S>(secondSequenceable), std::forward<U>(unpacker),
-                sequence_of(identity_of(firstSequenceable)),
-                sequence_of(identity_of(secondSequenceable)));
+constexpr auto unpack(F&& first_sequenceable, S&& second_sequenceable,
+                      U&& unpacker)
+    -> decltype(unpack(std::forward<F>(first_sequenceable),
+                       std::forward<S>(second_sequenceable),
+                       std::forward<U>(unpacker),
+                       sequence_of(identity_of(first_sequenceable)),
+                       sequence_of(identity_of(second_sequenceable)))) {
+  return unpack(std::forward<F>(first_sequenceable),
+                std::forward<S>(second_sequenceable), std::forward<U>(unpacker),
+                sequence_of(identity_of(first_sequenceable)),
+                sequence_of(identity_of(second_sequenceable)));
 }
 
 /// Applies the handler function to each element contained in the sequenceable

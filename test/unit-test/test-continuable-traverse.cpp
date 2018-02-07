@@ -686,13 +686,13 @@ static void test_strategic_tuple_like_traverse() {
   }
 
   // Fixed size homogeneous container
-  /* TODO Fix this test
-  {
-    std::array<int, 3> values{{1, 2, 3}};
-    std::array<float, 3> res = map_pack([](int) { return 1.f; }, values);
+  // TODO Fix this test
+  //{
+  //  std::array<int, 3> values{{1, 2, 3}};
+  //  std::array<float, 3> res = map_pack([](int) { return 1.f; }, values);
 
-    EXPECT_TRUE((res == std::array<float, 3>{{1.f, 1.f, 1.f}}));
-  }*/
+  //  EXPECT_TRUE((res == std::array<float, 3>{{1.f, 1.f, 1.f}}));
+  //}
 
   // Make it possible to pass tuples containing move only objects
   // in as reference, while returning those as reference.
@@ -769,6 +769,7 @@ static void test_spread_container_traverse() {
   }
 }
 
+/*
 static void test_spread_tuple_like_traverse() {
   // 1:2 mappings (multiple arguments)
   {
@@ -805,6 +806,7 @@ static void test_spread_tuple_like_traverse() {
     static_assert(std::is_void<Result>::value, "Failed...");
   }
 }
+*/
 
 /*
   TODO Convert this to gtest
