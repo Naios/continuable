@@ -752,15 +752,15 @@ void test_spread_traverse() {
 
 void test_spread_container_traverse() {
   // 1:2 mappings (multiple arguments)
-  //{
-  //  std::vector<tuple<int, int>> res =
-  //      map_pack(duplicate_mapper{}, std::vector<int>{1});
+  {
+    std::vector<tuple<int, int>> res =
+        map_pack(duplicate_mapper{}, std::vector<int>{1});
 
-  //  std::vector<tuple<int, int>> expected;
-  //  expected.push_back(make_tuple(1, 1));
+    std::vector<tuple<int, int>> expected;
+    expected.push_back(make_tuple(1, 1));
 
-  //  EXPECT_TRUE((res == expected));
-  //}
+    EXPECT_TRUE((res == expected));
+  }
 
   // 1:0 mappings
   {
@@ -769,8 +769,7 @@ void test_spread_container_traverse() {
   }
 }
 
-/*
-static void test_spread_tuple_like_traverse() {
+void test_spread_tuple_like_traverse() {
   // 1:2 mappings (multiple arguments)
   {
     tuple<tuple<int, int, int, int>> res =
@@ -790,14 +789,14 @@ static void test_spread_tuple_like_traverse() {
   }
 
   // 1:2 mappings (multiple arguments)
-  {
-    std::array<int, 4> res =
-        map_pack(duplicate_mapper{}, std::array<int, 2>{{1, 2}});
+  //{
+  //  std::array<int, 4> res =
+  //      map_pack(duplicate_mapper{}, std::array<int, 2>{{1, 2}});
 
-    std::array<int, 4> expected{{1, 1, 2, 2}};
+  //  std::array<int, 4> expected{{1, 1, 2, 2}};
 
-    EXPECT_TRUE((res == expected));
-  }
+  //  EXPECT_TRUE((res == expected));
+  //}
 
   // 1:0 mappings
   {
@@ -806,7 +805,6 @@ static void test_spread_tuple_like_traverse() {
     static_assert(std::is_void<Result>::value, "Failed...");
   }
 }
-*/
 
 /*
   TODO Convert this to gtest

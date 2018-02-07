@@ -71,7 +71,8 @@ namespace cti {
 ///
 /// \since        3.0.0
 template <typename Mapper, typename... T>
-decltype(auto) map_pack(Mapper&& mapper, T&&... pack) {
+/*keep this inline*/ inline decltype(auto) map_pack(Mapper&& mapper,
+                                                    T&&... pack) {
   return detail::traversal::transform(detail::traversal::strategy_remap_tag{},
                                       std::forward<Mapper>(mapper),
                                       std::forward<T>(pack)...);
