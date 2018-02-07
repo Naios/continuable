@@ -83,7 +83,8 @@ decltype(auto) map_pack(Mapper&& mapper, T&&... pack) {
 ///
 /// \since 3.0.0
 template <typename... T>
-constexpr auto spread_this(T&&... args) noexcept(
+constexpr detail::traversal::spreading::spread_box<std::decay_t<T>...>
+spread_this(T&&... args) noexcept(
     noexcept(std::make_tuple(std::forward<T>(args)...))) {
   using type = detail::traversal::spreading::spread_box<std::decay_t<T>...>;
   return type(std::make_tuple(std::forward<T>(args)...));
