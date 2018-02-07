@@ -796,10 +796,7 @@ public:
 
   /// \copybrief try_traverse
   template <typename T>
-  auto init_traverse(strategy_remap_tag, T&& element)
-      -> decltype(spreading::unpack_or_void(
-          std::declval<mapping_helper>().try_traverse(strategy_remap_tag{},
-                                                      std::declval<T>()))) {
+  decltype(auto) init_traverse(strategy_remap_tag, T&& element) {
     return spreading::unpack_or_void(
         try_traverse(strategy_remap_tag{}, std::forward<T>(element)));
   }
@@ -811,15 +808,8 @@ public:
   /// Calls the traversal method for every element in the pack,
   /// and returns a tuple containing the remapped content.
   template <typename First, typename Second, typename... T>
-  auto init_traverse(strategy_remap_tag strategy, First&& first,
-                     Second&& second, T&&... rest)
-      -> decltype(spreading::tupelize_or_void(
-          std::declval<mapping_helper>().try_traverse(
-              strategy, std::forward<First>(first)),
-          std::declval<mapping_helper>().try_traverse(
-              strategy, std::forward<Second>(second)),
-          std::declval<mapping_helper>().try_traverse(
-              strategy, std::forward<T>(rest))...)) {
+  decltype(auto) init_traverse(strategy_remap_tag strategy, First&& first,
+                               Second&& second, T&&... rest) {
     return spreading::tupelize_or_void(
         try_traverse(strategy, std::forward<First>(first)),
         try_traverse(strategy, std::forward<Second>(second)),
@@ -841,9 +831,7 @@ public:
 
 /// Traverses the given pack with the given mapper and strategy
 template <typename Strategy, typename Mapper, typename... T>
-auto transform(Strategy strategy, Mapper&& mapper, T&&... pack) -> decltype(
-    std::declval<mapping_helper<Strategy, typename std::decay<Mapper>::type>>()
-        .init_traverse(strategy, std::forward<T>(pack)...)) {
+decltype(auto) transform(Strategy strategy, Mapper&& mapper, T&&... pack) {
   mapping_helper<Strategy, typename std::decay<Mapper>::type> helper(
       std::forward<Mapper>(mapper));
   return helper.init_traverse(strategy, std::forward<T>(pack)...);
