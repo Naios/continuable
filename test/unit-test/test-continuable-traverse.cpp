@@ -735,13 +735,13 @@ struct zero_mapper {
 
 static void test_spread_traverse() {
   // 1:2 mappings (multiple arguments)
-  /* TODO Enable this {
+  {
     tuple<int, int, int, int> res = map_pack(duplicate_mapper{}, 1, 2);
 
     auto expected = make_tuple(1, 1, 2, 2);
 
     EXPECT_TRUE((res == expected));
-  }*/
+  }
 
   // 1:0 mappings
   {
