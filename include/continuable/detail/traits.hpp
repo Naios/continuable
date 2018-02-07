@@ -319,6 +319,7 @@ constexpr auto unpack(F&& first_sequenceable, U&& unpacker,
                       std::integer_sequence<std::size_t, I...>)
     -> decltype(std::forward<U>(unpacker)(
         get<I>(std::forward<F>(first_sequenceable))...)) {
+  (void)first_sequenceable;
   return std::forward<U>(unpacker)(
       get<I>(std::forward<F>(first_sequenceable))...);
 }

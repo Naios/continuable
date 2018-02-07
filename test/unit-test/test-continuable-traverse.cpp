@@ -218,7 +218,7 @@ struct my_allocator {
   }
 };
 
-static void test_mixed_container_remap() {
+void test_mixed_container_remap() {
   // Traits
   {
       // TODO Enable this
@@ -285,7 +285,7 @@ struct my_int_mapper {
   }
 };
 
-static void test_mixed_fall_through() {
+void test_mixed_fall_through() {
   traverse_pack(my_int_mapper{}, int(0),
                 std::vector<tuple<float, float>>{make_tuple(1.f, 2.f)},
                 make_tuple(std::vector<float>{1.f, 2.f}));
@@ -314,7 +314,7 @@ public:
   }
 
   template <typename T>
-  void operator()(T el) const {
+  void operator()(T) const {
     ++counter_.get();
   }
 };
@@ -370,7 +370,7 @@ public:
   }
 };
 
-static void test_strategic_traverse() {
+void test_strategic_traverse() {
   // Every element in the pack is visited
   {
     int counter = 0;
@@ -512,7 +512,7 @@ static void test_strategic_traverse() {
   }
 }
 
-static void test_strategic_container_traverse() {
+void test_strategic_container_traverse() {
   // Every element in the container is visited
   // - Plain container
   {
@@ -582,7 +582,7 @@ static void test_strategic_container_traverse() {
   // - Plain container
   {
     std::vector<int> container(100, 1);
-    auto res = map_pack([](int i) { return 2; }, std::move(container));
+    auto res = map_pack([](int) { return 2; }, std::move(container));
 
     EXPECT_TRUE(
         (std::all_of(res.begin(), res.end(), [](int i) { return i == 2; })));
@@ -596,7 +596,7 @@ static void test_strategic_container_traverse() {
       container.push_back(nested);
     }
 
-    auto res = map_pack([](int i) { return 2; }, std::move(container));
+    auto res = map_pack([](int) { return 2; }, std::move(container));
     EXPECT_TRUE(
         (std::all_of(res.begin(), res.end(), [](std::list<int> const& nested) {
           return std::all_of(nested.begin(), nested.end(),
@@ -642,7 +642,7 @@ static void test_strategic_container_traverse() {
   }
 }
 
-static void test_strategic_tuple_like_traverse() {
+void test_strategic_tuple_like_traverse() {
   // Every element in the tuple like type is visited
   {
     int counter = 0;
@@ -728,12 +728,12 @@ struct duplicate_mapper {
 /// A mapper which removes the current element
 struct zero_mapper {
   template <typename T>
-  auto operator()(T arg) -> decltype(spread_this()) {
+  auto operator()(T) -> decltype(spread_this()) {
     return spread_this();
   }
 };
 
-static void test_spread_traverse() {
+void test_spread_traverse() {
   // 1:2 mappings (multiple arguments)
   {
     tuple<int, int, int, int> res = map_pack(duplicate_mapper{}, 1, 2);
@@ -750,7 +750,7 @@ static void test_spread_traverse() {
   }
 }
 
-static void test_spread_container_traverse() {
+void test_spread_container_traverse() {
   // 1:2 mappings (multiple arguments)
   //{
   //  std::vector<tuple<int, int>> res =
