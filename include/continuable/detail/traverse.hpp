@@ -266,8 +266,7 @@ inline void voidify_empty_tuple(std::tuple<>) noexcept {
 ///
 /// If the returned tuple is empty, voidis returned instead.
 template <typename... T>
-constexpr auto tupelize_or_void(T&&... args)
-    -> decltype(voidify_empty_tuple(tupelize(std::forward<T>(args)...))) {
+constexpr decltype(auto) tupelize_or_void(T&&... args) {
   return voidify_empty_tuple(tupelize(std::forward<T>(args)...));
 }
 } // namespace spreading
