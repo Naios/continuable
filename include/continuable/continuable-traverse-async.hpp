@@ -5,7 +5,7 @@
                         \_,(_)| | | || ||_|(_||_)|(/_
 
                     https://github.com/Naios/continuable
-                                   v2.0.0
+                                   v3.0.0
 
   Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
 
@@ -108,10 +108,11 @@ using detail::traversal::async_traverse_in_place_tag;
 /// \returns         A boost::intrusive_ptr that references an instance of
 ///                  the given visitor object.
 ///
+/// \since           3.0.0
+///
 /// See `traverse_pack` for a detailed description about the
 /// traversal behaviour and capabilities.
 ///
-/// \since 3.0.0
 template <typename Visitor, typename... T>
 auto traverse_pack_async(Visitor&& visitor, T&&... pack) {
   return detail::traversal::apply_pack_transform_async(

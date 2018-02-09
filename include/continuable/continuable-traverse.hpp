@@ -5,7 +5,7 @@
                         \_,(_)| | | || ||_|(_||_)|(/_
 
                     https://github.com/Naios/continuable
-                                   v2.0.0
+                                   v3.0.0
 
   Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
 
@@ -70,6 +70,7 @@ namespace cti {
 ///               a `std::tuple`.
 ///
 /// \since        3.0.0
+///
 template <typename Mapper, typename... T>
 /*keep this inline*/ inline decltype(auto) map_pack(Mapper&& mapper,
                                                     T&&... pack) {
