@@ -41,6 +41,7 @@
 #include <utility>
 
 #include <continuable/detail/container-category.hpp>
+#include <continuable/detail/traits.hpp>
 
 namespace cti {
 namespace detail {
@@ -66,13 +67,16 @@ struct async_traverse_in_place_tag {};
 template <std::size_t Offset, typename Pack>
 struct relocate_index_pack;
 template <std::size_t Offset, std::size_t... Sequence>
-struct relocate_index_pack<Offset, pack_c<std::size_t, Sequence...>>
-    : std::common_type<pack_c<std::size_t, (Sequence + Offset)...>> {};
+struct relocate_index_pack<Offset,
+                           std::integer_sequence<std::size_t, Sequence...>>
+    : std::common_type<
+          std::integer_sequence<std::size_t, (Sequence + Offset)...>> {};
 
 /// Creates a sequence from begin to end explicitly
 template <std::size_t Begin, std::size_t End>
-using explicit_range_sequence_of_t = typename relocate_index_pack<
-    Begin, typename make_index_pack<End - Begin>::type>::type;
+using explicit_range_sequence_of_t =
+    typename relocate_index_pack<Begin,
+                                 std::make_index_sequence<End - Begin>>::type;
 
 /// Continues the traversal when the object is called
 template <typename Frame, typename State>
@@ -104,7 +108,7 @@ auto make_resume_traversal_callable(Frame&& frame, State&& state)
 /// Stores the visitor and the arguments to traverse
 template <typename Visitor, typename... Args>
 class async_traversal_frame : public Visitor {
-  tuple<Args...> args_;
+  std::tuple<Args...> args_;
 
 #ifndef _NDEBUG
   std::atomic<bool> finished_;
@@ -120,7 +124,7 @@ class async_traversal_frame : public Visitor {
 
 public:
   explicit async_traversal_frame(Visitor visitor, Args... args)
-      : Visitor(std::move(visitor)), args_(util::make_tuple(std::move(args)...))
+      : Visitor(std::move(visitor)), args_(std::make_tuple(std::move(args)...))
 #ifndef _NDEBUG
         ,
         finished_(false)
@@ -137,21 +141,19 @@ public:
   explicit async_traversal_frame(async_traverse_in_place_tag<Visitor>,
                                  MapperArg&& mapper_arg, Args... args)
       : Visitor(std::forward<MapperArg>(mapper_arg)),
-        args_(util::make_tuple(std::move(args)...)), finished_(false) {
+        args_(std::make_tuple(std::move(args)...)), finished_(false) {
   }
 
   /// Returns the arguments of the frame
-  tuple<Args...>& head() noexcept {
+  std::tuple<Args...>& head() noexcept {
     return args_;
   }
 
   /// Calls the visitor with the given element
   template <typename T>
-  auto traverse(T&& value) -> decltype(util::invoke(std::declval<Visitor&>(),
-                                                    async_traverse_visit_tag{},
-                                                    std::forward<T>(value))) {
-    return util::invoke(visitor(), async_traverse_visit_tag{},
-                        std::forward<T>(value));
+  auto traverse(T&& value) -> decltype(visitor()(async_traverse_visit_tag{},
+                                                 std::forward<T>(value))) {
+    return visitor()(async_traverse_visit_tag{}, std::forward<T>(value));
   }
 
   /// Calls the visitor with the given element and a continuation
@@ -169,8 +171,8 @@ public:
 
     // Invoke the visitor with the current value and the
     // callable object to resume the control flow.
-    util::invoke(visitor(), async_traverse_detach_tag{}, std::forward<T>(value),
-                 std::move(resumable));
+    visitor()(async_traverse_detach_tag{}, std::forward<T>(value),
+              std::move(resumable));
   }
 
   /// Calls the visitor with no arguments to signalize that the
@@ -209,8 +211,8 @@ struct static_async_range {
   }
 
   constexpr auto operator*() const noexcept
-      -> decltype(util::get<Begin>(*target_)) {
-    return util::get<Begin>(*target_);
+      -> decltype(std::get<Begin>(*target_)) {
+    return std::get<Begin>(*target_);
   }
 
   template <std::size_t Position>
@@ -340,7 +342,7 @@ public:
   /// Async traverse a single element, and do nothing.
   /// This function is matched last.
   template <typename Matcher, typename Current>
-  void async_traverse_one_impl(Matcher, Current&& current) {
+  void async_traverse_one_impl(Matcher, Current&& /*current*/) {
     // Do nothing if the visitor doesn't accept the type
   }
 
@@ -352,13 +354,12 @@ public:
                                Current&& current)
       /// SFINAE this out if the visitor doesn't accept
       /// the given element
-      -> typename always_void<
-          decltype(std::declval<Frame>()->traverse(*current))>::type {
+      -> traits::void_t<decltype(std::declval<Frame>()->traverse(*current))> {
     if (!frame_->traverse(*current)) {
       // Store the current call hierarchy into a tuple for
       // later re-entrance.
       auto hierarchy =
-          std::tuple_cat(util::make_tuple(current.next()), hierarchy_);
+          std::tuple_cat(std::make_tuple(current.next()), hierarchy_);
 
       // First detach the current execution context
       detach();
@@ -406,8 +407,8 @@ public:
   }
 
   template <std::size_t... Sequence, typename Current>
-  void async_traverse_static_async_range(pack_c<std::size_t, Sequence...>,
-                                         Current&& current) {
+  void async_traverse_static_async_range(
+      std::integer_sequence<std::size_t, Sequence...>, Current&& current) {
     int dummy[] = {0, ((void)async_traverse_one_checked(
                            current.template relocate<Sequence>()),
                        0)...};
@@ -484,7 +485,7 @@ struct resume_state_callable {
       // Don't forward the arguments here, since we still need
       // the objects in a valid state later.
       traversal_point_of_t<Frame, Parent, Hierarchy...> point(
-          frame, util::make_tuple(parent, hierarchy...), detached);
+          frame, std::make_tuple(parent, hierarchy...), detached);
 
       point.async_traverse(std::forward<Current>(current));
 
@@ -505,7 +506,7 @@ struct resume_state_callable {
 template <typename Frame, typename State>
 void resume_traversal_callable<Frame, State>::operator()() {
   auto hierarchy = std::tuple_cat(std::make_tuple(frame_), state_);
-  util::invoke_fused(resume_state_callable{}, std::move(hierarchy));
+  traits::unpack(std::move(hierarchy), resume_state_callable{});
 }
 
 /// Gives access to types related to the traversal frame
