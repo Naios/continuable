@@ -124,11 +124,6 @@ bool_constant_of(std::integral_constant<bool, Value> /*value*/ = {}) {
 template <std::size_t I, typename... Args>
 using at_t = decltype(std::get<I>(std::declval<std::tuple<Args...>>()));
 
-/// Evaluates to an integral constant which represents the size
-/// of the given pack.
-template <typename... Args>
-using size_of_t = size_constant<sizeof...(Args)>;
-
 /// A tagging type for wrapping other types
 template <typename... T>
 struct identity {};
@@ -214,28 +209,29 @@ struct apply_to_all {
         0, ((void)callable(std::forward<decltype(args)>(args)), 0)...};
   }
 };
+
+/// Evaluates to the size of the given tuple like type,
+// / if the type has no static size it will be one.
+template <typename T, typename Enable = void>
+struct tuple_like_size : std::integral_constant<std::size_t, 1U> {};
+template <typename T>
+struct tuple_like_size<T, void_t<decltype(std::tuple_size<T>::value)>>
+    : std::tuple_size<T> {};
 } // namespace detail
 
-/// Returns the pack size of the given type
-template <typename... Args>
-constexpr auto pack_size_of(identity<std::tuple<Args...>>) noexcept {
-  return size_of_t<Args...>{};
+/// Returns the pack size of the given empty pack
+constexpr auto pack_size_of(identity<>) noexcept {
+  return size_constant<0U>{};
 }
 /// Returns the pack size of the given type
-template <typename First, typename Second>
-constexpr auto pack_size_of(identity<std::pair<First, Second>>) noexcept {
-  return size_of_t<First, Second>{};
+template <typename T>
+constexpr auto pack_size_of(identity<T>) noexcept {
+  return size_constant<detail::tuple_like_size<T>::value>{};
 }
 /// Returns the pack size of the given type
-template <typename T, std::size_t Size>
-constexpr auto pack_size_of(identity<std::array<T, Size>>) noexcept {
-  return size_constant<Size>{};
-}
-/// Returns the pack size of the given type
-template <typename... Args>
-constexpr auto pack_size_of(identity<Args...>) noexcept {
-  // TODO Replace this through the generic std::tuple_size
-  return size_of_t<Args...>{};
+template <typename First, typename Second, typename... Args>
+constexpr auto pack_size_of(identity<First, Second, Args...>) noexcept {
+  return size_constant<2U + sizeof...(Args)>{};
 }
 
 /// Returns an index sequence of the given type
