@@ -642,6 +642,14 @@ void test_strategic_container_traverse() {
   }
 }
 
+TEST(traverse_single_test, test_strategic_tuple_like_traverse_homogeneous) {
+  // Fixed size homogeneous container
+  std::array<int, 3> values{{1, 2, 3}};
+  std::array<float, 3> res = map_pack([](int) { return 1.f; }, values);
+
+  EXPECT_TRUE((res == std::array<float, 3>{{1.f, 1.f, 1.f}}));
+}
+
 void test_strategic_tuple_like_traverse() {
   // Every element in the tuple like type is visited
   {
@@ -684,15 +692,6 @@ void test_strategic_tuple_like_traverse() {
                   "Type mismatch!");
     EXPECT_TRUE((res == expected));
   }
-
-  // Fixed size homogeneous container
-  // TODO Fix this test
-  //{
-  //  std::array<int, 3> values{{1, 2, 3}};
-  //  std::array<float, 3> res = map_pack([](int) { return 1.f; }, values);
-
-  //  EXPECT_TRUE((res == std::array<float, 3>{{1.f, 1.f, 1.f}}));
-  //}
 
   // Make it possible to pass tuples containing move only objects
   // in as reference, while returning those as reference.
@@ -769,6 +768,15 @@ void test_spread_container_traverse() {
   }
 }
 
+// 1:2 mappings (multiple arguments)
+TEST(traverse_single_test, test_spread_container_traverse_multiple_args) {
+  auto res = map_pack(duplicate_mapper{}, std::array<int, 2>{{1, 2}});
+
+  std::array<int, 4> expected{{1, 1, 2, 2}};
+
+  EXPECT_TRUE((res == expected));
+}
+
 void test_spread_tuple_like_traverse() {
   // 1:2 mappings (multiple arguments)
   {
@@ -788,16 +796,6 @@ void test_spread_tuple_like_traverse() {
     static_assert(std::is_void<Result>::value, "Failed...");
   }
 
-  // 1:2 mappings (multiple arguments)
-  //{
-  //  std::array<int, 4> res =
-  //      map_pack(duplicate_mapper{}, std::array<int, 2>{{1, 2}});
-
-  //  std::array<int, 4> expected{{1, 1, 2, 2}};
-
-  //  EXPECT_TRUE((res == expected));
-  //}
-
   // 1:0 mappings
   {
     using Result =
@@ -805,23 +803,3 @@ void test_spread_tuple_like_traverse() {
     static_assert(std::is_void<Result>::value, "Failed...");
   }
 }
-
-/*
-  TODO Convert this to gtest
-int main(int, char**) {
-  test_mixed_traversal();
-  test_mixed_early_unwrapping();
-  test_mixed_container_remap();
-  test_mixed_fall_through();
-
-  test_strategic_traverse();
-  test_strategic_container_traverse();
-  test_strategic_tuple_like_traverse();
-
-  test_spread_traverse();
-  test_spread_container_traverse();
-  test_spread_tuple_like_traverse();
-
-  return report_errors();
-}
-*/

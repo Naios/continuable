@@ -227,8 +227,14 @@ constexpr auto pack_size_of(identity<std::pair<First, Second>>) noexcept {
   return size_of_t<First, Second>{};
 }
 /// Returns the pack size of the given type
+template <typename T, std::size_t Size>
+constexpr auto pack_size_of(identity<std::array<T, Size>>) noexcept {
+  return size_constant<Size>{};
+}
+/// Returns the pack size of the given type
 template <typename... Args>
 constexpr auto pack_size_of(identity<Args...>) noexcept {
+  // TODO Replace this through the generic std::tuple_size
   return size_of_t<Args...>{};
 }
 
