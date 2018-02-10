@@ -530,22 +530,23 @@ auto apply_pack_transform_async(Visitor&& visitor, Args&&... args) {
 
   // Provide the frame and visitor type
   using types = async_traversal_types<Visitor, Args...>;
+  using frame_t = typename types::frame_t;
+  using visitor_t = typename types::visitor_t;
 
   // Check whether the visitor inherits enable_shared_from_this
-  static_assert(
-      std::is_base_of<std::enable_shared_from_this<typename types::visitor_t>,
-                      typename types::visitor_t>::value,
-      "The visitor must inherit std::enable_shared_from_this!");
+  static_assert(std::is_base_of<std::enable_shared_from_this<visitor_t>,
+                                visitor_t>::value,
+                "The visitor must inherit std::enable_shared_from_this!");
 
   // Check whether the visitor is virtual destructible
-  static_assert(std::has_virtual_destructor<typename types::visitor_t>::value,
+  static_assert(std::has_virtual_destructor<visitor_t>::value,
                 "The visitor must have a virtual destructor!");
 
   // Create the frame on the heap which stores the arguments
   // to traverse asynchronous. It persists until the
   // traversal frame isn't referenced anymore.
-  auto frame = std::make_shared<types::frame_t>(std::forward<Visitor>(visitor),
-                                                std::forward<Args>(args)...);
+  auto frame = std::make_shared<frame_t>(std::forward<Visitor>(visitor),
+                                         std::forward<Args>(args)...);
 
   // Create a static range for the top level tuple
   auto range = std::make_tuple(make_static_range(frame->head()));
@@ -558,7 +559,7 @@ auto apply_pack_transform_async(Visitor&& visitor, Args&&... args) {
 
   // Cast the shared_ptr down to the given visitor type
   // for implementation invisibility
-  return std::static_pointer_cast<types::visitor_t>(std::move(frame));
+  return std::static_pointer_cast<visitor_t>(std::move(frame));
 }
 } // namespace traversal
 } // namespace detail
