@@ -150,7 +150,7 @@ void test_async_traversal_base(Args&&... args) {
   }
 }
 
-void test_async_traversal() {
+TEST(async_traversal, base) {
   // Just test everything using a casual int pack
   test_async_traversal_base<4U>(not_accepted_tag{}, 0U, 1U, not_accepted_tag{},
                                 2U, 3U, not_accepted_tag{});
@@ -182,36 +182,40 @@ struct array_container_factory {
   }
 };
 
-void test_async_container_traversal() {
-  {
-    common_container_factory<std::vector<std::size_t>> factory;
-    test_async_container_traversal_impl(factory);
-  }
-
-  {
-    common_container_factory<std::list<std::size_t>> factory;
-    test_async_container_traversal_impl(factory);
-  }
-
-  {
-    common_container_factory<std::set<std::size_t>> factory;
-    test_async_container_traversal_impl(factory);
-  }
-
-  {
-    array_container_factory<std::size_t> factory;
-    test_async_container_traversal_impl(factory);
-  }
+TEST(async_traversal_container, visit_vector) {
+  common_container_factory<std::vector<std::size_t>> factory;
+  test_async_container_traversal_impl(factory);
 }
 
-void test_async_tuple_like_traversal() {
-  // Test by passing a tuple in the middle
+TEST(async_traversal_container, visit_list) {
+  common_container_factory<std::list<std::size_t>> factory;
+  test_async_container_traversal_impl(factory);
+}
+
+TEST(async_traversal_container, visit_set) {
+  common_container_factory<std::set<std::size_t>> factory;
+  test_async_container_traversal_impl(factory);
+}
+
+TEST(async_traversal_container, visit_array) {
+  array_container_factory<std::size_t> factory;
+  test_async_container_traversal_impl(factory);
+}
+
+// Test by passing a tuple in the middle
+TEST(async_traversal_tuple_like, visit_tuple) {
   test_async_traversal_base<4U>(not_accepted_tag{}, 0U,
                                 make_tuple(1U, not_accepted_tag{}, 2U), 3U);
-  // Test by splitting the pack in two tuples
+}
+
+// Test by splitting the pack in two tuples
+TEST(async_traversal_tuple_like, visit_tuple_nested) {
   test_async_traversal_base<4U>(make_tuple(0U, not_accepted_tag{}, 1U),
                                 make_tuple(2U, 3U));
-  // Test by passing a huge tuple to the traversal
+}
+
+// Test by passing a huge tuple to the traversal
+TEST(async_traversal_tuple_like, visit_tuple_huge) {
   test_async_traversal_base<4U>(make_tuple(0U, 1U, 2U, 3U));
 }
 
@@ -221,16 +225,19 @@ Vector vector_of(T&& first, Args&&... args) {
   return Vector{std::forward<T>(first), std::forward<Args>(args)...};
 }
 
-void test_async_mixed_traversal() {
-  using container_t = std::vector<std::size_t>;
+// Test hierarchies where container and tuple like types are mixed
+TEST(async_traversal_mixed_traversal, visit_tuple_container) {
+  test_async_traversal_base<4U>(
+      0U, make_tuple(std::vector<std::size_t>{1U, 2U}), 3U);
+}
 
-  // Test hierarchies where container and tuple like types are mixed
-  test_async_traversal_base<4U>(0U, make_tuple(container_t{1U, 2U}), 3U);
-
+TEST(async_traversal_mixed_traversal, visit_mixed_non_accepted) {
   test_async_traversal_base<4U>(
       make_tuple(0U, vector_of(not_accepted_tag{}), vector_of(vector_of(1U))),
       make_tuple(2U, 3U));
+}
 
+TEST(async_traversal_mixed_traversal, visit_vector_vector_tuple) {
   test_async_traversal_base<4U>(
       vector_of(vector_of(make_tuple(0U, 1U, 2U, 3U))));
 }
