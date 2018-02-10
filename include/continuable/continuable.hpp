@@ -50,6 +50,8 @@ namespace cti {}
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/continuable-trait.hpp>
 #include <continuable/continuable-transforms.hpp>
+#include <continuable/continuable-traverse-async.hpp>
+#include <continuable/continuable-traverse.hpp>
 #include <continuable/continuable-types.hpp>
 
 #endif // CONTINUABLE_HPP_INCLUDED

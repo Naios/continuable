@@ -118,3 +118,10 @@ int main(int, char**) {
 
   return 0;
 }
+
+void teststh() {
+  cti::map_pack([](auto&& continuable) {
+    // ...
+    return 0;
+  });
+}
