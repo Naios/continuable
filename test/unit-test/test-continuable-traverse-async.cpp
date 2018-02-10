@@ -1,3 +1,70 @@
+
+/*
+  Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files(the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions :
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+**/
+
+#include <array>
+#include <memory>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
+#include <continuable/continuable-traverse-async.hpp>
+
+#include "test-continuable.hpp"
+
+using std::get;
+using std::make_tuple;
+using std::tuple;
+
+using cti::async_traverse_complete_tag;
+using cti::async_traverse_detach_tag;
+using cti::async_traverse_visit_tag;
+using cti::traverse_pack_async;
+
+struct my_visitor : std::enable_shared_from_this<my_visitor> {
+  virtual ~my_visitor() = default;
+
+  bool operator()(async_traverse_visit_tag, std::size_t i) {
+    (void)i;
+    return false;
+  }
+
+  template <typename N>
+  void operator()(async_traverse_detach_tag, std::size_t i, N&& next) {
+    (void)i;
+    next();
+  }
+
+  template <typename T>
+  void operator()(async_traverse_complete_tag, T&& pack) {
+    (void)pack;
+  }
+};
+
+TEST(misc_as_test, my_test) {
+  cti::traverse_pack_async(my_visitor{}, 0, 1, 2);
+}
+
 //  Copyright (c) 2017 Denis Blank
 //  Copyright Andrey Semashev 2007 - 2013.
 //
@@ -142,7 +209,7 @@ struct async_increasing_int_sync_visitor
 
     bool operator()(async_traverse_visit_tag, std::size_t i)
     {
-        HPX_TEST_EQ(i, this->counter());
+        EXPECT_EQ(i, this->counter());
         ++this->counter();
         return true;
     }
@@ -162,7 +229,7 @@ struct async_increasing_int_sync_visitor
     {
         HPX_UNUSED(pack);
 
-        HPX_TEST_EQ(this->counter(), ArgCount);
+        EXPECT_EQ(this->counter(), ArgCount);
         ++this->counter();
     }
 };
@@ -175,7 +242,7 @@ struct async_increasing_int_visitor
 
     bool operator()(async_traverse_visit_tag, std::size_t i) const
     {
-        HPX_TEST_EQ(i, this->counter());
+        EXPECT_EQ(i, this->counter());
         return false;
     }
 
@@ -193,7 +260,7 @@ struct async_increasing_int_visitor
     {
         HPX_UNUSED(pack);
 
-        HPX_TEST_EQ(this->counter(), ArgCount);
+        EXPECT_EQ(this->counter(), ArgCount);
         ++this->counter();
     }
 };
@@ -208,7 +275,7 @@ void test_async_traversal_base(Args&&... args)
             hpx::util::async_traverse_in_place_tag<
                 async_increasing_int_sync_visitor<ArgCount>>{},
             42, args...);
-        HPX_TEST_EQ(result->counter(), ArgCount + 1U);
+        EXPECT_EQ(result->counter(), ArgCount + 1U);
     }
 
     // Test that every element is traversed in the correct order
@@ -218,7 +285,7 @@ void test_async_traversal_base(Args&&... args)
             hpx::util::async_traverse_in_place_tag<
                 async_increasing_int_visitor<ArgCount>>{},
             42, args...);
-        HPX_TEST_EQ(result->counter(), ArgCount + 1U);
+        EXPECT_EQ(result->counter(), ArgCount + 1U);
     }
 }
 
@@ -337,7 +404,7 @@ struct async_unique_sync_visitor
 
     bool operator()(async_traverse_visit_tag, std::unique_ptr<std::size_t>& i)
     {
-        HPX_TEST_EQ(*i, this->counter());
+        EXPECT_EQ(*i, this->counter());
         ++this->counter();
         return true;
     }
@@ -359,7 +426,7 @@ struct async_unique_sync_visitor
     {
         HPX_UNUSED(pack);
 
-        HPX_TEST_EQ(this->counter(), ArgCount);
+        EXPECT_EQ(this->counter(), ArgCount);
         ++this->counter();
     }
 };
@@ -372,7 +439,7 @@ struct async_unique_visitor : async_counter_base<async_unique_visitor<ArgCount>>
     bool operator()(async_traverse_visit_tag,
         std::unique_ptr<std::size_t>& i) const
     {
-        HPX_TEST_EQ(*i, this->counter());
+        EXPECT_EQ(*i, this->counter());
         return false;
     }
 
@@ -392,7 +459,7 @@ struct async_unique_visitor : async_counter_base<async_unique_visitor<ArgCount>>
     {
         HPX_UNUSED(pack);
 
-        HPX_TEST_EQ(this->counter(), ArgCount);
+        EXPECT_EQ(this->counter(), ArgCount);
         ++this->counter();
     }
 };
@@ -408,7 +475,7 @@ static void test_async_move_only_traversal()
             hpx::util::async_traverse_in_place_tag<
                 async_unique_sync_visitor<4>>{},
             42, of(0), of(1), of(2), of(3));
-        HPX_TEST_EQ(result->counter(), 5U);
+        EXPECT_EQ(result->counter(), 5U);
     }
 
     {
@@ -416,7 +483,7 @@ static void test_async_move_only_traversal()
             hpx::util::async_traverse_in_place_tag<
                 async_unique_visitor<4>>{},
             42, of(0), of(1), of(2), of(3));
-        HPX_TEST_EQ(result->counter(), 5U);
+        EXPECT_EQ(result->counter(), 5U);
     }
 }
 
@@ -426,7 +493,7 @@ struct invalidate_visitor : async_counter_base<invalidate_visitor>
 
     bool operator()(async_traverse_visit_tag, std::shared_ptr<int>& i) const
     {
-        HPX_TEST_EQ(*i, 22);
+        EXPECT_EQ(*i, 22);
         return false;
     }
 
@@ -460,7 +527,7 @@ static void test_async_complete_invalidation()
         hpx::util::async_traverse_in_place_tag<invalidate_visitor>{},
         42, value);
 
-    HPX_TEST_EQ(value.use_count(), 1U);
+    EXPECT_EQ(value.use_count(), 1U);
 }
 
 int main(int, char**)

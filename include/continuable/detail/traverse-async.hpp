@@ -133,9 +133,7 @@ public:
   }
 
   /// We require a virtual base
-  ~async_traversal_frame() override {
-    assert(finished_.load());
-  }
+  virtual ~async_traversal_frame() override = default;
 
   template <typename MapperArg>
   explicit async_traversal_frame(async_traverse_in_place_tag<Visitor>,
@@ -161,13 +159,14 @@ public:
   /// when it's called later.
   template <typename T, typename Hierarchy>
   void async_continue(T&& value, Hierarchy&& hierarchy) {
-    // Create a self reference
-    boost::intrusive_ptr<async_traversal_frame> self(this);
+    // Cast the frame up
+    auto frame = std::static_pointer_cast<async_traversal_frame>(
+        this->shared_from_this());
 
     // Create a callable object which resumes the current
     // traversal when it's called.
     auto resumable = make_resume_traversal_callable(
-        std::move(self), std::forward<Hierarchy>(hierarchy));
+        std::move(frame), std::forward<Hierarchy>(hierarchy));
 
     // Invoke the visitor with the current value and the
     // callable object to resume the control flow.
@@ -197,12 +196,12 @@ struct static_async_range {
   }
 
   static_async_range(static_async_range const& rhs) = default;
-  static_async_range(static_async_range&& rhs) : target_(rhs.target_) {
+  static_async_range(static_async_range&& rhs) noexcept : target_(rhs.target_) {
     rhs.target_ = nullptr;
   }
 
   static_async_range& operator=(static_async_range const& rhs) = default;
-  static_async_range& operator=(static_async_range&& rhs) {
+  static_async_range& operator=(static_async_range&& rhs) noexcept {
     if (&rhs != this) {
       target_ = rhs.target_;
       rhs.target_ = nullptr;
@@ -210,18 +209,16 @@ struct static_async_range {
     return *this;
   }
 
-  constexpr auto operator*() const noexcept
-      -> decltype(std::get<Begin>(*target_)) {
+  constexpr decltype(auto) operator*() const noexcept {
     return std::get<Begin>(*target_);
   }
 
   template <std::size_t Position>
-  constexpr static_async_range<Target, Position, End> relocate() const
-      noexcept {
+  constexpr auto relocate() const noexcept {
     return static_async_range<Target, Position, End>{target_};
   }
 
-  constexpr static_async_range<Target, Begin + 1, End> next() const noexcept {
+  constexpr auto next() const noexcept {
     return static_async_range<Target, Begin + 1, End>{target_};
   }
 
@@ -243,12 +240,12 @@ struct static_async_range<Target, Begin, Begin> {
 };
 
 /// Returns a static range for the given type
-template <typename T, typename Range = static_async_range<
-                          typename std::decay<T>::type, 0U,
-                          std::tuple_size<typename std::decay<T>::type>::value>>
-Range make_static_range(T&& element) {
-  auto pointer = std::addressof(element);
-  return Range{pointer};
+template <typename T>
+auto make_static_range(T&& element) {
+  using range_t = static_async_range<std::decay_t<T>, 0U,
+                                     std::tuple_size<std::decay_t<T>>::value>;
+
+  return range_t{std::addressof(element)};
 }
 
 template <typename Begin, typename Sentinel>
@@ -282,9 +279,10 @@ using dynamic_async_range_of_t = dynamic_async_range<
     typename std::decay<decltype(std::end(std::declval<T>()))>::type>;
 
 /// Returns a dynamic range for the given type
-template <typename T, typename Range = dynamic_async_range_of_t<T>>
-Range make_dynamic_async_range(T&& element) {
-  return Range{std::begin(element), std::end(element)};
+template <typename T>
+auto make_dynamic_async_range(T&& element) {
+  using range_t = dynamic_async_range_of_t<T>;
+  return range_t{std::begin(element), std::end(element)};
 }
 
 /// Represents a particular point in a asynchronous traversal hierarchy
@@ -316,8 +314,7 @@ public:
   /// Creates a new traversal point which
   template <typename Parent>
   auto push(Parent&& parent)
-      -> async_traversal_point<Frame, typename std::decay<Parent>::type,
-                               Hierarchy...> {
+      -> async_traversal_point<Frame, std::decay_t<Parent>, Hierarchy...> {
     // Create a new hierarchy which contains the
     // the parent (the last traversed element).
     auto hierarchy = std::tuple_cat(
@@ -413,6 +410,7 @@ public:
                            current.template relocate<Sequence>()),
                        0)...};
     (void)dummy;
+    (void)current;
   }
 
   /// Traverse a static range
@@ -514,14 +512,11 @@ template <typename Visitor, typename... Args>
 struct async_traversal_types {
   /// Deduces to the async traversal frame type of the given
   /// traversal arguments and mapper
-  using frame_type = async_traversal_frame<typename std::decay<Visitor>::type,
-                                           typename std::decay<Args>::type...>;
-
-  /// The type of the frame pointer
-  using frame_pointer_type = boost::intrusive_ptr<frame_type>;
+  using frame_t = async_traversal_frame<typename std::decay<Visitor>::type,
+                                        typename std::decay<Args>::type...>;
 
   /// The type of the demoted visitor type
-  using visitor_pointer_type = boost::intrusive_ptr<Visitor>;
+  using visitor_t = Visitor;
 };
 
 template <typename Visitor, typename VisitorArg, typename... Args>
@@ -530,30 +525,40 @@ struct async_traversal_types<async_traverse_in_place_tag<Visitor>, VisitorArg,
     : async_traversal_types<Visitor, Args...> {};
 
 /// Traverses the given pack with the given mapper
-template <typename Visitor, typename... Args,
-          typename types = async_traversal_types<Visitor, Args...>>
-auto apply_pack_transform_async(Visitor&& visitor, Args&&... args) ->
-    typename types::visitor_pointer_type {
-  // Create the frame on the heap which stores the arguments
-  // to traverse asynchronous.
-  auto frame = [&] {
-    auto ptr = new typename types::frame_type(std::forward<Visitor>(visitor),
-                                              std::forward<Args>(args)...);
+template <typename Visitor, typename... Args>
+auto apply_pack_transform_async(Visitor&& visitor, Args&&... args) {
 
-    // Create an intrusive_ptr from the heap object, don't increase
-    // reference count (it's already 'one').
-    return typename types::frame_pointer_type(ptr, false);
-  }();
+  // Provide the frame and visitor type
+  using types = async_traversal_types<Visitor, Args...>;
+
+  // Check whether the visitor inherits enable_shared_from_this
+  static_assert(
+      std::is_base_of<std::enable_shared_from_this<typename types::visitor_t>,
+                      typename types::visitor_t>::value,
+      "The visitor must inherit std::enable_shared_from_this!");
+
+  // Check whether the visitor is virtual destructible
+  static_assert(std::has_virtual_destructor<typename types::visitor_t>::value,
+                "The visitor must have a virtual destructor!");
+
+  // Create the frame on the heap which stores the arguments
+  // to traverse asynchronous. It persists until the
+  // traversal frame isn't referenced anymore.
+  auto frame = std::make_shared<types::frame_t>(std::forward<Visitor>(visitor),
+                                                std::forward<Args>(args)...);
 
   // Create a static range for the top level tuple
-  auto range = make_static_range(frame->head());
+  auto range = std::make_tuple(make_static_range(frame->head()));
 
-  auto resumer =
-      make_resume_traversal_callable(frame, std::make_tuple(std::move(range)));
+  // Create a resumer to start the asynchronous traversal
+  auto resumer = make_resume_traversal_callable(frame, std::move(range));
 
   // Start the asynchronous traversal
   resumer();
-  return frame;
+
+  // Cast the shared_ptr down to the given visitor type
+  // for implementation invisibility
+  return std::static_pointer_cast<types::visitor_t>(std::move(frame));
 }
 } // namespace traversal
 } // namespace detail

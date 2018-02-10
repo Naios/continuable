@@ -105,7 +105,7 @@ using detail::traversal::async_traverse_in_place_tag;
 ///                  asynchronously. Nested objects inside containers and
 ///                  tuple like types are traversed recursively.
 ///
-/// \returns         A boost::intrusive_ptr that references an instance of
+/// \returns         A std::shared_ptr that references an instance of
 ///                  the given visitor object.
 ///
 /// \since           3.0.0
