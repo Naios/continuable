@@ -1,37 +1,61 @@
+add_library(test-continuable-base STATIC
+  ${CMAKE_CURRENT_LIST_DIR}/test-continuable.hpp
+  ${CMAKE_CURRENT_LIST_DIR}/test-continuable.cpp)
+
+target_include_directories(test-continuable-base
+  PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR})
+
+target_link_libraries(test-continuable-base
+  PUBLIC
+    gtest-main
+    cxx_function
+    continuable
+    continuable-features-flags
+    continuable-features-warnings
+    continuable-features-noexcept)
+
+add_executable(test-continuable-single
+  ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-expected.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-traverse.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-traverse-async.cpp)
+
+target_link_libraries(test-continuable-single
+  PUBLIC
+    test-continuable-base)
+
+target_include_directories(test-continuable-single
+  PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}/single)
+
+add_test(
+  NAME test-continuable-single
+  COMMAND continuable-unit-tests-single)
+
 foreach(STEP RANGE 4)
-  set(PROJECT_NAME test-continuable-${STEP})
-  set(TEST_NAME continuable-unit-tests-${STEP})
+  set(PROJECT_NAME test-continuable-multi-${STEP})
+  set(TEST_NAME continuable-unit-tests-multi-${STEP})
 
   add_executable(${PROJECT_NAME}
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable.hpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-await.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-chaining.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-destruct.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-errors.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-base-partial.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-all.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-any.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-connection-seq.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-expected.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-erasure.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-regression.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/test-continuable-transforms.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-traverse.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/test-continuable-traverse-async.cpp)
-
-  target_include_directories(${PROJECT_NAME}
-    PRIVATE
-      ${CMAKE_CURRENT_LIST_DIR})
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-await.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-chaining.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-destruct.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-errors.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-partial.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-all.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-any.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-seq.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-erasure.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-regression.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-transforms.cpp)
 
   target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-      gtest-main
-      cxx_function
-      continuable
-      continuable-features-flags
-      continuable-features-warnings
-      continuable-features-noexcept)
+    PUBLIC
+      test-continuable-base)
+
+  target_include_directories(${PROJECT_NAME}
+    PUBLIC
+      ${CMAKE_CURRENT_LIST_DIR})
 
   target_compile_definitions(${PROJECT_NAME}
     PUBLIC
