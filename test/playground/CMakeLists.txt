@@ -2,6 +2,7 @@ set(LIB_SOURCES
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-types.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-base.hpp
+  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-compositions.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-trait.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-promise-base.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/continuable-transforms.hpp

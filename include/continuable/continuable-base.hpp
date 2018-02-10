@@ -720,54 +720,6 @@ using detail::types::dispatch_error_tag;
 ///
 /// \since 2.0.0
 using detail::types::error_type;
-
-/// Connects the given continuables with an *all* logic.
-///
-/// \param continuables The continuable_base objects to connect.
-///        Requires at least 2 objects to connect.
-///
-/// \see continuable_base::operator && for details.
-///
-/// \since 1.1.0
-template <typename... Continuables>
-auto when_all(Continuables&&... continuables) {
-  static_assert(sizeof...(continuables) >= 2,
-                "Requires at least 2 continuables!");
-  return CONTINUABLE_FOLD_EXPRESSION(
-      &&, std::forward<Continuables>(continuables)...);
-}
-
-/// Connects the given continuables with an *any* logic.
-///
-/// \param continuables The continuable_base objects to connect.
-///        Requires at least 2 objects to connect.
-///
-/// \see continuable_base::operator|| for details.
-///
-/// \since 1.1.0
-template <typename... Continuables>
-auto when_any(Continuables&&... continuables) {
-  static_assert(sizeof...(continuables) >= 2,
-                "Requires at least 2 continuables!");
-  return CONTINUABLE_FOLD_EXPRESSION(
-      ||, std::forward<Continuables>(continuables)...);
-}
-
-/// Connects the given continuables with a *seq* logic.
-///
-/// \param continuables The continuable_base objects to connect.
-///        Requires at least 2 objects to connect.
-///
-/// \see continuable_base::operator>> for details.
-///
-/// \since 1.1.0
-template <typename... Continuables>
-auto when_seq(Continuables&&... continuables) {
-  static_assert(sizeof...(continuables) >= 2,
-                "Requires at least 2 continuables!");
-  return CONTINUABLE_FOLD_EXPRESSION(
-      >>, std::forward<Continuables>(continuables)...);
-}
 } // namespace cti
 
 #endif // CONTINUABLE_BASE_HPP_INCLUDED
