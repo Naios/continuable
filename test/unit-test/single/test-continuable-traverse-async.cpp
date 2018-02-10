@@ -123,6 +123,36 @@ struct async_increasing_int_visitor
   }
 };
 
+template <std::size_t ArgCount>
+struct async_increasing_int_interrupted_visitor
+    : async_counter_base<async_increasing_int_interrupted_visitor<ArgCount>> {
+
+  bool operator()(async_traverse_visit_tag, std::size_t i) {
+    EXPECT_EQ(i, this->counter());
+    ++this->counter();
+
+    // Detach the control flow at the second step
+    return i == 0;
+  }
+
+  template <typename N>
+  void operator()(async_traverse_detach_tag, std::size_t i, N&& next) {
+    EXPECT_EQ(i, 1U);
+    EXPECT_EQ(this->counter(), 2U);
+
+    // Don't call next here
+    unused(next);
+  }
+
+  template <typename T>
+  void operator()(async_traverse_complete_tag, T&& pack) const {
+    unused(pack);
+
+    // Will never be called
+    FAIL();
+  }
+};
+
 template <std::size_t ArgCount, typename... Args>
 void test_async_traversal_base(Args&&... args) {
   // Test that every element is traversed in the correct order
@@ -139,6 +169,14 @@ void test_async_traversal_base(Args&&... args) {
     auto result =
         traverse_pack_async(async_increasing_int_visitor<ArgCount>{}, args...);
     EXPECT_EQ(result->counter(), ArgCount + 1U);
+  }
+
+  // Test that the first element is traversed only,
+  // if we don't call the resume continuation.
+  {
+    auto result = traverse_pack_async(
+        async_increasing_int_interrupted_visitor<ArgCount>{}, args...);
+    EXPECT_EQ(result->counter(), 2U);
   }
 }
 
