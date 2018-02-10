@@ -66,7 +66,7 @@ struct my_callable {
   }
 };
 
-int main(int, char**) {
+void some_requests() {
   http_request("github.com").next(my_callable{});
 
   http_request("github.com") | [](std::string) {
@@ -115,13 +115,18 @@ int main(int, char**) {
       .fail([](std::error_condition) {
         // ...
       });
-
-  return 0;
 }
 
-void teststh() {
-  cti::map_pack([](auto&& continuable) {
-    // ...
-    return 0;
-  });
+int main(int, char**) {
+
+  std::vector<int> vc{1, 2, 3};
+
+  cti::map_pack(
+      [](auto&& continuable) {
+        // ...
+        return 0;
+      },
+      vc);
+
+  return 0;
 }
