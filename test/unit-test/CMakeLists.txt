@@ -29,8 +29,8 @@ target_include_directories(test-continuable-single
     ${CMAKE_CURRENT_LIST_DIR}/single)
 
 add_test(
-  NAME test-continuable-single
-  COMMAND continuable-unit-tests-single)
+  NAME continuable-unit-tests-single
+  COMMAND test-continuable-single)
 
 foreach(STEP RANGE 4)
   set(PROJECT_NAME test-continuable-multi-${STEP})

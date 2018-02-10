@@ -21,7 +21,7 @@
   SOFTWARE.
 **/
 
-#include "test-continuable.hpp"
+#include <test-continuable.hpp>
 
 TYPED_TEST(single_dimension_tests, are_chainable) {
   EXPECT_ASYNC_RESULT(this->supply().then([] {

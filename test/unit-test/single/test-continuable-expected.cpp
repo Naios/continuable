@@ -27,7 +27,7 @@
 #include <continuable/detail/expected.hpp>
 #include <continuable/detail/types.hpp>
 
-#include "test-continuable.hpp"
+#include <test-continuable.hpp>
 
 using cti::detail::types::error_type;
 using cti::detail::util::expected;

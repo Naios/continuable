@@ -25,7 +25,7 @@
 
 #include <continuable/detail/features.hpp>
 
-#include "test-continuable.hpp"
+#include <test-continuable.hpp>
 
 TYPED_TEST(single_dimension_tests, are_completing_errors) {
   ASSERT_ASYNC_EXCEPTION_COMPLETION(

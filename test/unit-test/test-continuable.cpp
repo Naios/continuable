@@ -21,7 +21,7 @@
   SOFTWARE.
 **/
 
-#include "test-continuable.hpp"
+#include <test-continuable.hpp>
 
 #if !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
 test_exception get_test_exception_proto() {

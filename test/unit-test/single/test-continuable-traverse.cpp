@@ -33,7 +33,7 @@
 
 #include <continuable/continuable-traverse.hpp>
 
-#include "test-continuable.hpp"
+#include <test-continuable.hpp>
 
 using std::get;
 using std::make_tuple;

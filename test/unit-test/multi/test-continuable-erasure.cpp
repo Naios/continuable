@@ -21,7 +21,7 @@
   SOFTWARE.
 **/
 
-#include "test-continuable.hpp"
+#include <test-continuable.hpp>
 
 #ifndef NO_ERASURE_TESTS
 

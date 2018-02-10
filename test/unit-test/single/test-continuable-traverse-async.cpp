@@ -35,7 +35,7 @@
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/util.hpp>
 
-#include "test-continuable.hpp"
+#include <test-continuable.hpp>
 
 using std::get;
 using std::make_tuple;

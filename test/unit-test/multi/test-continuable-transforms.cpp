@@ -23,7 +23,7 @@
 
 #include <continuable/continuable-transforms.hpp>
 
-#include "test-continuable.hpp"
+#include <test-continuable.hpp>
 
 using namespace cti;
 using namespace cti::detail;

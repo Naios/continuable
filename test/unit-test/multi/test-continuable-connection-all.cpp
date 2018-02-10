@@ -21,7 +21,7 @@
   SOFTWARE.
 **/
 
-#include "test-continuable.hpp"
+#include <test-continuable.hpp>
 
 TYPED_TEST(single_dimension_tests, is_logical_all_connectable) {
 
