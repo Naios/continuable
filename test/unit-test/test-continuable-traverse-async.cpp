@@ -238,7 +238,6 @@ template <std::size_t ArgCount>
 struct async_unique_sync_visitor
     : async_counter_base<async_unique_sync_visitor<ArgCount>> {
 
-  explicit async_unique_sync_visitor() = default;
   explicit async_unique_sync_visitor(not_accepted_tag) {
   }
 
@@ -271,7 +270,6 @@ template <std::size_t ArgCount>
 struct async_unique_visitor
     : async_counter_base<async_unique_visitor<ArgCount>> {
 
-  explicit async_unique_visitor() = default;
   explicit async_unique_visitor(not_accepted_tag) {
   }
 
@@ -299,9 +297,8 @@ struct async_unique_visitor
   }
 };
 
-template <typename T>
-constexpr auto of(T i) {
-  return std::make_unique<T>(i);
+inline auto of(std::size_t i) {
+  return std::make_unique<std::size_t>(i);
 }
 
 TEST(async_traverse_in_place, construct_inplace_sync) {
