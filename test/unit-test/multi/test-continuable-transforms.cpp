@@ -56,12 +56,10 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
   {
     auto canary = std::make_tuple(0xFD, 0xF5);
 
-    auto future = this->supply()
-                      .then([&] {
-                        // ...
-                        return canary;
-                      })
-                      .apply(cti::transforms::futurize());
+    auto future = this->supply().then([&] {
+      // ...
+      return canary;
+    }) | cti::transforms::futurize();
 
     ASSERT_TRUE(is_ready(future));
     EXPECT_EQ(future.get(), canary);

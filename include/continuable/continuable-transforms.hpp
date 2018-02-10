@@ -32,8 +32,23 @@
 #define CONTINUABLE_TRANSFORMS_HPP_INCLUDED
 
 #include <continuable/detail/transforms.hpp>
+#include <continuable/detail/types.hpp>
 
 namespace cti {
+/// A callable tag object which marks a wrapped callable object
+/// as continuable transformation which enables some useful overloads.
+///
+/// \since 3.0.0
+using detail::types::transform;
+
+/// Wraps the given callable object into a transform class.
+///
+/// \since 3.0.0
+template <typename T>
+auto make_transform(T&& callable) {
+  return transform<std::decay_t<T>>(std::forward<T>(callable));
+}
+
 /// The namespace transforms declares callable objects that transform
 /// any continuable_base to an object or to a continuable_base itself.
 ///
@@ -61,10 +76,10 @@ namespace transforms {
 ///
 /// \since 2.0.0
 inline auto futurize() {
-  return [](auto&& continuable) {
+  return make_transform([](auto&& continuable) {
     using detail::transforms::as_future;
     return as_future(std::forward<decltype(continuable)>(continuable));
-  };
+  });
 }
 
 /// Returns a transform that if applied to a continuable, it will ignores all
@@ -77,9 +92,9 @@ inline auto futurize() {
 ///
 /// \since 2.0.0
 inline auto flatten() {
-  return [](auto&& continuable) {
+  return make_transform([](auto&& continuable) {
     return std::forward<decltype(continuable)>(continuable).fail([](auto&&) {});
-  };
+  });
 }
 } // namespace transforms
 } // namespace cti

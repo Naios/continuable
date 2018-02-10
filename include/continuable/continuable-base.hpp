@@ -392,6 +392,22 @@ public:
     return std::move(*this).then(std::forward<T>(right));
   }
 
+  /// The pipe operator | is an alias for the continuable::apply method.
+  ///
+  /// \param transform The transformer which is applied.
+  ///
+  /// \returns See the corresponding continuable_base::apply method for the
+  ///          explanation of the return type.
+  ///
+  /// \note    You may create your own transformation through
+  ///          calling make_transformation.
+  ///
+  /// \since 3.0.0
+  template <typename T>
+  auto operator|(detail::types::transform<T> transform) && {
+    return std::move(*this).apply(std::move(transform));
+  }
+
   /// Invokes both continuable_base objects parallel and calls the
   /// callback with the result of both continuable_base objects.
   ///

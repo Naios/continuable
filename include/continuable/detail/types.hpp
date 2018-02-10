@@ -31,6 +31,8 @@
 #ifndef CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED
 
+#include <utility>
+
 #include <continuable/detail/features.hpp>
 
 #ifndef CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
@@ -64,6 +66,16 @@ using error_type = std::error_condition;
 struct this_thread_executor_tag {};
 /// A tag which is used to continue with an error
 struct dispatch_error_tag {};
+
+/// Marks a given callable object as transformation
+template <typename T>
+class transform : T {
+public:
+  explicit transform(T callable) : T(std::move(callable)) {
+  }
+
+  using T::operator();
+};
 
 } // namespace types
 } // namespace detail
