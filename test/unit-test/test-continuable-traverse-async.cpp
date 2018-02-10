@@ -73,9 +73,6 @@ public:
 template <std::size_t ArgCount>
 struct async_increasing_int_sync_visitor
     : async_counter_base<async_increasing_int_sync_visitor<ArgCount>> {
-  explicit async_increasing_int_sync_visitor(int /*dummy*/) {
-  }
-
   bool operator()(async_traverse_visit_tag, std::size_t i) {
     EXPECT_EQ(i, this->counter());
     ++this->counter();
@@ -103,8 +100,6 @@ struct async_increasing_int_sync_visitor
 template <std::size_t ArgCount>
 struct async_increasing_int_visitor
     : async_counter_base<async_increasing_int_visitor<ArgCount>> {
-  explicit async_increasing_int_visitor(int /*dummy*/) {
-  }
 
   bool operator()(async_traverse_visit_tag, std::size_t i) const {
     EXPECT_EQ(i, this->counter());
@@ -133,19 +128,16 @@ void test_async_traversal_base(Args&&... args) {
   // Test that every element is traversed in the correct order
   // when we detach the control flow on every visit.
   {
-    auto result =
-        traverse_pack_async(async_traverse_in_place_tag<
-                                async_increasing_int_sync_visitor<ArgCount>>{},
-                            42, args...);
+    auto result = traverse_pack_async(
+        async_increasing_int_sync_visitor<ArgCount>{}, args...);
     EXPECT_EQ(result->counter(), ArgCount + 1U);
   }
 
   // Test that every element is traversed in the correct order
   // when we detach the control flow on every visit.
   {
-    auto result = traverse_pack_async(
-        async_traverse_in_place_tag<async_increasing_int_visitor<ArgCount>>{},
-        42, args...);
+    auto result =
+        traverse_pack_async(async_increasing_int_visitor<ArgCount>{}, args...);
     EXPECT_EQ(result->counter(), ArgCount + 1U);
   }
 }
@@ -245,7 +237,9 @@ TEST(async_traversal_mixed_traversal, visit_vector_vector_tuple) {
 template <std::size_t ArgCount>
 struct async_unique_sync_visitor
     : async_counter_base<async_unique_sync_visitor<ArgCount>> {
-  explicit async_unique_sync_visitor(int /*dummy*/) {
+
+  explicit async_unique_sync_visitor() = default;
+  explicit async_unique_sync_visitor(not_accepted_tag) {
   }
 
   bool operator()(async_traverse_visit_tag, std::unique_ptr<std::size_t>& i) {
@@ -276,7 +270,9 @@ struct async_unique_sync_visitor
 template <std::size_t ArgCount>
 struct async_unique_visitor
     : async_counter_base<async_unique_visitor<ArgCount>> {
-  explicit async_unique_visitor(int /*dummy*/) {
+
+  explicit async_unique_visitor() = default;
+  explicit async_unique_visitor(not_accepted_tag) {
   }
 
   bool operator()(async_traverse_visit_tag,
@@ -310,22 +306,19 @@ constexpr auto of(T i) {
 
 TEST(async_traverse_in_place, construct_inplace_sync) {
   auto result = traverse_pack_async(
-      async_traverse_in_place_tag<async_unique_sync_visitor<4>>{}, 42, of(0),
-      of(1), of(2), of(3));
+      async_traverse_in_place_tag<async_unique_sync_visitor<4>>{},
+      not_accepted_tag{}, of(0), of(1), of(2), of(3));
   EXPECT_EQ(result->counter(), 5U);
 }
 
 TEST(async_traverse_in_place, construct_inplace_async) {
   auto result = traverse_pack_async(
-      async_traverse_in_place_tag<async_unique_visitor<4>>{}, 42, of(0), of(1),
-      of(2), of(3));
+      async_traverse_in_place_tag<async_unique_visitor<4>>{},
+      not_accepted_tag{}, of(0), of(1), of(2), of(3));
   EXPECT_EQ(result->counter(), 5U);
 }
 
 struct invalidate_visitor : async_counter_base<invalidate_visitor> {
-  explicit invalidate_visitor(int /*dummy*/) {
-  }
-
   bool operator()(async_traverse_visit_tag, std::shared_ptr<int>& i) const {
     EXPECT_EQ(*i, 22);
     return false;
@@ -353,8 +346,7 @@ struct invalidate_visitor : async_counter_base<invalidate_visitor> {
 TEST(async_complete_invalidation, check_whether_frame_released) {
   auto value = std::make_shared<int>(22);
 
-  auto frame = traverse_pack_async(
-      async_traverse_in_place_tag<invalidate_visitor>{}, 42, value);
+  auto frame = traverse_pack_async(invalidate_visitor{}, value);
 
   EXPECT_EQ(value.use_count(), 1L);
 }
