@@ -63,9 +63,9 @@ namespace detail {
 ///     -> void
 namespace base {
 template <typename T>
-struct is_continuation : std::false_type {};
+struct is_continuable : std::false_type {};
 template <typename Data, typename Annotation>
-struct is_continuation<continuable_base<Data, Annotation>> : std::true_type {};
+struct is_continuable<continuable_base<Data, Annotation>> : std::true_type {};
 
 /// Helper class to access private methods and members of
 /// the continuable_base class.
@@ -501,7 +501,7 @@ template <handle_results HandleResults, handle_errors HandleErrors,
           typename Continuation, typename Callback, typename Executor>
 auto chain_continuation(Continuation&& continuation, Callback&& callback,
                         Executor&& executor) {
-  static_assert(is_continuation<std::decay_t<Continuation>>{},
+  static_assert(is_continuable<std::decay_t<Continuation>>{},
                 "Expected a continuation!");
 
   using Hint = decltype(hints::hint_of(traits::identity_of(continuation)));

@@ -44,6 +44,11 @@
 #include <continuable/detail/util.hpp>
 
 namespace cti {
+/// Deduces to a true_type if the given type is a continuable_base.
+///
+/// \since 3.0.0
+using detail::base::is_continuable;
+
 /// The main class of the continuable library, it provides the functionality
 /// for chaining callbacks and continuations together to a unified hierarchy.
 ///
