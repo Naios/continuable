@@ -22,6 +22,8 @@
 
 #include <string>
 #include <system_error>
+#include <tuple>
+#include <vector>
 
 #include <continuable/continuable.hpp>
 
@@ -117,16 +119,65 @@ void some_requests() {
       });
 }
 
+namespace cti {
+namespace detail {
+
+struct c {};
+
+template <typename C, typename... Args>
+struct loc {};
+
+struct runtime_insertion {
+  std::size_t begin, end;
+};
+
+template <typename... Args>
+struct future_result {
+  std::tuple<Args...> result_;
+};
+
+template <std::size_t Begin, std::size_t End>
+struct static_insertion {};
+
+template <typename... Hierarchy>
+struct indexer_frame {
+  std::tuple<Hierarchy...> hierarchy_;
+
+  template <typename T, std::enable_if_t<true>* = nullptr>
+  auto operator()(T&& continuable) {
+  }
+};
+
+struct result_extractor_mapper {
+  template <typename T,
+            std::enable_if_t<is_continuable<std::decay_t<T>>::value>* = nullptr>
+  auto operator()(T&& continuable) {
+
+  }
+};
+
+// 0. We create the result pack from the provides values and
+//    the async values if those are default constructible,
+//    otherwise use a lazy initialization wrapper and unwrap
+//    the whole pack when the composition is finished.
+//    value -> value, single async value -> single value
+//    multiple async value -> tuple of async values.
+//
+// 1.
+
+} // namespace detail
+} // namespace cti
+
 int main(int, char**) {
+
+  using namespace cti::detail;
 
   std::vector<int> vc{1, 2, 3};
 
-  cti::map_pack(
-      [](auto&& continuable) {
-        // ...
-        return 0;
-      },
-      vc);
+  // std::tuple<c, c, c> t;
+  // std::tuple<loc<c, ct<0>>, c, c> loc;
+
+  cti::map_pack([](auto&& /*continuable*/) { return 0; }, vc);
 
   return 0;
 }

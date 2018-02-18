@@ -364,7 +364,6 @@ public:
       // If the traversal method returns false, we detach the
       // current execution context and call the visitor with the
       // element and a continue callable object again.
-
       frame_->async_continue(*current, std::move(hierarchy));
     }
   }
