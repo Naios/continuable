@@ -49,11 +49,20 @@ namespace remapping {
 // Guard object for representing void results
 struct void_result_guard {};
 
+/// Contains an continuable together with a location where the
+/// result shall be stored.
+template <typename Continuable, typename Target>
+struct indexed_continuable {
+  Continuable continuable;
+  Target* target;
+};
+
+namespace detail {
 struct result_extractor_mapper {
   /// Create slots for a void result which is removed later.
   /// This is required due to the fact that each continuable has exactly
   /// one matching valuen inside the result tuple.
-  static constexpr auto initialize(hints::signature_hint_tag<>) {
+  static constexpr auto initialize(hints::signature_hint_tag<>) noexcept {
     return void_result_guard{};
   }
   /// Initialize a single value
@@ -80,47 +89,79 @@ struct result_extractor_mapper {
   }
 };
 
-/// Returns the result pack of the given deeply nested pack.
-/// This invalidates all non-continuable values contained inside the pack.
-template <typename... Args>
-constexpr auto create_result_pack(Args&&... args) {
-  return cti::map_pack(result_extractor_mapper{}, std::forward<Args>(args)...);
-}
-
-/// Contains an continuable together with a location where the
-/// result shall be stored.
-template <typename Continuable, typename Target>
-struct indexed_continuable {
-  Continuable continuable;
-  Target* target;
-};
-
-template <typename Target>
-struct result_indexer {
-  Target* target;
-
+/// Maps a deeply nested pack of continuables to
+struct result_indexer_mapper {
+  /// Index a given continuable together with its target location
   template <
       typename T,
       std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
   auto operator()(T&& continuable) {
-    using type = indexed_continuable<std::decay_t<T>, Target>;
-    return type{std::forward<T>(continuable), target};
+    auto constexpr const hint = hints::hint_of(traits::identify<T>{});
+
+    using target = decltype(result_extractor_mapper::initialize(hint));
+
+    using type = indexed_continuable<std::decay_t<T>, target>;
+    return type{std::forward<T>(continuable), nullptr};
   }
 
-    template <
+  /// Remove all other non container values from this pack
+  /*template <
       typename T,
-      std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
-  auto operator()(T&& continuable) {
-    using type = indexed_continuable<std::decay_t<T>, Target>;
-    return type{std::forward<T>(continuable), target};
-  }
+      typename Category = traversal::container_category_of_t<std::decay_t<T>>,
+      std::enable_if_t<!Category::value>* = nullptr>
+  auto operator()(T&&) {
+    return spread_this();
+  }*/
 };
+} // namespace detail
 
-/// Returns the index pack of the given deeply nested pack
-template <typename Target, typename... Args>
-constexpr auto index_result_pack(Target* target, Args&&... args) {
-  return cti::map_pack(result_extractor_mapper{}, std::forward<Args>(args)...);
+/// Returns the result pack of the given deeply nested pack.
+/// This invalidates all non-continuable values contained inside the pack.
+///
+/// This consumes all non continuables inside the pack.
+template <typename... Args>
+constexpr auto create_result_pack(Args&&... args) {
+  return cti::map_pack(detail::result_extractor_mapper{},
+                       std::forward<Args>(args)...);
 }
+
+/// Returns the result pack of the given deeply nested pack.
+/// This invalidates all non-continuable values contained inside the pack.
+///
+/// This consumes all continuables inside the pack.
+template <typename... Args>
+constexpr auto create_index_pack(Args&&... args) {
+  return cti::map_pack(detail::result_indexer_mapper{},
+                       std::forward<Args>(args)...);
+}
+
+/// Sets the target pointers of indexed_continuable's inside the index pack
+/// to point to their given counterparts inside the given target.
+template <typename Index, typename Target>
+constexpr auto relocate_index_pack(Index* index, Target* target) {
+  /*return cti::map_pack(detail::result_indexer_mapper{},
+                       std::forward<Args>(args)...);*/
+}
+
+/*
+template <typename T>
+auto remape_container(traversal::container_category_tag<false, true>,
+                      T&& container) {
+}
+
+template <bool IsTupleLike, typename T>
+auto remape_container(traversal::container_category_tag<true, IsTupleLike>,
+                      T&& container) {
+}
+
+template <
+    typename T,
+    typename Category = traversal::container_category_of_t<std::decay_t<T>>,
+    std::enable_if_t<Category::value>* = nullptr>
+auto operator()(T&& container) {
+  return remape_container(std::forward<T>(container));
+}
+ */
 } // namespace remapping
 
 struct c {};
@@ -151,8 +192,11 @@ int main(int, char**) {
   // std::tuple<loc<c, ct<0>>, c, c> loc;
 
   auto p =
-      create_result_pack(0, 4, cti::make_ready_continuable(0),
-                         std::make_tuple(1, 2), cti::make_ready_continuable(0));
+      std::make_tuple(0, 4, cti::make_ready_continuable(0),
+                      std::make_tuple(1, 2), cti::make_ready_continuable(0));
+
+  auto r = create_result_pack(std::move(p));
+  auto i = create_index_pack(std::move(p));
 
   return 0;
 }

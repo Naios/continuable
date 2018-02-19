@@ -60,6 +60,8 @@ struct is_tuple_like<T, traits::void_t<decltype(std::tuple_size<T>::value)>>
 
 /// A tag for dispatching based on the tuple like
 /// or container properties of a type.
+///
+/// This type deduces to a true_type if it has any category.
 template <bool IsContainer, bool IsTupleLike>
 struct container_category_tag
     : std::integral_constant<bool, IsContainer || IsTupleLike> {};

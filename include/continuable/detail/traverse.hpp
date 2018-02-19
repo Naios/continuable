@@ -735,7 +735,7 @@ class mapping_helper : protected mapping_strategy_base<Strategy> {
       -> decltype(std::declval<mapping_helper>().invoke_mapper(
           std::forward<T>(element))) {
     // T could be any non container or non tuple like type here,
-    // take int or hpx::future<int> as an example.
+    // take int or std::future<int> as an example.
     return invoke_mapper(std::forward<T>(element));
   }
 
