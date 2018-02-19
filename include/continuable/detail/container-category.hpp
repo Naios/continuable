@@ -39,7 +39,6 @@
 namespace cti {
 namespace detail {
 namespace traversal {
-namespace detail {
 /// Deduces to a true type if the given parameter T
 /// has a begin() and end() method.
 // TODO Find out whether we should use std::begin and std::end instead, which
@@ -59,18 +58,16 @@ template <typename T>
 struct is_tuple_like<T, traits::void_t<decltype(std::tuple_size<T>::value)>>
     : std::true_type {};
 
-} // namespace detail
-
 /// A tag for dispatching based on the tuple like
 /// or container properties of a type.
 template <bool IsContainer, bool IsTupleLike>
-struct container_category_tag {};
+struct container_category_tag
+    : std::integral_constant<bool, IsContainer || IsTupleLike> {};
 
 /// Deduces to the container_category_tag of the given type T.
 template <typename T>
 using container_category_of_t =
-    container_category_tag<detail::is_range<T>::value,
-                           detail::is_tuple_like<T>::value>;
+    container_category_tag<is_range<T>::value, is_tuple_like<T>::value>;
 } // namespace traversal
 } // namespace detail
 } // namespace cti

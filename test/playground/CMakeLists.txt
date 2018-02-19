@@ -25,7 +25,8 @@ set(LIB_SOURCES_DETAIL
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/testing.hpp
   ${CMAKE_SOURCE_DIR}/include/continuable/detail/util.hpp)
 set(TEST
-  ${CMAKE_CURRENT_LIST_DIR}/test-playground.cpp)
+  ${CMAKE_CURRENT_LIST_DIR}/test-playground.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/comp.cpp)
 
 add_executable(test-playground
   ${LIB_SOURCES}
