@@ -707,6 +707,72 @@ auto make_continuable(Continuation&& continuation) {
       detail::util::ownership{});
 }
 
+/// Returns a continuable with no result which instantly resolves
+/// the promise with no values.
+///
+/// \attention Usually using this function isn't needed at all since
+///            the continuable library is capable of working with
+///            plain values in most cases.
+///            Try not to use it since it causes unneccessary recursive
+///            function calls.
+///
+/// \since     3.0.0
+template <typename... Args>
+constexpr auto make_ready_continuable() {
+  return make_continuable<void>([](auto&& promise) {
+    std::forward<decltype(promise)>(promise).set_value();
+  });
+}
+
+/// Returns a continuable with one result value which instantly resolves
+/// the promise with the given value.
+///
+/// \copydetails make_ready_continuable()
+template <typename Result>
+constexpr auto make_ready_continuable(Result&& result) {
+  return make_continuable<std::decay_t<Result>>( // ...
+      [result = std::forward<Result>(result)](auto&& promise) mutable {
+        std::forward<decltype(promise)>(promise).set_value(std::move(result));
+      });
+}
+
+/// Returns a continuable with multiple result values which instantly resolves
+/// the promise with the given values.
+///
+/// \copydetails make_ready_continuable()
+template <typename FirstResult, typename SecondResult, typename... Rest>
+constexpr auto make_ready_continuable(FirstResult&& first_result,
+                                      SecondResult&& second_result,
+                                      Rest&&... rest) {
+  return make_continuable<std::decay_t<FirstResult>, std::decay_t<SecondResult>,
+                          std::decay_t<Rest>...>( // ...
+      [result = std::make_tuple(std::forward<FirstResult>(first_result),
+                                std::forward<SecondResult>(second_result),
+                                std::forward<Rest>(rest)...)](
+          auto&& promise) mutable {
+        detail::traits::unpack(result,
+                               std::forward<decltype(promise)>(promise));
+      });
+}
+
+/// Returns a continuable with the parameterized result which instantly
+/// resolves the promise with the given error type.
+///
+/// \tparam FirstArg The first result of the fake signature of the
+///                  returned continuable.
+/// \tparam Rest     The rest of the result of the fake signature of the
+///                  returned continuable.
+///
+/// \since           3.0.0
+template <typename Exception, typename FirstArg = void, typename... Rest>
+constexpr auto make_exceptional_continuable(Exception&& exception) {
+  return make_continuable<FirstArg, Rest...>( // ...
+      [exception = std::forward<Exception>(exception)](auto&& promise) {
+        std::forward<decltype(promise)>(promise).set_exception(
+            std::move(exception));
+      });
+}
+
 /// Represents a tag which can be placed first in a signature
 /// in order to overload callables with the asynchronous result
 /// as well as an error.
