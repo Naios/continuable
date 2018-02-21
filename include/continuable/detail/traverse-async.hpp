@@ -105,11 +105,56 @@ auto make_resume_traversal_callable(Frame&& frame, State&& state)
       std::forward<Frame>(frame), std::forward<State>(state));
 }
 
-/// Stores the visitor and the arguments to traverse
+template <typename T, typename = void>
+struct has_head : std::false_type {};
+template <typename T>
+struct has_head<T, traits::void_t<decltype(std::declval<T>().head())>>
+    : std::true_type {};
+
 template <typename Visitor, typename... Args>
-class async_traversal_frame : public Visitor {
+class async_traversal_frame_data : public Visitor {
+
   std::tuple<Args...> args_;
 
+public:
+  explicit async_traversal_frame_data(Visitor visitor, Args... args)
+      : Visitor(std::move(visitor)),
+        args_(std::make_tuple(std::move(args)...)) {
+  }
+  template <typename MapperArg>
+  explicit async_traversal_frame_data(async_traverse_in_place_tag<Visitor>,
+                                      MapperArg&& mapper_arg, Args... args)
+      : Visitor(std::forward<MapperArg>(mapper_arg)),
+        args_(std::make_tuple(std::move(args)...)) {
+  }
+
+  /// Returns the arguments of the frame
+  std::tuple<Args...>& head() noexcept {
+    return args_;
+  }
+};
+template <typename Visitor>
+class async_traversal_frame_no_data : public Visitor {
+public:
+  explicit async_traversal_frame_no_data(Visitor visitor)
+      : Visitor(std::move(visitor)) {
+  }
+  template <typename MapperArg>
+  explicit async_traversal_frame_no_data(async_traverse_in_place_tag<Visitor>,
+                                         MapperArg&& mapper_arg)
+      : Visitor(std::forward<MapperArg>(mapper_arg)) {
+  }
+};
+
+template <typename Visitor, typename... Args>
+using data_layout_t =
+    std::conditional_t<has_head<Visitor>::value,
+                       async_traversal_frame_no_data<Visitor>,
+                       async_traversal_frame_data<Visitor, Args...>>;
+
+/// Stores the visitor and the arguments to traverse
+template <typename Visitor, typename... Args>
+class async_traversal_frame : public data_layout_t<Visitor, Args...> {
 #ifndef _NDEBUG
   std::atomic<bool> finished_;
 #endif // _NDEBUG
@@ -123,8 +168,9 @@ class async_traversal_frame : public Visitor {
   }
 
 public:
-  explicit async_traversal_frame(Visitor visitor, Args... args)
-      : Visitor(std::move(visitor)), args_(std::make_tuple(std::move(args)...))
+  template <typename... T>
+  explicit async_traversal_frame(T&&... args)
+      : data_layout_t<Visitor, Args...>(std::forward<T>(args)...)
 #ifndef _NDEBUG
         ,
         finished_(false)
@@ -134,18 +180,6 @@ public:
 
   /// We require a virtual base
   virtual ~async_traversal_frame() override = default;
-
-  template <typename MapperArg>
-  explicit async_traversal_frame(async_traverse_in_place_tag<Visitor>,
-                                 MapperArg&& mapper_arg, Args... args)
-      : Visitor(std::forward<MapperArg>(mapper_arg)),
-        args_(std::make_tuple(std::move(args)...)), finished_(false) {
-  }
-
-  /// Returns the arguments of the frame
-  std::tuple<Args...>& head() noexcept {
-    return args_;
-  }
 
   /// Calls the visitor with the given element
   template <typename T>
@@ -184,7 +218,7 @@ public:
     }
 #endif // _NDEBUG
 
-    visitor()(async_traverse_complete_tag{}, std::move(args_));
+    visitor()(async_traverse_complete_tag{}, std::move(this->head()));
   }
 };
 
