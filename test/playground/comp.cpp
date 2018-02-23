@@ -57,6 +57,12 @@ struct indexed_continuable {
   Target* target;
 };
 
+template <typename T>
+struct is_indexed_continuable : std::false_type {};
+template <typename Continuable, typename Target>
+struct is_indexed_continuable<indexed_continuable<Continuable, Target>>
+    : std::true_type {};
+
 namespace detail {
 struct result_extractor_mapper {
   /// Create slots for a void result which is removed later.
@@ -107,25 +113,38 @@ struct result_indexer_mapper {
 
 /// Relocates the target of a deeply nested pack of indexed_continuable objects
 /// to the given target.
+template <typename Evaluator>
 struct result_relocator_mapper {
-  template <typename Index, typename Result>
-  static void traverse(traversal::container_category_tag<false, false>,
-                       Index* /*index*/, Result* /*result*/) {
-    // Don't do anything when dealing witrh casual objects
-  }
-  template <typename Continuable, typename Target, typename Result>
-  static void traverse(traversal::container_category_tag<false, false>,
-                       indexed_continuable<Continuable, Target>* index,
-                       Result* result) {
+  Evaluator evaluator;
 
-    // Assign the address of the target to the indexed continuable
-    index->target = result;
+  template <typename Index, typename Result>
+  void traverse_one(std::false_type, Index*, Result*) {
+    // Don't do anything when dealing with casual objects
+  }
+  template <typename Index, typename Result>
+  void traverse_one(std::true_type, Index* index, Result* result) {
+
+    // Call the evaluator with the address of the indexed object and its target
+    evaluator(index, result);
+  }
+  template <typename Index, typename Result>
+  void traverse(traversal::container_category_tag<false, false>, Index* index,
+                Result* result) {
+
+    auto id = traits::identity<std::decay_t<decltype(index)>>{};
+    auto i = is_indexed_continuable<std::decay_t<decltype(index)>>::value;
+    auto res = traits::is_invocable<Evaluator, Index, Result>{};
+
+    evaluator(index, result);
+
+    traverse_one(traits::is_invocable<Evaluator, Index, Result>{}, index,
+                 result);
   }
 
   /// Traverse a homogeneous container
   template <bool IsTupleLike, typename Index, typename Result>
-  static void traverse(traversal::container_category_tag<true, IsTupleLike>,
-                       Index* index, Result* result) {
+  void traverse(traversal::container_category_tag<true, IsTupleLike>,
+                Index* index, Result* result) {
     auto index_itr = index->begin();
     auto const index_end = index->end();
 
@@ -142,8 +161,8 @@ struct result_relocator_mapper {
   }
 
   template <std::size_t... I, typename Index, typename Result>
-  static void traverse_tuple_like(std::integer_sequence<std::size_t, I...>,
-                                  Index* index, Result* result) {
+  void traverse_tuple_like(std::integer_sequence<std::size_t, I...>,
+                           Index* index, Result* result) {
 
     (void)std::initializer_list<int>{(
         (void)traverse(
@@ -154,10 +173,11 @@ struct result_relocator_mapper {
 
   /// Traverse tuple like container
   template <typename Index, typename Result>
-  static void traverse(traversal::container_category_tag<false, true>,
-                       Index* index, Result* result) {
+  void traverse(traversal::container_category_tag<false, true>, Index* index,
+                Result* result) {
 
-    constexpr std::make_index_sequence<std::tuple_size<Index>::value> const i{};
+    std::make_index_sequence<std::tuple_size<Index>::value> constexpr const i{};
+
     traverse_tuple_like(i, index, result);
   }
 };
@@ -185,10 +205,15 @@ constexpr auto create_index_pack(Args&&... args) {
 
 /// Sets the target pointers of indexed_continuable's inside the index pack
 /// to point to their given counterparts inside the given target.
-template <typename Index, typename Target>
-constexpr void relocate_index_pack(Index* index, Target* target) {
+template <typename Relocator, typename Index, typename Target>
+constexpr void relocate_index_pack(Relocator&& relocator, Index* index,
+                                   Target* target) {
   constexpr traversal::container_category_of_t<Index> const tag;
-  detail::result_relocator_mapper::traverse(tag, index, target);
+
+  detail::result_relocator_mapper<std::decay_t<Relocator>> mapper{
+      std::forward<Relocator>(relocator)};
+
+  mapper.traverse(tag, index, target);
 }
 
 /*
@@ -239,14 +264,23 @@ int main(int, char**) {
   // std::tuple<c, c, c> t;
   // std::tuple<loc<c, ct<0>>, c, c> loc;
 
-  auto p =
-      std::make_tuple(0, 4, cti::make_ready_continuable(0),
-                      std::make_tuple(1, 2), cti::make_ready_continuable(0));
+  auto p = std::make_tuple(cti::make_ready_continuable(0) /*, 0, 4,
+                      std::make_tuple(1, 2), cti::make_ready_continuable(0)*/);
 
   auto r = create_result_pack(std::move(p));
   auto i = create_index_pack(std::move(p));
 
-  relocate_index_pack(&i, &r);
+  relocate_index_pack(
+      [](auto index, auto result)
+          -> std::enable_if_t<is_indexed_continuable<
+              std::remove_pointer_t<std::decay_t<decltype(index)>>>::value> {
+
+        // Assign the address of the target to the indexed continuable
+        index->target = result;
+
+        return;
+      },
+      &i, &r);
 
   return 0;
 }
