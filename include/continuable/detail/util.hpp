@@ -137,6 +137,31 @@ template <typename T, typename... Args>
       is_invokable, std::forward<T>(callable), std::forward<Args>(args)...);
 }
 
+/// Invokes the given callable object with the given arguments
+template <typename Callable, typename... Args>
+constexpr auto invoke(Callable&& callable, Args&&... args) noexcept(
+    noexcept(std::forward<Callable>(callable)(std::forward<Args>(args)...)))
+    -> decltype(std::forward<Callable>(callable)(std::forward<Args>(args)...)) {
+
+  return std::forward<Callable>(callable)(std::forward<Args>(args)...);
+}
+/// Invokes the given member function pointer by reference
+template <typename T, typename Type, typename Self, typename... Args>
+constexpr auto invoke(Type T::*member, Self&& self, Args&&... args) noexcept(
+    noexcept((std::forward<Self>(self).*member)(std::forward<Args>(args)...)))
+    -> decltype((std::forward<Self>(self).*
+                 member)(std::forward<Args>(args)...)) {
+  return (std::forward<Self>(self).*member)(std::forward<Args>(args)...);
+}
+/// Invokes the given member function pointer by pointer
+template <typename T, typename Type, typename Self, typename... Args>
+constexpr auto invoke(Type T::*member, Self&& self, Args&&... args) noexcept(
+    noexcept((std::forward<Self>(self)->*member)(std::forward<Args>(args)...)))
+    -> decltype(
+        (std::forward<Self>(self)->*member)(std::forward<Args>(args)...)) {
+  return (std::forward<Self>(self)->*member)(std::forward<Args>(args)...);
+}
+
 // Class for making child classes non copyable
 struct non_copyable {
   constexpr non_copyable() = default;

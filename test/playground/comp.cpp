@@ -253,7 +253,34 @@ struct future_result {
 } // namespace detail
 } // namespace cti
 
-using namespace cti::detail::remapping;
+using namespace cti::detail;
+using namespace remapping;
+
+template <typename... Result>
+struct promisify {
+  template <typename Callable, typename... Args>
+  static auto from(Callable&& callable, Args&&... args) {
+    return cti::make_continuable<Result...>([args = std::make_tuple(
+                                                 std::forward<Callable>(
+                                                     callable),
+                                                 std::forward<Args>(args)...)](
+        auto&& promise) mutable {
+
+      traits::unpack(std::move(args), [promise =
+                                           std::forward<decltype(promise)>(
+                                               promise)](
+                                          auto&&... args) mutable {
+        util::invoke(
+            std::forward<decltype(args)>(args)..., [promise =
+                                                        std::move(promise)](
+                                                       auto&&... /*result*/){
+
+                                                   });
+      });
+
+    });
+  }
+};
 
 int main(int, char**) {
 
@@ -270,7 +297,7 @@ int main(int, char**) {
   auto r = create_result_pack(std::move(p));
   auto i = create_index_pack(std::move(p));
 
-  relocate_index_pack(
+  /*relocate_index_pack(
       [](auto index, auto result)
           -> std::enable_if_t<is_indexed_continuable<
               std::remove_pointer_t<std::decay_t<decltype(index)>>>::value> {
@@ -280,7 +307,11 @@ int main(int, char**) {
 
         return;
       },
-      &i, &r);
+      &i, &r);*/
+
+  auto t = [](auto&&...) {};
+
+  promisify<int>::from(t, "");
 
   return 0;
 }
