@@ -1,4 +1,12 @@
+
 /*
+
+                        /~` _  _ _|_. _     _ |_ | _
+                        \_,(_)| | | || ||_|(_||_)|(/_
+
+                    https://github.com/Naios/continuable
+                                   v3.0.0
+
   Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,31 +28,31 @@
   SOFTWARE.
 **/
 
+#ifndef CONTINUABLE_DETAIL_COMPOSITION_REMAPPING_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_COMPOSITION_REMAPPING_HPP_INCLUDED
+
 #include <tuple>
+#include <type_traits>
+#include <utility>
 
 #include <continuable/continuable-traverse.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/container-category.hpp>
 #include <continuable/detail/traits.hpp>
 
-// Devel
-#include <continuable/continuable-base.hpp>
-#include <vector>
-
 namespace cti {
 namespace detail {
+namespace composition {
 /// This namespace provides utilities for performing compound
 /// connections between deeply nested continuables and values.
 ///
-/// 0. We create the result pack from the provides values and
-///    the async values if those are default constructible,
-///    otherwise use a lazy initialization wrapper and unwrap
-///    the whole pack when the composition is finished.
-///       - value -> value
-///       - single async value -> single value
-///       - multiple async value -> tuple of async values.
-///
-/// 1.
+/// We create the result pack from the provides values and
+/// the async values if those are default constructible,
+/// otherwise use a lazy initialization wrapper and unwrap
+/// the whole pack when the composition is finished.
+///   - value -> value
+///   - single async value -> single value
+///   - multiple async value -> tuple of async values.
 namespace remapping {
 // Guard object for representing void results
 struct void_result_guard {};
@@ -221,25 +229,15 @@ struct index_relocator {
   }
 };
 } // namespace remapping
+} // namespace composition
 } // namespace detail
 } // namespace cti
 
-int main(int, char**) {
+// auto p = std::make_tuple(cti::make_ready_continuable(0) /*, 0, 4,
+//                    std::make_tuple(1, 2), cti::make_ready_continuable(0)*/);
 
-  using namespace cti::detail;
-  using namespace remapping;
+// auto r = create_result_pack(std::move(p));
+// auto i = create_index_pack(std::move(p));
+// relocate_index_pack(index_relocator{}, &i, &r);
 
-  std::vector<int> vc{1, 2, 3};
-
-  // std::tuple<c, c, c> t;
-  // std::tuple<loc<c, ct<0>>, c, c> loc;
-
-  auto p = std::make_tuple(cti::make_ready_continuable(0) /*, 0, 4,
-                      std::make_tuple(1, 2), cti::make_ready_continuable(0)*/);
-
-  auto r = create_result_pack(std::move(p));
-  auto i = create_index_pack(std::move(p));
-  relocate_index_pack(index_relocator{}, &i, &r);
-
-  return 0;
-}
+#endif // CONTINUABLE_DETAIL_COMPOSITION_REMAPPING_HPP_INCLUDED

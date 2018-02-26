@@ -4,8 +4,7 @@ file(GLOB LIB_SOURCES ${INCLUDE_DIR}/*.hpp)
 file(GLOB_RECURSE LIB_SOURCES_DETAIL ${INCLUDE_DIR}/detail/*.hpp)
 
 set(TEST
-  ${CMAKE_CURRENT_LIST_DIR}/test-playground.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/comp.cpp)
+  ${CMAKE_CURRENT_LIST_DIR}/test-playground.cpp)
 
 add_executable(test-playground
   ${LIB_SOURCES}
