@@ -59,29 +59,12 @@ struct functional_io_service : asio::io_service {
     });
   }
 
-  template <typename Protocol>
-  auto async_resolve(Protocol&& protocol, std::string host,
-                     std::string service) {
-    using asio::ip::udp;
-
-    return cti::make_continuable<udp::resolver::iterator>([
-      this, protocol = std::forward<Protocol>(protocol), host = std::move(host),
-      service = std::move(service)
-    ](auto&& promise) mutable {
-      resolver_.async_resolve(
-          host, service,
-          [promise = std::forward<decltype(promise)>(promise)](
-              std::error_code const& error,
-              udp::resolver::iterator iterator) mutable {
-
-            if (error) {
-              promise.set_exception(
-                  std::error_condition(error.value(), error.category()));
-            } else {
-              promise.set_value(std::move(iterator));
-            }
-          });
-    });
+  auto async_resolve(std::string host, std::string service) {
+    return cti::promisify<asio::ip::udp::resolver::iterator>::from_asio(
+        [&](auto&&... args) {
+          resolver_.async_resolve(std::forward<decltype(args)>(args)...);
+        },
+        std::move(host), std::move(service));
   }
 };
 
@@ -90,7 +73,7 @@ int main(int, char**) {
 
   functional_io_service service;
 
-  service.async_resolve(udp::v4(), "127.0.0.1", "daytime")
+  service.async_resolve("127.0.0.1", "daytime")
       .then([](udp::resolver::iterator iterator) {
         // ...
         return *iterator;

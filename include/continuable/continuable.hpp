@@ -48,6 +48,7 @@ namespace cti {}
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-compositions.hpp>
 #include <continuable/continuable-promise-base.hpp>
+#include <continuable/continuable-promisify.hpp>
 #include <continuable/continuable-trait.hpp>
 #include <continuable/continuable-transforms.hpp>
 #include <continuable/continuable-traverse-async.hpp>

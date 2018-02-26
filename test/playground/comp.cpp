@@ -253,34 +253,7 @@ struct future_result {
 } // namespace detail
 } // namespace cti
 
-using namespace cti::detail;
-using namespace remapping;
-
-template <typename... Result>
-struct promisify {
-  template <typename Callable, typename... Args>
-  static auto from(Callable&& callable, Args&&... args) {
-    return cti::make_continuable<Result...>([args = std::make_tuple(
-                                                 std::forward<Callable>(
-                                                     callable),
-                                                 std::forward<Args>(args)...)](
-        auto&& promise) mutable {
-
-      traits::unpack(std::move(args), [promise =
-                                           std::forward<decltype(promise)>(
-                                               promise)](
-                                          auto&&... args) mutable {
-        util::invoke(
-            std::forward<decltype(args)>(args)..., [promise =
-                                                        std::move(promise)](
-                                                       auto&&... /*result*/){
-
-                                                   });
-      });
-
-    });
-  }
-};
+using namespace cti::detail::remapping;
 
 int main(int, char**) {
 
