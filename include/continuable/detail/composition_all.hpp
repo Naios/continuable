@@ -172,59 +172,55 @@ struct entry_merger {
 /// Finalizes the all logic of a given composition
 template <>
 struct composition_finalizer<composition_strategy_all_tag> {
+  template <typename Composition>
+  static constexpr auto hint() {
+    return decltype(
+        traits::unpack(std::declval<Composition>(), all::entry_merger{})){};
+  }
+
   /// Finalizes the all logic of a given composition
-  template <typename Continuable>
-  static auto finalize(Continuable&& continuation) {
+  template <typename Composition>
+  static auto finalize(Composition&& composition) {
+    return [composition = std::forward<Composition>(composition)](
+        auto&& callback) mutable {
 
-    auto ownership_ = base::attorney::ownership_of(continuation);
+      // We mark the current 2-dimensional position through a pair:
+      // std::pair<size_constant<?>, size_constant<?>>
+      //           ~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~
+      //           Continuation pos     Result pos
+      constexpr auto const begin = std::make_pair(
+          traits::size_constant_of<0>(), traits::size_constant_of<0>());
+      constexpr auto const pack = traits::identify<decltype(composition)>{};
+      constexpr auto const end = traits::pack_size_of(pack);
+      auto const condition = [=](auto pos) { return pos.first < end; };
 
-    auto composition =
-        base::attorney::consume_data(std::forward<Continuable>(continuation));
+      constexpr auto const signature = hint<Composition>();
 
-    // Merge all signature hints together
-    constexpr auto const signature =
-        traits::unpack(composition, all::entry_merger{});
+      // Create the result submitter which caches all results and invokes
+      // the final callback upon completion.
+      auto submitter = all::make_all_result_submitter(
+          std::forward<decltype(callback)>(callback), end, signature);
 
-    return base::attorney::create(
-        [ signature,
-          composition = std::move(composition) ](auto&& callback) mutable {
-          // We mark the current 2-dimensional position through a pair:
-          // std::pair<size_constant<?>, size_constant<?>>
-          //           ~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~
-          //           Continuation pos     Result pos
-          constexpr auto const begin = std::make_pair(
-              traits::size_constant_of<0>(), traits::size_constant_of<0>());
-          constexpr auto const pack = traits::identify<decltype(composition)>{};
-          constexpr auto const end = traits::pack_size_of(pack);
-          auto const condition = [=](auto pos) { return pos.first < end; };
+      // Invoke every continuation with it's callback of the submitter
+      traits::static_while(begin, condition, [&](auto current) mutable {
+        auto entry =
+            std::move(std::get<decltype(current.first)::value>(composition));
 
-          // Create the result submitter which caches all results and invokes
-          // the final callback upon completion.
-          auto submitter = all::make_all_result_submitter(
-              std::forward<decltype(callback)>(callback), end, signature);
+        // This is the length of the arguments of the current continuable
+        constexpr auto const arg_size =
+            traits::pack_size_of(hints::hint_of(traits::identity_of(entry)));
 
-          // Invoke every continuation with it's callback of the submitter
-          traits::static_while(begin, condition, [&](auto current) mutable {
-            auto entry = std::move(
-                std::get<decltype(current.first)::value>(composition));
+        // The next position in the result tuple
+        constexpr auto const next = current.second + arg_size;
 
-            // This is the length of the arguments of the current continuable
-            constexpr auto const arg_size = traits::pack_size_of(
-                hints::hint_of(traits::identity_of(entry)));
+        // Invoke the continuation with the associated submission callback
+        base::attorney::invoke_continuation(
+            std::move(entry), submitter->create_callback(current.second, next));
 
-            // The next position in the result tuple
-            constexpr auto const next = current.second + arg_size;
-
-            // Invoke the continuation with the associated submission callback
-            base::attorney::invoke_continuation(
-                std::move(entry),
-                submitter->create_callback(current.second, next));
-
-            return std::make_pair(current.first + traits::size_constant_of<1>(),
-                                  next);
-          });
-        },
-        signature, std::move(ownership_));
+        return std::make_pair(current.first + traits::size_constant_of<1>(),
+                              next);
+      });
+    };
   }
 };
 } // namespace composition

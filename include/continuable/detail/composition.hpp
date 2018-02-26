@@ -35,6 +35,7 @@
 #include <type_traits>
 #include <utility>
 
+#include <continuable/continuable-traverse.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
@@ -126,11 +127,46 @@ auto connect(Strategy strategy, continuable_base<LData, LAnnotation>&& left,
   return base::attorney::create(std::move(data), strategy, ownership_);
 }
 
-/// All strategies should specialize this class in order to provide
-/// a finalize static method.
+/// All strategies should specialize this class in order to provide:
+/// - A finalize static method that creates the callable object which
+///   is invoked with the callback to call when the composition is finished.
+/// - A static method hint that returns the new signature hint.
 template <typename Strategy>
 struct composition_finalizer;
 
+struct aggregate_ownership {
+  util::ownership& ownership_;
+
+  template <typename Continuable,
+            std::enable_if_t<base::is_continuable<
+                std::decay_t<Continuable>>::value>* = nullptr>
+  auto operator()(Continuable const& continuable) noexcept {
+    util::ownership other = base::attorney::ownership_of(continuable);
+    /*if (!other.is_default())*/ { ownership_ |= other; }
+  }
+};
+
+// Merges the ownership of all continuables involved into the strategy
+/*if (ownership.is_acquired() || !ownership.is_frozen()) {
+  traverse_pack(aggregate_ownership{ownership}, composition);
+}*/
+
+/// Finalizes the any logic of a given composition
+template <typename Data, typename Strategy>
+auto finalize_composition(continuable_base<Data, Strategy>&& continuation) {
+  using finalizer = composition_finalizer<Strategy>;
+
+  util::ownership ownership = base::attorney::ownership_of(continuation);
+  auto composition = base::attorney::consume_data(std::move(continuation));
+
+  // Retrieve the new signature hint
+  constexpr auto const signature =
+      finalizer::template hint<decltype(composition)>();
+
+  // Return a new continuable which
+  return base::attorney::create(finalizer::finalize(std::move(composition)),
+                                signature, std::move(ownership));
+}
 } // namespace composition
 } // namespace detail
 } // namespace cti

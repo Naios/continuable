@@ -153,35 +153,30 @@ private:
 /// Finalizes the any logic of a given composition
 template <>
 struct composition_finalizer<composition_strategy_any_tag> {
-  template <typename Continuable>
-  static auto finalize(Continuable&& continuation) {
+  template <typename Composition>
+  static constexpr auto hint() {
+    return decltype(traits::unpack(std::declval<Composition>(),
+                                   any::determine_shared_result{})){};
+  }
 
-    auto ownership = base::attorney::ownership_of(continuation);
+  template <typename Composition>
+  static auto finalize(Composition&& composition) {
+    return [composition = std::forward<Composition>(composition)](
+        auto&& callback) mutable {
+      // Create the submitter which calls the given callback once at the
+      // first callback invocation.
+      auto submitter = any::make_any_result_submitter(
+          std::forward<decltype(callback)>(callback));
 
-    auto composition =
-        base::attorney::consume_data(std::forward<Continuable>(continuation));
-
-    constexpr auto const signature =
-        traits::unpack(composition, any::determine_shared_result{});
-
-    return base::attorney::create(
-        [composition = std::move(composition)](auto&& callback) mutable {
-
-          // Create the submitter which calls the given callback once at the
-          // first callback invocation.
-          auto submitter = any::make_any_result_submitter(
-              std::forward<decltype(callback)>(callback));
-
-          traits::static_for_each_in(std::move(composition),
-                                     [&](auto&& entry) mutable {
-                                       // Invoke the continuation with a
-                                       // submission callback
-                                       base::attorney::invoke_continuation(
-                                           std::forward<decltype(entry)>(entry),
-                                           submitter->create_callback());
-                                     });
-        },
-        signature, std::move(ownership));
+      traits::static_for_each_in(std::move(composition),
+                                 [&](auto&& entry) mutable {
+                                   // Invoke the continuation with a
+                                   // submission callback
+                                   base::attorney::invoke_continuation(
+                                       std::forward<decltype(entry)>(entry),
+                                       submitter->create_callback());
+                                 });
+    };
   }
 };
 } // namespace composition

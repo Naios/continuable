@@ -608,8 +608,7 @@ private:
                 OAnnotation>::value>* = nullptr>
   static auto
   materializeImpl(continuable_base<OData, OAnnotation>&& continuable) {
-    using finalizer = detail::composition::composition_finalizer<OAnnotation>;
-    return finalizer::finalize(std::move(continuable));
+    return detail::composition::finalize_composition(std::move(continuable));
   }
 
   Data&& consume_data() && {

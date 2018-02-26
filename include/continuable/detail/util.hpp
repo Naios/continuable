@@ -202,6 +202,16 @@ public:
     return *this;
   }
 
+  // Assigns the right ownership to this one
+  ownership& operator|=(ownership const& right) noexcept {
+    if (!right.is_acquired()) {
+      release();
+    }
+    if (right.is_frozen()) {
+      freeze();
+    }
+    return *this;
+  }
   // Merges both ownerships together
   ownership operator|(ownership const& right) const noexcept {
     return ownership(is_acquired() && right.is_acquired(),
@@ -213,6 +223,10 @@ public:
   }
   constexpr bool is_frozen() const noexcept {
     return frozen_;
+  }
+  /// Returns true when the ownership is in the default state
+  constexpr bool is_default() const noexcept {
+    return is_acquired() && !is_frozen();
   }
 
   void release() noexcept {
