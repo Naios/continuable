@@ -59,7 +59,7 @@ struct is_strategy<strategy_all_tag> : std::true_type {};
 template <>
 struct is_strategy<strategy_any_tag> : std::true_type {};
 
-  namespace detail {
+namespace detail {
 template <std::size_t Pos, typename T>
 constexpr void assign(traits::size_constant<Pos> /*pos*/, T& /*storage*/) {
   // ...

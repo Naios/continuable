@@ -1,31 +1,8 @@
-set(LIB_SOURCES
-  ${CMAKE_SOURCE_DIR}/include/continuable/continuable.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-types.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-base.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-compositions.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-trait.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-promise-base.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-promisify.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-transforms.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-traverse.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-traverse-async.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/continuable-testing.hpp)
-set(LIB_SOURCES_DETAIL
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/awaiting.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/base.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/composition.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/expected.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/hints.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/promisify.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/container-category.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/traverse.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/traverse-async.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/features.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/traits.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/transforms.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/types.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/testing.hpp
-  ${CMAKE_SOURCE_DIR}/include/continuable/detail/util.hpp)
+set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include/continuable)
+
+file(GLOB LIB_SOURCES ${INCLUDE_DIR}/*.hpp)
+file(GLOB_RECURSE LIB_SOURCES_DETAIL ${INCLUDE_DIR}/detail/*.hpp)
+
 set(TEST
   ${CMAKE_CURRENT_LIST_DIR}/test-playground.cpp
   ${CMAKE_CURRENT_LIST_DIR}/comp.cpp)
@@ -35,8 +12,8 @@ add_executable(test-playground
   ${LIB_SOURCES_DETAIL}
   ${TEST})
 
-source_group(src FILES ${LIB_SOURCES})
-source_group(src\\detail FILES ${LIB_SOURCES_DETAIL})
+source_group(continuable FILES ${LIB_SOURCES})
+source_group(continuable\\detail FILES ${LIB_SOURCES_DETAIL})
 source_group(test FILES ${TEST})
 
 target_link_libraries(test-playground

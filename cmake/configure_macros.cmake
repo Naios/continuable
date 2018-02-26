@@ -19,14 +19,4 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Select the compiler specific cmake file
-set(MSVC_ID "MSVC")
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-  include(${CMAKE_SOURCE_DIR}/cmake/compiler/clang.cmake)
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-  include(${CMAKE_SOURCE_DIR}/cmake/compiler/gcc.cmake)
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL ${MSVC_ID})
-  include(${CMAKE_SOURCE_DIR}/cmake/compiler/msvc.cmake)
-else()
-  message(FATAL_ERROR "Unknown compiler!")
-endif()
+include(${CMAKE_SOURCE_DIR}/cmake/macros/group_sources.cmake)
