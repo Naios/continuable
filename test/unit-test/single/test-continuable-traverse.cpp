@@ -46,7 +46,7 @@ using cti::traverse_pack;
 struct all_map_float {
   template <
       typename T,
-      std::enable_if_t<std::is_integral<std::decay_t<T>>::value>* = nullptr>
+      std::enable_if_t<std::is_arithmetic<std::decay_t<T>>::value>* = nullptr>
   float operator()(T el) const {
     return float(el + 1.f);
   }
@@ -281,7 +281,9 @@ public:
   explicit counter_mapper(int& counter) : counter_(counter) {
   }
 
-  template <typename T>
+  template <typename T,
+            std::enable_if_t<std::is_arithmetic<std::decay_t<T>>::value ||
+                             std::is_empty<std::decay_t<T>>::value>* = nullptr>
   void operator()(T) const {
     ++counter_.get();
   }
