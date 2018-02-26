@@ -691,6 +691,22 @@ class mapping_helper : protected mapping_strategy_base<Strategy> {
     return mapper_(std::forward<T>(element));
   }
 
+  /// SFINAE helper for elements satisfying the container
+  /// requirements, which are not tuple like.
+  template <typename T>
+  auto deep_map(container_category_tag<true, false>, T&& container)
+      -> decltype(container_remapping::remap(Strategy{},
+                                             std::forward<T>(container),
+                                             std::declval<traversor>()));
+
+  /// SFINAE helper for elements which are tuple like and
+  /// that also may satisfy the container requirements
+  template <bool IsContainer, typename T>
+  auto deep_map(container_category_tag<IsContainer, true>, T&& tuple_like)
+      -> decltype(tuple_like_remapping::remap(Strategy{},
+                                              std::forward<T>(tuple_like),
+                                              std::declval<traversor>()));
+
   /// SFINAE helper for plain elements not satisfying the tuple like
   /// or container requirements.
   ///
@@ -708,45 +724,6 @@ class mapping_helper : protected mapping_strategy_base<Strategy> {
   auto map(Category category, T&& element)
       -> decltype(std::declval<mapping_helper>().deep_map(
           category, std::forward<T>(element)));
-
-  /// SFINAE helper for elements satisfying the container
-  /// requirements, which are not tuple like.
-  template <typename T>
-  auto deep_map(container_category_tag<true, false>, T&& container)
-      -> decltype(container_remapping::remap(Strategy{},
-                                             std::forward<T>(container),
-                                             std::declval<traversor>()));
-
-  /// SFINAE helper for elements which are tuple like and
-  /// that also may satisfy the container requirements
-  template <bool IsContainer, typename T>
-  auto deep_map(container_category_tag<IsContainer, true>, T&& tuple_like)
-      -> decltype(tuple_like_remapping::remap(Strategy{},
-                                              std::forward<T>(tuple_like),
-                                              std::declval<traversor>()));
-
-  /// Prioritize the mapper over container remapping.
-  ///
-  /// We use the proxy function invoke_mapper here,
-  /// because some compilers (MSVC) tend to instantiate the invocation
-  /// before matching the tag, which leads to build failures.
-  template <bool IsContainer, bool IsTupleLike, typename T>
-  auto try_map(container_category_tag<IsContainer, IsTupleLike>, T&& element)
-      -> decltype(std::declval<mapping_helper>().invoke_mapper(
-          std::forward<T>(element))) {
-    // T could be any non container or non tuple like type here,
-    // take int or std::future<int> as an example.
-    return invoke_mapper(std::forward<T>(element));
-  }
-
-  /// Forward the input to the deep remap methods in order
-  /// to prioritize the mapper before deep container remaps.
-  template <typename Category, typename T>
-  auto try_map(Category category, T&& element)
-      -> decltype(std::declval<mapping_helper>().try_deep_map(
-          category, std::forward<T>(element))) {
-    return try_deep_map(category, std::forward<T>(element));
-  }
 
   /// Match elements satisfying the container requirements,
   /// which are not tuple like.
@@ -782,6 +759,29 @@ class mapping_helper : protected mapping_strategy_base<Strategy> {
   auto try_deep_map(MatcherTag, T&& element) -> decltype(
       std::declval<mapping_helper>().may_void(std::forward<T>(element))) {
     return this->may_void(std::forward<T>(element));
+  }
+
+  /// Prioritize the mapper over container remapping.
+  ///
+  /// We use the proxy function invoke_mapper here,
+  /// because some compilers (MSVC) tend to instantiate the invocation
+  /// before matching the tag, which leads to build failures.
+  template <bool IsContainer, bool IsTupleLike, typename T>
+  auto try_map(container_category_tag<IsContainer, IsTupleLike>, T&& element)
+      -> decltype(std::declval<mapping_helper>().invoke_mapper(
+          std::forward<T>(element))) {
+    // T could be any non container or non tuple like type here,
+    // take int or std::future<int> as an example.
+    return invoke_mapper(std::forward<T>(element));
+  }
+
+  /// Forward the input to the deep remap methods in order
+  /// to prioritize the mapper before deep container remaps.
+  template <typename Category, typename T>
+  auto try_map(Category category, T&& element)
+      -> decltype(std::declval<mapping_helper>().try_deep_map(
+          category, std::forward<T>(element))) {
+    return try_deep_map(category, std::forward<T>(element));
   }
 
   /// Traverses a single element.
