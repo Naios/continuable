@@ -25,27 +25,27 @@
 #include "continuable/continuable.hpp"
 
 cti::continuable<std::string> http_request(std::string /*url*/) {
-  return cti::make_continuable<std::string>([](auto&& callback) {
+  return [](auto&& callback) {
     // ...
     callback.set_value("<html>...</html>");
-  });
+  };
 }
 
 struct ResultSet {};
 struct Buffer {};
 
 cti::continuable<ResultSet> mysql_query(std::string /*url*/) {
-  return cti::make_continuable([](auto&& callback) {
+  return [](auto&& callback) {
     // ...
     callback.set_value(ResultSet{});
-  });
+  };
 }
 
 cti::continuable<Buffer> read_file(std::string /*url*/) {
-  return cti::make_continuable([](auto&& callback) {
+  return [](auto&& callback) {
     // ...
     callback.set_value(Buffer{});
-  });
+  };
 }
 
 struct a {

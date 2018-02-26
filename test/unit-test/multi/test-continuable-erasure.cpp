@@ -29,7 +29,13 @@ TYPED_TEST(single_dimension_tests, is_eraseable) {
 
   {
     cti::unique_continuable<int> erasure =
-        cti::make_continuable(supplier_of(0xDF));
+        cti::make_continuable<int>(supplier_of(0xDF));
+
+    EXPECT_ASYNC_RESULT(std::move(erasure), 0xDF);
+  }
+
+  {
+    cti::unique_continuable<int> erasure = supplier_of(0xDF);
 
     EXPECT_ASYNC_RESULT(std::move(erasure), 0xDF);
   }

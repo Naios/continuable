@@ -59,53 +59,7 @@ struct is_strategy<strategy_all_tag> : std::true_type {};
 template <>
 struct is_strategy<strategy_any_tag> : std::true_type {};
 
-/// Provides support for extracting the signature hint out
-/// of given types and parameters.
-namespace annotating {
-namespace detail {
-/// Void hints are equal to an empty signature
-constexpr auto make_hint_of(traits::identity<void>) noexcept {
-  return hints::signature_hint_tag<>{};
-}
-/// All other hints are the obvious hints...
-template <typename... HintArgs>
-constexpr auto make_hint_of(traits::identity<HintArgs...> args) noexcept {
-  return args; // Identity is equal to signature_hint_tag
-}
-} // namespace detail
-
-/// Extracts the signature hint of a given continuation and it's optional
-/// present hint arguments.
-///
-/// There are 3 cases:
-/// - Any argument is given:
-///   -> The hint is of the argument type where void is equal to no args
-/// - An unwrappable type is given which first arguments signature is known
-///   -> The hint is of the mentioned signature
-/// - An object which signature isn't known
-///   -> The hint is unknown
-///
-/// In any cases the return type is a:
-/// - signature_hint_tag<?...> or a
-/// - absent_signature_hint_tag
-///
-template <typename T, typename... HintArgs>
-constexpr auto extract(traits::identity<T> /*type*/,
-                       traits::identity<HintArgs...> hint) {
-  return traits::static_if(hint, traits::is_empty(),
-                           [=](auto /*hint*/) {
-                             /// When the arguments are the hint is absent
-                             return hints::absent_signature_hint_tag{};
-                           },
-                           [](auto hint) {
-                             // When hint arguments are given just take it as
-                             // hint
-                             return detail::make_hint_of(hint);
-                           });
-}
-} // namespace annotating
-
-namespace detail {
+  namespace detail {
 template <std::size_t Pos, typename T>
 constexpr void assign(traits::size_constant<Pos> /*pos*/, T& /*storage*/) {
   // ...

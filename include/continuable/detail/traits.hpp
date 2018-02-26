@@ -254,7 +254,7 @@ constexpr auto is_valid(T&& /*type*/, Check&& /*check*/) noexcept {
   return typename detail::is_valid_impl<T, Check>::type{};
 }
 
-/// Creates a static functional validator object.
+/// Creates a static callable validation object.
 template <typename Check>
 constexpr auto validator_of(Check&& check) noexcept(
     std::is_nothrow_move_constructible<std::decay_t<Check>>::value) {

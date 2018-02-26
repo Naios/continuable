@@ -167,7 +167,7 @@ public:
   /// ```
   ///
   /// \param executor The optional executor which is used to dispatch
-  ///        the callback. The executor needs to accept functional objects
+  ///        the callback. The executor needs to accept callable objects
   ///        callable through an `operator()` through its operator() itself.
   ///        The executor can be move-only, but it's not required to.
   ///        The default executor which is used when omitting the argument
@@ -634,29 +634,30 @@ private:
 ///   std::forward<decltype(callback)>(callback)();
 /// });
 /// ```
-/// * **No arguments** indicate that the types are unknown.
+/// * **No arguments** Since version 3.0.0 make_continuable always requires
+///   to be given valid arguments!
 ///   You should always give the type hint a callback is called with because
 ///   it's required for intermediate actions like connecting continuables.
 ///   You may omit the signature hint if you are erasing the type of
 ///   the continuable right after creation.
 /// ```cpp
-/// // Never do this:
+/// // This won't work because the arguments are missing:
 /// auto ct = cti::make_continuable([](auto&& callback) {
 ///   std::forward<decltype(callback)>(callback)(0.f, 'c');
 /// });
 ///
-/// // However, you may do this:
-/// continuable<float, char> ct = cti::make_continuable([](auto&& callback) {
+/// // However, you are allowed to do this:
+/// continuable<float, char> ct = [](auto&& callback) {
 ///   std::forward<decltype(callback)>(callback)(0.f, 'c');
-/// });
+/// };
 /// ```
 ///
 /// \param continuation The continuation the continuable is created from.
-/// The continuation must be a functional type accepting a callback parameter
+/// The continuation must be a callable type accepting a callback parameter
 /// which represents the object invokable with the asynchronous result of this
 /// continuable.
 /// ```cpp
-/// auto ct = cti::make_continuable([](auto&& promise) {
+/// auto ct = cti::make_continuable<std::string>([](auto&& promise) {
 ///   promise.set_value("result");
 /// });
 /// ```
@@ -666,11 +667,11 @@ private:
 /// It's recommended to accept any callback instead of erasing it.
 /// ```cpp
 /// // Good practice:
-/// auto ct = cti::make_continuable([](auto&& promise) {
+/// auto ct = cti::make_continuable<std::string>([](auto&& promise) {
 ///   promise.set_value("result");
 /// });
 ///
-/// // Good practice using a functional object:
+/// // Good practice using a callable object:
 /// struct Continuation {
 ///   template<typename T>
 ///   void operator() (T&& continuation) && {
@@ -678,10 +679,10 @@ private:
 ///   }
 /// }
 ///
-/// auto ct = cti::make_continuable(Continuation{});
+/// auto ct = cti::make_continuable<std::string>(Continuation{});
 ///
 /// // Bad practice (because of unnecessary type erasure):
-/// auto ct = cti::make_continuable(
+/// auto ct = cti::make_continuable<std::string>(
 ///   [](cti::promise<std::string> promise) {
 ///     promise.set_value("result");
 ///   });
@@ -698,12 +699,15 @@ private:
 /// \since 1.0.0
 template <typename... Args, typename Continuation>
 auto make_continuable(Continuation&& continuation) {
-  auto hint = detail::composition::annotating::extract(
-      detail::traits::identity_of(continuation),
-      detail::traits::identity<Args...>{});
+  static_assert(sizeof...(Args) > 0,
+                "Since version 3.0.0 make_continuable requires an exact "
+                "signature! If you did intend to create a void continuable "
+                "use make_continuable<void>(...). Continuables with an exact "
+                "signature may be created through make_continuable<Args...>.");
 
   return detail::base::attorney::create(
-      std::forward<Continuation>(continuation), hint,
+      std::forward<Continuation>(continuation),
+      detail::hints::extract(detail::traits::identity<Args...>{}),
       detail::util::ownership{});
 }
 

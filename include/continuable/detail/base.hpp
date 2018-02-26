@@ -71,7 +71,7 @@ struct is_continuable<continuable_base<Data, Annotation>> : std::true_type {};
 /// the continuable_base class.
 struct attorney {
   /// Makes a continuation wrapper from the given argument
-  template <typename T, typename A = hints::absent_signature_hint_tag>
+  template <typename T, typename A>
   static auto create(T&& continuation, A /*hint*/, util::ownership ownership_) {
     return continuable_base<std::decay_t<T>, std::decay_t<A>>(
         std::forward<T>(continuation), ownership_);
@@ -107,7 +107,7 @@ struct attorney {
 // Returns the invoker of a callback, the next callback
 // and the arguments of the previous continuation.
 //
-// The return type of the invokerOf function matches a functional of:
+// The return type of the invokerOf function matches a callable of:
 //   void(auto&& callback, auto&& next_callback, auto&&... args)
 //
 // The invoker decorates the result type in the following way
@@ -285,7 +285,7 @@ void packed_dispatch(Executor&& executor, Invoker&& invoker, Args&&... args) {
     });
   };
 
-  // Pass the work functional object to the executor
+  // Pass the work callable object to the executor
   std::forward<Executor>(executor)(std::move(work));
 }
 
@@ -568,7 +568,7 @@ public:
   }
 };
 
-/// Returns a continuable into a functional object returning the continuable
+/// Returns a continuable into a callable object returning the continuable
 template <typename Continuation>
 auto wrap_continuation(Continuation&& continuation) {
   continuation.freeze();

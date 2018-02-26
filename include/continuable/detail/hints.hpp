@@ -42,27 +42,27 @@ namespace hints {
 /// Represents a present signature hint
 template <typename... Args>
 using signature_hint_tag = traits::identity<Args...>;
-/// Represents an absent signature hint
-struct absent_signature_hint_tag {};
 
-template <typename>
-struct is_absent_hint : std::false_type {};
-template <>
-struct is_absent_hint<absent_signature_hint_tag> : std::true_type {};
-
-/// Returns the signature hint of the given continuable
-template <typename T>
-constexpr auto hint_of(traits::identity<T>) {
-  static_assert(traits::fail<T>::value,
-                "Expected a continuation with an existing signature hint!");
-  return traits::identity<void>{};
-}
 /// Returns the signature hint of the given continuable
 template <typename Data, typename... Args>
 constexpr auto
-hint_of(traits::identity<
-        continuable_base<Data, hints::signature_hint_tag<Args...>>>) {
+hint_of(traits::identity<continuable_base<Data, signature_hint_tag<Args...>>>) {
   return hints::signature_hint_tag<Args...>{};
+}
+
+/// Extracts the signature we pass to the internal continuable
+/// from an argument pack as specified by make_continuable.
+///
+/// This is the overload taking an arbitrary amount of args
+template <typename... HintArgs>
+constexpr auto extract(traits::identity<HintArgs...> hint) {
+  return hint;
+}
+/// \copybrief extract
+///
+/// This is the overload taking a void arg.
+constexpr auto extract(traits::identity<void> /*hint*/) {
+  return traits::identity<>{};
 }
 } // namespace hints
 } // namespace detail
