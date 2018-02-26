@@ -179,6 +179,10 @@ struct composition_finalizer<composition_strategy_any_tag> {
     };
   }
 };
+
+template <>
+struct composition_finalizer<composition_strategy_any_fail_fast_tag>
+    : composition_finalizer<composition_strategy_any_tag> {};
 } // namespace composition
 } // namespace detail
 } // namespace cti

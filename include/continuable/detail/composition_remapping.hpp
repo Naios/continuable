@@ -79,7 +79,8 @@ struct result_extractor_mapper {
   }
   /// Initialize a multiple values as tuple
   template <typename First, typename Second, typename... Args>
-  static constexpr auto initialize(hints::signature_hint_tag<>) {
+  static constexpr auto
+  initialize(hints::signature_hint_tag<First, Second, Args...>) {
     // TODO Fix non default constructible values
     return std::make_tuple(First{}, Second{}, Args{}...);
   }
@@ -116,7 +117,6 @@ struct result_relocator_mapper {
   void traverse(traversal::container_category_tag<false, false>, Index* index,
                 Result* result) {
 
-    evaluator(index, result);
     traverse_one(traits::is_invocable<Evaluator, Index, Result>{}, index,
                  result);
   }
@@ -186,7 +186,6 @@ constexpr void relocate_index_pack(Relocator&& relocator, Index* index,
 
   mapper.traverse(tag, index, target);
 }
-
 } // namespace remapping
 } // namespace composition
 } // namespace detail

@@ -68,7 +68,7 @@ struct my_callable {
   }
 };
 
-int main(int, char**) {
+void old() {
   http_request("github.com").next(my_callable{});
 
   http_request("github.com") | [](std::string) {
@@ -115,6 +115,16 @@ int main(int, char**) {
         // ...
       })
       .fail([](std::error_condition) {
+        // ...
+      });
+}
+
+int main(int, char**) {
+  using namespace cti::detail;
+
+  apply_composition(composition::composition_strategy_seq_tag{},
+                    cti::make_ready_continuable(0, 1), 2)
+      .then([](int a0, int a1, int a2) {
         // ...
       });
 }

@@ -163,10 +163,61 @@ auto make_all_result_submitter(Callback&& callback,
 /// A callable object to merge multiple signature hints together
 struct entry_merger {
   template <typename... T>
-  constexpr auto operator()(T&... entries) const noexcept {
-    return traits::merge(hints::hint_of(traits::identity_of(entries))...);
+  constexpr auto operator()(T&&...) const noexcept {
+    return traits::merge(hints::hint_of(traits::identify<T>())...);
   }
 };
+
+struct all_hint_deducer {
+  static constexpr auto deduce(hints::signature_hint_tag<>) noexcept {
+    return spread_this();
+  }
+  template <typename First>
+  static constexpr auto deduce(hints::signature_hint_tag<First>) {
+    return First{};
+  }
+  template <typename First, typename Second, typename... Args>
+  static constexpr auto
+  deduce(hints::signature_hint_tag<First, Second, Args...>) {
+    return std::make_tuple(First{}, Second{}, Args{}...);
+  }
+
+  template <
+      typename T,
+      std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
+  auto operator()(T&& /*continuable*/) const {
+    return deduce(hints::hint_of(traits::identify<T>{}));
+  }
+};
+
+/// Converts the given argument to a tuple if it isn't a tuple already
+template <typename T>
+constexpr auto tupelize(T&& arg) {
+  return std::make_tuple(std::forward<T>(arg));
+}
+/// Converts the given argument to a tuple if it isn't a tuple already
+template <typename... T>
+constexpr auto tupelize(std::tuple<T...> arg) {
+  return std::move(arg);
+}
+
+/// Lift the first tuple hierarchy inside the given tuple
+template <typename T>
+constexpr auto flatten(T&& tuple) {
+  return traits::unpack(std::forward<T>(tuple), [](auto&&... args) {
+    return std::tuple_cat(tupelize(std::forward<decltype(args)>(args))...);
+  });
+}
+
+template <typename Composition>
+constexpr auto deduce_hint(Composition&& composition) {
+  auto deduced = flatten(
+      map_pack(all_hint_deducer{}, std::forward<Composition>(composition)));
+
+  return traits::unpack(std::move(deduced), [](auto... args) {
+    return hints::signature_hint_tag<decltype(args)...>{};
+  });
+}
 } // namespace all
 
 /// Finalizes the all logic of a given composition
@@ -174,8 +225,7 @@ template <>
 struct composition_finalizer<composition_strategy_all_tag> {
   template <typename Composition>
   static constexpr auto hint() {
-    return decltype(
-        traits::unpack(std::declval<Composition>(), all::entry_merger{})){};
+    return decltype(all::deduce_hint(std::declval<Composition>())){};
   }
 
   /// Finalizes the all logic of a given composition

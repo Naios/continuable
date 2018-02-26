@@ -90,7 +90,8 @@ struct result_indexer_mapper {
   auto operator()(T& continuable) {
     auto constexpr const hint = hints::hint_of(traits::identify<T>{});
 
-    using target = decltype(result_extractor_mapper::initialize(hint));
+    using target =
+        decltype(remapping::detail::result_extractor_mapper::initialize(hint));
 
     using type = indexed_continuable<std::decay_t<T>, target>;
     return type{std::move(continuable), nullptr};
@@ -138,7 +139,7 @@ struct sequential_dispatch_data {
 
 template <typename Data>
 class sequential_dispatch_visitor
-    : std::enable_shared_from_this<sequential_dispatch_visitor<Data>> {
+    : public std::enable_shared_from_this<sequential_dispatch_visitor<Data>> {
 
   Data data_;
 
@@ -146,16 +147,19 @@ public:
   explicit sequential_dispatch_visitor(Data&& data) : data_(std::move(data)) {
     // Assign the address of each result target to the corresponding
     // indexed continuable.
-    relocate_index_pack(index_relocator{}, &data.index, &data.result);
+    remapping::relocate_index_pack(index_relocator{}, &data.index,
+                                   &data.result);
   }
+
+  virtual ~sequential_dispatch_visitor() = default;
 
   /// Returns the pack that should be traversed
   auto& head() {
     return data_.index;
   }
 
-  template <typename Index,
-            std::enable_if_t<is_indexed_continuable<Index>::value>* = nullptr>
+  template <typename Index, std::enable_if_t<is_indexed_continuable<
+                                std::decay_t<Index>>::value>* = nullptr>
   bool operator()(async_traverse_visit_tag, Index&& /*index*/) {
     return false;
   }
@@ -165,7 +169,7 @@ public:
 
     std::move(index.continuable)
         .then([ target = index.target,
-                next = std::forward<N>(next) ](auto&&... args) {
+                next = std::forward<N>(next) ](auto&&... args) mutable {
 
           // Assign the result to the target
           *target = wrap(std::forward<decltype(args)>(args)...);
@@ -177,10 +181,10 @@ public:
   }
 
   template <typename T>
-  void operator()(async_traverse_complete_tag, T&& pack) {
+  void operator()(async_traverse_complete_tag, T&& /*pack*/) {
     // Remove void result guard tags
-    auto cleaned =
-        map_pack(remapping::clean_void_results{}, std::forward<T>(pack));
+    auto cleaned = all::flatten(
+        map_pack(remapping::clean_void_results{}, std::move(data_.result)));
 
     // Call the final callback with the cleaned result
     traits::unpack(std::move(cleaned), std::move(data_.callback));
@@ -193,8 +197,7 @@ template <>
 struct composition_finalizer<composition_strategy_seq_tag> {
   template <typename Composition>
   static constexpr auto hint() {
-    return decltype(
-        traits::unpack(std::declval<Composition>(), all::entry_merger{})){};
+    return decltype(all::deduce_hint(std::declval<Composition>())){};
   }
 
   /// Finalizes the all logic of a given composition

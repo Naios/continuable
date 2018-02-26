@@ -49,6 +49,7 @@ namespace detail {
 namespace composition {
 struct composition_strategy_all_tag {};
 struct composition_strategy_any_tag {};
+struct composition_strategy_any_fail_fast_tag {};
 struct composition_strategy_seq_tag {};
 
 template <typename T>
@@ -59,6 +60,12 @@ struct is_composition_strategy<composition_strategy_all_tag> // ...
     : std::true_type {};
 template <>
 struct is_composition_strategy<composition_strategy_any_tag> // ...
+    : std::true_type {};
+template <>
+struct is_composition_strategy<composition_strategy_any_fail_fast_tag> // ...
+    : std::true_type {};
+template <>
+struct is_composition_strategy<composition_strategy_seq_tag> // ...
     : std::true_type {};
 
 /// Adds the given continuation tuple to the left composition
@@ -158,7 +165,7 @@ struct consume_ownership {
   template <typename Continuable,
             std::enable_if_t<base::is_continuable<
                 std::decay_t<Continuable>>::value>* = nullptr>
-  void operator()(Continuable& continuable) noexcept {
+  void operator()(Continuable&& continuable) noexcept {
     util::ownership other = base::attorney::ownership_of(continuable);
 
     assert(other.is_acquired() && "Only valid continuables should be passed!");
