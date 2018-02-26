@@ -45,6 +45,8 @@ namespace cti {
 ///
 /// \tparam Result The result of the converted continuable, this should align
 ///                with the arguments that are passed to the callback.
+///
+/// \since         3.0.0
 template <typename... Result>
 class promisify {
   using helper = detail::convert::promisify_helper<Result...>;
@@ -72,6 +74,7 @@ public:
   /// - If exceptions are disabled the error type is copnverted to an
   ///   `std::error_conditon` and passed down to the error handler.
   ///
+  /// \since  3.0.0
   template <typename Callable, typename... Args>
   static auto from_asio(Callable&& callable, Args&&... args) {
     return helper::template from<detail::convert::promisify_asio>(

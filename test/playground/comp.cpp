@@ -131,12 +131,7 @@ struct result_relocator_mapper {
   void traverse(traversal::container_category_tag<false, false>, Index* index,
                 Result* result) {
 
-    auto id = traits::identity<std::decay_t<decltype(index)>>{};
-    auto i = is_indexed_continuable<std::decay_t<decltype(index)>>::value;
-    auto res = traits::is_invocable<Evaluator, Index, Result>{};
-
     evaluator(index, result);
-
     traverse_one(traits::is_invocable<Evaluator, Index, Result>{}, index,
                  result);
   }
@@ -216,48 +211,22 @@ constexpr void relocate_index_pack(Relocator&& relocator, Index* index,
   mapper.traverse(tag, index, target);
 }
 
-/*
-template <typename T>
-auto remape_container(traversal::container_category_tag<false, true>,
-                      T&& container) {
-}
-
-template <bool IsTupleLike, typename T>
-auto remape_container(traversal::container_category_tag<true, IsTupleLike>,
-                      T&& container) {
-}
-
-template <
-    typename T,
-    typename Category = traversal::container_category_of_t<std::decay_t<T>>,
-    std::enable_if_t<Category::value>* = nullptr>
-auto operator()(T&& container) {
-  return remape_container(std::forward<T>(container));
-}
- */
+struct index_relocator {
+  template <typename Index, typename Target,
+            std::enable_if_t<is_indexed_continuable<Index>::value>* = nullptr>
+  auto operator()(Index* index, Target* target) const noexcept {
+    // Assign the address of the target to the indexed continuable
+    index->target = target;
+  }
+};
 } // namespace remapping
-
-struct c {};
-
-template <typename C, typename... Args>
-struct loc {};
-
-struct runtime_insertion {
-  std::size_t begin, end;
-};
-
-template <typename... Args>
-struct future_result {
-  std::tuple<Args...> result_;
-};
 } // namespace detail
 } // namespace cti
-
-using namespace cti::detail::remapping;
 
 int main(int, char**) {
 
   using namespace cti::detail;
+  using namespace remapping;
 
   std::vector<int> vc{1, 2, 3};
 
@@ -269,22 +238,7 @@ int main(int, char**) {
 
   auto r = create_result_pack(std::move(p));
   auto i = create_index_pack(std::move(p));
-
-  /*relocate_index_pack(
-      [](auto index, auto result)
-          -> std::enable_if_t<is_indexed_continuable<
-              std::remove_pointer_t<std::decay_t<decltype(index)>>>::value> {
-
-        // Assign the address of the target to the indexed continuable
-        index->target = result;
-
-        return;
-      },
-      &i, &r);*/
-
-  auto t = [](auto&&...) {};
-
-  promisify<int>::from(t, "");
+  relocate_index_pack(index_relocator{}, &i, &r);
 
   return 0;
 }

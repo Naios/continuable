@@ -40,15 +40,16 @@
 
 using namespace std::chrono_literals;
 
-struct functional_io_service : asio::io_service {
+struct functional_io_service {
+  asio::io_context service_;
   asio::ip::udp::resolver resolver_;
 
-  functional_io_service() : resolver_(*this) {
+  functional_io_service() : resolver_(service_) {
   }
 
-  auto post() const noexcept {
-    return [this](auto&& work) {
-      asio::io_service::post(std::forward<decltype(work)>(work));
+  auto trough_post() noexcept {
+    return [&](auto&& work) mutable {
+      service_.post(std::forward<decltype(work)>(work));
     };
   }
 
@@ -66,6 +67,10 @@ struct functional_io_service : asio::io_service {
         },
         std::move(host), std::move(service));
   }
+
+  void run() {
+    service_.run();
+  }
 };
 
 int main(int, char**) {
@@ -74,10 +79,12 @@ int main(int, char**) {
   functional_io_service service;
 
   service.async_resolve("127.0.0.1", "daytime")
-      .then([](udp::resolver::iterator iterator) {
-        // ...
-        return *iterator;
-      })
+      .then(
+          [](udp::resolver::iterator iterator) {
+            // ...
+            return *iterator;
+          },
+          service.trough_post())
       .then([](udp::endpoint /*endpoint*/) {
         // auto socket = std::make_shared<udp::socket>(service);
         // socket->async_send_to()
