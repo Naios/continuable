@@ -31,6 +31,7 @@
 #ifndef CONTINUABLE_DETAIL_COMPOSITION_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_COMPOSITION_HPP_INCLUDED
 
+#include <cassert>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -134,23 +135,6 @@ auto connect(Strategy strategy, continuable_base<LData, LAnnotation>&& left,
 template <typename Strategy>
 struct composition_finalizer;
 
-struct aggregate_ownership {
-  util::ownership& ownership_;
-
-  template <typename Continuable,
-            std::enable_if_t<base::is_continuable<
-                std::decay_t<Continuable>>::value>* = nullptr>
-  auto operator()(Continuable const& continuable) noexcept {
-    util::ownership other = base::attorney::ownership_of(continuable);
-    /*if (!other.is_default())*/ { ownership_ |= other; }
-  }
-};
-
-// Merges the ownership of all continuables involved into the strategy
-/*if (ownership.is_acquired() || !ownership.is_frozen()) {
-  traverse_pack(aggregate_ownership{ownership}, composition);
-}*/
-
 /// Finalizes the any logic of a given composition
 template <typename Data, typename Strategy>
 auto finalize_composition(continuable_base<Data, Strategy>&& continuation) {
@@ -162,6 +146,48 @@ auto finalize_composition(continuable_base<Data, Strategy>&& continuation) {
   // Retrieve the new signature hint
   constexpr auto const signature =
       finalizer::template hint<decltype(composition)>();
+
+  // Return a new continuable which
+  return base::attorney::create(finalizer::finalize(std::move(composition)),
+                                signature, std::move(ownership));
+}
+
+struct consume_ownership {
+  util::ownership& ownership_;
+
+  template <typename Continuable,
+            std::enable_if_t<base::is_continuable<
+                std::decay_t<Continuable>>::value>* = nullptr>
+  void operator()(Continuable& continuable) noexcept {
+    util::ownership other = base::attorney::ownership_of(continuable);
+
+    assert(other.is_acquired() && "Only valid continuables should be passed!");
+
+    if (!ownership_.is_frozen() && other.is_frozen()) {
+      ownership_.freeze();
+    }
+
+    // Freeze the continuable since it is stored for later usage
+    continuable.freeze();
+  }
+};
+
+template <typename Strategy, typename... Args>
+auto apply_composition(Strategy, Args&&... args) {
+  using finalizer = composition_finalizer<Strategy>;
+
+  auto composition = std::make_tuple(std::forward<Args>(args)...);
+
+  // Retrieve the new signature hint
+  constexpr auto const signature =
+      finalizer::template hint<decltype(composition)>();
+
+  // Freeze every continuable inside the given arguments,
+  // and freeze the ownership if one of the continuables
+  // is frozen already.
+  // Additionally test whether every continuable is acquired.
+  util::ownership ownership;
+  traverse_pack(consume_ownership{ownership}, std::move(composition));
 
   // Return a new continuable which
   return base::attorney::create(finalizer::finalize(std::move(composition)),

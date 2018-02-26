@@ -57,19 +57,12 @@ namespace remapping {
 // Guard object for representing void results
 struct void_result_guard {};
 
-/// Contains an continuable together with a location where the
-/// result shall be stored.
-template <typename Continuable, typename Target>
-struct indexed_continuable {
-  Continuable continuable;
-  Target* target;
+// Callable object that maps void_result_guard zo zero arguments
+struct clean_void_results {
+  auto operator()(void_result_guard) const noexcept {
+    return spread_this();
+  }
 };
-
-template <typename T>
-struct is_indexed_continuable : std::false_type {};
-template <typename Continuable, typename Target>
-struct is_indexed_continuable<indexed_continuable<Continuable, Target>>
-    : std::true_type {};
 
 namespace detail {
 struct result_extractor_mapper {
@@ -100,22 +93,6 @@ struct result_extractor_mapper {
   auto operator()(T&& /*continuable*/) {
     auto constexpr const hint = hints::hint_of(traits::identify<T>{});
     return initialize(hint);
-  }
-};
-
-/// Maps a deeply nested pack of continuables to
-struct result_indexer_mapper {
-  /// Index a given continuable together with its target location
-  template <
-      typename T,
-      std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
-  auto operator()(T&& continuable) {
-    auto constexpr const hint = hints::hint_of(traits::identify<T>{});
-
-    using target = decltype(result_extractor_mapper::initialize(hint));
-
-    using type = indexed_continuable<std::decay_t<T>, target>;
-    return type{std::forward<T>(continuable), nullptr};
   }
 };
 
@@ -196,16 +173,6 @@ constexpr auto create_result_pack(Args&&... args) {
                        std::forward<Args>(args)...);
 }
 
-/// Returns the result pack of the given deeply nested pack.
-/// This invalidates all non-continuable values contained inside the pack.
-///
-/// This consumes all continuables inside the pack.
-template <typename... Args>
-constexpr auto create_index_pack(Args&&... args) {
-  return cti::map_pack(detail::result_indexer_mapper{},
-                       std::forward<Args>(args)...);
-}
-
 /// Sets the target pointers of indexed_continuable's inside the index pack
 /// to point to their given counterparts inside the given target.
 template <typename Relocator, typename Index, typename Target>
@@ -220,24 +187,9 @@ constexpr void relocate_index_pack(Relocator&& relocator, Index* index,
   mapper.traverse(tag, index, target);
 }
 
-struct index_relocator {
-  template <typename Index, typename Target,
-            std::enable_if_t<is_indexed_continuable<Index>::value>* = nullptr>
-  auto operator()(Index* index, Target* target) const noexcept {
-    // Assign the address of the target to the indexed continuable
-    index->target = target;
-  }
-};
 } // namespace remapping
 } // namespace composition
 } // namespace detail
 } // namespace cti
-
-// auto p = std::make_tuple(cti::make_ready_continuable(0) /*, 0, 4,
-//                    std::make_tuple(1, 2), cti::make_ready_continuable(0)*/);
-
-// auto r = create_result_pack(std::move(p));
-// auto i = create_index_pack(std::move(p));
-// relocate_index_pack(index_relocator{}, &i, &r);
 
 #endif // CONTINUABLE_DETAIL_COMPOSITION_REMAPPING_HPP_INCLUDED

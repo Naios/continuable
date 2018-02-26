@@ -99,7 +99,7 @@ struct attorney {
   }
 
   template <typename Continuable>
-  static util::ownership ownership_of(Continuable&& continuation) {
+  static util::ownership ownership_of(Continuable&& continuation) noexcept {
     return continuation.ownership_;
   }
 };

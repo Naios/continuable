@@ -31,18 +31,16 @@
 #ifndef CONTINUABLE_DETAIL_COMPOSITION_SEQ_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_COMPOSITION_SEQ_HPP_INCLUDED
 
-#include <atomic>
 #include <memory>
-#include <mutex>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 
 #include <continuable/continuable-promise-base.hpp>
+#include <continuable/continuable-traverse-async.hpp>
 #include <continuable/detail/base.hpp>
-#include <continuable/detail/hints.hpp>
+#include <continuable/detail/composition_remapping.hpp>
 #include <continuable/detail/traits.hpp>
-#include <continuable/detail/types.hpp>
 
 namespace cti {
 namespace detail {
@@ -68,12 +66,161 @@ auto sequential_connect(Left&& left, Right&& right) {
     });
   });
 }
+
+/// Contains an continuable together with a location where the
+/// result shall be stored.
+template <typename Continuable, typename Target>
+struct indexed_continuable {
+  Continuable continuable;
+  Target* target;
+};
+
+template <typename T>
+struct is_indexed_continuable : std::false_type {};
+template <typename Continuable, typename Target>
+struct is_indexed_continuable<indexed_continuable<Continuable, Target>>
+    : std::true_type {};
+
+/// Maps a deeply nested pack of continuables to an indexed continuable
+struct result_indexer_mapper {
+  /// Index a given continuable together with its target location
+  template <
+      typename T,
+      std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
+  auto operator()(T& continuable) {
+    auto constexpr const hint = hints::hint_of(traits::identify<T>{});
+
+    using target = decltype(result_extractor_mapper::initialize(hint));
+
+    using type = indexed_continuable<std::decay_t<T>, target>;
+    return type{std::move(continuable), nullptr};
+  }
+};
+
+/// Returns the result pack of the given deeply nested pack.
+/// This invalidates all non-continuable values contained inside the pack.
+///
+/// This consumes all continuables inside the pack.
+template <typename... Args>
+constexpr auto create_index_pack(Args&&... args) {
+  return cti::map_pack(result_indexer_mapper{}, std::forward<Args>(args)...);
+}
+
+struct index_relocator {
+  template <typename Index, typename Target,
+            std::enable_if_t<is_indexed_continuable<Index>::value>* = nullptr>
+  auto operator()(Index* index, Target* target) const noexcept {
+    // Assign the address of the target to the indexed continuable
+    index->target = target;
+  }
+};
+
+constexpr remapping::void_result_guard wrap() {
+  return {};
+}
+template <typename First>
+constexpr decltype(auto) wrap(First&& first) {
+  return std::forward<First>(first);
+}
+template <typename First, typename Second, typename... Rest>
+constexpr decltype(auto) wrap(First&& first, Second&& second, Rest&&... rest) {
+  return std::make_tuple(std::forward<First>(first),
+                         std::forward<Second>(second),
+                         std::forward<Rest>(rest)...);
+}
+
+template <typename Callback, typename Index, typename Result>
+struct sequential_dispatch_data {
+  Callback callback;
+  Index index;
+  Result result;
+};
+
+template <typename Data>
+class sequential_dispatch_visitor
+    : std::enable_shared_from_this<sequential_dispatch_visitor<Data>> {
+
+  Data data_;
+
+public:
+  explicit sequential_dispatch_visitor(Data&& data) : data_(std::move(data)) {
+    // Assign the address of each result target to the corresponding
+    // indexed continuable.
+    relocate_index_pack(index_relocator{}, &data.index, &data.result);
+  }
+
+  /// Returns the pack that should be traversed
+  auto& head() {
+    return data_.index;
+  }
+
+  template <typename Index,
+            std::enable_if_t<is_indexed_continuable<Index>::value>* = nullptr>
+  bool operator()(async_traverse_visit_tag, Index&& /*index*/) {
+    return false;
+  }
+
+  template <typename Index, typename N>
+  void operator()(async_traverse_detach_tag, Index&& index, N&& next) {
+
+    std::move(index.continuable)
+        .then([ target = index.target,
+                next = std::forward<N>(next) ](auto&&... args) {
+
+          // Assign the result to the target
+          *target = wrap(std::forward<decltype(args)>(args)...);
+
+          // Continue the asynchronous sequential traversal
+          next();
+        })
+        .done();
+  }
+
+  template <typename T>
+  void operator()(async_traverse_complete_tag, T&& pack) {
+    // Remove void result guard tags
+    auto cleaned =
+        map_pack(remapping::clean_void_results{}, std::forward<T>(pack));
+
+    // Call the final callback with the cleaned result
+    traits::unpack(std::move(cleaned), std::move(data_.callback));
+  }
+};
 } // namespace seq
 
 /// Finalizes the seq logic of a given composition
 template <>
 struct composition_finalizer<composition_strategy_seq_tag> {
-  /// TODO
+  template <typename Composition>
+  static constexpr auto hint() {
+    return decltype(
+        traits::unpack(std::declval<Composition>(), all::entry_merger{})){};
+  }
+
+  /// Finalizes the all logic of a given composition
+  template <typename Composition>
+  static auto finalize(Composition&& composition) {
+    return [composition = std::forward<Composition>(composition)](
+        auto&& callback) mutable {
+
+      auto index = seq::create_index_pack(composition);
+      auto result =
+          remapping::create_result_pack(std::forward<Composition>(composition));
+
+      // The data from which the visitor is constructed in-place
+      using data_t =
+          seq::sequential_dispatch_data<std::decay_t<decltype(callback)>,
+                                        std::decay_t<decltype(index)>,
+                                        std::decay_t<decltype(result)>>;
+
+      // The visitor type
+      using visitor_t = seq::sequential_dispatch_visitor<data_t>;
+
+      traverse_pack_async(async_traverse_in_place_tag<visitor_t>{},
+                          data_t{std::forward<decltype(callback)>(callback),
+                                 std::move(index), std::move(result)});
+    };
+  }
 };
 } // namespace composition
 } // namespace detail
