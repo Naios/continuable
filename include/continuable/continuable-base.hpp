@@ -39,6 +39,9 @@
 #include <continuable/detail/awaiting.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/composition.hpp>
+#include <continuable/detail/composition_all.hpp>
+#include <continuable/detail/composition_any.hpp>
+#include <continuable/detail/composition_seq.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
@@ -444,8 +447,9 @@ public:
   /// \since 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator&&(continuable_base<OData, OAnnotation>&& right) && {
-    return detail::composition::connect(detail::composition::strategy_all_tag{},
-                                        std::move(*this), std::move(right));
+    return detail::composition::connect(
+        detail::composition::composition_strategy_all_tag{}, std::move(*this),
+        std::move(right));
   }
 
   /// Invokes both continuable_base objects parallel and calls the
@@ -486,8 +490,9 @@ public:
   /// \since 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator||(continuable_base<OData, OAnnotation>&& right) && {
-    return detail::composition::connect(detail::composition::strategy_any_tag{},
-                                        std::move(*this), std::move(right));
+    return detail::composition::connect(
+        detail::composition::composition_strategy_any_tag{}, std::move(*this),
+        std::move(right));
   }
 
   /// Invokes both continuable_base objects sequential and calls the
@@ -514,8 +519,8 @@ public:
   /// \since 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator>>(continuable_base<OData, OAnnotation>&& right) && {
-    return detail::composition::sequential_connect(std::move(*this),
-                                                   std::move(right));
+    return detail::composition::seq::sequential_connect(std::move(*this),
+                                                        std::move(right));
   }
 
   /// Invokes the continuation chain manually even before the
@@ -591,21 +596,20 @@ private:
     return materializeImpl(std::move(*this));
   }
 
-  template <
-      typename OData, typename OAnnotation,
-      std::enable_if_t<!detail::composition::is_strategy<OAnnotation>::value>* =
-          nullptr>
+  template <typename OData, typename OAnnotation,
+            std::enable_if_t<!detail::composition::is_composition_strategy<
+                OAnnotation>::value>* = nullptr>
   static auto
   materializeImpl(continuable_base<OData, OAnnotation>&& continuable) {
     return std::move(continuable);
   }
-  template <
-      typename OData, typename OAnnotation,
-      std::enable_if_t<detail::composition::is_strategy<OAnnotation>::value>* =
-          nullptr>
+  template <typename OData, typename OAnnotation,
+            std::enable_if_t<detail::composition::is_composition_strategy<
+                OAnnotation>::value>* = nullptr>
   static auto
   materializeImpl(continuable_base<OData, OAnnotation>&& continuable) {
-    return detail::composition::finalize_composition(std::move(continuable));
+    using finalizer = detail::composition::composition_finalizer<OAnnotation>;
+    return finalizer::finalize(std::move(continuable));
   }
 
   Data&& consume_data() && {
