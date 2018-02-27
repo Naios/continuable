@@ -39,6 +39,7 @@
 #include <utility>
 
 #include <continuable/detail/base.hpp>
+#include <continuable/detail/composition-remapping.hpp>
 #include <continuable/detail/composition.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>

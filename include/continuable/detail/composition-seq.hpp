@@ -39,8 +39,8 @@
 
 #include <continuable/continuable-traverse-async.hpp>
 #include <continuable/detail/base.hpp>
-#include <continuable/detail/composition_all.hpp>
-#include <continuable/detail/composition_remapping.hpp>
+#include <continuable/detail/composition-all.hpp>
+#include <continuable/detail/composition-remapping.hpp>
 #include <continuable/detail/traits.hpp>
 
 namespace cti {

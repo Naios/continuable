@@ -38,10 +38,10 @@
 
 #include <continuable/detail/awaiting.hpp>
 #include <continuable/detail/base.hpp>
+#include <continuable/detail/composition-all.hpp>
+#include <continuable/detail/composition-any.hpp>
+#include <continuable/detail/composition-seq.hpp>
 #include <continuable/detail/composition.hpp>
-#include <continuable/detail/composition_all.hpp>
-#include <continuable/detail/composition_any.hpp>
-#include <continuable/detail/composition_seq.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
