@@ -184,8 +184,8 @@ public:
   template <typename T>
   void operator()(async_traverse_complete_tag, T&& /*pack*/) {
     // Remove void result guard tags
-    auto cleaned = all::flatten(
-        map_pack(remapping::clean_void_results{}, std::move(data_.result)));
+    auto cleaned =
+        map_pack(remapping::unpack_result_guards{}, std::move(data_.result));
 
     // Call the final callback with the cleaned result
     traits::unpack(std::move(cleaned), std::move(data_.callback));

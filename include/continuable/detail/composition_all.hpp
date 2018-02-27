@@ -206,14 +206,6 @@ constexpr auto tupelize(std::tuple<T...> arg) {
   return std::move(arg);
 }
 
-/// Lift the first tuple hierarchy inside the given tuple
-template <typename T>
-constexpr auto flatten(T&& tuple) {
-  return traits::unpack(std::forward<T>(tuple), [](auto&&... args) {
-    return std::tuple_cat(tupelize(std::forward<decltype(args)>(args))...);
-  });
-}
-
 constexpr auto deduce_from_pack(traits::identity<void>)
     -> hints::signature_hint_tag<>;
 template <typename... T>
@@ -223,15 +215,13 @@ template <typename T, std::enable_if_t<!is_tuple<T>::value>* = nullptr>
 constexpr auto deduce_from_pack(traits::identity<T>)
     -> hints::signature_hint_tag<T>;
 
+// We must guard the mapped type against to be void since this represents an
+// empty signature hint.
 template <typename Composition>
-constexpr auto deduce_hint(Composition&& /*composition*/) {
-  using deduced_t =
-      decltype(map_pack(all_hint_deducer{}, std::declval<Composition>()));
-
-  // We must guard deduced_t against to be void since this represents an
-  // empty signature hint.
-  return decltype(deduce_from_pack(traits::identity<deduced_t>{})){};
-}
+constexpr auto deduce_hint(Composition && /*composition*/)
+    -> decltype(deduce_from_pack(
+        traits::identity<decltype(map_pack(all_hint_deducer{},
+                                           std::declval<Composition>()))>{})){};
 } // namespace all
 
 /// Finalizes the all logic of a given composition

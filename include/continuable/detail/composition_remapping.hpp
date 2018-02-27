@@ -56,11 +56,28 @@ namespace composition {
 namespace remapping {
 // Guard object for representing void results
 struct void_result_guard {};
+// Guard object for representing multiple results
+template <typename... Args>
+struct multi_result_guard {
+  std::tuple<Args...> result_;
+
+  multi_result_guard& operator=(std::tuple<Args...> result) {
+    result_ = std::move(result);
+    return *this;
+  }
+};
 
 // Callable object that maps void_result_guard zo zero arguments
-struct clean_void_results {
+struct unpack_result_guards {
   auto operator()(void_result_guard) const noexcept {
     return spread_this();
+  }
+  template <typename... Args>
+  auto operator()(multi_result_guard<Args...> guard) const noexcept {
+    // Spread the result of the continuable into the current depth.
+    return traits::unpack(std::move(guard.result_), [](auto&&... args) {
+      return spread_this(std::forward<decltype(args)>(args)...);
+    });
   }
 };
 
@@ -82,7 +99,8 @@ struct result_extractor_mapper {
   static constexpr auto
   initialize(hints::signature_hint_tag<First, Second, Args...>) {
     // TODO Fix non default constructible values
-    return std::make_tuple(First{}, Second{}, Args{}...);
+    return multi_result_guard<First, Second, Args...>{
+        std::make_tuple(First{}, Second{}, Args{}...)};
   }
 
   /// Remap a continuable to its corresponding result values
