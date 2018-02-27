@@ -209,14 +209,26 @@ constexpr auto flatten(T&& tuple) {
   });
 }
 
+struct convert_to_hint {
+  template <typename... T>
+  constexpr auto operator()(T...) -> hints::signature_hint_tag<T...>;
+};
+constexpr auto deduce_from_pack(traits::identity<void>) {
+  return hints::signature_hint_tag<>{};
+}
+template <typename T>
+constexpr auto deduce_from_pack(traits::identity<T>) {
+  return decltype(
+      traits::unpack(flatten(std::declval<T>()), convert_to_hint{})){};
+}
+
 template <typename Composition>
 constexpr auto deduce_hint(Composition&& composition) {
-  auto deduced = flatten(
+  using deduced_t = decltype(
       map_pack(all_hint_deducer{}, std::forward<Composition>(composition)));
-
-  return traits::unpack(std::move(deduced), [](auto... args) {
-    return hints::signature_hint_tag<decltype(args)...>{};
-  });
+  // We must guard deduced_t against to be void since this represents an
+  // empty signature hint.
+  return deduce_from_pack(traits::identity<deduced_t>{});
 }
 } // namespace all
 
