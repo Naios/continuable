@@ -117,7 +117,7 @@ struct result_relocator_mapper {
   void traverse(traversal::container_category_tag<false, false>, Index* index,
                 Result* result) {
 
-    traverse_one(traits::is_invocable<Evaluator, Index, Result>{}, index,
+    traverse_one(traits::is_invocable<Evaluator, Index*, Result*>{}, index,
                  result);
   }
 

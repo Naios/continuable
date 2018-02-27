@@ -109,7 +109,8 @@ constexpr auto create_index_pack(Args&&... args) {
 
 struct index_relocator {
   template <typename Index, typename Target,
-            std::enable_if_t<is_indexed_continuable<Index>::value>* = nullptr>
+            std::enable_if_t<
+                is_indexed_continuable<std::decay_t<Index>>::value>* = nullptr>
   auto operator()(Index* index, Target* target) const noexcept {
     // Assign the address of the target to the indexed continuable
     index->target = target;
@@ -147,8 +148,8 @@ public:
   explicit sequential_dispatch_visitor(Data&& data) : data_(std::move(data)) {
     // Assign the address of each result target to the corresponding
     // indexed continuable.
-    remapping::relocate_index_pack(index_relocator{}, &data.index,
-                                   &data.result);
+    remapping::relocate_index_pack(index_relocator{}, &data_.index,
+                                   &data_.result);
   }
 
   virtual ~sequential_dispatch_visitor() = default;
