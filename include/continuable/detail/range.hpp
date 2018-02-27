@@ -48,7 +48,7 @@ struct is_iterator<T,
                    traits::void_t<typename std::iterator_traits<T>::value_type>>
     : std::true_type {};
 
-/// Moves to content of the given iterators to a persistent storage
+/// Moves the content of the given iterators to a persistent storage
 template <typename Iterator>
 auto persist_range(Iterator begin, Iterator end) {
   std::vector<typename std::iterator_traits<Iterator>::value_type> storage;

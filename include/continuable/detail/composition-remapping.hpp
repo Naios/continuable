@@ -167,6 +167,9 @@ struct result_relocator_mapper {
                             std::decay_t<decltype(std::get<I>(*index))>>{},
                         &std::get<I>(*index), &std::get<I>(*result)),
          0)...};
+
+    (void)index;
+    (void)result;
   }
 
   /// Traverse tuple like container

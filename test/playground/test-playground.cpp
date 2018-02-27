@@ -125,13 +125,14 @@ int main(int, char**) {
   using namespace cti::detail;
 
   cti::when_seq(
-      cti::make_ready_continuable(0, 1), 2,
-      std::vector<cti::continuable<int>>{cti::make_ready_continuable(8),
-                                         cti::make_ready_continuable(9)},
-      std::make_tuple(std::make_tuple(cti::make_ready_continuable(7))))
-      .then([](int a0, int a1, int a2, auto o1, auto o2) {
+      cti::make_ready_continuable(0, 1), 2, //< See this plain value
+      std::vector<cti::continuable<int>>{cti::make_ready_continuable(3),
+                                         cti::make_ready_continuable(4)},
+      std::make_tuple(std::make_tuple(cti::make_ready_continuable(5))))
+      .then([](int r0, int r1, int r2, std::vector<int> r34,
+               std::tuple<std::tuple<int>> r5) {
         // ...
-        util::unused(a0, a1, a2, o1, o2);
+        util::unused(r0, r1, r2, r34, r5);
       });
 
   std::vector<cti::continuable<int>> v{cti::make_ready_continuable(8),
@@ -141,4 +142,12 @@ int main(int, char**) {
     // ...
     util::unused(o2);
   });
+
+  cti::when_seq()
+      .then([] {
+        // ...
+      })
+      .fail([](auto) {
+        // ...
+      });
 }

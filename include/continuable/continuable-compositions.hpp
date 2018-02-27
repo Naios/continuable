@@ -59,6 +59,74 @@ auto when_all(Continuables&&... continuables) {
       &&, std::forward<Continuables>(continuables)...);
 }
 
+/// Connects the given arguments with a sequential logic.
+/// All continuables contained inside the given nested pack are
+/// invoked one after one. On completion the final handler is called
+/// with the aggregated result of all continuables.
+///
+/// \param args Arbitrary arguments which are connected.
+///             Every type is allowed as arguments, continuables may be
+///             contained inside tuple like types (`std::tuple`)
+///             or in homogeneous containers such as `std::vector`.
+///             Non continuable arguments are preserved and passed
+///             to the final result as shown below:
+/// ```cpp
+/// cti::when_seq(
+///     cti::make_ready_continuable(0, 1),
+///     2, //< See this plain value
+///     std::vector<cti::continuable<int>>{cti::make_ready_continuable(3),
+///                                        cti::make_ready_continuable(4)},
+///     std::make_tuple(std::make_tuple(cti::make_ready_continuable(5))))
+///     .then([](int r0, int r1, int r2, std::vector<int> r34,
+///              std::tuple<std::tuple<int>> r5) {
+///       // ...
+///     });
+/// ```
+///
+/// \see        continuable_base::operator>> for details.
+///
+/// \since      1.1.0
+template <typename... Args>
+auto when_seq(Args&&... args) {
+  return detail::composition::apply_composition(
+      detail::composition::composition_strategy_seq_tag{},
+      std::forward<Args>(args)...);
+}
+
+/// Connects the given arguments with a sequential logic.
+/// The content of the iterator is moved out and converted
+/// to a temporary `std::vector` which is then passed to when_seq.
+///
+/// ```cpp
+/// std::vector<cti::continuable<int>> v{cti::make_ready_continuable(0),
+///                                      cti::make_ready_continuable(1)};
+///
+/// cti::when_seq(v.begin(), v.end())
+///   .then([](std::vector<int> r01) {
+///     // ...
+///   });
+/// ```
+///
+/// \param begin The begin iterator to the range which will be moved out
+///              and used as the arguments to the sequential connection
+///
+/// \param end   The end iterator to the range which will be moved out
+///              and used as the arguments to the sequential connection
+///
+/// \see         when_seq for details.
+///
+/// \attention   Prefer to invoke when_seq with the whole container the
+///              iterators were taken from, since this saves us
+///              the creation of a temporary storage.
+///
+/// \since       3.0.0
+template <
+    typename Iterator,
+    std::enable_if_t<detail::range::is_iterator<Iterator>::value>* = nullptr>
+auto when_seq(Iterator begin, Iterator end) {
+  return when_seq(detail::range::persist_range(begin, end));
+}
+
 /// Connects the given continuables with an *any* logic.
 ///
 /// \param continuables The continuable_base objects to connect.
@@ -73,33 +141,6 @@ auto when_any(Continuables&&... continuables) {
                 "Requires at least 2 continuables!");
   return CONTINUABLE_FOLD_EXPRESSION(
       ||, std::forward<Continuables>(continuables)...);
-}
-
-/// Connects the given continuables with a *seq* logic.
-///
-/// \param args The continuable_base objects to connect.
-///        Requires at least 2 objects to connect.
-///
-/// \see continuable_base::operator>> for details.
-///
-/// \since 1.1.0
-template <typename... Args>
-auto when_seq(Args&&... args) {
-  return detail::composition::apply_composition(
-      detail::composition::composition_strategy_seq_tag{},
-      std::forward<Args>(args)...);
-}
-
-/// bla
-///
-/// \copydetail when_seq
-///
-/// \since 3.0.0
-template <
-    typename Iterator,
-    std::enable_if_t<detail::range::is_iterator<Iterator>::value>* = nullptr>
-auto when_seq(Iterator begin, Iterator end) {
-  return when_seq(detail::range::persist_range(begin, end));
 }
 } // namespace cti
 
