@@ -124,10 +124,14 @@ void old() {
 int main(int, char**) {
   using namespace cti::detail;
 
-  apply_composition(composition::composition_strategy_seq_tag{},
-                    cti::make_ready_continuable(0, 1), 2)
-      .then([](int a0, int a1, int a2) {
+  apply_composition(
+      composition::composition_strategy_seq_tag{},
+      cti::make_ready_continuable(0, 1), 2,
+      std::vector<cti::continuable<int>>{cti::make_ready_continuable(8),
+                                         cti::make_ready_continuable(9)},
+      std::make_tuple(std::make_tuple(cti::make_ready_continuable(7))))
+      .then([](int a0, int a1, int a2, auto o1, auto o2) {
         // ...
-        util::unused(a0, a1, a2);
+        util::unused(a0, a1, a2, o1, o2);
       });
 }

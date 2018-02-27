@@ -162,11 +162,11 @@ struct result_relocator_mapper {
   void traverse_tuple_like(std::integer_sequence<std::size_t, I...>,
                            Index* index, Result* result) {
 
-    (void)std::initializer_list<int>{(
-        (void)traverse(
-            traversal::container_category_of_t<decltype(std::get<I>(*index))>{},
-            &std::get<I>(*index), &std::get<I>(*result)),
-        0)...};
+    (void)std::initializer_list<int>{
+        ((void)traverse(traversal::container_category_of_t<
+                            std::decay_t<decltype(std::get<I>(*index))>>{},
+                        &std::get<I>(*index), &std::get<I>(*result)),
+         0)...};
   }
 
   /// Traverse tuple like container
@@ -197,7 +197,7 @@ template <typename Relocator, typename Index, typename Target>
 constexpr void relocate_index_pack(Relocator&& relocator, Index* index,
                                    Target* target) {
 
-  constexpr traversal::container_category_of_t<Index> const tag;
+  constexpr traversal::container_category_of_t<std::decay_t<Index>> const tag;
 
   detail::result_relocator_mapper<std::decay_t<Relocator>> mapper{
       std::forward<Relocator>(relocator)};

@@ -31,14 +31,15 @@
 #ifndef CONTINUABLE_DETAIL_COMPOSITION_SEQ_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_COMPOSITION_SEQ_HPP_INCLUDED
 
+#include <cassert>
 #include <memory>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 
-#include <continuable/continuable-promise-base.hpp>
 #include <continuable/continuable-traverse-async.hpp>
 #include <continuable/detail/base.hpp>
+#include <continuable/detail/composition_all.hpp>
 #include <continuable/detail/composition_remapping.hpp>
 #include <continuable/detail/traits.hpp>
 
@@ -87,14 +88,14 @@ struct result_indexer_mapper {
   template <
       typename T,
       std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
-  auto operator()(T& continuable) {
+  auto operator()(T&& continuable) {
     auto constexpr const hint = hints::hint_of(traits::identify<T>{});
 
     using target =
         decltype(remapping::detail::result_extractor_mapper::initialize(hint));
 
     using type = indexed_continuable<std::decay_t<T>, target>;
-    return type{std::move(continuable), nullptr};
+    return type{std::forward<T>(continuable), nullptr};
   }
 };
 
@@ -167,6 +168,9 @@ public:
 
   template <typename Index, typename N>
   void operator()(async_traverse_detach_tag, Index&& index, N&& next) {
+    assert(index.target && "The target should be non null here!"
+                           "Probably this is caused through a bug in "
+                           "result_relocator_mapper!");
 
     std::move(index.continuable)
         .then([ target = index.target,
@@ -198,7 +202,9 @@ template <>
 struct composition_finalizer<composition_strategy_seq_tag> {
   template <typename Composition>
   static constexpr auto hint() {
-    return decltype(all::deduce_hint(std::declval<Composition>())){};
+    // The result is the same as in the all composition
+    using all_finalizer = composition_finalizer<composition_strategy_all_tag>;
+    return all_finalizer::hint<Composition>();
   }
 
   /// Finalizes the all logic of a given composition
