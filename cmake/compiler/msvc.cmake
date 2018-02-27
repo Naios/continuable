@@ -33,8 +33,9 @@ endif()
 
 target_compile_options(continuable-features-flags
   INTERFACE
-    /MP2
-    /bigobj)
+    /MP
+    /bigobj
+    /permissive-)
 
 target_compile_options(continuable-features-warnings
   INTERFACE
