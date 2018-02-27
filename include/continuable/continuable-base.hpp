@@ -806,10 +806,10 @@ constexpr auto make_ready_continuable(FirstResult&& first_result,
 ///                  returned continuable.
 ///
 /// \since           3.0.0
-template <typename FirstArg = void, typename... Rest>
-constexpr auto make_exceptional_continuable(error_type exception) {
+template <typename Exception, typename FirstArg = void, typename... Rest>
+constexpr auto make_exceptional_continuable(Exception&& exception) {
   return make_continuable<FirstArg, Rest...>( // ...
-      [exception = std::move(exception)](auto&& promise) mutable {
+      [exception = std::forward<Exception>(exception)](auto&& promise) mutable {
         std::forward<decltype(promise)>(promise).set_exception(
             std::move(exception));
       });
