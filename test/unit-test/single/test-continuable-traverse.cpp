@@ -770,3 +770,31 @@ TEST(traversal_prio, prioritize_mapping) {
 
   EXPECT_EQ(res, 4);
 }
+
+struct flat_tupelizing_tag1 {};
+struct flat_tupelizing_tag2 {};
+
+struct flat_tupelizing_mapper {
+  auto operator()(flat_tupelizing_tag1) {
+    return 7;
+  }
+  auto operator()(flat_tupelizing_tag2) {
+    return spread_this();
+  }
+};
+
+TEST(traversal_regressions, flat_tupelizing) {
+  {
+    std::tuple<int> result =
+        map_pack(flat_tupelizing_mapper{}, flat_tupelizing_tag1{},
+                 flat_tupelizing_tag2{});
+    EXPECT_EQ(std::get<0>(result), 7);
+  }
+
+  {
+    std::tuple<int> result = map_pack(
+        flat_tupelizing_mapper{},
+        std::make_tuple(flat_tupelizing_tag1{}, flat_tupelizing_tag2{}));
+    EXPECT_EQ(std::get<0>(result), 7);
+  }
+}

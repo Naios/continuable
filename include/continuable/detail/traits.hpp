@@ -461,11 +461,11 @@ using std::disjunction;
 namespace detail {
 /// Declares a C++14 polyfill for C++17 std::disjunction.
 template <typename Args, typename = void_t<>>
-struct disjunction_impl : std::common_type<std::false_type> {};
+struct disjunction_impl : std::common_type<std::true_type> {};
 template <typename... Args>
 struct disjunction_impl<identity<Args...>,
-                        void_t<std::enable_if_t<bool(Args::value)>...>>
-    : std::common_type<std::true_type> {};
+                        void_t<std::enable_if_t<!bool(Args::value)>...>>
+    : std::common_type<std::false_type> {};
 } // namespace detail
 
 template <typename... Args>
