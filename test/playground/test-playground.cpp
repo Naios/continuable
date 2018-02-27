@@ -126,5 +126,6 @@ int main(int, char**) {
                     cti::make_ready_continuable(0, 1), 2)
       .then([](int a0, int a1, int a2) {
         // ...
+        util::unused(a0, a1, a2);
       });
 }

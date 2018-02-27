@@ -113,9 +113,9 @@ struct check_pack_empty {
 /// A callable object to determine the shared result between all continuations
 struct determine_shared_result {
   template <typename... T>
-  constexpr auto operator()(T&... args) const noexcept {
+  constexpr auto operator()(T&&...) const noexcept {
     return common_result_of(hints::signature_hint_tag<>{},
-                            hints::hint_of(traits::identity_of(args))...);
+                            hints::hint_of(traits::identify<T>())...);
   }
 
 private:

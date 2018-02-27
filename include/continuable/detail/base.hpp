@@ -504,7 +504,7 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   static_assert(is_continuable<std::decay_t<Continuation>>{},
                 "Expected a continuation!");
 
-  using Hint = decltype(hints::hint_of(traits::identity_of(continuation)));
+  using Hint = decltype(hints::hint_of(traits::identify<Continuation>()));
   constexpr auto next_hint =
       next_hint_of(std::integral_constant<handle_results, HandleResults>{},
                    traits::identify<decltype(callback)>{}, Hint{});
