@@ -179,7 +179,7 @@ struct all_hint_deducer {
   template <typename First, typename Second, typename... Args>
   static constexpr auto
   deduce(hints::signature_hint_tag<First, Second, Args...>) {
-    return std::make_tuple(First{}, Second{}, Args{}...);
+    return spread_this(First{}, Second{}, Args{}...);
   }
 
   template <
@@ -190,8 +190,13 @@ struct all_hint_deducer {
   }
 };
 
-/// Converts the given argument to a tuple if it isn't a tuple already
 template <typename T>
+struct is_tuple : std::false_type {};
+template <typename... T>
+struct is_tuple<std::tuple<T...>> : std::true_type {};
+
+/// Converts the given argument to a tuple if it isn't a tuple already
+template <typename T, std::enable_if_t<!is_tuple<T>::value>* = nullptr>
 constexpr auto tupelize(T&& arg) {
   return std::make_tuple(std::forward<T>(arg));
 }
@@ -209,26 +214,23 @@ constexpr auto flatten(T&& tuple) {
   });
 }
 
-struct convert_to_hint {
-  template <typename... T>
-  constexpr auto operator()(T...) -> hints::signature_hint_tag<T...>;
-};
-constexpr auto deduce_from_pack(traits::identity<void>) {
-  return hints::signature_hint_tag<>{};
-}
-template <typename T>
-constexpr auto deduce_from_pack(traits::identity<T>) {
-  return decltype(
-      traits::unpack(flatten(std::declval<T>()), convert_to_hint{})){};
-}
+constexpr auto deduce_from_pack(traits::identity<void>)
+    -> hints::signature_hint_tag<>;
+template <typename... T>
+constexpr auto deduce_from_pack(traits::identity<std::tuple<T...>>)
+    -> hints::signature_hint_tag<T...>;
+template <typename T, std::enable_if_t<!is_tuple<T>::value>* = nullptr>
+constexpr auto deduce_from_pack(traits::identity<T>)
+    -> hints::signature_hint_tag<T>;
 
 template <typename Composition>
-constexpr auto deduce_hint(Composition&& composition) {
-  using deduced_t = decltype(
-      map_pack(all_hint_deducer{}, std::forward<Composition>(composition)));
+constexpr auto deduce_hint(Composition&& /*composition*/) {
+  using deduced_t =
+      decltype(map_pack(all_hint_deducer{}, std::declval<Composition>()));
+
   // We must guard deduced_t against to be void since this represents an
   // empty signature hint.
-  return deduce_from_pack(traits::identity<deduced_t>{});
+  return decltype(deduce_from_pack(traits::identity<deduced_t>{})){};
 }
 } // namespace all
 

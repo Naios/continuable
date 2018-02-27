@@ -27,6 +27,7 @@
 
 #include <continuable/continuable.hpp>
 
+/*
 static cti::continuable<std::string> http_request(std::string url) {
   return [url = std::move(url)](cti::promise<std::string> promise) {
     if (false) {
@@ -118,6 +119,7 @@ void old() {
         // ...
       });
 }
+*/
 
 int main(int, char**) {
   using namespace cti::detail;

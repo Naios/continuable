@@ -215,6 +215,7 @@ constexpr auto map_spread(C&& callable, T&&... args)
     -> decltype(apply_spread_impl(is_any_spread_t<T...>{},
                                   std::forward<C>(callable),
                                   std::forward<T>(args)...)) {
+
   // Check whether any of the args is a detail::flatted_tuple_t,
   // if not, use the linear called version for better
   // compilation speed.
