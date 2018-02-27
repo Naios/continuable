@@ -33,8 +33,14 @@
 
 #include <utility>
 
-#include <continuable/continuable-base.hpp>
+#include <continuable/detail/composition-all.hpp>
+#include <continuable/detail/composition-any.hpp>
+#include <continuable/detail/composition-seq.hpp>
+#include <continuable/detail/composition.hpp>
 #include <continuable/detail/features.hpp>
+#include <continuable/detail/range.hpp>
+#include <continuable/detail/traits.hpp>
+#include <continuable/detail/util.hpp>
 
 namespace cti {
 /// Connects the given continuables with an *all* logic.
@@ -71,18 +77,29 @@ auto when_any(Continuables&&... continuables) {
 
 /// Connects the given continuables with a *seq* logic.
 ///
-/// \param continuables The continuable_base objects to connect.
+/// \param args The continuable_base objects to connect.
 ///        Requires at least 2 objects to connect.
 ///
 /// \see continuable_base::operator>> for details.
 ///
 /// \since 1.1.0
-template <typename... Continuables>
-auto when_seq(Continuables&&... continuables) {
-  static_assert(sizeof...(continuables) >= 2,
-                "Requires at least 2 continuables!");
-  return CONTINUABLE_FOLD_EXPRESSION(
-      >>, std::forward<Continuables>(continuables)...);
+template <typename... Args>
+auto when_seq(Args&&... args) {
+  return detail::composition::apply_composition(
+      detail::composition::composition_strategy_seq_tag{},
+      std::forward<Args>(args)...);
+}
+
+/// bla
+///
+/// \copydetail when_seq
+///
+/// \since 3.0.0
+template <
+    typename Iterator,
+    std::enable_if_t<detail::range::is_iterator<Iterator>::value>* = nullptr>
+auto when_seq(Iterator begin, Iterator end) {
+  return when_seq(detail::range::persist_range(begin, end));
 }
 } // namespace cti
 

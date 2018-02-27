@@ -124,8 +124,7 @@ void old() {
 int main(int, char**) {
   using namespace cti::detail;
 
-  apply_composition(
-      composition::composition_strategy_seq_tag{},
+  cti::when_seq(
       cti::make_ready_continuable(0, 1), 2,
       std::vector<cti::continuable<int>>{cti::make_ready_continuable(8),
                                          cti::make_ready_continuable(9)},
@@ -134,4 +133,12 @@ int main(int, char**) {
         // ...
         util::unused(a0, a1, a2, o1, o2);
       });
+
+  std::vector<cti::continuable<int>> v{cti::make_ready_continuable(8),
+                                       cti::make_ready_continuable(9)};
+
+  cti::when_seq(v.begin(), v.end()).then([](auto o2) {
+    // ...
+    util::unused(o2);
+  });
 }
