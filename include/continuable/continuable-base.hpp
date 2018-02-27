@@ -47,6 +47,41 @@
 #include <continuable/detail/util.hpp>
 
 namespace cti {
+/// Represents a tag which can be placed first in a signature
+/// in order to overload callables with the asynchronous result
+/// as well as an error.
+///
+/// See the example below:
+/// ```cpp
+/// struct my_callable {
+///   void operator() (std::string result) {
+///     // ...
+///   }
+///   void operator() (cti::dispatch_error_tag, cti::error_type) {
+///     // ...
+///   }
+/// };
+///
+/// // Will receive errors and results
+/// continuable.next(my_callable{});
+/// ```
+///
+/// \note see continuable::next for details.
+///
+/// \since 2.0.0
+using detail::types::dispatch_error_tag;
+
+/// Represents the type that is used as error type
+///
+/// By default this type deduces to `std::exception_ptr`.
+/// If `CONTINUABLE_WITH_NO_EXCEPTIONS` is defined the type
+/// will be a `std::error_condition`.
+/// A custom error type may be set through
+/// defining `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`.
+///
+/// \since 2.0.0
+using detail::types::error_type;
+
 /// Deduces to a true_type if the given type is a continuable_base.
 ///
 /// \since 3.0.0
@@ -329,7 +364,7 @@ public:
   auto fail(continuable_base<OData, OAnnotation>&& continuation) && {
     continuation.freeze();
     return std::move(*this).fail([continuation = std::move(continuation)](
-        detail::types::error_type) mutable { std::move(continuation).done(); });
+        error_type) mutable { std::move(continuation).done(); });
   }
 
   /// A method which allows to use an overloaded callable for the error
@@ -771,49 +806,14 @@ constexpr auto make_ready_continuable(FirstResult&& first_result,
 ///                  returned continuable.
 ///
 /// \since           3.0.0
-template <typename Exception, typename FirstArg = void, typename... Rest>
-constexpr auto make_exceptional_continuable(Exception&& exception) {
+template <typename FirstArg = void, typename... Rest>
+constexpr auto make_exceptional_continuable(error_type exception) {
   return make_continuable<FirstArg, Rest...>( // ...
-      [exception = std::forward<Exception>(exception)](auto&& promise) {
+      [exception = std::move(exception)](auto&& promise) mutable {
         std::forward<decltype(promise)>(promise).set_exception(
             std::move(exception));
       });
 }
-
-/// Represents a tag which can be placed first in a signature
-/// in order to overload callables with the asynchronous result
-/// as well as an error.
-///
-/// See the example below:
-/// ```cpp
-/// struct my_callable {
-///   void operator() (std::string result) {
-///     // ...
-///   }
-///   void operator() (cti::dispatch_error_tag, cti::error_type) {
-///     // ...
-///   }
-/// };
-///
-/// // Will receive errors and results
-/// continuable.next(my_callable{});
-/// ```
-///
-/// \note see continuable::next for details.
-///
-/// \since 2.0.0
-using detail::types::dispatch_error_tag;
-
-/// Represents the type that is used as error type
-///
-/// By default this type deduces to `std::exception_ptr`.
-/// If `CONTINUABLE_WITH_NO_EXCEPTIONS` is defined the type
-/// will be a `std::error_condition`.
-/// A custom error type may be set through
-/// defining `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`.
-///
-/// \since 2.0.0
-using detail::types::error_type;
 } // namespace cti
 
 #endif // CONTINUABLE_BASE_HPP_INCLUDED
