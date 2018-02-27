@@ -77,10 +77,10 @@ auto when_all(Continuables&&... continuables) {
 ///     std::vector<cti::continuable<int>>{cti::make_ready_continuable(3),
 ///                                        cti::make_ready_continuable(4)},
 ///     std::make_tuple(std::make_tuple(cti::make_ready_continuable(5))))
-///     .then([](int r0, int r1, int r2, std::vector<int> r34,
-///              std::tuple<std::tuple<int>> r5) {
-///       // ...
-///     });
+///       .then([](int r0, int r1, int r2, std::vector<int> r34,
+///                std::tuple<std::tuple<int>> r5) {
+///         // ...
+///       });
 /// ```
 ///
 /// \see        continuable_base::operator>> for details.

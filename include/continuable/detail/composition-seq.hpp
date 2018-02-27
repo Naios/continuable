@@ -182,17 +182,32 @@ public:
           // Continue the asynchronous sequential traversal
           next();
         })
+        .fail([me = this->shared_from_this()](types::error_type exception) {
+          // Abort the traversal when an error occurred
+          std::move(me->data_.callback)(types::dispatch_error_tag{},
+                                        std::move(exception));
+        })
         .done();
   }
 
+  void finalize(traits::identity<void>) {
+    std::move(data_.callback)();
+  }
   template <typename T>
-  void operator()(async_traverse_complete_tag, T&& /*pack*/) {
-    // Remove void result guard tags
+  void finalize(traits::identity<T>) {
     auto cleaned =
         map_pack(remapping::unpack_result_guards{}, std::move(data_.result));
 
     // Call the final callback with the cleaned result
     traits::unpack(std::move(cleaned), std::move(data_.callback));
+  }
+
+  template <typename T>
+  void operator()(async_traverse_complete_tag, T&& /*pack*/) {
+    // Guard the final result against void
+    using result_t = decltype(
+        map_pack(remapping::unpack_result_guards{}, std::move(data_.result)));
+    finalize(traits::identity<result_t>{});
   }
 };
 } // namespace seq

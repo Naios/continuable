@@ -800,15 +800,15 @@ constexpr auto make_ready_continuable(FirstResult&& first_result,
 /// Returns a continuable with the parameterized result which instantly
 /// resolves the promise with the given error type.
 ///
-/// \tparam FirstArg The first result of the fake signature of the
-///                  returned continuable.
-/// \tparam Rest     The rest of the result of the fake signature of the
-///                  returned continuable.
+/// \tparam Signature The fake signature of the returned continuable.
 ///
-/// \since           3.0.0
-template <typename Exception, typename FirstArg = void, typename... Rest>
+/// \since            3.0.0
+template <typename... Signature, typename Exception>
 constexpr auto make_exceptional_continuable(Exception&& exception) {
-  return make_continuable<FirstArg, Rest...>( // ...
+  static_assert(sizeof...(Signature) > 0,
+                "Requires at least one type for the fake signature!");
+
+  return make_continuable<Signature...>( // ...
       [exception = std::forward<Exception>(exception)](auto&& promise) mutable {
         std::forward<decltype(promise)>(promise).set_exception(
             std::move(exception));

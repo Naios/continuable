@@ -143,11 +143,30 @@ int main(int, char**) {
     util::unused(o2);
   });
 
-  cti::when_seq()
+  cti::when_seq(cti::make_ready_continuable()) // ...
       .then([] {
         // ...
-      })
+      });
+
+  cti::when_seq() // ...
+      .then([] {
+        // ...
+      });
+
+  cti::when_seq(cti::make_exceptional_continuable<void>(std::error_condition{}))
       .fail([](auto) {
         // ...
       });
+
+  /*composition::apply_composition(
+      composition::composition_strategy_all_tag{},
+      cti::make_ready_continuable(0, 1), 2, //< See this plain value
+      std::vector<cti::continuable<int>>{cti::make_ready_continuable(3),
+                                         cti::make_ready_continuable(4)},
+      std::make_tuple(std::make_tuple(cti::make_ready_continuable(5))))
+      .then([](int r0, int r1, int r2, std::vector<int> r34,
+               std::tuple<std::tuple<int>> r5) {
+        // ...
+        util::unused(r0, r1, r2, r34, r5);
+      });*/
 }
