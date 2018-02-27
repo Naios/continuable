@@ -179,19 +179,21 @@ inline auto asserting_eq_check() {
   };
 }
 
-template <typename C, typename... Args>
-void assert_async_types(C&& continuable, traits::identity<Args...> expected) {
-  assert_async_validation(
-      std::forward<C>(continuable), [&](auto... actualPack) {
-        auto actual = traits::identity<decltype(actualPack)...>{};
-        util::unused(expected, actual,
-                     std::forward<decltype(actualPack)>(actualPack)...);
+template <typename... Expected>
+struct assert_async_types_validator {
+  template <typename... Actual>
+  void operator()(Actual...) {
+    static_assert(std::is_same<traits::identity<Actual...>,
+                               traits::identity<Expected...>>::value,
+                  "The called arguments don't match with the expected ones!");
+  }
+};
 
-        static_assert(
-            std::is_same<std::decay_t<decltype(expected)>,
-                         std::decay_t<decltype(actual)>>::value,
-            "The called arguments don't match with the expected ones!");
-      });
+template <typename C, typename... Args>
+void assert_async_types(C&& continuable,
+                        traits::identity<Args...> /*expected*/) {
+  assert_async_validation(std::forward<C>(continuable),
+                          assert_async_types_validator<Args...>{});
 }
 } // namespace testing
 } // namespace detail
