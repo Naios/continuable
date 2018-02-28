@@ -163,9 +163,8 @@ auto finalize_composition(continuable_base<Data, Strategy>&& continuation) {
 /// provide a materializer method which will finalize an oustanding strategy.
 template <typename Continuable, typename = void>
 struct materializer {
-protected:
-  constexpr auto&& materialize() && {
-    return std::move(*static_cast<Continuable*>(this));
+  static constexpr auto&& apply(Continuable&& continuable) {
+    return std::move(continuable);
   }
 };
 template <typename Data, typename Strategy>
@@ -173,10 +172,8 @@ struct materializer<
     continuable_base<Data, Strategy>,
     std::enable_if_t<is_composition_strategy<Strategy>::value>> {
 
-protected:
-  constexpr auto materialize() && {
-    return finalize_composition(
-        std::move(*static_cast<continuable_base<Data, Strategy>*>(this)));
+  static constexpr auto apply(continuable_base<Data, Strategy>&& continuable) {
+    return finalize_composition(std::move(continuable));
   }
 };
 

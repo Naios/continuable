@@ -115,8 +115,7 @@ using detail::base::is_continuable;
 ///
 /// \since 1.0.0
 template <typename Data, typename Annotation>
-class continuable_base
-    : detail::composition::materializer<continuable_base<Data, Annotation>> {
+class continuable_base {
 
   /// \cond false
   template <typename, typename>
@@ -624,6 +623,11 @@ public:
 private:
   void release() noexcept {
     ownership_.release();
+  }
+
+  auto materialize() && {
+    return detail::composition::materializer<continuable_base>::apply(
+        std::move(*this));
   }
 
   Data&& consume_data() && {
