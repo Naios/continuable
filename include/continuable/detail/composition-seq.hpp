@@ -42,6 +42,7 @@
 #include <continuable/detail/composition-all.hpp>
 #include <continuable/detail/composition-remapping.hpp>
 #include <continuable/detail/traits.hpp>
+#include <continuable/detail/util.hpp>
 
 namespace cti {
 namespace detail {
@@ -122,20 +123,6 @@ struct index_relocator {
   }
 };
 
-constexpr remapping::void_result_guard wrap() {
-  return {};
-}
-template <typename First>
-constexpr decltype(auto) wrap(First&& first) {
-  return std::forward<First>(first);
-}
-template <typename First, typename Second, typename... Rest>
-constexpr decltype(auto) wrap(First&& first, Second&& second, Rest&&... rest) {
-  return std::make_tuple(std::forward<First>(first),
-                         std::forward<Second>(second),
-                         std::forward<Rest>(rest)...);
-}
-
 template <typename Callback, typename Index, typename Result>
 struct sequential_dispatch_data {
   Callback callback;
@@ -145,7 +132,8 @@ struct sequential_dispatch_data {
 
 template <typename Data>
 class sequential_dispatch_visitor
-    : public std::enable_shared_from_this<sequential_dispatch_visitor<Data>> {
+    : public std::enable_shared_from_this<sequential_dispatch_visitor<Data>>,
+      public util::non_movable {
 
   Data data_;
 
@@ -181,7 +169,7 @@ public:
                 next = std::forward<N>(next) ](auto&&... args) mutable {
 
           // Assign the result to the target
-          *target = wrap(std::forward<decltype(args)>(args)...);
+          *target = remapping::wrap(std::forward<decltype(args)>(args)...);
 
           // Continue the asynchronous sequential traversal
           next();

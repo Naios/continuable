@@ -81,6 +81,20 @@ struct unpack_result_guards {
   }
 };
 
+constexpr void_result_guard wrap() {
+  return {};
+}
+template <typename First>
+constexpr decltype(auto) wrap(First&& first) {
+  return std::forward<First>(first);
+}
+template <typename First, typename Second, typename... Rest>
+constexpr decltype(auto) wrap(First&& first, Second&& second, Rest&&... rest) {
+  return std::make_tuple(std::forward<First>(first),
+                         std::forward<Second>(second),
+                         std::forward<Rest>(rest)...);
+}
+
 namespace detail {
 struct result_extractor_mapper {
   /// Create slots for a void result which is removed later.

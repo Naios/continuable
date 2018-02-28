@@ -142,7 +142,7 @@ auto connect(Strategy strategy, continuable_base<LData, LAnnotation>&& left,
 template <typename Strategy>
 struct composition_finalizer;
 
-/// Finalizes the any logic of a given composition
+/// Finalizes the connection logic of a given composition
 template <typename Data, typename Strategy>
 auto finalize_composition(continuable_base<Data, Strategy>&& continuation) {
   using finalizer = composition_finalizer<Strategy>;
@@ -197,6 +197,7 @@ struct prepare_continuables {
     continuable.freeze();
 
     // Materialize every continuable
+    // TODO Actually we would just need to consume the data here
     return base::attorney::materialize(std::forward<Continuable>(continuable));
   }
 };

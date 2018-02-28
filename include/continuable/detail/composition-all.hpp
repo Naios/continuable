@@ -49,30 +49,55 @@ namespace cti {
 namespace detail {
 namespace composition {
 namespace all {
-template <std::size_t Pos, typename T>
-constexpr void assign(traits::size_constant<Pos> /*pos*/, T& /*storage*/) {
-  // ...
-}
-template <std::size_t Pos, typename T, typename Current, typename... Args>
-void assign(traits::size_constant<Pos> pos, T& storage, Current&& current,
-            Args&&... args) {
-  // TODO Improve this -> linear instantiation
-  std::get<Pos>(storage) = std::forward<Current>(current);
-  assign(pos + traits::size_constant_of<1>(), storage,
-         std::forward<Args>(args)...);
-}
+struct all_hint_deducer {
+  static constexpr auto deduce(hints::signature_hint_tag<>) noexcept
+      -> decltype(spread_this());
+
+  template <typename First>
+  static constexpr auto deduce(hints::signature_hint_tag<First>) -> First;
+
+  template <typename First, typename Second, typename... Args>
+  static constexpr auto
+  deduce(hints::signature_hint_tag<First, Second, Args...>)
+      -> decltype(spread_this(std::declval<First>(), std::declval<Second>(),
+                              std::declval<Args>()...));
+
+  template <
+      typename T,
+      std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
+  auto operator()(T&& /*continuable*/) const
+      -> decltype(deduce(hints::hint_of(traits::identify<T>{})));
+};
+
+constexpr auto deduce_from_pack(traits::identity<void>)
+    -> hints::signature_hint_tag<>;
+template <typename... T>
+constexpr auto deduce_from_pack(traits::identity<std::tuple<T...>>)
+    -> hints::signature_hint_tag<T...>;
+template <typename T>
+constexpr auto deduce_from_pack(traits::identity<T>)
+    -> hints::signature_hint_tag<T>;
+
+// We must guard the mapped type against to be void since this represents an
+// empty signature hint.
+template <typename Composition>
+constexpr auto deduce_hint(Composition && /*composition*/)
+    -> decltype(deduce_from_pack(
+        traits::identity<decltype(map_pack(all_hint_deducer{},
+                                           std::declval<Composition>()))>{})){};
 
 /// Caches the partial results and invokes the callback when all results
 /// are arrived. This class is thread safe.
-template <typename T, std::size_t Submissions, typename... Args>
+template <typename Callback, typename Result>
 class all_result_submitter : public std::enable_shared_from_this<
-                                 all_result_submitter<T, Submissions, Args...>>,
+                                 all_result_submitter<Callback, Result>>,
                              public util::non_movable {
 
-  T callback_;
+  Callback callback_;
+  Result result_;
+
   std::atomic<std::size_t> left_;
   std::once_flag flag_;
-  std::tuple<Args...> result_;
 
   template <std::size_t From, std::size_t To, typename... PartialArgs>
   void resolve(traits::size_constant<From> from, traits::size_constant<To>,
@@ -118,95 +143,47 @@ class all_result_submitter : public std::enable_shared_from_this<
     }
   }
 
-  template <std::size_t From, std::size_t To>
+  template <typename Target>
   struct partial_all_callback {
+    Target* target_;
     std::shared_ptr<all_result_submitter> me_;
 
     template <typename... PartialArgs>
     void operator()(PartialArgs&&... args) && {
-      me_->resolve(traits::size_constant<From>{}, traits::size_constant<To>{},
-                   std::forward<PartialArgs>(args)...);
     }
 
     template <typename... PartialArgs>
-    void set_value(PartialArgs&&... args) {
-      std::move (*this)(std::forward<PartialArgs>(args)...);
-    }
-
-    void set_exception(types::error_type error) {
-      std::move (*this)(types::dispatch_error_tag{}, std::move(error));
+    void operator()(types::dispatch_error_tag, types::error_type) && {
     }
   };
 
 public:
-  explicit all_result_submitter(T callback)
-      : callback_(std::move(callback)), left_(Submissions) {
+  explicit all_result_submitter(Callback callback, Result&& result)
+      : callback_(std::move(callback)), result_(std::move(result)), left_(1) {
   }
 
-  /// Creates a submitter which submits it's result into the tuple
-  template <std::size_t From, std::size_t To>
-  auto create_callback(traits::size_constant<From> /*from*/,
-                       traits::size_constant<To> /*to*/) {
-    return partial_all_callback<From, To>{this->shared_from_this()};
+  /// Creates a submitter which submits it's result into the storage
+  template <typename Target>
+  auto create_callback(Target* target) {
+    left_.fetch_add(1, std::memory_order_seq_cst);
+    return partial_all_callback<std::decay_t<Target>>{target,
+                                                      this->shared_from_this()};
   }
-};
 
-/// Creates a submitter which caches the intermediate results of `all` chains
-template <typename Callback, std::size_t Submissions, typename... Args>
-auto make_all_result_submitter(Callback&& callback,
-                               traits::size_constant<Submissions>,
-                               traits::identity<Args...>) {
-  return std::make_shared<all_result_submitter<std::decay_t<decltype(callback)>,
-                                               Submissions, Args...>>(
-      std::forward<decltype(callback)>(callback));
-}
-
-/// A callable object to merge multiple signature hints together
-struct entry_merger {
-  template <typename... T>
-  constexpr auto operator()(T&&...) const noexcept {
-    return traits::merge(hints::hint_of(traits::identify<T>())...);
+  /// Initially the counter is created with an initial count of 1 in order
+  /// to prevent that the composition is finished before all callbacks
+  /// were registered.
+  void start_accept() {
   }
 };
 
-struct all_hint_deducer {
-  static constexpr auto deduce(hints::signature_hint_tag<>) noexcept {
-    return spread_this();
-  }
-  template <typename First>
-  static constexpr auto deduce(hints::signature_hint_tag<First>) {
-    return First{};
-  }
-  template <typename First, typename Second, typename... Args>
-  static constexpr auto
-  deduce(hints::signature_hint_tag<First, Second, Args...>) {
-    return spread_this(First{}, Second{}, Args{}...);
-  }
-
-  template <
-      typename T,
-      std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
-  auto operator()(T&& /*continuable*/) const {
-    return deduce(hints::hint_of(traits::identify<T>{}));
+struct continuable_dispatcher {
+  template <typename Index, typename Target,
+            std::enable_if_t<
+                base::is_continuable<std::decay_t<Index>>::value>* = nullptr>
+  auto operator()(Index* index, Target* target) const noexcept {
   }
 };
-
-constexpr auto deduce_from_pack(traits::identity<void>)
-    -> hints::signature_hint_tag<>;
-template <typename... T>
-constexpr auto deduce_from_pack(traits::identity<std::tuple<T...>>)
-    -> hints::signature_hint_tag<T...>;
-template <typename T>
-constexpr auto deduce_from_pack(traits::identity<T>)
-    -> hints::signature_hint_tag<T>;
-
-// We must guard the mapped type against to be void since this represents an
-// empty signature hint.
-template <typename Composition>
-constexpr auto deduce_hint(Composition && /*composition*/)
-    -> decltype(deduce_from_pack(
-        traits::identity<decltype(map_pack(all_hint_deducer{},
-                                           std::declval<Composition>()))>{})){};
 } // namespace all
 
 /// Finalizes the all logic of a given composition
@@ -223,52 +200,10 @@ struct composition_finalizer<composition_strategy_all_tag> {
     return [composition = std::forward<Composition>(composition)](
         auto&& callback) mutable {
 
-      // We mark the current 2-dimensional position through a pair:
-      // std::pair<size_constant<?>, size_constant<?>>
-      //           ~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~
-      //           Continuation pos     Result pos
-      constexpr auto const begin = std::make_pair(
-          traits::size_constant_of<0>(), traits::size_constant_of<0>());
-      constexpr auto const pack = traits::identify<decltype(composition)>{};
-      constexpr auto const end = traits::pack_size_of(pack);
-      auto const condition = [=](auto pos) { return pos.first < end; };
-
-      constexpr auto const signature = hint<Composition>();
-
-      // Create the result submitter which caches all results and invokes
-      // the final callback upon completion.
-      auto submitter = all::make_all_result_submitter(
-          std::forward<decltype(callback)>(callback), end, signature);
-
-      // Invoke every continuation with it's callback of the submitter
-      traits::static_while(begin, condition, [&](auto current) mutable {
-        auto entry =
-            std::move(std::get<decltype(current.first)::value>(composition));
-
-        // This is the length of the arguments of the current continuable
-        constexpr auto const arg_size =
-            traits::pack_size_of(hints::hint_of(traits::identity_of(entry)));
-
-        // The next position in the result tuple
-        constexpr auto const next = current.second + arg_size;
-
-        // Invoke the continuation with the associated submission callback
-        base::attorney::invoke_continuation(
-            std::move(entry), submitter->create_callback(current.second, next));
-
-        return std::make_pair(current.first + traits::size_constant_of<1>(),
-                              next);
-      });
+      auto result =
+          remapping::create_result_pack(std::forward<Composition>(composition));
     };
   }
-
-  /*template <typename Composition>
-  static auto finalize_new(Composition&& composition) {
-    return [composition = std::forward<Composition>(composition)](
-        auto&& callback) mutable {
-      // TODO
-    };
-  }*/
 };
 } // namespace composition
 } // namespace detail
