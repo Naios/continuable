@@ -159,23 +159,27 @@ auto finalize_composition(continuable_base<Data, Strategy>&& continuation) {
                                 signature, std::move(ownership));
 }
 
-struct consume_ownership {
+struct prepare_continuables {
   util::ownership& ownership_;
 
   template <typename Continuable,
             std::enable_if_t<base::is_continuable<
                 std::decay_t<Continuable>>::value>* = nullptr>
-  void operator()(Continuable&& continuable) noexcept {
-    util::ownership other = base::attorney::ownership_of(continuable);
+  auto operator()(Continuable&& continuable) noexcept {
+    util::ownership current = base::attorney::ownership_of(continuable);
+    assert(current.is_acquired() &&
+           "Only valid continuables should be passed!");
 
-    assert(other.is_acquired() && "Only valid continuables should be passed!");
-
-    if (!ownership_.is_frozen() && other.is_frozen()) {
+    // Propagate a frozen state to the new continuable
+    if (!ownership_.is_frozen() && current.is_frozen()) {
       ownership_.freeze();
     }
 
     // Freeze the continuable since it is stored for later usage
     continuable.freeze();
+
+    // Materialize every continuable
+    return base::attorney::materialize(std::forward<Continuable>(continuable));
   }
 };
 
@@ -183,18 +187,18 @@ template <typename Strategy, typename... Args>
 auto apply_composition(Strategy, Args&&... args) {
   using finalizer = composition_finalizer<Strategy>;
 
-  auto composition = std::make_tuple(std::forward<Args>(args)...);
-
-  // Retrieve the new signature hint
-  constexpr auto const signature =
-      finalizer::template hint<decltype(composition)>();
-
   // Freeze every continuable inside the given arguments,
   // and freeze the ownership if one of the continuables
   // is frozen already.
   // Additionally test whether every continuable is acquired.
+  // Also materialize every continuable.
   util::ownership ownership;
-  traverse_pack(consume_ownership{ownership}, std::move(composition));
+  auto composition = map_pack(prepare_continuables{ownership},
+                              std::make_tuple(std::forward<Args>(args)...));
+
+  // Retrieve the new signature hint
+  constexpr auto const signature =
+      finalizer::template hint<decltype(composition)>();
 
   // Return a new continuable which
   return base::attorney::create(finalizer::finalize(std::move(composition)),

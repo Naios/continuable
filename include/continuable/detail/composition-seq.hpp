@@ -95,7 +95,11 @@ struct result_indexer_mapper {
         decltype(remapping::detail::result_extractor_mapper::initialize(hint));
 
     using type = indexed_continuable<std::decay_t<T>, target>;
-    return type{std::forward<T>(continuable), nullptr};
+
+    // We have to pass the continuables as l-value so we can move the whole pack
+    // afterwards as r-value, thus we move the continuable from a l-value here.
+    // NOLINTNEXTLINE(misc-move-forwarding-reference)
+    return type{std::move(continuable), nullptr};
   }
 };
 
