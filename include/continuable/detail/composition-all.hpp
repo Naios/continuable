@@ -191,28 +191,12 @@ struct all_hint_deducer {
   }
 };
 
-template <typename T>
-struct is_tuple : std::false_type {};
-template <typename... T>
-struct is_tuple<std::tuple<T...>> : std::true_type {};
-
-/// Converts the given argument to a tuple if it isn't a tuple already
-template <typename T, std::enable_if_t<!is_tuple<T>::value>* = nullptr>
-constexpr auto tupelize(T&& arg) {
-  return std::make_tuple(std::forward<T>(arg));
-}
-/// Converts the given argument to a tuple if it isn't a tuple already
-template <typename... T>
-constexpr auto tupelize(std::tuple<T...> arg) {
-  return std::move(arg);
-}
-
 constexpr auto deduce_from_pack(traits::identity<void>)
     -> hints::signature_hint_tag<>;
 template <typename... T>
 constexpr auto deduce_from_pack(traits::identity<std::tuple<T...>>)
     -> hints::signature_hint_tag<T...>;
-template <typename T, std::enable_if_t<!is_tuple<T>::value>* = nullptr>
+template <typename T>
 constexpr auto deduce_from_pack(traits::identity<T>)
     -> hints::signature_hint_tag<T>;
 
@@ -275,6 +259,14 @@ struct composition_finalizer<composition_strategy_all_tag> {
         return std::make_pair(current.first + traits::size_constant_of<1>(),
                               next);
       });
+    };
+  }
+
+  template <typename Composition>
+  static auto finalize_new(Composition&& composition) {
+    return [composition = std::forward<Composition>(composition)](
+        auto&& callback) mutable {
+      // TODO
     };
   }
 };
