@@ -159,6 +159,27 @@ auto finalize_composition(continuable_base<Data, Strategy>&& continuation) {
                                 signature, std::move(ownership));
 }
 
+/// A base class from which the continuable may inherit in order to
+/// provide a materializer method which will finalize an oustanding strategy.
+template <typename Continuable, typename = void>
+struct materializer {
+protected:
+  constexpr auto&& materialize() && {
+    return std::move(*static_cast<Continuable*>(this));
+  }
+};
+template <typename Data, typename Strategy>
+struct materializer<
+    continuable_base<Data, Strategy>,
+    std::enable_if_t<is_composition_strategy<Strategy>::value>> {
+
+protected:
+  constexpr auto materialize() && {
+    return finalize_composition(
+        std::move(*static_cast<continuable_base<Data, Strategy>*>(this)));
+  }
+};
+
 struct prepare_continuables {
   util::ownership& ownership_;
 

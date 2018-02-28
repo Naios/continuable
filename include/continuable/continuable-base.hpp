@@ -115,7 +115,8 @@ using detail::base::is_continuable;
 ///
 /// \since 1.0.0
 template <typename Data, typename Annotation>
-class continuable_base {
+class continuable_base
+    : detail::composition::materializer<continuable_base<Data, Annotation>> {
 
   /// \cond false
   template <typename, typename>
@@ -625,28 +626,8 @@ private:
     ownership_.release();
   }
 
-  auto materialize() &&
-      noexcept(std::is_nothrow_move_constructible<Data>::value) {
-    assert_acquired();
-    return materializeImpl(std::move(*this));
-  }
-
-  template <typename OData, typename OAnnotation,
-            std::enable_if_t<!detail::composition::is_composition_strategy<
-                OAnnotation>::value>* = nullptr>
-  static auto
-  materializeImpl(continuable_base<OData, OAnnotation>&& continuable) {
-    return std::move(continuable);
-  }
-  template <typename OData, typename OAnnotation,
-            std::enable_if_t<detail::composition::is_composition_strategy<
-                OAnnotation>::value>* = nullptr>
-  static auto
-  materializeImpl(continuable_base<OData, OAnnotation>&& continuable) {
-    return detail::composition::finalize_composition(std::move(continuable));
-  }
-
   Data&& consume_data() && {
+    assert_acquired();
     release();
     return std::move(data_);
   }

@@ -262,13 +262,13 @@ struct composition_finalizer<composition_strategy_all_tag> {
     };
   }
 
-  template <typename Composition>
+  /*template <typename Composition>
   static auto finalize_new(Composition&& composition) {
     return [composition = std::forward<Composition>(composition)](
         auto&& callback) mutable {
       // TODO
     };
-  }
+  }*/
 };
 } // namespace composition
 } // namespace detail
