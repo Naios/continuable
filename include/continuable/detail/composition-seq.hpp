@@ -117,7 +117,7 @@ struct index_relocator {
   template <typename Index, typename Target,
             std::enable_if_t<
                 is_indexed_continuable<std::decay_t<Index>>::value>* = nullptr>
-  auto operator()(Index* index, Target* target) const noexcept {
+  void operator()(Index* index, Target* target) const noexcept {
     // Assign the address of the target to the indexed continuable
     index->target = target;
   }
@@ -217,12 +217,11 @@ struct composition_finalizer<composition_strategy_seq_tag> {
   /// Finalizes the all logic of a given composition
   template <typename Composition>
   static auto finalize(Composition&& composition) {
-    return [composition = std::forward<Composition>(composition)](
-        auto&& callback) mutable {
+    return [composition = std::forward<Composition>(composition)] // ...
+        (auto&& callback) mutable {
 
       auto index = seq::create_index_pack(composition);
-      auto result =
-          remapping::create_result_pack(std::forward<Composition>(composition));
+      auto result = remapping::create_result_pack(std::move(composition));
 
       // The data from which the visitor is constructed in-place
       using data_t =
