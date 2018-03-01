@@ -50,23 +50,27 @@ namespace detail {
 namespace composition {
 namespace all {
 struct all_hint_deducer {
-  static constexpr auto deduce(hints::signature_hint_tag<>) noexcept
-      -> decltype(spread_this());
+  static constexpr auto deduce(hints::signature_hint_tag<>) noexcept {
+    return spread_this();
+  }
 
   template <typename First>
-  static constexpr auto deduce(hints::signature_hint_tag<First>) -> First;
+  static constexpr auto deduce(hints::signature_hint_tag<First>) {
+    return First{};
+  }
 
   template <typename First, typename Second, typename... Args>
   static constexpr auto
-  deduce(hints::signature_hint_tag<First, Second, Args...>)
-      -> decltype(spread_this(std::declval<First>(), std::declval<Second>(),
-                              std::declval<Args>()...));
+  deduce(hints::signature_hint_tag<First, Second, Args...>) {
+    return spread_this(First{}, Second{}, Args{}...);
+  }
 
   template <
       typename T,
       std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
-  auto operator()(T&& /*continuable*/) const
-      -> decltype(deduce(hints::hint_of(traits::identify<T>{})));
+  auto operator()(T&& /*continuable*/) const {
+    return deduce(hints::hint_of(traits::identify<T>{}));
+  }
 };
 
 constexpr auto deduce_from_pack(traits::identity<void>)
