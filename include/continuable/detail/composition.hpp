@@ -177,8 +177,13 @@ struct materializer<
   }
 };
 
-struct prepare_continuables {
+class prepare_continuables {
   util::ownership& ownership_;
+
+public:
+  explicit constexpr prepare_continuables(util::ownership& ownership)
+      : ownership_(ownership) {
+  }
 
   template <typename Continuable,
             std::enable_if_t<base::is_continuable<
