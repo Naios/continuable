@@ -44,9 +44,7 @@ using cti::spread_this;
 using cti::traverse_pack;
 
 struct all_map_float {
-  template <
-      typename T,
-      std::enable_if_t<std::is_arithmetic<std::decay_t<T>>::value>* = nullptr>
+  template <typename T>
   float operator()(T el) const {
     return float(el + 1.f);
   }
@@ -61,7 +59,8 @@ struct my_mapper {
 };
 
 struct all_map {
-  int operator()(int) const {
+  template <typename T>
+  int operator()(T) const {
     return 0;
   }
 };
@@ -281,9 +280,7 @@ public:
   explicit counter_mapper(int& counter) : counter_(counter) {
   }
 
-  template <typename T,
-            std::enable_if_t<std::is_arithmetic<std::decay_t<T>>::value ||
-                             std::is_empty<std::decay_t<T>>::value>* = nullptr>
+  template <typename T>
   void operator()(T) const {
     ++counter_.get();
   }
@@ -680,7 +677,8 @@ TEST(traverse_strategic_tuple_like_traverse, remap_references) {
 
 /// A mapper which duplicates the given element
 struct duplicate_mapper {
-  auto operator()(int arg) -> decltype(spread_this(arg, arg)) {
+  template <typename T>
+  auto operator()(T arg) -> decltype(spread_this(arg, arg)) {
     return spread_this(arg, arg);
   }
 };
@@ -756,19 +754,6 @@ TEST(traverse_spread_tuple_like_traverse, one_to_zero_mapping_tuple) {
 TEST(traverse_spread_tuple_like_traverse, one_to_zero_mapping_array) {
   using Result = decltype(map_pack(zero_mapper{}, std::array<int, 2>{{1, 2}}));
   static_assert(std::is_void<Result>::value, "Failed...");
-}
-
-TEST(traversal_prio, prioritize_mapping) {
-  std::vector<int> vec{0, 1, 2};
-  int res = map_pack(
-      [](std::vector<int>& vec) {
-        // ...
-        EXPECT_EQ(vec.size(), 3U);
-        return 4;
-      },
-      vec);
-
-  EXPECT_EQ(res, 4);
 }
 
 struct flat_tupelizing_tag1 {};
