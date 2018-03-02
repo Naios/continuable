@@ -40,6 +40,7 @@
 
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/detail/base.hpp>
+#include <continuable/detail/container-category.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
@@ -101,51 +102,61 @@ auto make_any_result_submitter(Callback&& callback) {
       std::forward<decltype(callback)>(callback));
 }
 
-template <typename T>
-struct check_pack_empty {
-  static constexpr auto const is_empty =
-      (decltype(traits::pack_size_of(std::declval<T>())){} ==
-       traits::size_constant_of<0>());
-  static_assert(is_empty.value, "Expected all continuations to have the same"
-                                "count of arguments!");
-};
-
-/// A callable object to determine the shared result between all continuations
-struct determine_shared_result {
-  template <typename... T>
-  constexpr auto operator()(T&&...) const noexcept {
-    return common_result_of(hints::signature_hint_tag<>{},
-                            hints::hint_of(traits::identify<T>())...);
+struct result_deducer {
+  template <typename T>
+  static auto deduce_one(std::false_type, traits::identity<T>) {
+    static_assert(traits::fail<T>::value,
+                  "Non continuable types except tuple like and homogeneous "
+                  "containers aren't allowed inside an any expression!");
+  }
+  template <typename T>
+  static auto deduce_one(std::true_type, traits::identity<T> id) {
+    return hints::hint_of(id);
+  }
+  template <typename T>
+  static auto deduce(traversal::container_category_tag<false, false>,
+                     traits::identity<T> id) {
+    return deduce_one<T>(base::is_continuable<T>{}, id);
   }
 
-private:
-  template <typename Signature, typename... Args>
-  static constexpr auto common_result_of(Signature signature,
-                                         hints::signature_hint_tag<>,
-                                         Args... /*args*/) {
-    /// Assert that the other signatures are empty too which means all
-    /// signatures had the same size.
-    (void)std::initializer_list<int>{0, ((void)check_pack_empty<Args>{}, 0)...};
-    return signature;
+  /// Deduce a homogeneous container
+  template <bool IsTupleLike, typename T>
+  static auto deduce(traversal::container_category_tag<true, IsTupleLike>,
+                     traits::identity<T>) {
+
+    // Deduce the containing type
+    using element_t = std::decay_t<decltype(*std::declval<T>().begin())>;
+    return deduce(traversal::container_category_of_t<element_t>{},
+                  traits::identity<element_t>{});
   }
 
-  template <typename T, typename... Args>
-  static constexpr T first_of(traits::identity<T, Args...>) noexcept;
+  template <typename First, typename... T>
+  static auto deduce_same_hints(First first, T...) {
+    static_assert(traits::conjunction<std::is_same<First, T>...>::value,
+                  "The continuables inside the given pack must have the "
+                  "same signature hint!");
 
-  /// Determine the common result between all continuation which are chained
-  /// with an `any` strategy, consider two continuations:
-  /// c1 with `void(int)` and c2 with `void(float)`, the common result shared
-  /// between both continuations is `void(int)`.
-  template <typename Signature, typename First, typename... Args>
-  static constexpr auto common_result_of(Signature signature, First first,
-                                         Args... args) {
-    using common_type =
-        traits::identity<std::common_type_t<decltype(first_of(first)),
-                                            decltype(first_of(args))...>>;
+    return first;
+  }
 
-    return common_result_of(traits::push(signature, common_type{}),
-                            traits::pop_first(first),
-                            traits::pop_first(args)...);
+  template <std::size_t... I, typename T>
+  static auto deduce_tuple_like(std::integer_sequence<std::size_t, I...>,
+                                traits::identity<T>) {
+
+    return deduce_same_hints(deduce(
+        traversal::container_category_of_t<
+            std::decay_t<decltype(std::get<I>(std::declval<T>()))>>{},
+        traits::identity<
+            std::decay_t<decltype(std::get<I>(std::declval<T>()))>>{})...);
+  }
+
+  /// Traverse tuple like container
+  template <typename T>
+  static auto deduce(traversal::container_category_tag<false, true>,
+                     traits::identity<T> id) {
+
+    std::make_index_sequence<std::tuple_size<T>::value> constexpr const i{};
+    return deduce_tuple_like(i, id);
   }
 };
 } // namespace any
@@ -155,8 +166,9 @@ template <>
 struct composition_finalizer<composition_strategy_any_tag> {
   template <typename Composition>
   static constexpr auto hint() {
-    return decltype(traits::unpack(std::declval<Composition>(),
-                                   any::determine_shared_result{})){};
+    return decltype(any::result_deducer::deduce(
+        traversal::container_category_of_t<std::decay_t<Composition>>{},
+        traits::identity<std::decay_t<Composition>>{})){};
   }
 
   template <typename Composition>

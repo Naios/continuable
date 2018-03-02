@@ -58,12 +58,6 @@ TYPED_TEST(single_dimension_tests, is_logical_any_connectable) {
   }
 
   {
-    using common = std::common_type_t<char, int>;
-    auto chain = this->supply(char(0), int(0)) || this->supply(int(0), char(0));
-    ASSERT_ASYNC_TYPES(std::move(chain), common, common);
-  }
-
-  {
     // Check the evaluation order
     unsigned i = 0;
     auto composed =

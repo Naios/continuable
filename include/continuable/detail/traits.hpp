@@ -472,6 +472,23 @@ template <typename... Args>
 using disjunction = typename detail::disjunction_impl<identity<Args...>>::type;
 #endif // CONTINUABLE_HAS_CXX17_DISJUNCTION
 
+#ifdef CONTINUABLE_HAS_CXX17_CONJUNCTION
+using std::conjunction;
+#else
+namespace detail {
+/// Declares a C++14 polyfill for C++17 std::conjunction.
+template <typename Args, typename = void_t<>>
+struct conjunction_impl : std::common_type<std::false_type> {};
+template <typename... Args>
+struct conjunction_impl<identity<Args...>,
+                        void_t<std::enable_if_t<bool(Args::value)>...>>
+    : std::common_type<std::true_type> {};
+} // namespace detail
+
+template <typename... Args>
+using conjunction = typename detail::conjunction_impl<identity<Args...>>::type;
+#endif // CONTINUABLE_HAS_CXX17_CONJUNCTION
+
 } // namespace traits
 } // namespace detail
 } // namespace cti
