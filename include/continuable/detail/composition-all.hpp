@@ -85,10 +85,15 @@ constexpr auto deduce_from_pack(traits::identity<T>)
 // We must guard the mapped type against to be void since this represents an
 // empty signature hint.
 template <typename Composition>
-constexpr auto deduce_hint(Composition && /*composition*/)
-    -> decltype(deduce_from_pack(
-        traits::identity<decltype(map_pack(all_hint_deducer{},
-                                           std::declval<Composition>()))>{})){};
+constexpr auto deduce_hint(Composition&& /*composition*/) {
+  // Don't change this way since it addresses a GCC compiler bug:
+  // error: extra ';' [-Werror=pedantic]
+  //  std::declval<Composition>()))>{})){};
+  using mapped_t =
+      decltype(map_pack(all_hint_deducer{}, std::declval<Composition>()));
+  using deduced_t = decltype(deduce_from_pack(traits::identity<mapped_t>{}));
+  return deduced_t{};
+}
 
 /// Caches the partial results and invokes the callback when all results
 /// are arrived. This class is thread safe.
