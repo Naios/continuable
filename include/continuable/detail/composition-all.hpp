@@ -108,15 +108,12 @@ class result_submitter
     assert((left_ == 0U) && "Expected that the submitter is finished!");
     std::atomic_thread_fence(std::memory_order_acquire);
 
-    auto cleaned =
-        map_pack(remapping::unpack_result_guards{}, std::move(result_));
-
     // Call the final callback with the cleaned result
-    traits::unpack(std::move(cleaned), [&](auto&&... args) {
-      std::call_once(flag_, std::move(callback_),
-                     std::forward<decltype(args)>(args)...);
+    std::call_once(flag_, [&](auto&&... args) {
+      remapping::finalize_data(std::move(callback_), std::move(result_));
     });
   }
+
   // Completes one result
   void complete_one() {
     assert((left_ > 0U) && "Expected that the submitter isn't finished!");
@@ -127,16 +124,16 @@ class result_submitter
     }
   }
 
-  template <typename Target>
+  template <typename Box>
   struct partial_all_callback {
-    Target* target;
+    Box* box;
     std::shared_ptr<result_submitter> me;
 
     template <typename... Args>
     void operator()(Args&&... args) && {
 
       // Assign the result to the target
-      *target = remapping::wrap(std::forward<decltype(args)>(args)...);
+      box->assign(std::forward<decltype(args)>(args)...);
 
       // Complete one result
       me->complete_one();
@@ -157,11 +154,11 @@ public:
   }
 
   /// Creates a submitter which submits it's result into the storage
-  template <typename Target>
-  auto create_callback(Target* target) {
+  template <typename Box>
+  auto create_callback(Box* box) {
     left_.fetch_add(1, std::memory_order_seq_cst);
-    return partial_all_callback<std::decay_t<Target>>{target,
-                                                      this->shared_from_this()};
+    return partial_all_callback<std::decay_t<Box>>{box,
+                                                   this->shared_from_this()};
   }
 
   /// Initially the counter is created with an initial count of 1 in order
@@ -171,7 +168,7 @@ public:
     complete_one();
   }
 
-  constexpr Result* result_ptr() noexcept {
+  constexpr auto& head() noexcept {
     return &result_;
   }
 };
@@ -180,12 +177,11 @@ template <typename Submitter>
 struct continuable_dispatcher {
   std::shared_ptr<Submitter>& submitter;
 
-  template <typename Index, typename Target,
-            std::enable_if_t<
-                base::is_continuable<std::decay_t<Index>>::value>* = nullptr>
-  void operator()(Index* index, Target* target) const {
+  template <typename Box, std::enable_if_t<remapping::is_continuable_box<
+                              std::decay_t<Box>>::value>* = nullptr>
+  void operator()(Box&& box) const {
     // Retrieve a callback from the submitter and attach it to the continuable
-    std::move(*index).next(submitter->create_callback(target)).done();
+    box.fetch().next(submitter->create_callback(std::addressof(box))).done();
   }
 };
 } // namespace all
@@ -205,7 +201,7 @@ struct composition_finalizer<composition_strategy_all_tag> {
         (auto&& callback) mutable {
 
       // Create the target result from the composition
-      auto result = remapping::create_result_pack(std::move(composition));
+      auto result = remapping::box_continuables(std::move(composition));
 
       using submitter_t =
           all::result_submitter<std::decay_t<decltype(callback)>,
@@ -217,10 +213,8 @@ struct composition_finalizer<composition_strategy_all_tag> {
 
       // Dispatch the continuables and store its partial result
       // in the whole result
-      // TODO Fix use after move here
-      remapping::relocate_index_pack(
-          all::continuable_dispatcher<submitter_t>{state}, &composition,
-          state->result_ptr());
+      traverse_pack(all::continuable_dispatcher<submitter_t>{state},
+                    state->head());
 
       // Finalize the composition if all results arrived in-place
       state->accept();

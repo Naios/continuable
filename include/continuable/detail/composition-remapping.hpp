@@ -55,171 +55,154 @@ namespace composition {
 ///   - multiple async value -> tuple of async values.
 namespace remapping {
 // Guard object for representing void results
-struct void_result_guard {};
-// Guard object for representing multiple results
-template <typename... Args>
-struct multi_result_guard {
-  std::tuple<Args...> result_;
+template <typename Continuable>
+class continuable_box;
+template <typename Data>
+class continuable_box<continuable_base<Data, hints::signature_hint_tag<>>> {
 
-  multi_result_guard& operator=(std::tuple<Args...> result) {
-    result_ = std::move(result);
-    return *this;
+  continuable_base<Data, hints::signature_hint_tag<>> continuable_;
+
+public:
+  explicit continuable_box(
+      continuable_base<Data, hints::signature_hint_tag<>>&& continuable)
+      : continuable_(std::move(continuable)) {
   }
-};
 
-// Callable object that maps void_result_guard zo zero arguments
-struct unpack_result_guards {
-  auto operator()(void_result_guard) const noexcept {
+  continuable_base<Data, hints::signature_hint_tag<>>&& fetch() {
+    return std::move(continuable_);
+  }
+
+  void assign() {
+  }
+
+  auto unbox() && {
     return spread_this();
   }
-  template <typename... Args>
-  auto operator()(multi_result_guard<Args...> guard) const noexcept {
-    // Spread the result of the continuable into the current depth.
-    return traits::unpack(std::move(guard.result_), [](auto&&... args) {
+};
+template <typename Data, typename First>
+class continuable_box<
+    continuable_base<Data, hints::signature_hint_tag<First>>> {
+
+  continuable_base<Data, hints::signature_hint_tag<First>> continuable_;
+  First first_;
+
+public:
+  explicit continuable_box(
+      continuable_base<Data, hints::signature_hint_tag<First>>&& continuable)
+      : continuable_(std::move(continuable)) {
+  }
+
+  continuable_base<Data, hints::signature_hint_tag<First>>&& fetch() {
+    return std::move(continuable_);
+  }
+
+  void assign(First first) {
+    first_ = std::move(first);
+  }
+
+  auto unbox() && {
+    return std::move(first_);
+  }
+};
+template <typename Data, typename First, typename Second, typename... Rest>
+class continuable_box<
+    continuable_base<Data, hints::signature_hint_tag<First, Second, Rest...>>> {
+
+  continuable_base<Data, hints::signature_hint_tag<First, Second, Rest...>>
+      continuable_;
+  std::tuple<First, Second, Rest...> args_;
+
+public:
+  explicit continuable_box(
+      continuable_base<Data,
+                       hints::signature_hint_tag<First, Second, Rest...>>&&
+          continuable)
+      : continuable_(std::move(continuable)) {
+  }
+
+  continuable_base<Data, hints::signature_hint_tag<First, Second, Rest...>>&&
+  fetch() {
+    return std::move(continuable_);
+  }
+
+  void assign(First first, Second second, Rest... rest) {
+    args_ = std::make_tuple(std::move(first), std::move(second),
+                            std::move(rest)...);
+  }
+
+  auto unbox() && {
+    return traits::unpack(std::move(args_), [](auto&&... args) {
       return spread_this(std::forward<decltype(args)>(args)...);
     });
   }
 };
 
-constexpr void_result_guard wrap() {
-  return {};
-}
-template <typename First>
-constexpr decltype(auto) wrap(First&& first) {
-  return std::forward<First>(first);
-}
-template <typename First, typename Second, typename... Rest>
-constexpr decltype(auto) wrap(First&& first, Second&& second, Rest&&... rest) {
-  return std::make_tuple(std::forward<First>(first),
-                         std::forward<Second>(second),
-                         std::forward<Rest>(rest)...);
-}
+template <typename T>
+struct is_continuable_box : std::false_type {};
+template <typename Continuable>
+struct is_continuable_box<continuable_box<Continuable>> : std::true_type {};
 
 namespace detail {
-struct result_extractor_mapper {
-  /// Create slots for a void result which is removed later.
-  /// This is required due to the fact that each continuable has exactly
-  /// one matching valuen inside the result tuple.
-  static constexpr auto initialize(hints::signature_hint_tag<>) noexcept {
-    return void_result_guard{};
-  }
-  /// Initialize a single value
-  template <typename First>
-  static constexpr auto initialize(hints::signature_hint_tag<First>) {
-    return First{};
-  }
-  /// Initialize a multiple values as tuple
-  template <typename First, typename Second, typename... Args>
-  static constexpr auto
-  initialize(hints::signature_hint_tag<First, Second, Args...>) {
-    // TODO Fix non default constructible values
-    return multi_result_guard<First, Second, Args...>{
-        std::make_tuple(First{}, Second{}, Args{}...)};
-  }
-
-  /// Remap a continuable to its corresponding result values
-  /// A void result is mapped to a guard type, single values to the value
-  /// itself and multiple ones to a tuple of values.
+/// Maps a deeply nested pack of continuables to a continuable_box
+struct continuable_box_packer {
   template <
       typename T,
       std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
-  auto operator()(T&& /*continuable*/) {
-    auto constexpr const hint = hints::hint_of(traits::identify<T>{});
-    return initialize(hint);
+  auto operator()(T&& continuable) {
+    return continuable_box<std::decay_t<T>>{std::forward<T>(continuable)};
   }
 };
-
-/// Relocates the target of a deeply nested pack of indexed_continuable objects
-/// to the given target.
-template <typename Evaluator>
-struct result_relocator_mapper {
-  Evaluator evaluator;
-
-  template <typename Index, typename Result>
-  void traverse_one(std::false_type, Index*, Result*) {
-    // Don't do anything when dealing with casual objects
-  }
-  template <typename Index, typename Result>
-  void traverse_one(std::true_type, Index* index, Result* result) {
-
-    // Call the evaluator with the address of the indexed object and its target
-    evaluator(index, result);
-  }
-  template <typename Index, typename Result>
-  void traverse(traversal::container_category_tag<false, false>, Index* index,
-                Result* result) {
-
-    traverse_one(traits::is_invocable<Evaluator, Index*, Result*>{}, index,
-                 result);
-  }
-
-  /// Traverse a homogeneous container
-  template <bool IsTupleLike, typename Index, typename Result>
-  void traverse(traversal::container_category_tag<true, IsTupleLike>,
-                Index* index, Result* result) {
-    auto index_itr = index->begin();
-    auto const index_end = index->end();
-
-    auto result_itr = result->begin();
-    auto const result_end = result->end();
-
-    using element_t = std::decay_t<decltype(*index->begin())>;
-    traversal::container_category_of_t<element_t> constexpr const tag;
-
-    for (; index_itr != index_end; ++index_itr, ++result_itr) {
-      assert(result_itr != result_end);
-      traverse(tag, &*index_itr, &*result_itr);
-    }
-  }
-
-  template <std::size_t... I, typename Index, typename Result>
-  void traverse_tuple_like(std::integer_sequence<std::size_t, I...>,
-                           Index* index, Result* result) {
-
-    (void)std::initializer_list<int>{
-        ((void)traverse(traversal::container_category_of_t<
-                            std::decay_t<decltype(std::get<I>(*index))>>{},
-                        &std::get<I>(*index), &std::get<I>(*result)),
-         0)...};
-
-    (void)index;
-    (void)result;
-  }
-
-  /// Traverse tuple like container
-  template <typename Index, typename Result>
-  void traverse(traversal::container_category_tag<false, true>, Index* index,
-                Result* result) {
-
-    std::make_index_sequence<std::tuple_size<Index>::value> constexpr const i{};
-
-    traverse_tuple_like(i, index, result);
+/// Maps a deeply nested pack of continuable_boxes to its result
+struct continuable_box_unpacker {
+  template <
+      typename T,
+      std::enable_if_t<is_continuable_box<std::decay_t<T>>::value>* = nullptr>
+  auto operator()(T&& box) {
+    return std::forward<T>(box).unpack();
   }
 };
 } // namespace detail
 
-/// Returns the result pack of the given deeply nested pack.
-/// This invalidates all non-continuable values contained inside the pack.
-///
-/// This consumes all non continuables inside the pack.
+/// Returns the boxed pack of the given deeply nested pack.
+/// This transforms all continuables into a continuable_box which is
+/// capable of caching the result from the corresponding continuable.
 template <typename... Args>
-constexpr auto create_result_pack(Args&&... args) {
-  return cti::map_pack(detail::result_extractor_mapper{},
+constexpr auto box_continuables(Args&&... args) {
+  return cti::map_pack(detail::continuable_box_packer{},
                        std::forward<Args>(args)...);
 }
 
-/// Sets the target pointers of indexed_continuable's inside the index pack
-/// to point to their given counterparts inside the given target.
-template <typename Relocator, typename Index, typename Target>
-constexpr void relocate_index_pack(Relocator&& relocator, Index* index,
-                                   Target* target) {
+/// Returns the unboxed pack of the given deeply nested boxed pack.
+/// This transforms all continuable_boxes into its result.
+template <typename... Args>
+constexpr auto unbox_continuables(Args&&... args) {
+  return cti::map_pack(detail::continuable_box_unpacker{},
+                       std::forward<Args>(args)...);
+}
 
-  constexpr traversal::container_category_of_t<std::decay_t<Index>> const tag;
+namespace detail {
+template <typename T, typename Callback, typename Data>
+void finalize_impl(traits::identity<void>, Callback&& callback, Data&&) {
+  std::forward<Callback>(callback)();
+}
+template <typename T, typename Callback, typename Data>
+void finalize_impl(traits::identity<T>, Callback&& callback, Data&& data) {
+  // Call the final callback with the cleaned result
+  traits::unpack(unbox_continuables(std::forward<Data>(data)),
+                 std::forward<Callback>(callback));
+}
+} // namespace detail
 
-  detail::result_relocator_mapper<std::decay_t<Relocator>> mapper{
-      std::forward<Relocator>(relocator)};
+template <typename Callback, typename Data>
+void finalize_data(Callback&& callback, Data&& data) {
+  using result_t =
+      decltype(traits::unpack(unbox_continuables(std::forward<Data>(data)),
+                              std::forward<Callback>(callback)));
 
-  mapper.traverse(tag, index, target);
+  // Guard the final result against void
+  return detail::finalize_impl(traits::identity<result_t>{},
+                               std::forward<Data>(data),
+                               std::forward<Callback>(callback));
 }
 } // namespace remapping
 } // namespace composition

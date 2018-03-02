@@ -69,65 +69,10 @@ auto sequential_connect(Left&& left, Right&& right) {
   });
 }
 
-/// Contains an continuable together with a location where the
-/// result shall be stored.
-template <typename Continuable, typename Target>
-struct indexed_continuable {
-  Continuable continuable;
-  Target* target;
-};
-
-template <typename T>
-struct is_indexed_continuable : std::false_type {};
-template <typename Continuable, typename Target>
-struct is_indexed_continuable<indexed_continuable<Continuable, Target>>
-    : std::true_type {};
-
-/// Maps a deeply nested pack of continuables to an indexed continuable
-struct result_indexer_mapper {
-  /// Index a given continuable together with its target location
-  template <
-      typename T,
-      std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
-  auto operator()(T&& continuable) {
-    auto constexpr const hint = hints::hint_of(traits::identify<T>{});
-
-    using target =
-        decltype(remapping::detail::result_extractor_mapper::initialize(hint));
-
-    using type = indexed_continuable<std::decay_t<T>, target>;
-
-    // We have to pass the continuables as l-value so we can move the whole pack
-    // afterwards as r-value, thus we move the continuable from a l-value here.
-    // NOLINTNEXTLINE(misc-move-forwarding-reference)
-    return type{std::move(continuable), nullptr};
-  }
-};
-
-/// Returns the result pack of the given deeply nested pack.
-/// This invalidates all non-continuable values contained inside the pack.
-///
-/// This consumes all continuables inside the pack.
-template <typename... Args>
-constexpr auto create_index_pack(Args&&... args) {
-  return cti::map_pack(result_indexer_mapper{}, std::forward<Args>(args)...);
-}
-
-struct index_relocator {
-  template <typename Index, typename Target,
-            std::enable_if_t<
-                is_indexed_continuable<std::decay_t<Index>>::value>* = nullptr>
-  void operator()(Index* index, Target* target) const noexcept {
-    // Assign the address of the target to the indexed continuable
-    index->target = target;
-  }
-};
-
-template <typename Callback, typename Index, typename Result>
+template <typename Callback, typename Box>
 struct sequential_dispatch_data {
   Callback callback;
-  Index index;
-  Result result;
+  Box box;
 };
 
 template <typename Data>
@@ -139,37 +84,29 @@ class sequential_dispatch_visitor
 
 public:
   explicit sequential_dispatch_visitor(Data&& data) : data_(std::move(data)) {
-    // Assign the address of each result target to the corresponding
-    // indexed continuable.
-    remapping::relocate_index_pack(index_relocator{}, &data_.index,
-                                   &data_.result);
   }
 
   virtual ~sequential_dispatch_visitor() = default;
 
   /// Returns the pack that should be traversed
   auto& head() {
-    return data_.index;
+    return data_.box;
   }
 
-  template <typename Index, std::enable_if_t<is_indexed_continuable<
-                                std::decay_t<Index>>::value>* = nullptr>
-  bool operator()(async_traverse_visit_tag, Index&& /*index*/) {
+  template <typename Box, std::enable_if_t<remapping::is_continuable_box<
+                              std::decay_t<Box>>::value>* = nullptr>
+  bool operator()(async_traverse_visit_tag, Box&& /*box*/) {
     return false;
   }
 
-  template <typename Index, typename N>
-  void operator()(async_traverse_detach_tag, Index&& index, N&& next) {
-    assert(index.target && "The target should be non null here!"
-                           "Probably this is caused through a bug in "
-                           "result_relocator_mapper!");
-
-    std::move(index.continuable)
-        .then([ target = index.target,
+  template <typename Box, typename N>
+  void operator()(async_traverse_detach_tag, Box&& box, N&& next) {
+    box->fetch()
+        .then([ box = std::addressof(box),
                 next = std::forward<N>(next) ](auto&&... args) mutable {
 
           // Assign the result to the target
-          *target = remapping::wrap(std::forward<decltype(args)>(args)...);
+          box->assign(std::forward<decltype(args)>(args)...);
 
           // Continue the asynchronous sequential traversal
           next();
@@ -182,24 +119,10 @@ public:
         .done();
   }
 
-  void finalize(traits::identity<void>) {
-    std::move(data_.callback)();
-  }
-  template <typename T>
-  void finalize(traits::identity<T>) {
-    auto cleaned =
-        map_pack(remapping::unpack_result_guards{}, std::move(data_.result));
-
-    // Call the final callback with the cleaned result
-    traits::unpack(std::move(cleaned), std::move(data_.callback));
-  }
-
   template <typename T>
   void operator()(async_traverse_complete_tag, T&& /*pack*/) {
-    // Guard the final result against void
-    using result_t = decltype(
-        map_pack(remapping::unpack_result_guards{}, std::move(data_.result)));
-    finalize(traits::identity<result_t>{});
+    return remapping::finalize_data(std::move(data_.callback),
+                                    std::move(data_.box));
   }
 };
 } // namespace seq
@@ -220,21 +143,19 @@ struct composition_finalizer<composition_strategy_seq_tag> {
     return [composition = std::forward<Composition>(composition)] // ...
         (auto&& callback) mutable {
 
-      auto index = seq::create_index_pack(composition);
-      auto result = remapping::create_result_pack(std::move(composition));
+      auto boxed = remapping::box_continuables(std::move(composition));
 
       // The data from which the visitor is constructed in-place
       using data_t =
           seq::sequential_dispatch_data<std::decay_t<decltype(callback)>,
-                                        std::decay_t<decltype(index)>,
-                                        std::decay_t<decltype(result)>>;
+                                        std::decay_t<decltype(boxed)>>;
 
       // The visitor type
       using visitor_t = seq::sequential_dispatch_visitor<data_t>;
 
-      traverse_pack_async(async_traverse_in_place_tag<visitor_t>{},
-                          data_t{std::forward<decltype(callback)>(callback),
-                                 std::move(index), std::move(result)});
+      traverse_pack_async(
+          async_traverse_in_place_tag<visitor_t>{},
+          data_t{std::forward<decltype(callback)>(callback), std::move(boxed)});
     };
   }
 };
