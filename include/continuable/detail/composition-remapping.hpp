@@ -54,7 +54,6 @@ namespace composition {
 ///   - single async value -> single value
 ///   - multiple async value -> tuple of async values.
 namespace remapping {
-// Guard object for representing void results
 template <typename Continuable>
 class continuable_box;
 template <typename Data>
@@ -158,7 +157,7 @@ struct continuable_box_unpacker {
       typename T,
       std::enable_if_t<is_continuable_box<std::decay_t<T>>::value>* = nullptr>
   auto operator()(T&& box) {
-    return std::forward<T>(box).unpack();
+    return std::forward<T>(box).unbox();
   }
 };
 } // namespace detail
@@ -181,12 +180,13 @@ constexpr auto unbox_continuables(Args&&... args) {
 }
 
 namespace detail {
-template <typename T, typename Callback, typename Data>
+template <typename Callback, typename Data>
 void finalize_impl(traits::identity<void>, Callback&& callback, Data&&) {
   std::forward<Callback>(callback)();
 }
-template <typename T, typename Callback, typename Data>
-void finalize_impl(traits::identity<T>, Callback&& callback, Data&& data) {
+template <typename... Args, typename Callback, typename Data>
+void finalize_impl(traits::identity<std::tuple<Args...>>, Callback&& callback,
+                   Data&& data) {
   // Call the final callback with the cleaned result
   traits::unpack(unbox_continuables(std::forward<Data>(data)),
                  std::forward<Callback>(callback));
@@ -195,14 +195,11 @@ void finalize_impl(traits::identity<T>, Callback&& callback, Data&& data) {
 
 template <typename Callback, typename Data>
 void finalize_data(Callback&& callback, Data&& data) {
-  using result_t =
-      decltype(traits::unpack(unbox_continuables(std::forward<Data>(data)),
-                              std::forward<Callback>(callback)));
-
+  using result_t = decltype(unbox_continuables(std::forward<Data>(data)));
   // Guard the final result against void
-  return detail::finalize_impl(traits::identity<result_t>{},
-                               std::forward<Data>(data),
-                               std::forward<Callback>(callback));
+  return detail::finalize_impl(traits::identity<std::decay_t<result_t>>{},
+                               std::forward<Callback>(callback),
+                               std::forward<Data>(data));
 }
 } // namespace remapping
 } // namespace composition

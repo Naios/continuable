@@ -109,7 +109,7 @@ class result_submitter
     std::atomic_thread_fence(std::memory_order_acquire);
 
     // Call the final callback with the cleaned result
-    std::call_once(flag_, [&](auto&&... args) {
+    std::call_once(flag_, [&] {
       remapping::finalize_data(std::move(callback_), std::move(result_));
     });
   }
@@ -169,7 +169,7 @@ public:
   }
 
   constexpr auto& head() noexcept {
-    return &result_;
+    return result_;
   }
 };
 

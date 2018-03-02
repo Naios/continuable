@@ -101,7 +101,7 @@ public:
 
   template <typename Box, typename N>
   void operator()(async_traverse_detach_tag, Box&& box, N&& next) {
-    box->fetch()
+    box.fetch()
         .then([ box = std::addressof(box),
                 next = std::forward<N>(next) ](auto&&... args) mutable {
 
