@@ -124,7 +124,7 @@ void old() {
 int main(int, char**) {
   using namespace cti::detail;
 
-  /*cti::when_seq(
+  cti::when_seq(
       cti::make_ready_continuable(0, 1), 2, //< See this plain value
       std::vector<cti::continuable<int>>{cti::make_ready_continuable(3),
                                          cti::make_ready_continuable(4)},
@@ -167,11 +167,10 @@ int main(int, char**) {
                std::tuple<std::tuple<int>> r5) {
         // ...
         util::unused(r0, r1, r2, r34, r5);
-      });*/
+      });
 
-  composition::apply_composition(composition::composition_strategy_any_tag{},
-                                 cti::make_ready_continuable(22),
-                                 cti::make_ready_continuable(44))
+  cti::when_any(cti::make_ready_continuable(22),
+                cti::make_ready_continuable(44))
       .then([](int) {
 
       });

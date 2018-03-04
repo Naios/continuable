@@ -491,19 +491,14 @@ public:
   /// callback once with the first result available.
   ///
   /// \param right The continuable on the right-hand side to connect.
-  ///              The right continuable is required to have a compatible
-  ///              result to the left connected continuable_base,
-  ///              such that `std::common_type_t<Left, Right>` deduces to
-  ///              a variable for every type in the result of the left and
-  ///              the right continuable_base.
+  ///              The right continuable is required to have the same
+  ///              result as the left connected continuable_base.
   ///
   /// \returns Returns a continuable_base with a result type matching
   ///          the combined result which of all connected
   ///          continuable_base objects.
-  ///          The combined result is evaluated through the `std::common_type`
-  ///          trait which returns the type all types can be converted to.
   ///          The returned continuable_base will be in an intermediate lazy
-  ///          state, further calls to its continuable_base::operator &&
+  ///          state, further calls to its continuable_base::operator ||
   ///          will add other continuable_base objects to the current
   ///          invocation chain.
   /// ```cpp

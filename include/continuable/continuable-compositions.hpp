@@ -179,20 +179,71 @@ auto when_seq(Iterator begin, Iterator end) {
   return when_seq(detail::range::persist_range(begin, end));
 }
 
-/// Connects the given continuables with an *any* logic.
+/// Connects the given arguments with an any logic.
+/// All continuables contained inside the given nested pack are
+/// invoked at once. On completion of one continuable the final handler
+/// is called with the result of the resolved continuable.
 ///
-/// \param continuables The continuable_base objects to connect.
-///        Requires at least 2 objects to connect.
+/// \param args Arbitrary arguments which are connected.
+///             Every type is allowed as arguments, continuables may be
+///             contained inside tuple like types (`std::tuple`)
+///             or in homogeneous containers such as `std::vector`.
+///             Non continuable arguments are preserved and passed
+///             to the final result as shown below:
+/// ```cpp
+/// cti::when_any(
+///     cti::make_ready_continuable(0, 1),
+///     2, //< See this plain value
+///     std::vector<cti::continuable<int>>{cti::make_ready_continuable(3),
+///                                        cti::make_ready_continuable(4)},
+///     std::make_tuple(std::make_tuple(cti::make_ready_continuable(5))))
+///       .then([](int r0) {
+///         // ...
+///       });
+/// ```
 ///
-/// \see continuable_base::operator|| for details.
+/// \see        continuable_base::operator|| for details.
 ///
-/// \since 1.1.0
-template <typename... Continuables>
-auto when_any(Continuables&&... continuables) {
-  static_assert(sizeof...(continuables) >= 2,
-                "Requires at least 2 continuables!");
-  return CONTINUABLE_FOLD_EXPRESSION(
-      ||, std::forward<Continuables>(continuables)...);
+/// \since      1.1.0
+template <typename... Args>
+auto when_any(Args&&... args) {
+  return detail::composition::apply_composition(
+      detail::composition::composition_strategy_any_tag{},
+      std::forward<Args>(args)...);
+}
+
+/// Connects the given arguments with an any logic.
+/// The content of the iterator is moved out and converted
+/// to a temporary `std::vector` which is then passed to when_all.
+///
+/// ```cpp
+/// std::vector<cti::continuable<int>> v{cti::make_ready_continuable(0),
+///                                      cti::make_ready_continuable(1)};
+///
+/// cti::when_any(v.begin(), v.end())
+///   .then([](int r01) {
+///     // ...
+///   });
+/// ```
+///
+/// \param begin The begin iterator to the range which will be moved out
+///              and used as the arguments to the all connection
+///
+/// \param end   The end iterator to the range which will be moved out
+///              and used as the arguments to the all connection
+///
+/// \see         when_any for details.
+///
+/// \attention   Prefer to invoke when_any with the whole container the
+///              iterators were taken from, since this saves us
+///              the creation of a temporary storage.
+///
+/// \since       3.0.0
+template <
+    typename Iterator,
+    std::enable_if_t<detail::range::is_iterator<Iterator>::value>* = nullptr>
+auto when_any(Iterator begin, Iterator end) {
+  return when_any(detail::range::persist_range(begin, end));
 }
 } // namespace cti
 
