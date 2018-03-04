@@ -198,18 +198,6 @@ constexpr auto static_if_impl(std::false_type, Type&& type,
   return std::forward<FalseCallback>(falseCallback)(std::forward<Type>(type));
 }
 
-/// Applies the given callable to all objects in a sequence
-template <typename C>
-struct apply_to_all {
-  C callable;
-
-  template <typename... T>
-  constexpr void operator()(T&&... args) {
-    (void)std::initializer_list<int>{
-        0, ((void)callable(std::forward<decltype(args)>(args)), 0)...};
-  }
-};
-
 /// Evaluates to the size of the given tuple like type,
 // / if the type has no static size it will be one.
 template <typename T, typename Enable = void>
@@ -362,16 +350,6 @@ constexpr auto unpack(F&& first_sequenceable, S&& second_sequenceable,
                 std::forward<S>(second_sequenceable), std::forward<U>(unpacker),
                 sequence_of(identity_of(first_sequenceable)),
                 sequence_of(identity_of(second_sequenceable)));
-}
-
-/// Applies the handler function to each element contained in the sequenceable
-// TODO Maybe crashes MSVC in constexpr mode
-template <typename Sequenceable, typename Handler>
-constexpr void static_for_each_in(Sequenceable&& sequenceable,
-                                  Handler&& handler) {
-  unpack(std::forward<Sequenceable>(sequenceable),
-         detail::apply_to_all<std::decay_t<Handler>>{
-             std::forward<Handler>(handler)});
 }
 
 /// Adds the given type at the back of the left sequenceable

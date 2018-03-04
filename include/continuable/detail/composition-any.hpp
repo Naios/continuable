@@ -39,6 +39,7 @@
 #include <utility>
 
 #include <continuable/continuable-promise-base.hpp>
+#include <continuable/continuable-traverse.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/container-category.hpp>
 #include <continuable/detail/hints.hpp>
@@ -93,14 +94,6 @@ private:
                    std::forward<ActualArgs>(args)...);
   }
 };
-
-/// Creates a submitter that continues `any` chains
-template <typename Callback>
-auto make_any_result_submitter(Callback&& callback) {
-  return std::make_shared<
-      any_result_submitter<std::decay_t<decltype(callback)>>>(
-      std::forward<decltype(callback)>(callback));
-}
 
 struct result_deducer {
   template <typename T>
@@ -159,6 +152,21 @@ struct result_deducer {
     return deduce_tuple_like(i, id);
   }
 };
+
+template <typename Submitter>
+struct continuable_dispatcher {
+  std::shared_ptr<Submitter>& submitter;
+
+  template <typename Continuable,
+            std::enable_if_t<base::is_continuable<
+                std::decay_t<Continuable>>::value>* = nullptr>
+  void operator()(Continuable&& continuable) const {
+    // Retrieve a callback from the submitter and attach it to the continuable
+    std::forward<Continuable>(continuable)
+        .next(submitter->create_callback())
+        .done();
+  }
+};
 } // namespace any
 
 /// Finalizes the any logic of a given composition
@@ -175,19 +183,17 @@ struct composition_finalizer<composition_strategy_any_tag> {
   static auto finalize(Composition&& composition) {
     return [composition = std::forward<Composition>(composition)](
         auto&& callback) mutable {
+
+      using submitter_t =
+          any::any_result_submitter<std::decay_t<decltype(callback)>>;
+
       // Create the submitter which calls the given callback once at the
       // first callback invocation.
-      auto submitter = any::make_any_result_submitter(
+      auto submitter = std::make_shared<submitter_t>(
           std::forward<decltype(callback)>(callback));
 
-      traits::static_for_each_in(std::move(composition),
-                                 [&](auto&& entry) mutable {
-                                   // Invoke the continuation with a
-                                   // submission callback
-                                   base::attorney::invoke_continuation(
-                                       std::forward<decltype(entry)>(entry),
-                                       submitter->create_callback());
-                                 });
+      traverse_pack(any::continuable_dispatcher<submitter_t>{submitter},
+                    std::move(composition));
     };
   }
 };
