@@ -71,7 +71,7 @@ public:
   /// two behaviours depending whether exceptions are enabled:
   /// - If exceptions are enabled the error type is passed via
   ///   an exception_ptr to the failure handler.
-  /// - If exceptions are disabled the error type is copnverted to an
+  /// - If exceptions are disabled the error type is converted to a
   ///   `std::error_conditon` and passed down to the error handler.
   ///
   /// \since  3.0.0

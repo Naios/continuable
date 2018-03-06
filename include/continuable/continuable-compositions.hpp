@@ -37,10 +37,7 @@
 #include <continuable/detail/composition-any.hpp>
 #include <continuable/detail/composition-seq.hpp>
 #include <continuable/detail/composition.hpp>
-#include <continuable/detail/features.hpp>
 #include <continuable/detail/range.hpp>
-#include <continuable/detail/traits.hpp>
-#include <continuable/detail/util.hpp>
 
 namespace cti {
 /// Connects the given arguments with an all logic.

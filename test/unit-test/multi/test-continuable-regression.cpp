@@ -23,8 +23,8 @@
 
 #include <test-continuable.hpp>
 
-#include <algorithm>
 #include <functional>
+#include <numeric>
 #include <vector>
 
 using namespace cti;
@@ -42,9 +42,7 @@ TEST(regression_tests, are_multiple_args_mergeable) {
 
   auto count = traits::unpack(tp2, [](auto... args) {
     std::vector<int> v{args...};
-    int c = 0;
-    std::count(v.begin(), v.end(), c);
-    return c;
+    return std::accumulate(v.begin(), v.end(), 0);
   });
   EXPECT_EQ(count, 20);
 }
