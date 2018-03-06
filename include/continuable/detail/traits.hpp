@@ -42,84 +42,6 @@
 namespace cti {
 namespace detail {
 namespace traits {
-/// \cond false
-#define CTI__FOR_EACH_BOOLEAN_BIN_OP(CTI__OP__)                                \
-  CTI__OP__(==)                                                                \
-  CTI__OP__(!=) CTI__OP__(<=) CTI__OP__(>=) CTI__OP__(<) CTI__OP__(>)
-#define CTI__FOR_EACH_BOOLEAN_UNA_OP(CTI__OP__) CTI__OP__(!)
-#define CTI__FOR_EACH_INTEGRAL_BIN_OP(CTI__OP__)                               \
-  CTI__OP__(*)                                                                 \
-  CTI__OP__(/) CTI__OP__(+) CTI__OP__(-) CTI__FOR_EACH_BOOLEAN_BIN_OP(CTI__OP__)
-#define CTI__FOR_EACH_INTEGRAL_UNA_OP(CTI__OP__)                               \
-  CTI__OP__(~) CTI__FOR_EACH_BOOLEAN_UNA_OP(CTI__OP__)
-/// \endcond
-
-template <typename T, T Value>
-struct constant : std::integral_constant<T, Value> {
-/// \cond false
-#define CTI__INST(CTI__OP)                                                     \
-  template <typename OT, OT OValue>                                            \
-  constexpr auto operator CTI__OP(std::integral_constant<OT, OValue>)          \
-      const noexcept {                                                         \
-    return constant<decltype((Value CTI__OP OValue)),                          \
-                    (Value CTI__OP OValue)>{};                                 \
-  }
-  CTI__FOR_EACH_INTEGRAL_BIN_OP(CTI__INST)
-#undef CTI__INST
-#define CTI__INST(CTI__OP)                                                     \
-  constexpr auto operator CTI__OP() const noexcept {                           \
-    return constant<decltype((CTI__OP Value)), (CTI__OP Value)>{};             \
-  }
-  CTI__FOR_EACH_INTEGRAL_UNA_OP(CTI__INST)
-#undef CTI__INST
-  /// \endcond
-};
-
-template <bool Value>
-struct constant<bool, Value> : std::integral_constant<bool, Value> {
-/// \cond false
-#define CTI__INST(CTI__OP)                                                     \
-  template <typename OT, OT OValue>                                            \
-  constexpr auto operator CTI__OP(std::integral_constant<bool, OValue>)        \
-      const noexcept {                                                         \
-    return constant<bool, (Value CTI__OP OValue)>{};                           \
-  }
-  CTI__FOR_EACH_BOOLEAN_BIN_OP(CTI__INST)
-#undef CTI__INST
-#define CTI__INST(CTI__OP)                                                     \
-  constexpr auto operator CTI__OP() const noexcept {                           \
-    return constant<bool, CTI__OP Value>{};                                    \
-  }
-  CTI__FOR_EACH_BOOLEAN_UNA_OP(CTI__INST)
-#undef CTI__INST
-  /// \endcond
-};
-
-template <bool Value>
-using bool_constant = constant<bool, Value>;
-template <std::size_t Value>
-using size_constant = constant<std::size_t, Value>;
-
-template <typename T, bool Value>
-constexpr auto constant_of(std::integral_constant<T, Value> /*value*/ = {}) {
-  return constant<T, Value>{};
-}
-template <std::size_t Value>
-constexpr auto
-size_constant_of(std::integral_constant<std::size_t, Value> /*value*/ = {}) {
-  return size_constant<Value>{};
-}
-template <bool Value>
-constexpr auto
-bool_constant_of(std::integral_constant<bool, Value> /*value*/ = {}) {
-  return bool_constant<Value>{};
-}
-
-#undef CTI__FOR_EACH_BOOLEAN_BIN_OP
-#undef CTI__FOR_EACH_BOOLEAN_UNA_OP
-#undef CTI__FOR_EACH_INTEGRAL_BIN_OP
-#undef CTI__FOR_EACH_INTEGRAL_UNA_OP
-
 /// Evaluates to the element at position I.
 template <std::size_t I, typename... Args>
 using at_t = decltype(std::get<I>(std::declval<std::tuple<Args...>>()));
@@ -165,14 +87,6 @@ template <typename... T>
 using void_t = typename detail::deduce_to_void<T...>::type;
 
 namespace detail {
-template <typename T, typename Check, typename = void_t<>>
-struct is_valid_impl : std::common_type<std::false_type> {};
-
-template <typename T, typename Check>
-struct is_valid_impl<T, Check,
-                     void_t<decltype(std::declval<Check>()(std::declval<T>()))>>
-    : std::common_type<std::true_type> {};
-
 template <typename Type, typename TrueCallback>
 constexpr void static_if_impl(std::true_type, Type&& type,
                               TrueCallback&& trueCallback) {
@@ -208,47 +122,25 @@ struct tuple_like_size<T, void_t<decltype(std::tuple_size<T>::value)>>
 } // namespace detail
 
 /// Returns the pack size of the given empty pack
-constexpr auto pack_size_of(identity<>) noexcept {
-  return size_constant<0U>{};
+constexpr std::size_t pack_size_of(identity<>) noexcept {
+  return 0U;
 }
 /// Returns the pack size of the given type
 template <typename T>
-constexpr auto pack_size_of(identity<T>) noexcept {
-  return size_constant<detail::tuple_like_size<T>::value>{};
+constexpr std::size_t pack_size_of(identity<T>) noexcept {
+  return detail::tuple_like_size<T>::value;
 }
 /// Returns the pack size of the given type
 template <typename First, typename Second, typename... Args>
-constexpr auto pack_size_of(identity<First, Second, Args...>) noexcept {
-  return size_constant<2U + sizeof...(Args)>{};
+constexpr std::size_t pack_size_of(identity<First, Second, Args...>) noexcept {
+  return 2U + sizeof...(Args);
 }
 
 /// Returns an index sequence of the given type
 template <typename T>
-constexpr auto sequence_of(T&& /*sequenceable*/) noexcept {
-  return std::make_index_sequence<decltype(
-      pack_size_of(std::declval<T>()))::value>();
-}
-
-/// Returns a check which returns a true type if the current value
-/// is below the
-template <std::size_t End>
-constexpr auto is_less_than(size_constant<End> end) noexcept {
-  return [=](auto current) { return end > current; };
-}
-
-/// Compile-time check for validating a certain expression
-template <typename T, typename Check>
-constexpr auto is_valid(T&& /*type*/, Check&& /*check*/) noexcept {
-  return typename detail::is_valid_impl<T, Check>::type{};
-}
-
-/// Creates a static callable validation object.
-template <typename Check>
-constexpr auto validator_of(Check&& check) noexcept(
-    std::is_nothrow_move_constructible<std::decay_t<Check>>::value) {
-  return [check = std::forward<Check>(check)](auto&& matchable) {
-    return is_valid(std::forward<decltype(matchable)>(matchable), check);
-  };
+constexpr auto sequence_of(identity<T>) noexcept {
+  constexpr auto const size = pack_size_of(identity<T>{});
+  return std::make_index_sequence<size>();
 }
 
 /// Invokes the callback only if the given type matches the check
@@ -272,18 +164,11 @@ constexpr auto static_if(Type&& type, Check&& check,
                                 std::forward<FalseCallback>(falseCallback));
 }
 
-/// Returns a validator which checks whether the given sequenceable is empty
-inline auto is_empty() noexcept {
-  return [](auto const& checkable) {
-    return pack_size_of(checkable) == size_constant_of<0>();
-  };
-}
-
 /// Calls the given unpacker with the content of the given sequence
 template <typename U, std::size_t... I>
 constexpr decltype(auto) unpack(std::integer_sequence<std::size_t, I...>,
                                 U&& unpacker) {
-  return std::forward<U>(unpacker)(size_constant_of<I>()...);
+  return std::forward<U>(unpacker)(std::integral_constant<std::size_t, I>{}...);
 }
 
 /// Calls the given unpacker with the content of the given sequenceable

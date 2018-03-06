@@ -52,9 +52,8 @@ namespace detail {
 /// Forwards every element in the tuple except the last one
 template <typename T>
 auto forward_except_last(T&& sequenceable) {
-  auto size = pack_size_of(traits::identity_of(sequenceable)) -
-              traits::size_constant_of<1>();
-  auto sequence = std::make_index_sequence<size.value>();
+  constexpr auto const size = pack_size_of(traits::identify<T>()) - 1U;
+  constexpr auto const sequence = std::make_index_sequence<size>();
 
   return traits::unpack(std::forward<T>(sequenceable),
                         [](auto&&... args) {
