@@ -73,31 +73,40 @@ public:
   promise_base(OData&& data) : data_(std::forward<OData>(data)) {
   }
 
-  /// Resolves the continuation with the given values
+  /// Resolves the continuation with the given values.
   ///
-  /// \since 2.0.0
-  void operator()(Args... args) && {
+  /// \throws This method never throws an exception.
+  ///
+  /// \since  2.0.0
+  void operator()(Args... args) && noexcept {
     std::move(data_)(std::move(args)...);
   }
-  /// Resolves the continuation with the given exception
+  /// Resolves the continuation with the given exception.
   ///
-  /// \since 2.0.0
+  /// \throws This method never throws an exception.
+  ///
+  /// \since  2.0.0
   void operator()(detail::types::dispatch_error_tag tag,
-                  detail::types::error_type exception) && {
+                  detail::types::error_type exception) &&
+      noexcept {
     std::move(data_)(tag, std::move(exception));
   }
 
-  /// Resolves the continuation with the given values
+  /// Resolves the continuation with the given values.
   ///
-  /// \since 2.0.0
-  void set_value(Args... args) {
+  /// \throws This method never throws an exception.
+  ///
+  /// \since  2.0.0
+  void set_value(Args... args) noexcept {
     std::move(data_)(std::move(args)...);
   }
 
-  /// Resolves the continuation with the given exception
+  /// Resolves the continuation with the given exception.
   ///
-  /// \since 2.0.0
-  void set_exception(detail::types::error_type exception) {
+  /// \throws This method never throws an exception.
+  ///
+  /// \since  2.0.0
+  void set_exception(detail::types::error_type exception) noexcept {
     std::move(data_)(detail::types::dispatch_error_tag{}, std::move(exception));
   }
 };
