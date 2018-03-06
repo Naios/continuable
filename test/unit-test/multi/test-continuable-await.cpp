@@ -66,7 +66,7 @@ struct coroutine_traits<void, T...> {
 
 /// Resolves the given promise asynchonously
 template <typename S, typename T>
-void resolve_async(S&& supplier, T&& promise) {
+void resolve_async(S&& supplier, T promise) {
   // 0 args
   co_await supplier();
 
@@ -89,9 +89,9 @@ TYPED_TEST(single_dimension_tests, are_awaitable) {
   };
 
   EXPECT_ASYNC_RESULT(
-      this->supply().then(cti::make_continuable<void>([&](auto&& promise) {
+      this->supply().then(cti::make_continuable<void>([&](auto promise) {
         // Resolve the cotinuable through a coroutine
-        resolve_async(supply, std::forward<decltype(promise)>(promise));
+        resolve_async(supply, std::move(promise));
       })));
 }
 
@@ -109,7 +109,7 @@ struct await_exception : std::exception {
 
 /// Resolves the given promise asynchonously through an exception
 template <typename S, typename T>
-void resolve_async_exceptional(S&& supplier, T&& promise) {
+void resolve_async_exceptional(S&& supplier, T promise) {
   // 0 args
   co_await supplier();
 
@@ -138,10 +138,9 @@ TYPED_TEST(single_dimension_tests, are_awaitable_with_exceptions) {
   };
 
   ASSERT_ASYNC_COMPLETION(
-      this->supply().then(cti::make_continuable<void>([&](auto&& promise) {
+      this->supply().then(cti::make_continuable<void>([&](auto promise) {
         // Resolve the cotinuable through a coroutine
-        resolve_async_exceptional(supply,
-                                  std::forward<decltype(promise)>(promise));
+        resolve_async_exceptional(supply, std::move(promise));
       })));
 }
 
