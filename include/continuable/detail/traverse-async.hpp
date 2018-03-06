@@ -226,23 +226,6 @@ template <typename Target, std::size_t Begin, std::size_t End>
 struct static_async_range {
   Target* target_;
 
-  explicit static_async_range(Target* target) : target_(target) {
-  }
-
-  static_async_range(static_async_range const& rhs) = default;
-  static_async_range(static_async_range&& rhs) noexcept : target_(rhs.target_) {
-    rhs.target_ = nullptr;
-  }
-
-  static_async_range& operator=(static_async_range const& rhs) = default;
-  static_async_range& operator=(static_async_range&& rhs) noexcept {
-    if (&rhs != this) {
-      target_ = rhs.target_;
-      rhs.target_ = nullptr;
-    }
-    return *this;
-  }
-
   constexpr decltype(auto) operator*() const noexcept {
     return std::get<Begin>(*target_);
   }
