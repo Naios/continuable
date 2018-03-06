@@ -66,15 +66,6 @@ class any_result_submitter
     void operator()(PartialArgs&&... args) && {
       me_->invoke(std::forward<decltype(args)>(args)...);
     }
-
-    template <typename... PartialArgs>
-    void set_value(PartialArgs&&... args) {
-      std::move (*this)(std::forward<PartialArgs>(args)...);
-    }
-
-    void set_exception(types::error_type error) {
-      std::move (*this)(types::dispatch_error_tag{}, std::move(error));
-    }
   };
 
 public:
@@ -148,8 +139,8 @@ struct result_deducer {
   static auto deduce(traversal::container_category_tag<false, true>,
                      traits::identity<T> id) {
 
-    std::make_index_sequence<std::tuple_size<T>::value> constexpr const i{};
-    return deduce_tuple_like(i, id);
+    constexpr auto const size = std::tuple_size<T>::value;
+    return deduce_tuple_like(std::make_index_sequence<size>{}, id);
   }
 };
 
