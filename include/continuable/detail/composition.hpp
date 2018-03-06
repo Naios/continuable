@@ -49,7 +49,6 @@ namespace detail {
 namespace composition {
 struct composition_strategy_all_tag {};
 struct composition_strategy_any_tag {};
-struct composition_strategy_any_fail_fast_tag {};
 struct composition_strategy_seq_tag {};
 
 template <typename T>
@@ -60,9 +59,6 @@ struct is_composition_strategy<composition_strategy_all_tag> // ...
     : std::true_type {};
 template <>
 struct is_composition_strategy<composition_strategy_any_tag> // ...
-    : std::true_type {};
-template <>
-struct is_composition_strategy<composition_strategy_any_fail_fast_tag> // ...
     : std::true_type {};
 template <>
 struct is_composition_strategy<composition_strategy_seq_tag> // ...

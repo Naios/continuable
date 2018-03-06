@@ -23,7 +23,9 @@
 
 #include <test-continuable.hpp>
 
+#include <algorithm>
 #include <functional>
+#include <vector>
 
 using namespace cti;
 using namespace cti::detail;
@@ -39,7 +41,10 @@ TEST(regression_tests, are_multiple_args_mergeable) {
                            std::make_tuple(1, 2, 3, 4));
 
   auto count = traits::unpack(tp2, [](auto... args) {
-    return CONTINUABLE_FOLD_EXPRESSION(+, args...);
+    std::vector<int> v{args...};
+    int c = 0;
+    std::count(v.begin(), v.end(), c);
+    return c;
   });
   EXPECT_EQ(count, 20);
 }

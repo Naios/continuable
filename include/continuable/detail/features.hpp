@@ -52,28 +52,26 @@
 #if (defined(_MSC_VER) && defined(_HAS_CXX17) && _HAS_CXX17) ||                \
     (__cplusplus >= 201703L)
   #define CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
-  #define CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
   #define CONTINUABLE_HAS_CXX17_DISJUNCTION
   #define CONTINUABLE_HAS_CXX17_CONJUNCTION
 #else
   // Generic feature detection based on __has_feature
   #if defined(__has_feature)
-    #if !defined(CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION) &&                     \
+    #if !defined(CONTINUABLE_HAS_CXX17_CONSTEXPR_IF) &&                        \
         __has_feature(cxx_if_constexpr)
       #define CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
     #endif
-
-    #if !defined(CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION) &&                     \
-        __has_feature(cxx_fold_expressions)
-      // PR not merged into the clang master yet
-      #define CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION
-    #endif
   #endif
 
-  #if !defined(CONTINUABLE_HAS_CXX17_FOLD_EXPRESSION) &&                       \
+  #if !defined(CONTINUABLE_HAS_CXX17_DISJUNCTION) &&                           \
       defined(__cpp_lib_experimental_logical_traits) &&                        \
       (__cpp_lib_experimental_logical_traits >= 201511)
     #define CONTINUABLE_HAS_CXX17_DISJUNCTION
+  #endif
+
+  #if !defined(CONTINUABLE_HAS_CXX17_CONJUNCTION) &&                           \
+      defined(__cpp_lib_experimental_logical_traits) &&                        \
+      (__cpp_lib_experimental_logical_traits >= 201511)
     #define CONTINUABLE_HAS_CXX17_CONJUNCTION
   #endif
 #endif

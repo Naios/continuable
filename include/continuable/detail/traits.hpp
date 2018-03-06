@@ -272,23 +272,6 @@ constexpr auto static_if(Type&& type, Check&& check,
                                 std::forward<FalseCallback>(falseCallback));
 }
 
-/// A compile-time while loop, which loops as long the value matches
-/// the predicate. The handler shall return the next value.
-template <typename Value, typename Predicate, typename Handler>
-constexpr auto static_while(Value&& value, Predicate&& predicate,
-                            Handler&& handler) {
-  return static_if(std::forward<Value>(value), predicate,
-                   [&](auto&& result) mutable {
-                     return static_while(
-                         handler(std::forward<decltype(result)>(result)),
-                         std::forward<Predicate>(predicate),
-                         std::forward<Handler>(handler));
-                   },
-                   [&](auto&& result) mutable {
-                     return std::forward<decltype(result)>(result);
-                   });
-}
-
 /// Returns a validator which checks whether the given sequenceable is empty
 inline auto is_empty() noexcept {
   return [](auto const& checkable) {

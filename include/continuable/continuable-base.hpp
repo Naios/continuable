@@ -507,7 +507,7 @@ public:
   ///     // ...
   ///   });
   ///
-  /// (supply(10, 'T') || supply(10.f, 'T'))
+  /// (make_ready_continuable(10, 'A') || make_ready_continuable(29, 'B'))
   ///   .then([](int a, char b) {
   ///     // ...
   ///   });
