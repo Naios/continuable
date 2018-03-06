@@ -392,9 +392,8 @@ struct callback_base<hints::signature_hint_tag<Args...>, HandleResults,
       proto::error_handler_base<
           HandleErrors,
           callback_base<hints::signature_hint_tag<Args...>, HandleResults,
-                        HandleErrors, Callback, Executor, NextCallback>> {
-
-  using CallbackT = Callback;
+                        HandleErrors, Callback, Executor, NextCallback>>,
+      util::non_copyable {
 
   Callback callback_;
   Executor executor_;
@@ -445,16 +444,12 @@ auto make_callback(Callback&& callback, Executor&& executor,
 
 /// Once this was a workaround for GCC bug:
 /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095
-struct final_callback {
+struct final_callback : util::non_copyable {
   template <typename... Args>
   void operator()(Args... /*args*/) && {
   }
 
-  template <typename... Args>
-  void set_value(Args... /*args*/) {
-  }
-
-  void set_exception(types::error_type error) {
+  void operator()(types::dispatch_error_tag, types::error_type error) && {
     (void)error;
 #ifndef CONTINUABLE_WITH_UNHANDLED_ERRORS
     // There were unhandled errors inside the asynchronous call chain!
@@ -462,6 +457,15 @@ struct final_callback {
     // to ignore unhandled errors!"
     util::trap();
 #endif // CONTINUABLE_WITH_UNHANDLED_ERRORS
+  }
+
+  template <typename... Args>
+  void set_value(Args... args) {
+    std::move (*this)(std::forward<Args>(args)...);
+  }
+
+  void set_exception(types::error_type error) {
+    std::move (*this)(types::dispatch_error_tag{}, std::move(error));
   }
 };
 } // namespace callbacks
