@@ -46,8 +46,7 @@ namespace variant {
 namespace detail {
 // We don't want to pull the algorithm header in
 template <typename... T>
-constexpr std::size_t max_size(T... i) {
-  constexpr std::initializer_list<std::size_t> const list{i...};
+constexpr std::size_t max_element_of(std::initializer_list<std::size_t> list) {
   std::size_t m = 0;
   for (auto current : list) {
     if (current > m) {
@@ -56,11 +55,16 @@ constexpr std::size_t max_size(T... i) {
   }
   return m;
 }
+template <typename... T>
+constexpr std::size_t storage_of_impl() {
+  constexpr auto size = max_element_of({sizeof(T)...});
+  constexpr auto align = max_element_of({alignof(T)...});
+  return std::aligned_storage_t<size, align>{};
+}
 
 /// Declares the aligned storage union for the given types
 template <typename... T>
-using storage_of_t =
-    std::aligned_storage_t<max_size(sizeof(T)...), max_size(alignof(T)...)>;
+using storage_of_t = decltype(storage_of_impl<T...>());
 
 /// The value fpr the empty slot
 using slot_t = std::uint8_t;
@@ -257,20 +261,20 @@ public:
 
   template <typename V>
   V& cast() noexcept {
-    assert(!is_slot(traits::index_of_t<std::decay_t<V>, T...>::value));
+    assert(is_slot(traits::index_of_t<std::decay_t<V>, T...>::value));
     return *reinterpret_cast<std::decay_t<V>*>(&this->storage_);
   }
 
   template <typename V>
   V const& cast() const noexcept {
-    assert(!is_slot(traits::index_of_t<std::decay_t<V>, T...>::value));
+    assert(is_slot(traits::index_of_t<std::decay_t<V>, T...>::value));
     return *reinterpret_cast<std::decay_t<V> const*>(&this->storage_);
   }
 
 private:
   template <typename C, typename V>
   static void visit_dispatch(optional_variant* me, V&& visitor) {
-    std::forward<V>(me->cast<C>());
+    std::forward<V>(visitor)(me->cast<C>());
   }
   template <typename C, typename V>
   static void visit_dispatch_const(optional_variant const* me, V&& visitor) {
