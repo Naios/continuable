@@ -222,16 +222,19 @@ public:
 
   template <typename V, std::size_t Index =
                             traits::index_of_t<std::decay_t<V>, T...>::value>
-  explicit optional_variant(V&& value) //
+  // Since the optional_variant is never a part of the contained
+  // values itself this overload is safed against the linted issue.
+  // NOLINTNEXTLINE(misc-forwarding-reference-overload)
+  explicit optional_variant(V&& value)
       : optional_variant(std::forward<V>(value), Index) {
   }
 
-  optional_variant& operator=(T value) {
-    set_value(std::move(value));
-    return *this;
-  }
-  optional_variant& operator=(types::error_type error) {
-    set_exception(std::move(error));
+  template <typename V, std::size_t Index =
+                            traits::index_of_t<std::decay_t<V>, T...>::value>
+  optional_variant& operator=(V&& value) {
+    weak_destroy();
+    init(std::forward<V>(value));
+    set_slot(Index);
     return *this;
   }
 
@@ -247,6 +250,18 @@ public:
 
   explicit constexpr operator bool() const noexcept {
     return !is_empty();
+  }
+
+  template <typename V>
+  V& cast() noexcept {
+    assert(!is_slot(traits::index_of_t<std::decay_t<V>, T...>::value));
+    return *reinterpret_cast<std::decay_t<V>*>(&this->storage_);
+  }
+
+  template <typename V>
+  V const& cast() const noexcept {
+    assert(!is_slot(traits::index_of_t<std::decay_t<V>, T...>::value));
+    return *reinterpret_cast<std::decay_t<V> const*>(&this->storage_);
   }
 
 private:
@@ -273,17 +288,6 @@ private:
         // We don't visit when there is_slot no value
         break;
     }
-  }
-
-  template <typename V>
-  V& cast() noexcept {
-    assert(!is_empty());
-    return *reinterpret_cast<V*>(&this->storage_);
-  }
-  template <typename V>
-  V const& cast() const noexcept {
-    assert(!is_empty());
-    return *reinterpret_cast<V const*>(&this->storage_);
   }
 
   template <typename V>
