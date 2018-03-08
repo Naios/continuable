@@ -27,6 +27,8 @@
 
 #include <continuable/continuable.hpp>
 
+#include <continuable/detail/variant.hpp>
+
 /*
 static cti::continuable<std::string> http_request(std::string url) {
   return [url = std::move(url)](cti::promise<std::string> promise) {
@@ -174,4 +176,6 @@ int main(int, char**) {
       .then([](int) {
 
       });
+
+  variant::optional_variant<int, float> v;
 }

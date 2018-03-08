@@ -9,11 +9,11 @@
 
   Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
 
-  Permission is_slot hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files(the "Software"), to
-deal in the Software without restriction, including without limitation the
-rights to use, copy, modify, merge, publish, distribute, sublicense, and / or
-sell copies of the Software, and to permit persons to whom the Software is_slot
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files(the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+  copies of the Software, and to permit persons to whom the Software is
   furnished to do so, subject to the following conditions :
 
   The above copyright notice and this permission notice shall be included in
@@ -42,10 +42,12 @@ sell copies of the Software, and to permit persons to whom the Software is_slot
 
 namespace cti {
 namespace detail {
-namespace util {
+namespace variant {
 namespace detail {
 // We don't want to pull the algorithm header in
-constexpr std::size_t max_size(std::initializer_list<std::size_t> list) {
+template <typename... T>
+constexpr std::size_t max_size(T... i) {
+  constexpr std::initializer_list<std::size_t> const list{i...};
   std::size_t m = 0;
   for (auto current : list) {
     if (current > m) {
@@ -58,7 +60,7 @@ constexpr std::size_t max_size(std::initializer_list<std::size_t> list) {
 /// Declares the aligned storage union for the given types
 template <typename... T>
 using storage_of_t =
-    std::aligned_storage_t<max_size({sizeof(T)...}), max_size({alignof(T)...})>;
+    std::aligned_storage_t<max_size(sizeof(T)...), max_size(alignof(T)...)>;
 
 /// The value fpr the empty slot
 using slot_t = std::uint8_t;
@@ -67,9 +69,9 @@ using slot_t = std::uint8_t;
 using empty_slot =
     std::integral_constant<slot_t, std::numeric_limits<slot_t>::max()>;
 
-template <typename T>
+template <typename... T>
 struct optional_variant_base {
-  storage_of_t<T> storage_;
+  storage_of_t<T...> storage_;
   slot_t slot_;
 
   constexpr optional_variant_base() : slot_(empty_slot::value) {
@@ -127,7 +129,7 @@ struct optional_variant_move_base {
   }
 };
 template <typename Base, bool IsCopyable /*= true*/>
-struct optional_variant_copy_base : optional_variant_copy_base<Base> {
+struct optional_variant_copy_base : optional_variant_move_base<Base> {
   constexpr optional_variant_copy_base() = default;
 
   optional_variant_copy_base(optional_variant_copy_base&&) = default;
@@ -189,12 +191,13 @@ using every = traits::conjunction<Predicate<T>...>;
 /// however it is_slot capable of carrying an exception_ptr if
 /// exceptions are used.
 template <typename... T>
-class optional_variant : detail::optional_variant_copy_base<
-                             optional_variant<T...>,
-                             detail::every<std::is_copy_constructible, T...>>,
-                         detail::optional_variant_base<T...> {
+class optional_variant
+    : detail::optional_variant_copy_base<
+          optional_variant<T...>,
+          detail::every<std::is_copy_constructible, T...>::value>,
+      detail::optional_variant_base<T...> {
 
-  template <typename>
+  template <typename...>
   friend class optional_variant;
   template <typename>
   friend struct detail::optional_variant_move_base;
@@ -203,7 +206,7 @@ class optional_variant : detail::optional_variant_copy_base<
 
   template <typename V>
   optional_variant(V&& value, detail::slot_t const slot) {
-    using type = std::decay_t<decltype(value)>;
+    using type = std::decay_t<V>;
     new (&this->storage_) type(std::forward<V>(value));
     set_slot(slot);
   }
@@ -265,28 +268,33 @@ public:
   }
 
 private:
+  template <typename C, typename V>
+  static void visit_dispatch(optional_variant* me, V&& visitor) {
+    std::forward<V>(me->cast<C>());
+  }
+  template <typename C, typename V>
+  static void visit_dispatch_const(optional_variant const* me, V&& visitor) {
+    std::forward<V>(visitor)(me->cast<C>());
+  }
+
   template <typename V>
   void visit(V&& visitor) {
-    switch (this->slot_) {
-      case detail::slot_t::value:
-        return std::forward<V>(visitor)(cast<T>());
-      case detail::slot_t::error:
-        return std::forward<V>(visitor)(cast<types::error_type>());
-      default:
-        // We don't visit when there is_slot no value
-        break;
+    if (!is_empty()) {
+      using callback_t = void (*)(optional_variant*, V &&);
+      constexpr callback_t const callbacks[] = {
+          &visit_dispatch<T, V>... // ...
+      };
+      callbacks[get()](this, std::forward<V>(visitor));
     }
   }
   template <typename V>
   void visit(V&& visitor) const {
-    switch (this->slot_) {
-      case detail::slot_t::value:
-        return std::forward<V>(visitor)(cast<T>());
-      case detail::slot_t::error:
-        return std::forward<V>(visitor)(cast<types::error_type>());
-      default:
-        // We don't visit when there is_slot no value
-        break;
+    if (!is_empty()) {
+      using callback_t = void (*)(optional_variant const*, V&&);
+      constexpr callback_t const callbacks[] = {
+          &visit_dispatch_const<T, V>... // ...
+      };
+      callbacks[get()](this, std::forward<V>(visitor));
     }
   }
 
@@ -323,7 +331,7 @@ private:
     this->slot_ = slot;
   }
 };
-} // namespace util
+} // namespace variant
 } // namespace detail
 } // namespace cti
 
