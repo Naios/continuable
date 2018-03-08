@@ -137,7 +137,7 @@ struct flat_variant_copy_base : flat_variant_move_base<Base> {
 
   flat_variant_copy_base(flat_variant_copy_base&&) = default;
   explicit flat_variant_copy_base(flat_variant_copy_base const& right)
-      : flat_variant_copy_base<Base>()
+      : flat_variant_move_base<Base>()
   // TODO noexcept(Base::is_nothrow_move_constructible)
   {
     Base& me = *static_cast<Base*>(this);
@@ -190,6 +190,14 @@ using every = traits::conjunction<Predicate<T>...>;
 /// A class similar to the one in the variant proposal,
 /// however it is capable of carrying an empty state by default.
 template <typename... T>
+class flat_variant;
+
+template <typename T>
+struct is_flat_variant : std::false_type {};
+template <typename... T>
+struct is_flat_variant<flat_variant<T...>> : std::true_type {};
+
+template <typename... T>
 class flat_variant
     : detail::flat_variant_copy_base<
           flat_variant<T...>,
@@ -222,17 +230,21 @@ public:
     weak_destroy();
   }
 
-  template <typename V, std::size_t Index =
-                            traits::index_of_t<std::decay_t<V>, T...>::value>
-  // Since the flat_variant is never a part of the contained
-  // values itself this overload is safed against the linted issue.
+  template <
+      typename V,
+      std::enable_if_t<!is_flat_variant<std::decay_t<V>>::value>* = nullptr,
+      std::size_t Index = traits::index_of_t<std::decay_t<V>, T...>::value>
+  // Since the flat_variant isn't allowed through SFINAE
+  // this overload is safed against the linted issue.
   // NOLINTNEXTLINE(misc-forwarding-reference-overload)
   explicit flat_variant(V&& value)
       : flat_variant(std::forward<V>(value), Index) {
   }
 
-  template <typename V, std::size_t Index =
-                            traits::index_of_t<std::decay_t<V>, T...>::value>
+  template <
+      typename V,
+      std::enable_if_t<!is_flat_variant<std::decay_t<V>>::value>* = nullptr,
+      std::size_t Index = traits::index_of_t<std::decay_t<V>, T...>::value>
   flat_variant& operator=(V&& value) {
     weak_destroy();
     init(std::forward<V>(value));

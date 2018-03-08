@@ -58,7 +58,7 @@ using std::experimental::coroutine_handle;
 /// for waiting on a continuable in a stackless coroutine.
 template <typename Continuable>
 class awaitable {
-  using trait_t = util::expected_result_trait_t<Continuable>;
+  using trait_t = container::expected_result_trait_t<Continuable>;
 
   /// The continuable which is invoked upon suspension
   Continuable continuable_;

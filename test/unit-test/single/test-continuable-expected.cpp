@@ -30,7 +30,7 @@
 #include <test-continuable.hpp>
 
 using cti::detail::types::error_type;
-using cti::detail::util::expected;
+using cti::detail::container::expected;
 
 static int const CANARY = 373671;
 
