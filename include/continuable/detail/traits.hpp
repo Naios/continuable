@@ -46,6 +46,22 @@ namespace traits {
 template <std::size_t I, typename... Args>
 using at_t = decltype(std::get<I>(std::declval<std::tuple<Args...>>()));
 
+namespace detail {
+template <typename T, typename... Args>
+struct index_of_impl;
+template <typename T, typename... Args>
+struct index_of_impl<T, T, Args...> : std::integral_constant<std::size_t, 0U> {
+};
+template <typename T, typename U, typename... Args>
+struct index_of_impl<T, U, Args...>
+    : std::integral_constant<std::size_t,
+                             1 + index_of_impl<T, Args...>::value> {};
+} // namespace detail
+
+/// Evaluates to the index of T in the given pack
+template <typename T, typename... Args>
+using index_of_t = detail::index_of_impl<T, Args...>;
+
 /// A tagging type for wrapping other types
 template <typename... T>
 struct identity {};

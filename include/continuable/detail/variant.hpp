@@ -9,11 +9,11 @@
 
   Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
 
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files(the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
-  copies of the Software, and to permit persons to whom the Software is
+  Permission is_slot hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files(the "Software"), to
+deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and / or
+sell copies of the Software, and to permit persons to whom the Software is_slot
   furnished to do so, subject to the following conditions :
 
   The above copyright notice and this permission notice shall be included in
@@ -33,6 +33,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -54,16 +55,24 @@ constexpr std::size_t max_size(std::initializer_list<std::size_t> list) {
   return m;
 }
 
+/// Declares the aligned storage union for the given types
 template <typename... T>
 using storage_of_t =
     std::aligned_storage_t<max_size({sizeof(T)...}), max_size({alignof(T)...})>;
 
+/// The value fpr the empty slot
+using slot_t = std::uint8_t;
+
+/// The value which is used to mark the empty slot
+using empty_slot =
+    std::integral_constant<slot_t, std::numeric_limits<slot_t>::max()>;
+
 template <typename T>
 struct optional_variant_base {
   storage_of_t<T> storage_;
-  std::uint8_t slot_;
+  slot_t slot_;
 
-  constexpr optional_variant_base() : slot_(0U) {
+  constexpr optional_variant_base() : slot_(empty_slot::value) {
   }
 
   optional_variant_base(optional_variant_base const&) noexcept {
@@ -89,14 +98,14 @@ struct optional_variant_move_base {
     assert(!other.is_empty());
 
 #ifndef _NDEBUG
-    me.set(slot_t::empty);
+    me.set_slot(empty_slot::value);
 #endif
 
     other.visit([&](auto&& value) {
       // ...
       me.init(std::move(value));
     });
-    me.set(other.get());
+    me.set_slot(other.get());
     other.destroy();
   }
   optional_variant_move_base&
@@ -112,7 +121,7 @@ struct optional_variant_move_base {
       // ...
       me.init(std::move(value));
     });
-    me.set(other.get());
+    me.set_slot(other.get());
     other.destroy();
     return *this;
   }
@@ -131,14 +140,14 @@ struct optional_variant_copy_base : optional_variant_copy_base<Base> {
     assert(!other.is_empty());
 
 #ifndef _NDEBUG
-    me.set(slot_t::empty);
+    me.set_slot(empty_slot::value);
 #endif
 
     other.visit([&](auto&& value) {
       // ...
       me.init(std::move(value));
     });
-    me.set(other.get());
+    me.set_slot(other.get());
   }
   optional_variant_copy_base& operator=(optional_variant_copy_base&&) = default;
   optional_variant_copy_base& operator=(optional_variant_copy_base const& right)
@@ -154,7 +163,7 @@ struct optional_variant_copy_base : optional_variant_copy_base<Base> {
       // ...
       me.init(std::move(value));
     });
-    me.set(other.get());
+    me.set_slot(other.get());
     return *this;
   }
 };
@@ -168,21 +177,22 @@ struct optional_variant_copy_base<Base, false>
       default;
   optional_variant_copy_base&
   operator=(optional_variant_copy_base const&) = delete;
-  optional_variant_copy_base&
-  operator=(optional_variant_copy_base&& right) = default;
+  optional_variant_copy_base& operator=(optional_variant_copy_base&&) = default;
 };
+
+/// Deduces to a true_type if all parameters T satisfy the predicate.
+template <template <typename> class Predicate, typename... T>
+using every = traits::conjunction<Predicate<T>...>;
 } // namespace detail
 
-/// A class similar to the one in the expected proposal,
-/// however it is capable of carrying an exception_ptr if
+/// A class similar to the one in the optional_variant proposal,
+/// however it is_slot capable of carrying an exception_ptr if
 /// exceptions are used.
 template <typename... T>
-class optional_variant
-    : detail::optional_variant_copy_base<
-          optional_variant<T...>,
-          std::is_copy_constructible<types::error_type>::value &&
-              std::is_copy_constructible<T>::value>,
-      detail::optional_variant_base<T...> {
+class optional_variant : detail::optional_variant_copy_base<
+                             optional_variant<T...>,
+                             detail::every<std::is_copy_constructible, T...>>,
+                         detail::optional_variant_base<T...> {
 
   template <typename>
   friend class optional_variant;
@@ -195,84 +205,48 @@ class optional_variant
   optional_variant(V&& value, detail::slot_t const slot) {
     using type = std::decay_t<decltype(value)>;
     new (&this->storage_) type(std::forward<V>(value));
-    set(slot);
+    set_slot(slot);
   }
 
 public:
-  constexpr expected() = default;
-  expected(expected const&) = default;
-  expected(expected&&) = default;
-  expected& operator=(expected const&) = default;
-  expected& operator=(expected&&) = default;
+  constexpr optional_variant() = default;
+  optional_variant(optional_variant const&) = default;
+  optional_variant(optional_variant&&) = default;
+  optional_variant& operator=(optional_variant const&) = default;
+  optional_variant& operator=(optional_variant&&) = default;
 
-  ~expected() noexcept(
-      std::is_nothrow_destructible<T>::value&&
-          std::is_nothrow_destructible<types::error_type>::value) {
+  ~optional_variant() noexcept(
+      detail::every<std::is_nothrow_destructible, T...>::value) {
     weak_destroy();
   }
 
-  explicit expected(T value) //
-      : expected(std::move(value), detail::slot_t::value) {
-  }
-  explicit expected(types::error_type error) //
-      : expected(std::move(error), detail::slot_t::error) {
+  template <typename V, std::size_t Index =
+                            traits::index_of_t<std::decay_t<V>, T...>::value>
+  explicit optional_variant(V&& value) //
+      : optional_variant(std::forward<V>(value), Index) {
   }
 
-  expected& operator=(T value) {
+  optional_variant& operator=(T value) {
     set_value(std::move(value));
     return *this;
   }
-  expected& operator=(types::error_type error) {
+  optional_variant& operator=(types::error_type error) {
     set_exception(std::move(error));
     return *this;
   }
 
-  bool is_value() const noexcept {
-    assert(!is_empty());
-    return is(detail::slot_t::value);
+  template <typename V, std::size_t Index =
+                            traits::index_of_t<std::decay_t<V>, T...>::value>
+  bool is() const noexcept {
+    return is_slot(Index);
   }
-  bool is_exception() const noexcept {
-    assert(!is_empty());
-    return is(detail::slot_t::error);
+
+  bool is_empty() const noexcept {
+    return is_slot(detail::empty_slot::value);
   }
 
   explicit constexpr operator bool() const noexcept {
-    return is_value();
-  }
-
-  void set_value(T value) {
-    weak_destroy();
-    init(std::move(value));
-    set(detail::slot_t::value);
-  }
-  void set_exception(types::error_type error) {
-    weak_destroy();
-    init(std::move(error));
-    set(detail::slot_t::error);
-  }
-
-  T& get_value() noexcept {
-    assert(is_value());
-    return cast<T>();
-  }
-  T const& get_value() const noexcept {
-    assert(is_value());
-    return cast<T>();
-  }
-  types::error_type& get_exception() noexcept {
-    assert(is_exception());
-    return cast<types::error_type>();
-  }
-  types::error_type const& get_exception() const noexcept {
-    assert(is_exception());
-    return cast<types::error_type>();
-  }
-
-  T& operator*() noexcept {
-    return get_value();
-  }
-  T const& operator*() const noexcept {
-    return get_value();
+    return !is_empty();
   }
 
 private:
@@ -284,7 +258,7 @@ private:
       case detail::slot_t::error:
         return std::forward<V>(visitor)(cast<types::error_type>());
       default:
-        // We don't visit when there is no value
+        // We don't visit when there is_slot no value
         break;
     }
   }
@@ -296,13 +270,9 @@ private:
       case detail::slot_t::error:
         return std::forward<V>(visitor)(cast<types::error_type>());
       default:
-        // We don't visit when there is no value
+        // We don't visit when there is_slot no value
         break;
     }
-  }
-
-  bool is_empty() const noexcept {
-    return is(detail::slot_t::empty);
   }
 
   template <typename V>
@@ -326,7 +296,7 @@ private:
     weak_destroy();
 
 #ifdef NDEBUG
-    set(detail::slot_t::empty);
+    set_slot(detail::empty_slot::value);
 #endif
   }
   void weak_destroy() {
@@ -336,67 +306,19 @@ private:
     });
 
 #ifndef NDEBUG
-    set(detail::slot_t::empty);
+    set_slot(detail::empty_slot::value);
 #endif
   }
   detail::slot_t get() const noexcept {
     return this->slot_;
   }
-  bool is(detail::slot_t const slot) const noexcept {
+  bool is_slot(detail::slot_t const slot) const noexcept {
     return get() == slot;
   }
-  void set(detail::slot_t const slot) {
+  void set_slot(detail::slot_t const slot) {
     this->slot_ = slot;
   }
 };
-
-namespace detail {
-struct void_guard_tag {};
-
-template <typename T>
-struct expected_result_trait;
-template <>
-struct expected_result_trait<traits::identity<>> {
-  using expected_type = expected<void_guard_tag>;
-
-  static constexpr void_guard_tag wrap() noexcept {
-    return {};
-  }
-  static void unwrap(expected_type&& e) {
-    assert(e.is_value());
-    (void)e;
-  }
-};
-template <typename T>
-struct expected_result_trait<traits::identity<T>> {
-  using expected_type = expected<T>;
-
-  static auto wrap(T arg) {
-    return std::move(arg);
-  }
-  static auto unwrap(expected_type&& e) {
-    assert(e.is_value());
-    return std::move(e.get_value());
-  }
-};
-template <typename First, typename Second, typename... Rest>
-struct expected_result_trait<traits::identity<First, Second, Rest...>> {
-  using expected_type = expected<std::tuple<First, Second, Rest...>>;
-
-  static auto wrap(First first, Second second, Rest... rest) {
-    return std::make_tuple(std::move(first), std::move(second),
-                           std::move(rest)...);
-  }
-  static auto unwrap(expected_type&& e) {
-    assert(e.is_value());
-    return std::move(e.get_value());
-  }
-};
-} // namespace detail
-
-template <typename Continuable>
-using expected_result_trait_t = detail::expected_result_trait<decltype(
-    hints::hint_of(traits::identify<Continuable>{}))>;
 } // namespace util
 } // namespace detail
 } // namespace cti
