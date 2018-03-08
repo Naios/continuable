@@ -27,7 +27,7 @@
 
 #include <continuable/continuable.hpp>
 
-#include <continuable/detail/variant.hpp>
+#include <continuable/detail/flat-variant.hpp>
 
 /*
 static cti::continuable<std::string> http_request(std::string url) {
@@ -178,7 +178,7 @@ int main(int, char**) {
       });
 
   {
-    variant::optional_variant<int, float> var;
+    container::flat_variant<int, float> var;
 
     var = 1;
     var = 1.f;

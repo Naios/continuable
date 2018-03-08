@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_VARIANT_HPP_INCLUDED
-#define CONTINUABLE_DETAIL_VARIANT_HPP_INCLUDED
+#ifndef CONTINUABLE_DETAIL_FLAT_VARIANT_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_FLAT_VARIANT_HPP_INCLUDED
 
 #include <cassert>
 #include <cstdint>
@@ -42,7 +42,7 @@
 
 namespace cti {
 namespace detail {
-namespace variant {
+namespace container {
 namespace detail {
 // We don't want to pull the algorithm header in
 template <typename... T>
@@ -74,31 +74,31 @@ using empty_slot =
     std::integral_constant<slot_t, std::numeric_limits<slot_t>::max()>;
 
 template <typename... T>
-struct optional_variant_base {
+struct flat_variant_base {
   storage_of_t<T...> storage_;
   slot_t slot_;
 
-  constexpr optional_variant_base() : slot_(empty_slot::value) {
+  constexpr flat_variant_base() : slot_(empty_slot::value) {
   }
 
-  optional_variant_base(optional_variant_base const&) noexcept {
+  flat_variant_base(flat_variant_base const&) noexcept {
   }
-  optional_variant_base(optional_variant_base&&) noexcept {
+  flat_variant_base(flat_variant_base&&) noexcept {
   }
-  optional_variant_base& operator=(optional_variant_base const&) {
+  flat_variant_base& operator=(flat_variant_base const&) {
     return *this;
   }
-  optional_variant_base& operator=(optional_variant_base&&) {
+  flat_variant_base& operator=(flat_variant_base&&) {
     return *this;
   }
 };
 
 template <typename Base>
-struct optional_variant_move_base {
-  constexpr optional_variant_move_base() = default;
+struct flat_variant_move_base {
+  constexpr flat_variant_move_base() = default;
 
-  optional_variant_move_base(optional_variant_move_base const&) = default;
-  explicit optional_variant_move_base(optional_variant_move_base&& right) {
+  flat_variant_move_base(flat_variant_move_base const&) = default;
+  explicit flat_variant_move_base(flat_variant_move_base&& right) {
     Base& me = *static_cast<Base*>(this);
     Base& other = *static_cast<Base*>(&right);
     assert(!other.is_empty());
@@ -114,9 +114,8 @@ struct optional_variant_move_base {
     me.set_slot(other.get());
     other.destroy();
   }
-  optional_variant_move_base&
-  operator=(optional_variant_move_base const&) = default;
-  optional_variant_move_base& operator=(optional_variant_move_base&& right) {
+  flat_variant_move_base& operator=(flat_variant_move_base const&) = default;
+  flat_variant_move_base& operator=(flat_variant_move_base&& right) {
     Base& me = *static_cast<Base*>(this);
     Base& other = *static_cast<Base*>(&right);
     assert(!other.is_empty());
@@ -133,12 +132,12 @@ struct optional_variant_move_base {
   }
 };
 template <typename Base, bool IsCopyable /*= true*/>
-struct optional_variant_copy_base : optional_variant_move_base<Base> {
-  constexpr optional_variant_copy_base() = default;
+struct flat_variant_copy_base : flat_variant_move_base<Base> {
+  constexpr flat_variant_copy_base() = default;
 
-  optional_variant_copy_base(optional_variant_copy_base&&) = default;
-  explicit optional_variant_copy_base(optional_variant_copy_base const& right)
-      : optional_variant_copy_base<Base>()
+  flat_variant_copy_base(flat_variant_copy_base&&) = default;
+  explicit flat_variant_copy_base(flat_variant_copy_base const& right)
+      : flat_variant_copy_base<Base>()
   // TODO noexcept(Base::is_nothrow_move_constructible)
   {
     Base& me = *static_cast<Base*>(this);
@@ -155,8 +154,8 @@ struct optional_variant_copy_base : optional_variant_move_base<Base> {
     });
     me.set_slot(other.get());
   }
-  optional_variant_copy_base& operator=(optional_variant_copy_base&&) = default;
-  optional_variant_copy_base& operator=(optional_variant_copy_base const& right)
+  flat_variant_copy_base& operator=(flat_variant_copy_base&&) = default;
+  flat_variant_copy_base& operator=(flat_variant_copy_base const& right)
   // TODO  noexcept(Base::is_nothrow_move_constructible)
   {
     Base& me = *static_cast<Base*>(this);
@@ -174,16 +173,13 @@ struct optional_variant_copy_base : optional_variant_move_base<Base> {
   }
 };
 template <typename Base /*, bool IsCopyable = false*/>
-struct optional_variant_copy_base<Base, false>
-    : optional_variant_move_base<Base> {
-  constexpr optional_variant_copy_base() = default;
+struct flat_variant_copy_base<Base, false> : flat_variant_move_base<Base> {
+  constexpr flat_variant_copy_base() = default;
 
-  optional_variant_copy_base(optional_variant_copy_base const&) = delete;
-  explicit optional_variant_copy_base(optional_variant_copy_base&& right) =
-      default;
-  optional_variant_copy_base&
-  operator=(optional_variant_copy_base const&) = delete;
-  optional_variant_copy_base& operator=(optional_variant_copy_base&&) = default;
+  flat_variant_copy_base(flat_variant_copy_base const&) = delete;
+  explicit flat_variant_copy_base(flat_variant_copy_base&& right) = default;
+  flat_variant_copy_base& operator=(flat_variant_copy_base const&) = delete;
+  flat_variant_copy_base& operator=(flat_variant_copy_base&&) = default;
 };
 
 /// Deduces to a true_type if all parameters T satisfy the predicate.
@@ -191,54 +187,53 @@ template <template <typename> class Predicate, typename... T>
 using every = traits::conjunction<Predicate<T>...>;
 } // namespace detail
 
-/// A class similar to the one in the optional_variant proposal,
-/// however it is_slot capable of carrying an exception_ptr if
-/// exceptions are used.
+/// A class similar to the one in the variant proposal,
+/// however it is capable of carrying an empty state by default.
 template <typename... T>
-class optional_variant
-    : detail::optional_variant_copy_base<
-          optional_variant<T...>,
+class flat_variant
+    : detail::flat_variant_copy_base<
+          flat_variant<T...>,
           detail::every<std::is_copy_constructible, T...>::value>,
-      detail::optional_variant_base<T...> {
+      detail::flat_variant_base<T...> {
 
   template <typename...>
-  friend class optional_variant;
+  friend class flat_variant;
   template <typename>
-  friend struct detail::optional_variant_move_base;
+  friend struct detail::flat_variant_move_base;
   template <typename, bool>
-  friend struct detail::optional_variant_copy_base;
+  friend struct detail::flat_variant_copy_base;
 
   template <typename V>
-  optional_variant(V&& value, detail::slot_t const slot) {
+  flat_variant(V&& value, detail::slot_t const slot) {
     using type = std::decay_t<V>;
     new (&this->storage_) type(std::forward<V>(value));
     set_slot(slot);
   }
 
 public:
-  constexpr optional_variant() = default;
-  optional_variant(optional_variant const&) = default;
-  optional_variant(optional_variant&&) = default;
-  optional_variant& operator=(optional_variant const&) = default;
-  optional_variant& operator=(optional_variant&&) = default;
+  constexpr flat_variant() = default;
+  flat_variant(flat_variant const&) = default;
+  flat_variant(flat_variant&&) = default;
+  flat_variant& operator=(flat_variant const&) = default;
+  flat_variant& operator=(flat_variant&&) = default;
 
-  ~optional_variant() noexcept(
+  ~flat_variant() noexcept(
       detail::every<std::is_nothrow_destructible, T...>::value) {
     weak_destroy();
   }
 
   template <typename V, std::size_t Index =
                             traits::index_of_t<std::decay_t<V>, T...>::value>
-  // Since the optional_variant is never a part of the contained
+  // Since the flat_variant is never a part of the contained
   // values itself this overload is safed against the linted issue.
   // NOLINTNEXTLINE(misc-forwarding-reference-overload)
-  explicit optional_variant(V&& value)
-      : optional_variant(std::forward<V>(value), Index) {
+  explicit flat_variant(V&& value)
+      : flat_variant(std::forward<V>(value), Index) {
   }
 
   template <typename V, std::size_t Index =
                             traits::index_of_t<std::decay_t<V>, T...>::value>
-  optional_variant& operator=(V&& value) {
+  flat_variant& operator=(V&& value) {
     weak_destroy();
     init(std::forward<V>(value));
     set_slot(Index);
@@ -273,18 +268,18 @@ public:
 
 private:
   template <typename C, typename V>
-  static void visit_dispatch(optional_variant* me, V&& visitor) {
+  static void visit_dispatch(flat_variant* me, V&& visitor) {
     std::forward<V>(visitor)(me->cast<C>());
   }
   template <typename C, typename V>
-  static void visit_dispatch_const(optional_variant const* me, V&& visitor) {
+  static void visit_dispatch_const(flat_variant const* me, V&& visitor) {
     std::forward<V>(visitor)(me->cast<C>());
   }
 
   template <typename V>
   void visit(V&& visitor) {
     if (!is_empty()) {
-      using callback_t = void (*)(optional_variant*, V &&);
+      using callback_t = void (*)(flat_variant*, V &&);
       constexpr callback_t const callbacks[] = {
           &visit_dispatch<T, V>... // ...
       };
@@ -294,7 +289,7 @@ private:
   template <typename V>
   void visit(V&& visitor) const {
     if (!is_empty()) {
-      using callback_t = void (*)(optional_variant const*, V&&);
+      using callback_t = void (*)(flat_variant const*, V&&);
       constexpr callback_t const callbacks[] = {
           &visit_dispatch_const<T, V>... // ...
       };
@@ -335,8 +330,8 @@ private:
     this->slot_ = slot;
   }
 };
-} // namespace variant
+} // namespace container
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_VARIANT_HPP_INCLUDED
+#endif // CONTINUABLE_DETAIL_FLAT_VARIANT_HPP_INCLUDED
