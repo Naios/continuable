@@ -610,6 +610,67 @@ public:
   }
 
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+  /// Implements the operator for awaiting on continuables using co_await.
+  ///
+  /// The operator is only enabled if `CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE`
+  /// is defined and the toolchain supports experimental coroutines.
+  ///
+  /// The return type of the co_await expression is specified as following:
+  /// |          Continuation type        |          co_await returns          |
+  /// | : ------------------------------- | : -------------------------------- |
+  /// | `continuable_base with <>`        | `void`                             |
+  /// | `continuable_base with <Arg>`     | `Arg`                              |
+  /// | `continuable_base with <Args...>` | `std::tuple<Args...>`              |
+  ///
+  /// When exceptions are used the usage is as intuitive as shown below:
+  /// ```cpp
+  /// // Handling the exception isn't required and
+  /// // the try catch clause may be omitted.
+  /// try {
+  ///   std::string response = co_await http_request("github.com");
+  /// } (std::exception& e) {
+  ///   e.what();
+  /// }
+  /// ```
+  ///
+  /// In case the library is configured to use error codes or a custom
+  /// error type the return type of the co_await expression is changed.
+  /// The result is returned through an internal proxy object which may
+  /// be queried for the error object.
+  /// |          Continuation type        |          co_await returns          |
+  /// | : ------------------------------- | : -------------------------------- |
+  /// | `continuable_base with <>`        | `unspecified<void>`                |
+  /// | `continuable_base with <Arg>`     | `unspecified<Arg>`                 |
+  /// | `continuable_base with <Args...>` | `unspecified<std::tuple<Args...>>` |
+  /// The interface of the proxy object is similar to the one proposed in
+  /// the std::expected proposal:
+  /// ```cpp
+  /// if (auto&& result = co_await http_request("github.com")) {
+  ///   auto value = *result;
+  /// } else {
+  ///   cti::error_type error = result.get_exception();
+  /// }
+  ///
+  /// auto result = co_await http_request("github.com");
+  /// bool(result);
+  /// result.is_value();
+  /// result.is_exception();
+  /// *result; // Same as result.get_value()
+  /// result.get_value();
+  /// result.get_exception();
+  /// ```
+  ///
+  /// \attention Note that it isn't possible as of now to use a continuable
+  ///            as return type from coroutines as below:
+  /// ```cpp
+  /// cti::continuable<int> do_sth() {
+  ///   co_await http_request("github.com");
+  ///   return 0;
+  /// }
+  /// ```
+  ///            Propably this will be added in a future version of the library.
+  ///
+  /// \since     2.0.0
   auto operator co_await() && {
     return detail::awaiting::create_awaiter(std::move(*this).materialize());
   }
