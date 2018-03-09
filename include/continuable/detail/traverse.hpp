@@ -441,6 +441,25 @@ template <typename T, typename M>
 using container_mapping_tag_of_t =
     container_mapping_tag<is_empty_mapped<T, M>::value, can_reuse<T, M>::value>;
 
+/// Deduces to a true type if the given parameter T supports a `reserve` method
+template <typename From, typename To, typename = void>
+struct is_reservable_from : std::false_type {};
+template <typename From, typename To>
+struct is_reservable_from<From, To,
+                          traits::void_t<decltype(std::declval<To>().reserve(
+                              std::declval<From>().size()))>> : std::true_type {
+};
+
+template <typename Dest, typename Source>
+void reserve_if(std::true_type, Dest&& dest, Source&& source) {
+  // Reserve the mapped size
+  dest.reserve(source.size());
+}
+template <typename Dest, typename Source>
+void reserve_if(std::false_type, Dest&&, Source&&) noexcept {
+  // We do nothing here, since the container doesn't support reserving
+}
+
 /// We create a new container, which may hold the resulting type
 template <typename M, typename T>
 auto remap_container(container_mapping_tag<false, false>, M&& mapper,
@@ -456,9 +475,10 @@ auto remap_container(container_mapping_tag<false, false>, M&& mapper,
   auto remapped = rebind_container<mapped_type_from_t<T, M>>(container);
 
   // We try to reserve the original size from the source
-  // container to the destination container.
-  // TODO Re-implement this
-  // traits::detail::reserve_if_reservable(remapped, container.size());
+  // container inside the destination container.
+  reserve_if(
+      is_reservable_from<std::decay_t<T>, std::decay_t<decltype(remapped)>>{},
+      remapped, container);
 
   // Perform the actual value remapping from the source to
   // the destination.
