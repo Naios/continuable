@@ -31,7 +31,10 @@
 #ifndef CONTINUABLE_COMPOSITIONS_HPP_INCLUDED
 #define CONTINUABLE_COMPOSITIONS_HPP_INCLUDED
 
+#include <initializer_list>
+#include <memory>
 #include <utility>
+#include <vector>
 
 #include <continuable/detail/composition-all.hpp>
 #include <continuable/detail/composition-any.hpp>
@@ -241,6 +244,49 @@ template <
     std::enable_if_t<detail::range::is_iterator<Iterator>::value>* = nullptr>
 auto when_any(Iterator begin, Iterator end) {
   return when_any(detail::range::persist_range(begin, end));
+}
+
+/// Populates a homogeneous container from the given arguments.
+/// All arguments need to be convertible to the first one,
+/// by default std::vector is used as container type.
+///
+/// This method mainly helps to create a homogeneous container from
+/// a runtime known count of continuables which type isn't exactly known.
+/// All continuables which are passed to this function should be originating
+/// from the same source or a method called with the same types of arguments:
+/// ```cpp
+/// auto container = cti::populate(cti::make_ready_continuable(0),
+///                                cti::make_ready_continuable(1)),
+///
+/// for (int i = 2; i < 5; ++i) {
+///   // You may add more continuables to the container afterwards
+///   container.emplace_back(cti::make_ready_continuable(i));
+/// }
+///
+/// cti::when_any(std::move(container))
+///   .then([](int) {
+///     // ...
+///   });
+/// ```
+/// Additionally it is possible to change the targeted container as below:
+/// ```cpp
+/// auto container = cti::populate<std::list>(cti::make_ready_continuable(0),
+///                                           cti::make_ready_continuable(1)),
+/// ```
+///
+/// \tparam C The container type which is used to store the arguments into.
+///
+/// \since    3.0.0
+template <template <typename, typename> class C = std::vector, typename First,
+          typename... Args>
+C<std::decay_t<First>, std::allocator<std::decay_t<First>>>
+populate(First&& first, Args&&... args) {
+  C<std::decay_t<First>, std::allocator<std::decay_t<First>>> container;
+  container.reserve(1 + sizeof...(Args));
+  container.emplace_back(std::forward<First>(first));
+  (void)std::initializer_list<int>{
+      0, ((void)container.emplace_back(std::forward<Args>(args)), 0)...};
+  return container; // RVO
 }
 } // namespace cti
 

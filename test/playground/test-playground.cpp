@@ -126,19 +126,21 @@ void old() {
 int main(int, char**) {
   using namespace cti::detail;
 
-  cti::when_seq(
-      cti::make_ready_continuable(0, 1), 2, //< See this plain value
-      std::vector<cti::continuable<int>>{cti::make_ready_continuable(3),
-                                         cti::make_ready_continuable(4)},
-      std::make_tuple(std::make_tuple(cti::make_ready_continuable(5))))
-      .then([](int r0, int r1, int r2, std::vector<int> r34,
-               std::tuple<std::tuple<int>> r5) {
-        // ...
-        util::unused(r0, r1, r2, r34, r5);
-      });
+  {
+    cti::when_seq(
+        cti::make_ready_continuable(0, 1), 2, //< See this plain value
+        cti::populate(cti::make_ready_continuable(3),
+                      cti::make_ready_continuable(4)),
+        std::make_tuple(std::make_tuple(cti::make_ready_continuable(5))))
+        .then([](int r0, int r1, int r2, std::vector<int> r34,
+                 std::tuple<std::tuple<int>> r5) {
+          // ...
+          util::unused(r0, r1, r2, r34, r5);
+        });
+  }
 
-  std::vector<cti::continuable<int>> v{cti::make_ready_continuable(8),
-                                       cti::make_ready_continuable(9)};
+  auto v = cti::populate(cti::make_ready_continuable(8),
+                         cti::make_ready_continuable(9));
 
   cti::when_seq(v.begin(), v.end()).then([](auto o2) {
     // ...
@@ -162,8 +164,8 @@ int main(int, char**) {
 
   cti::when_all(
       cti::make_ready_continuable(0, 1), 2, //< See this plain value
-      std::vector<cti::continuable<int>>{cti::make_ready_continuable(3),
-                                         cti::make_ready_continuable(4)},
+      cti::populate(cti::make_ready_continuable(3),
+                    cti::make_ready_continuable(4)),
       std::make_tuple(std::make_tuple(cti::make_ready_continuable(5))))
       .then([](int r0, int r1, int r2, std::vector<int> r34,
                std::tuple<std::tuple<int>> r5) {

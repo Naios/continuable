@@ -75,15 +75,8 @@ void test_all_seq_aggregate(Supplier&& supply, AggregateConnector&& ag) {
   }
 
   {
-    using type_t = std::decay_t<decltype(
-        std::declval<Supplier>()(std::declval<int>(), std::declval<int>()))>;
-
-    std::vector<type_t> v;
-    v.push_back(supply(1, 2));
-    v.push_back(supply(3, 4));
-    v.push_back(supply(5, 6));
-
-    auto chain = ag(std::make_tuple(std::move(v)));
+    auto chain = ag(std::make_tuple(
+        cti::populate(supply(1, 2), supply(3, 4), supply(5, 6))));
     EXPECT_ASYNC_RESULT(std::move(chain),
                         std::make_tuple(std::vector<std::tuple<int, int>>{
                             {1, 2}, {3, 4}, {5, 6}}));

@@ -68,15 +68,8 @@ TYPED_TEST(single_dimension_tests, is_logical_any_connectable) {
   }
 
   {
-    using type_t = std::decay_t<decltype(std::declval<TestFixture>().supply(
-        std::declval<int>(), std::declval<int>()))>;
-
-    std::vector<type_t> v;
-    v.push_back(this->supply(1, 2));
-    v.push_back(this->supply(3, 4));
-    v.push_back(this->supply(5, 6));
-
-    auto chain = cti::when_any(std::make_tuple(std::move(v)));
+    auto chain = cti::when_any(std::make_tuple(std::move(cti::populate(
+        this->supply(1, 2), this->supply(3, 4), this->supply(5, 6)))));
     EXPECT_ASYNC_RESULT(std::move(chain), 1, 2);
   }
 

@@ -33,6 +33,7 @@
 
 #include <iterator>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <continuable/detail/traits.hpp>
@@ -52,11 +53,11 @@ struct is_iterator<T,
 template <typename Iterator>
 auto persist_range(Iterator begin, Iterator end) {
   std::vector<typename std::iterator_traits<Iterator>::value_type> storage;
-
-  storage.insert(storage.end(), std::make_move_iterator(begin),
-                 std::make_move_iterator(end));
-
-  return storage; // RVO
+  // TODO Find out why the superior idiom below has issues with move only types:
+  // storage.insert(storage.end(), std::make_move_iterator(begin),
+  //                std::make_move_iterator(end));
+  std::move(begin, end, std::back_inserter(storage));
+  return storage;
 }
 } // namespace range
 } // namespace detail
