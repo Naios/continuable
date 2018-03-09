@@ -157,10 +157,10 @@ public:
 
   /// \cond false
   continuable_base(continuable_base&&) = default;
-  continuable_base(continuable_base const&) = default;
+  continuable_base(continuable_base const&) = delete;
 
   continuable_base& operator=(continuable_base&&) = default;
-  continuable_base& operator=(continuable_base const&) = default;
+  continuable_base& operator=(continuable_base const&) = delete;
   /// \endcond
 
   /// The destructor automatically invokes the continuable_base

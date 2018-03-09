@@ -166,13 +166,13 @@ using single_types = ::testing::Types<
 #if UNIT_TEST_STEP == 0
   provide_copyable
   // provide_erasure<cti::continuable>,
-  // provide_erasure<cti::unique_continuable>
+  // provide_erasure<cti::continuable>
 #elif UNIT_TEST_STEP == 1
   // Some instantiations out commented for compilation speed reasons
   // provide_continuation_and_left<provide_copyable>,
   provide_continuation_and_left<provide_unique>
   // provide_continuation_and_left<provide_erasure<cti::continuable>>,
-  // provide_continuation_and_left<provide_erasure<cti::unique_continuable>>,
+  // provide_continuation_and_left<provide_erasure<cti::continuable>>,
   // provide_continuation_and_right<provide_copyable>,
   // provide_continuation_and_right<provide_unique>,
   // provide_continuation_and_left<provide_erasure<cti::continuable>>

@@ -28,20 +28,20 @@
 TYPED_TEST(single_dimension_tests, is_eraseable) {
 
   {
-    cti::unique_continuable<int> erasure =
+    cti::continuable<int> erasure =
         cti::make_continuable<int>(supplier_of(0xDF));
 
     EXPECT_ASYNC_RESULT(std::move(erasure), 0xDF);
   }
 
   {
-    cti::unique_continuable<int> erasure = supplier_of(0xDF);
+    cti::continuable<int> erasure = supplier_of(0xDF);
 
     EXPECT_ASYNC_RESULT(std::move(erasure), 0xDF);
   }
 
   {
-    cti::unique_continuable<int> erasure = this->supply(0xDF);
+    cti::continuable<int> erasure = this->supply(0xDF);
 
     EXPECT_ASYNC_RESULT(std::move(erasure), 0xDF);
   }
@@ -49,11 +49,10 @@ TYPED_TEST(single_dimension_tests, is_eraseable) {
 
 TYPED_TEST(single_dimension_tests, is_callable) {
 
-  cti::unique_continuable<int, int> erased =
-      [](cti::promise<int, int>&& callback) {
+  cti::continuable<int, int> erased = [](cti::promise<int, int>&& callback) {
 
-        std::move(callback)(0xDF, 0xDD);
-      };
+    std::move(callback)(0xDF, 0xDD);
+  };
 
   EXPECT_ASYNC_RESULT(std::move(erased), 0xDF, 0xDD);
 }

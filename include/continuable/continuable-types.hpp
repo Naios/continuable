@@ -40,16 +40,9 @@
 namespace cti {
 // clang-format off
 namespace detail {
-/// A function which isn't size adjusted and copyable
-template<std::size_t Size, typename... Args>
-using function_adapter = fu2::function<Args...>;
 /// A function which isn't size adjusted and move only
 template<std::size_t, typename... Args>
 using unique_function_adapter = fu2::unique_function<Args...>;
-/// A function which is size adjusted and copyable
-template<std::size_t Size, typename... Args>
-using function_adjustable = fu2::function_base<true, true, Size,
-                                               true, false, Args...>;
 /// A function which is size adjusted and move only
 template<std::size_t Size, typename... Args>
 using unique_function_adjustable = fu2::function_base<true, false, Size,
@@ -58,13 +51,6 @@ using unique_function_adjustable = fu2::function_base<true, false, Size,
 /// We adjust the internal capacity of the outer function wrapper so
 /// we don't have to allocate twice when using `continuable<...>`.
 template<typename... Args>
-using trait_of = continuable_trait<
-  unique_function_adapter,
-  function_adjustable,
-  Args...
->;
-
-template<typename... Args>
 using unique_trait_of = continuable_trait<
   unique_function_adapter,
   unique_function_adjustable,
@@ -72,21 +58,12 @@ using unique_trait_of = continuable_trait<
 >;
 } // namespace detail
 
-/// Defines a copyable continuation type which uses the
-/// function2 backend for type erasure.
-///
-/// Usable like: `cti::continuable<int, float>`
-template <typename... Args>
-using continuable = typename detail::trait_of<
-  Args...
->::continuable;
-
 /// Defines a non-copyable continuation type which uses the
 /// function2 backend for type erasure.
 ///
-/// Usable like: `unique_continuable<int, float>`
+/// Usable like: `continuable<int, float>`
 template <typename... Args>
-using unique_continuable = typename detail::unique_trait_of<
+using continuable = typename detail::unique_trait_of<
   Args...
 >::continuable;
 
