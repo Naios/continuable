@@ -49,11 +49,24 @@ void test_all_seq_op(Supplier&& supply, OperatorConnector&& op) {
   }
 }
 
+class non_default_constructible {
+public:
+  explicit non_default_constructible(int) {
+  }
+};
+
 template <typename Supplier, typename AggregateConnector>
 void test_all_seq_aggregate(Supplier&& supply, AggregateConnector&& ag) {
   {
     auto chain = ag(supply(1, 2), supply(3, 4), supply(5, 6));
     EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3, 4, 5, 6);
+  }
+
+  {
+    auto chain =
+        ag(supply(1, 2), supply(non_default_constructible{1}), supply(5, 6));
+    ASSERT_ASYNC_TYPES(std::move(chain), int, int, non_default_constructible,
+                       int, int);
   }
 }
 

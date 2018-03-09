@@ -56,13 +56,14 @@ struct all_hint_deducer {
 
   template <typename First>
   static constexpr auto deduce(hints::signature_hint_tag<First>) {
-    return First{};
+    return std::declval<First>();
   }
 
   template <typename First, typename Second, typename... Args>
   static constexpr auto
   deduce(hints::signature_hint_tag<First, Second, Args...>) {
-    return spread_this(First{}, Second{}, Args{}...);
+    return spread_this(std::declval<First>(), std::declval<Second>(),
+                       std::declval<Args>()...);
   }
 
   template <
