@@ -155,9 +155,9 @@ using data_layout_t =
 /// Stores the visitor and the arguments to traverse
 template <typename Visitor, typename... Args>
 class async_traversal_frame : public data_layout_t<Visitor, Args...> {
-#ifndef _NDEBUG
+#ifndef NDEBUG
   std::atomic<bool> finished_;
-#endif // _NDEBUG
+#endif // NDEBUG
 
   Visitor& visitor() noexcept {
     return *static_cast<Visitor*>(this);
@@ -171,10 +171,10 @@ public:
   template <typename... T>
   explicit async_traversal_frame(T&&... args)
       : data_layout_t<Visitor, Args...>(std::forward<T>(args)...)
-#ifndef _NDEBUG
+#ifndef NDEBUG
         ,
         finished_(false)
-#endif // _NDEBUG
+#endif // NDEBUG
   {
   }
 
@@ -211,12 +211,12 @@ public:
   /// Calls the visitor with no arguments to signalize that the
   /// asynchronous traversal was finished.
   void async_complete() {
-#ifndef _NDEBUG
+#ifndef NDEBUG
     {
       bool expected = false;
       assert(finished_.compare_exchange_strong(expected, true));
     }
-#endif // _NDEBUG
+#endif // NDEBUG
 
     visitor()(async_traverse_complete_tag{}, std::move(this->head()));
   }
