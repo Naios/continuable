@@ -133,29 +133,29 @@ TEST(flat_variant_single_test, test_leak_regression) {
     });
 
     auto e1(flat_variant<type>(std::move(ptr)));
-    validate(e1, 1);
+    validate(e1, 1U);
 
     auto e2 = std::move(e1);
-    validate(e2, 1);
+    validate(e2, 1U);
 
     flat_variant<type> e3;
     e3 = std::move(e2);
-    validate(e3, 1);
+    validate(e3, 1U);
 
     {
       flat_variant<type> ec(e3);
-      validate(ec, 2);
+      validate(ec, 2U);
     }
 
     {
       flat_variant<type> ec = e3;
-      validate(ec, 2);
+      validate(ec, 2U);
     }
 
     {
       flat_variant<type> ec;
       ec = e3;
-      validate(ec, 2);
+      validate(ec, 2U);
     }
   }
 
