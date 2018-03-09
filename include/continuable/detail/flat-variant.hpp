@@ -56,7 +56,7 @@ constexpr std::size_t max_element_of(std::initializer_list<std::size_t> list) {
   return m;
 }
 template <typename... T>
-constexpr std::size_t storage_of_impl() {
+constexpr auto storage_of_impl() {
   constexpr auto size = max_element_of({sizeof(T)...});
   constexpr auto align = max_element_of({alignof(T)...});
   return std::aligned_storage_t<size, align>{};
@@ -101,32 +101,37 @@ struct flat_variant_move_base {
   explicit flat_variant_move_base(flat_variant_move_base&& right) {
     Base& me = *static_cast<Base*>(this);
     Base& other = *static_cast<Base*>(&right);
-    assert(!other.is_empty());
 
-#ifndef _NDEBUG
-    me.set_slot(empty_slot::value);
+    if (other.is_empty()) {
+      me.set_slot(empty_slot::value);
+    } else {
+
+      other.visit([&](auto&& value) {
+#ifndef NDEBUG
+        me.set_slot(empty_slot::value);
 #endif
+        // NOLINTNEXTLINE(misc-move-forwarding-reference)
+        me.init(std::move(value), other.get_slot());
+      });
+    }
 
-    other.visit([&](auto&& value) {
-      // ...
-      me.init(std::move(value));
-    });
-    me.set_slot(other.get());
     other.destroy();
   }
   flat_variant_move_base& operator=(flat_variant_move_base const&) = default;
   flat_variant_move_base& operator=(flat_variant_move_base&& right) {
     Base& me = *static_cast<Base*>(this);
     Base& other = *static_cast<Base*>(&right);
-    assert(!other.is_empty());
 
     me.weak_destroy();
 
-    other.visit([&](auto&& value) {
-      // ...
-      me.init(std::move(value));
-    });
-    me.set_slot(other.get());
+    if (other.is_empty()) {
+      me.set_slot(empty_slot::value);
+    } else {
+      other.visit([&](auto&& value) {
+        // ...
+        me.init(std::move(value), other.get_slot());
+      });
+    }
     other.destroy();
     return *this;
   }
@@ -142,17 +147,17 @@ struct flat_variant_copy_base : flat_variant_move_base<Base> {
   {
     Base& me = *static_cast<Base*>(this);
     Base const& other = *static_cast<Base const*>(&right);
-    assert(!other.is_empty());
 
-#ifndef _NDEBUG
-    me.set_slot(empty_slot::value);
+    if (other.is_empty()) {
+      me.set_slot(empty_slot::value);
+    } else {
+      other.visit([&](auto&& value) {
+#ifndef NDEBUG
+        me.set_slot(empty_slot::value);
 #endif
-
-    other.visit([&](auto&& value) {
-      // ...
-      me.init(std::move(value));
-    });
-    me.set_slot(other.get());
+        me.init(std::move(value), other.get_slot());
+      });
+    }
   }
   flat_variant_copy_base& operator=(flat_variant_copy_base&&) = default;
   flat_variant_copy_base& operator=(flat_variant_copy_base const& right)
@@ -160,15 +165,17 @@ struct flat_variant_copy_base : flat_variant_move_base<Base> {
   {
     Base& me = *static_cast<Base*>(this);
     Base const& other = *static_cast<Base const*>(&right);
-    assert(!other.is_empty());
 
     me.weak_destroy();
 
-    other.visit([&](auto&& value) {
-      // ...
-      me.init(std::move(value));
-    });
-    me.set_slot(other.get());
+    if (other.is_empty()) {
+      me.set_slot(empty_slot::value);
+    } else {
+      other.visit([&](auto&& value) {
+        // ...
+        me.init(std::move(value), other.get_slot());
+      });
+    }
     return *this;
   }
 };
@@ -204,6 +211,8 @@ class flat_variant
           detail::every<std::is_copy_constructible, T...>::value>,
       detail::flat_variant_base<T...> {
 
+  static_assert(sizeof...(T) > 0, "At least one paremeter T is required!");
+
   template <typename...>
   friend class flat_variant;
   template <typename>
@@ -213,9 +222,10 @@ class flat_variant
 
   template <typename V>
   flat_variant(V&& value, detail::slot_t const slot) {
-    using type = std::decay_t<V>;
-    new (&this->storage_) type(std::forward<V>(value));
-    set_slot(slot);
+#ifndef NDEBUG
+    set_slot(detail::empty_slot::value);
+#endif
+    init(std::forward<V>(value), slot);
   }
 
 public:
@@ -232,23 +242,22 @@ public:
 
   template <
       typename V,
-      std::enable_if_t<!is_flat_variant<std::decay_t<V>>::value>* = nullptr,
-      std::size_t Index = traits::index_of_t<std::decay_t<V>, T...>::value>
+      std::enable_if_t<!is_flat_variant<std::decay_t<V>>::value>* = nullptr>
   // Since the flat_variant isn't allowed through SFINAE
   // this overload is safed against the linted issue.
   // NOLINTNEXTLINE(misc-forwarding-reference-overload)
   explicit flat_variant(V&& value)
-      : flat_variant(std::forward<V>(value), Index) {
+      : flat_variant(std::forward<V>(value),
+                     traits::index_of_t<std::decay_t<V>, T...>::value) {
   }
 
   template <
       typename V,
-      std::enable_if_t<!is_flat_variant<std::decay_t<V>>::value>* = nullptr,
-      std::size_t Index = traits::index_of_t<std::decay_t<V>, T...>::value>
+      std::enable_if_t<!is_flat_variant<std::decay_t<V>>::value>* = nullptr>
   flat_variant& operator=(V&& value) {
     weak_destroy();
-    init(std::forward<V>(value));
-    set_slot(Index);
+    init(std::forward<V>(value),
+         traits::index_of_t<std::decay_t<V>, T...>::value);
     return *this;
   }
 
@@ -292,28 +301,27 @@ private:
   void visit(V&& visitor) {
     if (!is_empty()) {
       using callback_t = void (*)(flat_variant*, V &&);
-      constexpr callback_t const callbacks[] = {
-          &visit_dispatch<T, V>... // ...
-      };
-      callbacks[get()](this, std::forward<V>(visitor));
+      constexpr callback_t const callbacks[] = {&visit_dispatch<T, V>...};
+      callbacks[get_slot()](this, std::forward<V>(visitor));
     }
   }
   template <typename V>
   void visit(V&& visitor) const {
     if (!is_empty()) {
       using callback_t = void (*)(flat_variant const*, V&&);
-      constexpr callback_t const callbacks[] = {
-          &visit_dispatch_const<T, V>... // ...
-      };
-      callbacks[get()](this, std::forward<V>(visitor));
+      constexpr callback_t const callbacks[] = {&visit_dispatch_const<T, V>...};
+      callbacks[get_slot()](this, std::forward<V>(visitor));
     }
   }
 
   template <typename V>
-  void init(V&& value) {
+  void init(V&& value, detail::slot_t const slot) {
     assert(is_empty());
-    using type = std::decay_t<decltype(value)>;
+    assert(sizeof(this->storage_) >= sizeof(std::decay_t<V>));
+
+    using type = std::decay_t<V>;
     new (&this->storage_) type(std::forward<V>(value));
+    set_slot(slot);
   }
   void destroy() {
     weak_destroy();
@@ -332,11 +340,11 @@ private:
     set_slot(detail::empty_slot::value);
 #endif
   }
-  detail::slot_t get() const noexcept {
+  detail::slot_t get_slot() const noexcept {
     return this->slot_;
   }
   bool is_slot(detail::slot_t const slot) const noexcept {
-    return get() == slot;
+    return get_slot() == slot;
   }
   void set_slot(detail::slot_t const slot) {
     this->slot_ = slot;
