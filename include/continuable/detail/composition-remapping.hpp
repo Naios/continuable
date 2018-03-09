@@ -31,13 +31,14 @@
 #ifndef CONTINUABLE_DETAIL_COMPOSITION_REMAPPING_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_COMPOSITION_REMAPPING_HPP_INCLUDED
 
+#include <cassert>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 
 #include <continuable/continuable-traverse.hpp>
 #include <continuable/detail/base.hpp>
-#include <continuable/detail/container-category.hpp>
+#include <continuable/detail/flat-variant.hpp>
 #include <continuable/detail/traits.hpp>
 
 namespace cti {
@@ -54,6 +55,24 @@ namespace composition {
 ///   - single async value -> single value
 ///   - multiple async value -> tuple of async values.
 namespace remapping {
+/// Guards a type to be default constructible,
+/// and wraps it into an optional type if it isn't default constructible.
+template <typename T>
+using lazy_value_t = std::conditional_t<std::is_default_constructible<T>::value,
+                                        T, container::flat_variant<T>>;
+
+template <typename T>
+decltype(auto) unpack_lazy(T&& value) {
+  return std::forward<T>(value);
+}
+template <typename T>
+T&& unpack_lazy(container::flat_variant<T>&& value) {
+  assert(value.template is<T>() &&
+         "The composition was finalized before all values were present!");
+
+  return std::move(value.template cast<T>());
+}
+
 template <typename Continuable>
 class continuable_box;
 template <typename Data>
@@ -83,7 +102,7 @@ class continuable_box<
     continuable_base<Data, hints::signature_hint_tag<First>>> {
 
   continuable_base<Data, hints::signature_hint_tag<First>> continuable_;
-  First first_;
+  lazy_value_t<First> first_;
 
 public:
   explicit continuable_box(
@@ -100,7 +119,7 @@ public:
   }
 
   auto unbox() && {
-    return std::move(first_);
+    return unpack_lazy(std::move(first_));
   }
 };
 template <typename Data, typename First, typename Second, typename... Rest>
@@ -109,7 +128,7 @@ class continuable_box<
 
   continuable_base<Data, hints::signature_hint_tag<First, Second, Rest...>>
       continuable_;
-  std::tuple<First, Second, Rest...> args_;
+  lazy_value_t<std::tuple<First, Second, Rest...>> args_;
 
 public:
   explicit continuable_box(
@@ -130,7 +149,7 @@ public:
   }
 
   auto unbox() && {
-    return traits::unpack(std::move(args_), [](auto&&... args) {
+    return traits::unpack(unpack_lazy(std::move(args_)), [](auto&&... args) {
       return spread_this(std::forward<decltype(args)>(args)...);
     });
   }
