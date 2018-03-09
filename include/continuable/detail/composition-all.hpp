@@ -56,14 +56,16 @@ struct all_hint_deducer {
 
   template <typename First>
   static constexpr auto deduce(hints::signature_hint_tag<First>) {
-    return std::declval<First>();
+    return remapping::unpack_lazy(remapping::lazy_value_t<First>{});
   }
 
   template <typename First, typename Second, typename... Args>
   static constexpr auto
   deduce(hints::signature_hint_tag<First, Second, Args...>) {
-    return spread_this(std::declval<First>(), std::declval<Second>(),
-                       std::declval<Args>()...);
+    return spread_this(
+        remapping::unpack_lazy(remapping::lazy_value_t<First>{}),
+        remapping::unpack_lazy(remapping::lazy_value_t<Second>{}),
+        remapping::unpack_lazy(remapping::lazy_value_t<Args>{})...);
   }
 
   template <

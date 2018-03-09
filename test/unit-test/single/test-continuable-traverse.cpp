@@ -549,7 +549,7 @@ TEST(test_strategic_container_traverse, traverse_move_only_wrapped) {
   std::size_t counter = 0;
   traverse_pack(
       [&counter](auto&& ptr) {
-        std::unique_ptr<int> moved(std::forward<decltype(ptr)>(ptr));
+        auto moved(std::forward<decltype(ptr)>(ptr));
         EXPECT_EQ((*moved), 5);
         ++counter;
       },
