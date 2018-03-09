@@ -542,6 +542,22 @@ TEST(test_strategic_container_traverse, type_changed_move_only) {
   EXPECT_EQ(res[0], 5);
 }
 
+TEST(test_strategic_container_traverse, traverse_move_only_wrapped) {
+  std::vector<std::unique_ptr<int>> container;
+  container.push_back(std::unique_ptr<int>(new int(5)));
+
+  std::size_t counter = 0;
+  traverse_pack(
+      [&counter](auto&& ptr) {
+        std::unique_ptr<int> moved(std::forward<decltype(ptr)>(ptr));
+        EXPECT_EQ((*moved), 5);
+        ++counter;
+      },
+      std::make_tuple(std::move(container)));
+
+  EXPECT_EQ(counter, 1U);
+}
+
 // Every element in the container is remapped
 // - Plain container
 TEST(test_strategic_container_traverse, every_element_remapped_plain) {
