@@ -609,7 +609,9 @@ public:
     return std::move(*this);
   }
 
+  /// \cond false
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+  /// \endcond
   /// Implements the operator for awaiting on continuables using co_await.
   ///
   /// The operator is only enabled if `CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE`
@@ -661,11 +663,12 @@ public:
   /// ```
   ///
   /// \attention Note that it isn't possible as of now to use a continuable
-  ///            as return type from coroutines as below:
+  ///            as return type from coroutines as depicted below:
   /// ```cpp
   /// cti::continuable<int> do_sth() {
   ///   co_await http_request("github.com");
-  ///   return 0;
+  ///   // ...
+  ///   co_return 0;
   /// }
   /// ```
   ///            Propably this will be added in a future version of the library.
@@ -674,7 +677,9 @@ public:
   auto operator co_await() && {
     return detail::awaiting::create_awaiter(std::move(*this).materialize());
   }
+  /// \cond false
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+  /// \endcond
 
 private:
   void release() noexcept {

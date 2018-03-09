@@ -58,8 +58,8 @@ namespace cti {
 /// cti::when_all(
 ///     cti::make_ready_continuable(0, 1),
 ///     2, //< See this plain value
-///     std::vector<cti::continuable<int>>{cti::make_ready_continuable(3),
-///                                        cti::make_ready_continuable(4)},
+///     cti::populate(cti::make_ready_continuable(3),  // Creates a runtime
+///                   cti::make_ready_continuable(4)), // sized container.
 ///     std::make_tuple(std::make_tuple(cti::make_ready_continuable(5))))
 ///       .then([](int r0, int r1, int r2, std::vector<int> r34,
 ///                std::tuple<std::tuple<int>> r5) {
@@ -82,8 +82,9 @@ auto when_all(Args&&... args) {
 /// to a temporary `std::vector` which is then passed to when_all.
 ///
 /// ```cpp
-/// std::vector<cti::continuable<int>> v{cti::make_ready_continuable(0),
-///                                      cti::make_ready_continuable(1)};
+/// // cti::populate just creates a std::vector from the two continuables.
+/// auto v = cti::populate(cti::make_ready_continuable(0),
+///                        cti::make_ready_continuable(1));
 ///
 /// cti::when_all(v.begin(), v.end())
 ///   .then([](std::vector<int> r01) {
@@ -126,8 +127,8 @@ auto when_all(Iterator begin, Iterator end) {
 /// cti::when_seq(
 ///     cti::make_ready_continuable(0, 1),
 ///     2, //< See this plain value
-///     std::vector<cti::continuable<int>>{cti::make_ready_continuable(3),
-///                                        cti::make_ready_continuable(4)},
+///     cti::populate(cti::make_ready_continuable(3),  // Creates a runtime
+///                   cti::make_ready_continuable(4)), // sized container.
 ///     std::make_tuple(std::make_tuple(cti::make_ready_continuable(5))))
 ///       .then([](int r0, int r1, int r2, std::vector<int> r34,
 ///                std::tuple<std::tuple<int>> r5) {
@@ -150,8 +151,9 @@ auto when_seq(Args&&... args) {
 /// to a temporary `std::vector` which is then passed to when_seq.
 ///
 /// ```cpp
-/// std::vector<cti::continuable<int>> v{cti::make_ready_continuable(0),
-///                                      cti::make_ready_continuable(1)};
+/// // cti::populate just creates a std::vector from the two continuables.
+/// auto v = cti::populate(cti::make_ready_continuable(0),
+///                        cti::make_ready_continuable(1));
 ///
 /// cti::when_seq(v.begin(), v.end())
 ///   .then([](std::vector<int> r01) {
@@ -194,8 +196,8 @@ auto when_seq(Iterator begin, Iterator end) {
 /// cti::when_any(
 ///     cti::make_ready_continuable(0, 1),
 ///     2, //< See this plain value
-///     std::vector<cti::continuable<int>>{cti::make_ready_continuable(3),
-///                                        cti::make_ready_continuable(4)},
+///     cti::populate(cti::make_ready_continuable(3),  // Creates a runtime
+///                   cti::make_ready_continuable(4)), // sized container.
 ///     std::make_tuple(std::make_tuple(cti::make_ready_continuable(5))))
 ///       .then([](int r0) {
 ///         // ...
@@ -217,8 +219,9 @@ auto when_any(Args&&... args) {
 /// to a temporary `std::vector` which is then passed to when_all.
 ///
 /// ```cpp
-/// std::vector<cti::continuable<int>> v{cti::make_ready_continuable(0),
-///                                      cti::make_ready_continuable(1)};
+/// // cti::populate just creates a std::vector from the two continuables.
+/// auto v = cti::populate(cti::make_ready_continuable(0),
+///                        cti::make_ready_continuable(1));
 ///
 /// cti::when_any(v.begin(), v.end())
 ///   .then([](int r01) {
