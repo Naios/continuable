@@ -47,6 +47,10 @@
 #include <continuable/detail/util.hpp>
 
 namespace cti {
+/// \defgroup Base Base
+/// provides classes and functions to create continuable_base objects.
+/// \{
+
 /// Represents a tag which can be placed first in a signature
 /// in order to overload callables with the asynchronous result
 /// as well as an error.
@@ -105,8 +109,7 @@ using detail::base::is_continuable;
 /// \note Nearly all methods of the cti::continuable_base are required to be
 ///       called as r-value. This is required because the continuable carries
 ///       variables which are consumed when the object is transformed as part
-///       of a method call. You may copy a continuable which underlying
-///       storages are copyable to split the call hierarchy into multiple parts.
+///       of a method call.
 ///
 /// \attention The continuable_base objects aren't intended to be stored.
 ///            If you want to store a continuble_base you should always
@@ -612,12 +615,12 @@ public:
   /// \cond false
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
   /// \endcond
-  /// Implements the operator for awaiting on continuables using co_await.
+  /// Implements the operator for awaiting on continuables using `co_await`.
   ///
   /// The operator is only enabled if `CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE`
   /// is defined and the toolchain supports experimental coroutines.
   ///
-  /// The return type of the co_await expression is specified as following:
+  /// The return type of the `co_await` expression is specified as following:
   /// |          Continuation type        |          co_await returns          |
   /// | : ------------------------------- | : -------------------------------- |
   /// | `continuable_base with <>`        | `void`                             |
@@ -702,20 +705,20 @@ private:
   }
 };
 
-/// Creates a continuable_base from a callback taking function.
+/// Creates a continuable_base from a promise/callback taking function.
 ///
-/// \tparam Args The types (signature hint) the given callback is called with.
-/// * **Some arguments** indicate the types the callback will be invoked with.
+/// \tparam Args The types (signature hint) the given promise is resolved with.
+/// * **Some arguments** indicate the types the promise will be invoked with.
 /// ```cpp
-/// auto ct = cti::make_continuable<int, std::string>([](auto&& callback) {
-///   std::forward<decltype(callback)>(callback)(200, "<html>...</html>");
+/// auto ct = cti::make_continuable<int, std::string>([](auto&& promise) {
+///   promise.set_value(200, "<html>...</html>");
 /// });
 /// ```
-/// * **void as argument** indicates that the callback will be invoked
+/// * `void` **as argument** indicates that the promise will be invoked
 ///   with no arguments:
 /// ```cpp
-/// auto ct = cti::make_continuable<void>([](auto&& callback) {
-///   std::forward<decltype(callback)>(callback)();
+/// auto ct = cti::make_continuable<void>([](auto&& promise) {
+///   promise.set_value();
 /// });
 /// ```
 /// * **No arguments** Since version 3.0.0 make_continuable always requires
@@ -726,13 +729,13 @@ private:
 ///   the continuable right after creation.
 /// ```cpp
 /// // This won't work because the arguments are missing:
-/// auto ct = cti::make_continuable([](auto&& callback) {
-///   std::forward<decltype(callback)>(callback)(0.f, 'c');
+/// auto ct = cti::make_continuable([](auto&& promise) {
+///   promise.set_value(0.f, 'c');
 /// });
 ///
 /// // However, you are allowed to do this:
-/// continuable<float, char> ct = [](auto&& callback) {
-///   std::forward<decltype(callback)>(callback)(0.f, 'c');
+/// cti::continuable<float, char> ct = [](auto&& promise) {
+///   promise.set_value(callback)(0.f, 'c');
 /// };
 /// ```
 ///
@@ -772,13 +775,19 @@ private:
 ///   });
 /// ```
 ///
-/// \returns A continuable_base with unknown template parameters which
+/// \returns A continuable_base with unspecified template parameters which
 ///          wraps the given continuation.
 ///          In order to convert the continuable_base to a known type
-///          you need to apply type erasure.
+///          you need to apply type erasure through the
+///          \link cti::continuable continuable\endlink or
+///          \link cti::promise promise\endlink facilities.
 ///
-/// \note You should always turn the callback into a r-value if possible
+/// \note You should always turn the callback/promise into a r-value if possible
 ///       (`std::move` or `std::forward`) for qualifier correct invokation.
+///       Additionally it's important to know that all continuable promises
+///       are callbacks and just expose their call operator nicely through
+///       \link cti::promise_base::set_value set_value \endlink and
+///       \link cti::promise_base::set_exception set_exception \endlink.
 ///
 /// \since 1.0.0
 template <typename... Args, typename Continuation>
@@ -860,6 +869,7 @@ constexpr auto make_exceptional_continuable(Exception&& exception) {
             std::move(exception));
       });
 }
+/// \}
 } // namespace cti
 
 #endif // CONTINUABLE_BASE_HPP_INCLUDED

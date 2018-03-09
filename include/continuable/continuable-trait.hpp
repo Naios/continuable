@@ -39,6 +39,11 @@
 #include <continuable/detail/types.hpp>
 
 namespace cti {
+/// \defgroup Types Types
+/// provides the \link cti::continuable continuable\endlink and \link
+/// cti::promise promise\endlink facility for type erasure.
+/// \{
+
 /// Trait to retrieve a continuable_base type with a given type-erasure backend.
 ///
 /// Every object may me used as type-erasure backend as long as the
@@ -69,6 +74,7 @@ public:
       continuable_base<ContinuationWrapper<sizeof(callback), void(promise)>,
                        detail::hints::signature_hint_tag<Args...>>;
 };
+/// \}
 } // namespace cti
 
 #endif // CONTINUABLE_TRAIT_HPP_INCLUDED

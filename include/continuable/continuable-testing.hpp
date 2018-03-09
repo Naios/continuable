@@ -34,6 +34,11 @@
 #include <continuable/detail/testing.hpp>
 #include <continuable/detail/traits.hpp>
 
+/// \defgroup Testing Testing
+/// provides macro shortcuts for testing asynchronous continuations through
+/// GTest.
+/// \{
+
 /// Asserts that the final callback of the given continuable was called
 /// with any result.
 ///
@@ -161,5 +166,7 @@
 #define ASSERT_ASYNC_EXCEPTION_RESULT(...)                                     \
   ASSERT_ASYNC_BINARY_EXCEPTION_VALIDATION(                                    \
       cti::detail::testing::asserting_eq_check(), __VA_ARGS__)
+
+//// \}
 
 #endif // CONTINUABLE_TESTING_HPP_INCLUDED

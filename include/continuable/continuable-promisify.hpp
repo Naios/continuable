@@ -37,6 +37,11 @@
 #include <continuable/detail/promisify.hpp>
 
 namespace cti {
+/// \defgroup Promisify Promisify
+/// provides helper methods to convert various callback styles to
+/// \link continuable_base continuable_bases\endlink.
+/// \{
+
 /// Helper class for converting callback taking callable types into a
 /// a continuable. Various styles are supported.
 /// - `from_asio`: Converts callback taking callable types into continuables
@@ -81,6 +86,7 @@ public:
         std::forward<Callable>(callable), std::forward<Args>(args)...);
   }
 };
+/// \}
 } // namespace cti
 
 #endif // CONTINUABLE_PROMISIFY_HPP_INCLUDED

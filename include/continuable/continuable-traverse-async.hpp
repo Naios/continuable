@@ -36,6 +36,10 @@
 #include <continuable/detail/traverse-async.hpp>
 
 namespace cti {
+/// \defgroup Traversal Traversal
+/// provides functions to traverse and remap nested packs.
+/// \{
+
 /// A tag which is passed to the `operator()` of the visitor
 /// if an element is visited synchronously.
 ///
@@ -118,6 +122,7 @@ auto traverse_pack_async(Visitor&& visitor, T&&... pack) {
   return detail::traversal::apply_pack_transform_async(
       std::forward<Visitor>(visitor), std::forward<T>(pack)...);
 }
+/// \}
 } // namespace cti
 
 #endif // CONTINUABLE_TRAVERSE_ASYNC_HPP_INCLUDED

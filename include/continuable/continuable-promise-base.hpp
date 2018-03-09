@@ -39,6 +39,10 @@
 #include <continuable/detail/util.hpp>
 
 namespace cti {
+/// \defgroup Base Base
+/// provides classes and functions to create continuable_base objects.
+/// \{
+
 /// The promise_base makes it possible to resolve an asynchronous
 /// continuable through it's result or through an error type.
 ///
@@ -110,6 +114,7 @@ public:
     std::move(data_)(detail::types::dispatch_error_tag{}, std::move(exception));
   }
 };
+/// \}
 } // namespace cti
 
 #endif // CONTINUABLE_PROMISE_BASE_HPP_INCLUDED

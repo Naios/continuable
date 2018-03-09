@@ -35,6 +35,10 @@
 #include <continuable/detail/types.hpp>
 
 namespace cti {
+/// \defgroup Transforms Transforms
+/// provides utilities to convert \link continuable_base continuable_bases\endlink to other types (`std::future`).
+/// \{
+
 /// A callable tag object which marks a wrapped callable object
 /// as continuable transformation which enables some useful overloads.
 ///
@@ -96,6 +100,7 @@ inline auto flatten() {
     return std::forward<decltype(continuable)>(continuable).fail([](auto&&) {});
   });
 }
+/// \}
 } // namespace transforms
 } // namespace cti
 

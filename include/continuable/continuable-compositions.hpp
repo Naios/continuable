@@ -43,6 +43,11 @@
 #include <continuable/detail/range.hpp>
 
 namespace cti {
+/// \defgroup Compositioning Compositions
+/// provides functions to connect \link continuable_base
+/// continuable_bases\endlink through various strategies.
+/// \{
+
 /// Connects the given arguments with an all logic.
 /// All continuables contained inside the given nested pack are
 /// invoked at once. On completion the final handler is called
@@ -251,7 +256,7 @@ auto when_any(Iterator begin, Iterator end) {
 
 /// Populates a homogeneous container from the given arguments.
 /// All arguments need to be convertible to the first one,
-/// by default std::vector is used as container type.
+/// by default `std::vector` is used as container type.
 ///
 /// This method mainly helps to create a homogeneous container from
 /// a runtime known count of continuables which type isn't exactly known.
@@ -291,6 +296,7 @@ populate(First&& first, Args&&... args) {
       0, ((void)container.emplace_back(std::forward<Args>(args)), 0)...};
   return container; // RVO
 }
+/// \}
 } // namespace cti
 
 #endif // CONTINUABLE_COMPOSITIONS_HPP_INCLUDED

@@ -38,6 +38,10 @@
 #include <continuable/detail/traverse.hpp>
 
 namespace cti {
+/// \defgroup Traversal Traversal
+/// provides functions to traverse and remap nested packs.
+/// \{
+
 /// Maps the pack with the given mapper.
 ///
 /// This function tries to visit all plain elements which may be wrapped in:
@@ -106,6 +110,7 @@ void traverse_pack(Mapper&& mapper, T&&... pack) {
                                std::forward<Mapper>(mapper),
                                std::forward<T>(pack)...);
 }
+/// \}
 } // namespace cti
 
 #endif // CONTINUABLE_TRAVERSE_HPP_INCLUDED

@@ -38,6 +38,11 @@
 #include <continuable/continuable-trait.hpp>
 
 namespace cti {
+/// \defgroup Types Types
+/// provides the \link cti::continuable continuable\endlink and \link
+/// cti::promise promise\endlink facility for type erasure.
+/// \{
+
 // clang-format off
 namespace detail {
 /// A function which isn't size adjusted and move only
@@ -80,6 +85,7 @@ using promise = typename detail::unique_trait_of<
 // TODO sink
 
 // clang-format on
+/// \}
 } // namespace cti
 
 #endif // CONTINUABLE_TYPES_HPP_INCLUDED
