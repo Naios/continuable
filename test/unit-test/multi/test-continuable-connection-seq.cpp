@@ -21,37 +21,28 @@
   SOFTWARE.
 **/
 
+#include <test-continuable-connection-all-seq.hpp>
 #include <test-continuable.hpp>
 
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable) {
-  auto chain = this->supply() >> this->supply();
-  EXPECT_ASYNC_RESULT(std::move(chain));
+TYPED_TEST(single_dimension_tests, is_op_seq_connectable) {
+  test_all_seq_op(
+      [this](auto&&... args) {
+        return this->supply(std::forward<decltype(args)>(args)...);
+      },
+      [](auto&& left, auto&& right) {
+        return std::forward<decltype(left)>(left) >>
+               std::forward<decltype(right)>(right);
+      });
 }
 
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_value) {
-  auto chain = this->supply(1) >> this->supply(2);
-  EXPECT_ASYNC_RESULT(std::move(chain), 1, 2);
-}
-
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_when_seq) {
-  auto chain = cti::when_seq(this->supply(1), this->supply(2), this->supply(3));
-  EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3);
-}
-
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_duplicated_val) {
-  auto chain = this->supply(1, 2) >> this->supply(3, 4);
-  EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3, 4);
-}
-
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_tag) {
-  auto chain = this->supply(tag1{}, tag2{}) >> this->supply(tag1{}, tag2{});
-  ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag1, tag2);
-}
-
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_three_tags) {
-  auto chain = this->supply(tag1{}, tag2{}, tag3{}) >>
-               this->supply(tag1{}, tag2{}, tag3{});
-  ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3, tag1, tag2, tag3);
+TYPED_TEST(single_dimension_tests, is_aggregate_seq_connectable) {
+  test_all_seq_aggregate(
+      [this](auto&&... args) {
+        return this->supply(std::forward<decltype(args)>(args)...);
+      },
+      [](auto&&... args) {
+        return cti::when_seq(std::forward<decltype(args)>(args)...);
+      });
 }
 
 TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_composed) {

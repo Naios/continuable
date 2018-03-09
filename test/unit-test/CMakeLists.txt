@@ -57,7 +57,8 @@ foreach(STEP RANGE 4)
 
   target_include_directories(${PROJECT_NAME}
     PUBLIC
-      ${CMAKE_CURRENT_LIST_DIR})
+      ${CMAKE_CURRENT_LIST_DIR}
+      ${CMAKE_CURRENT_LIST_DIR}/multi)
 
   target_compile_definitions(${PROJECT_NAME}
     PUBLIC

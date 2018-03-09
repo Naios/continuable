@@ -21,84 +21,29 @@
   SOFTWARE.
 **/
 
+#include <test-continuable-connection-all-seq.hpp>
 #include <test-continuable.hpp>
 
-template <typename Supplier, typename OperatorConnector>
-void test_all_seq_op(Supplier&& supply, OperatorConnector&& op) {
-  {
-    auto chain = op(supply(), supply());
-    EXPECT_ASYNC_RESULT(std::move(chain));
-  }
-
-  {
-    auto chain = op(supply(1), supply(2));
-    EXPECT_ASYNC_RESULT(std::move(chain), 1, 2);
-  }
-
-  {
-    auto chain = op(supply(1, 2), supply(3, 4, 5));
-    EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3, 4, 5);
-  }
-
-  {
-    auto chain = op(supply(tag1{}), supply(tag2{}, tag3{}));
-    ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3);
-  }
+TYPED_TEST(single_dimension_tests, is_op_all_connectable) {
+  test_all_seq_op(
+      [this](auto&&... args) {
+        return this->supply(std::forward<decltype(args)>(args)...);
+      },
+      [](auto&& left, auto&& right) {
+        return std::forward<decltype(left)>(left) &&
+               std::forward<decltype(right)>(right);
+      });
 }
 
-template <typename Supplier, typename AggregateConnector>
-void test_all_seq_aggregate(Supplier&& supply, AggregateConnector&& ag) {
-  {
-    auto chain = ag(supply(1, 2), supply(3, 4));
-    EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3, 4);
-  }
+TYPED_TEST(single_dimension_tests, is_aggregate_all_connectable) {
+  test_all_seq_aggregate(
+      [this](auto&&... args) {
+        return this->supply(std::forward<decltype(args)>(args)...);
+      },
+      [](auto&&... args) {
+        return cti::when_all(std::forward<decltype(args)>(args)...);
+      });
 }
-/*
-
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable) {
-  auto chain = this->supply() >> this->supply();
-  EXPECT_ASYNC_RESULT(std::move(chain));
-}
-
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_value) {
-  auto chain = this->supply(1) >> this->supply(2);
-  EXPECT_ASYNC_RESULT(std::move(chain), 1, 2);
-}
-
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_when_seq) {
-  auto chain = cti::when_seq(this->supply(1), this->supply(2), this->supply(3));
-  EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3);
-}
-
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_duplicated_val) {
-  auto chain = this->supply(1, 2) >> this->supply(3, 4);
-  EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3, 4);
-}
-
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_tag) {
-  auto chain = this->supply(tag1{}, tag2{}) >> this->supply(tag1{}, tag2{});
-  ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag1, tag2);
-}
-
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_three_tags) {
-  auto chain = this->supply(tag1{}, tag2{}, tag3{}) >>
-               this->supply(tag1{}, tag2{}, tag3{});
-  ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3, tag1, tag2, tag3);
-}
-
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_composed) {
-  // Check the evaluation order
-  unsigned i = 0;
-  auto composed =
-      make_step(this, i, 0) >> make_step(this, i, 1) >> make_step(this, i, 2);
-  EXPECT_ASYNC_RESULT(std::move(composed));
-}
-
-TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_chars) {
-  auto chain = this->supply('a') >> this->supply('b') >> this->supply('c');
-  EXPECT_ASYNC_RESULT(std::move(chain), 'a', 'b', 'c');
-}
- */
 
 TYPED_TEST(single_dimension_tests, is_logical_all_connectable) {
 
