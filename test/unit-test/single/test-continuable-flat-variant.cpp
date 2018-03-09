@@ -119,7 +119,7 @@ TEST(flat_variant_single_test, test_leak_regression) {
   //        continuable/build/../dep/googletest/googletest/googletest/src/gtest.cc:2395:10
   using type = std::shared_ptr<int>;
 
-  auto const validate = [](auto&& variant, std::size_t use) {
+  auto const validate = [](auto&& variant, long use) {
     ASSERT_TRUE(variant.template is<type>());
     ASSERT_EQ((*variant.template cast<type>()), CANARY);
     ASSERT_EQ(variant.template cast<type>().use_count(), use);
@@ -133,29 +133,29 @@ TEST(flat_variant_single_test, test_leak_regression) {
     });
 
     auto e1(flat_variant<type>(std::move(ptr)));
-    validate(e1, 1U);
+    validate(e1, 1);
 
     auto e2 = std::move(e1);
-    validate(e2, 1U);
+    validate(e2, 1);
 
     flat_variant<type> e3;
     e3 = std::move(e2);
-    validate(e3, 1U);
+    validate(e3, 1);
 
     {
       flat_variant<type> ec(e3);
-      validate(ec, 2U);
+      validate(ec, 2);
     }
 
     {
       flat_variant<type> ec = e3;
-      validate(ec, 2U);
+      validate(ec, 2);
     }
 
     {
       flat_variant<type> ec;
       ec = e3;
-      validate(ec, 2U);
+      validate(ec, 2);
     }
   }
 
