@@ -295,12 +295,15 @@ enum class handle_results {
   yes //< The result is handled by the current callable
 };
 
+// Silences a doxygen bug, it tries to map forward to std::forward
+/// \cond false
 /// Tells whether we handle the error through the callback
 enum class handle_errors {
   no,     //< The error is forwarded to the next callable
   plain,  //< The error is the only argument accepted by the callable
   forward //< The error is forwarded to the callable while keeping its tag
 };
+/// \endcond
 
 namespace callbacks {
 namespace proto {

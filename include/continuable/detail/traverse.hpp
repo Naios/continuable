@@ -46,6 +46,7 @@ namespace detail {
 namespace traversal {
 /// Exposes useful facilities for dealing with 1:n mappings
 namespace spreading {
+/// \cond false
 /// A struct to mark a tuple to be unpacked into the parent context
 template <typename... T>
 class spread_box {
@@ -203,7 +204,7 @@ template <typename C, typename... T>
 constexpr auto apply_spread_impl(std::false_type, C&& callable, T&&... args)
     -> decltype(std::forward<C>(callable)(std::forward<T>(args)...)) {
   return std::forward<C>(callable)(std::forward<T>(args)...);
-} // namespace spreading
+}
 
 /// Deduces to a true_type if any of the given types marks
 /// the underlying type to be spread into the current context.
@@ -269,6 +270,7 @@ template <typename... T>
 constexpr decltype(auto) tupelize_or_void(T&&... args) {
   return voidify_empty_tuple(tupelize(std::forward<T>(args)...));
 }
+/// \endcond
 } // namespace spreading
 
 /// Just traverses the pack with the given callable object,
@@ -517,6 +519,7 @@ auto remap_container(container_mapping_tag<true, false>, M&& mapper,
   return spreading::empty_spread();
 }
 
+/// \cond false
 /// Remaps the content of the given container with type T,
 /// to a container of the same type which may contain
 /// different types.
@@ -530,6 +533,7 @@ auto remap(
   return remap_container(container_mapping_tag_of_t<T, M>{},
                          std::forward<M>(mapper), std::forward<T>(container));
 }
+/// \endcond
 
 /// Just call the visitor with the content of the container
 template <typename T, typename M>

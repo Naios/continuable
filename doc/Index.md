@@ -27,7 +27,6 @@
 - **Predefined (erased) types** - Predefined type erarasures for continuables and promises
   - \link cti::promise promise\endlink - \copybrief cti::promise
   - \link cti::continuable continuable\endlink - \copybrief cti::continuable
-  - \link cti::unique_continuable unique_continuable\endlink - \copybrief cti::unique_continuable
 - **Class cti::continuable_trait** - A trait class for defining your own cti::continuable_base trait with the type-erasure backend of your choice.
   - \link cti::continuable_trait::promise promise\endlink - \copybrief cti::continuable_trait::promise
   - \link cti::continuable_trait::continuable continuable\endlink - \copybrief cti::continuable_trait::continuable
