@@ -151,7 +151,7 @@ struct continuable_dispatcher {
   template <typename Continuable,
             std::enable_if_t<base::is_continuable<
                 std::decay_t<Continuable>>::value>* = nullptr>
-  void operator()(Continuable&& continuable) const {
+  void operator()(Continuable&& continuable) {
     // Retrieve a callback from the submitter and attach it to the continuable
     std::forward<Continuable>(continuable)
         .next(submitter->create_callback())

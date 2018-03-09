@@ -176,13 +176,4 @@ int main(int, char**) {
       .then([](int) {
 
       });
-
-  {
-    container::flat_variant<int, float> var;
-
-    var = 1;
-    var = 1.f;
-  }
-
-  int i = 0;
 }

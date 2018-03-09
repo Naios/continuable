@@ -21,6 +21,8 @@
   SOFTWARE.
 **/
 
+#include <type_traits>
+
 #include <test-continuable.hpp>
 
 TYPED_TEST(single_dimension_tests, is_logical_any_connectable) {
@@ -55,6 +57,24 @@ TYPED_TEST(single_dimension_tests, is_logical_any_connectable) {
     auto chain = this->supply(tag1{}, tag2{}, tag3{}) ||
                  this->supply(tag1{}, tag2{}, tag3{});
     ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3);
+  }
+
+  {
+    auto chain =
+        cti::when_any(std::make_tuple(this->supply(1, 2),
+                                      std::make_tuple(this->supply(3, 4))),
+                      this->supply(5, 6));
+    EXPECT_ASYNC_RESULT(std::move(chain), 1, 2);
+  }
+
+  {
+    using type_t = std::decay_t<decltype(std::declval<TestFixture>().supply(
+        std::declval<int>(), std::declval<int>()))>;
+
+    std::vector<type_t> v{this->supply(1, 2), this->supply(3, 4),
+                          this->supply(5, 6)};
+    auto chain = cti::when_any(std::make_tuple(std::move(v)));
+    EXPECT_ASYNC_RESULT(std::move(chain), 1, 2);
   }
 
   {
