@@ -24,6 +24,10 @@
 #ifndef TEST_CONTINUABLE_CONNECTION_HPP__
 #define TEST_CONTINUABLE_CONNECTION_HPP__
 
+#include <tuple>
+#include <type_traits>
+#include <vector>
+
 #include <test-continuable.hpp>
 
 template <typename Supplier, typename OperatorConnector>
@@ -60,6 +64,25 @@ void test_all_seq_aggregate(Supplier&& supply, AggregateConnector&& ag) {
   {
     auto chain = ag(supply(1, 2), supply(3, 4), supply(5, 6));
     EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3, 4, 5, 6);
+  }
+
+  {
+    auto chain =
+        ag(std::make_tuple(supply(1, 2), std::make_tuple(supply(3, 4))),
+           supply(5, 6));
+    EXPECT_ASYNC_RESULT(std::move(chain),
+                        std::make_tuple(1, 2, std::make_tuple(3, 4)), 5, 6);
+  }
+
+  {
+    using type_t = decltype(
+        std::declval<Supplier>()(std::declval<int>(), std::declval<int>()));
+
+    auto chain = ag(std::make_tuple(
+        std::vector<type_t>{supply(1, 2), supply(3, 4), supply(5, 6)}));
+    EXPECT_ASYNC_RESULT(std::move(chain),
+                        std::make_tuple(std::vector<std::tuple<int, int>>{
+                            {1, 2}, {3, 4}, {5, 6}}));
   }
 
   {
