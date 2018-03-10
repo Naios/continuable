@@ -78,7 +78,7 @@ handler that was attached through \ref continuable_base::fail :
 \code{.cpp}
 http_request("github.com")
   .then([] (std::string result) {
-    // Is never called
+    // Is never called if an error occurs
   })
   .fail([] (std::exception_ptr ptr) {
     try {
@@ -111,29 +111,52 @@ handler below is called.
 Continuable also supports error codes automatically if exceptions are disabled.
 Additionally it is possible to specify a custom error type through defining.
 
-The \ref cti::error_type will be `std::exception_ptr` except if any of the
+\code{.cpp}
+http_request("github.com")
+  .then([] (std::string result) {
+    // Is never called if an error occurs
+  })
+  .fail([] (std::error_condition error) {
+    error.value();
+    error.category();
+  });
+\endcode
+
+The \ref error_type will be `std::exception_ptr` except if any of the
 following definitions is defined:
 - `CONTINUABLE_WITH_NO_EXCEPTIONS`: Define this to use `std::error_condition`
-  as \ref cti::error_type and to disable exception support.
+  as \ref error_type and to disable exception support.
   When exceptions are disabled this definition is set automatically.
 - `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`:  Define this to use a user defined
   error type.
 
+\attention By default unhandled exceptions or errors will trigger
+           a built-in trap that causes abnormal application shutdown.
+           In order to prevent this and to allow unhandled errors
+           define `CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS`.
+
 \section tutorial-chaining-continuables-next Using next for everything
 
+Sometimes it's required to provide a continuation and error handler from the
+same object. In order to avoid overloading conflicts there is the special
+method \ref continuable_base::next provided.
+The exception path overload is marked through the \ref dispatch_error_tag :
 
-The \ref cti::continuable_base \ref cti::when_any \ref cti::promisify
+\code{.cpp}
+struct handle_everything {
+  void operator() (std::string result) {
+    // ...
+  }
+  void operator() (cti::dispatch_error_tag, cti::error_type) {
+    // ...
+  }
+};
 
-- Continue the continuation using `.then(...)` and `.fail(...)`, exceptions are passed to the first available handler:
+// ...
 
-  \endcode
+http_request("github.com")
+  .next(handle_everything{});
+\endcode
 
-- Create connections between the continuables and use its compound result:
-  \code{.cpp}
-  (http_request("github.com") && (http_request("travis-ci.org") || http_request("atom.io")))
-    .then([](std::string github, std::string travis_or_atom) {
-      // The promise is called with the response of github and travis or atom.
-    });
-  \endcode
 */
 }

@@ -73,7 +73,7 @@ namespace cti {
 /// \note see continuable::next for details.
 ///
 /// \since 2.0.0
-using detail::types::dispatch_error_tag;
+using dispatch_error_tag = detail::types::dispatch_error_tag;
 
 /// Represents the type that is used as error type
 ///
@@ -84,7 +84,7 @@ using detail::types::dispatch_error_tag;
 /// defining `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`.
 ///
 /// \since 2.0.0
-using detail::types::error_type;
+using error_type = detail::types::error_type;
 
 /// Deduces to a true_type if the given type is a continuable_base.
 ///

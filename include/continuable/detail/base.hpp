@@ -457,12 +457,12 @@ struct final_callback : util::non_copyable {
 
   void operator()(types::dispatch_error_tag, types::error_type error) && {
     (void)error;
-#ifndef CONTINUABLE_WITH_UNHANDLED_ERRORS
+#ifndef CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
     // There were unhandled errors inside the asynchronous call chain!
-    // Define `CONTINUABLE_WITH_UNHANDLED_ERRORS` in order
+    // Define `CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS` in order
     // to ignore unhandled errors!"
     util::trap();
-#endif // CONTINUABLE_WITH_UNHANDLED_ERRORS
+#endif // CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
   }
 
   template <typename... Args>
