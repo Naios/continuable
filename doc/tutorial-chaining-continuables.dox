@@ -63,13 +63,17 @@ mysql_query("SELECT `id`, `name` FROM `users`")
     //     ^^^^ Templated callbacks are possible too
   })
   // ... you may even pass continuables to the `then` method directly:
-  .then(mysql_query("SELECT * `statistics`"))
+  .then(mysql_query("SELECT * FROM `statistics`"))
   .then([](ResultSet result) {
     // ...
   });
 \endcode
 
-\section tutorial-chaining-continuables-fail Using fail and errors
+\section tutorial-chaining-continuables-fail Using fail and exceptions
+
+Asynchronous exceptions are supported too. Exceptions that were set through
+\ref promise_base::set_exception are forwarded to the first available registered
+handler that was attached through \ref continuable_base::fail :
 
 \code{.cpp}
 http_request("github.com")
@@ -84,6 +88,36 @@ http_request("github.com")
     }
   });
 \endcode
+
+Multiple handlers are allowed to be registered, however the asynchronous call
+hierarchy is aborted after the first called fail handler and only the closest
+handler below is called.
+
+\note Retrieving a `std::exception_ptr` from a current exception
+      may be done as shown below:
+  \code{.cpp}
+  auto do_sth() {
+    return cti::make_continuable<void>([=] (auto&& promise) {
+      try {
+        // Usually the exception is thrown by another expression
+        throw std::exception{};
+      } catch(...) {
+        promise.set_exception(std::current_exception());
+      }
+    });
+  }
+  \endcode
+
+Continuable also supports error codes automatically if exceptions are disabled.
+Additionally it is possible to specify a custom error type through defining.
+
+The \ref cti::error_type will be `std::exception_ptr` except if any of the
+following definitions is defined:
+- `CONTINUABLE_WITH_NO_EXCEPTIONS`: Define this to use `std::error_condition`
+  as \ref cti::error_type and to disable exception support.
+  When exceptions are disabled this definition is set automatically.
+- `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`:  Define this to use a user defined
+  error type.
 
 \section tutorial-chaining-continuables-next Using next for everything
 

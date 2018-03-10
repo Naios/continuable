@@ -40,7 +40,10 @@ The library provides \ref make_ready_continuable which may be used to create a
 \ref continuable_base from an arbitrary amount of values:
 
 \code{.cpp}
-cti::continuable<int> c = cti::make_ready_continuable(0);
+auto one = cti::make_ready_continuable(0);
+
+cti::continuable<int, float, char> three =
+  cti::make_ready_continuable(0, 1.f, '2');
 \endcode
 
 \note In most situations you will never use \ref make_ready_continuable
@@ -77,6 +80,28 @@ auto http_request(std::string url) {
       // Or promise.set_exception(...);
     });
 }
+\endcode
+
+An alternative would be a \ref continuable_base with a result of zero arguments:
+
+\code{.cpp}
+auto wait_for(std::chrono::milliseconds duration) {
+  return cti::make_continuable<void>([](auto&& promise) {
+  //                           ^^^^
+
+  // Resolve the promise later when the duration is over
+  promise.set_value();
+});
+\endcode
+
+A \ref continuable_base may resolve with an arbitrary count of result values:
+
+\code{.cpp}
+auto resolve_sth() {
+  return cti::make_continuable<int, int, float, char>(
+    [](auto&& promise) {
+      promise.set_value(0, 1, 2.f, '3');
+  });
 \endcode
 
 \warning A \ref promise_base is only usable once and thus invalidated
