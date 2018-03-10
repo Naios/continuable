@@ -34,12 +34,7 @@ know its exact type for avoiding expensive type erasure.
 The \ref continuable_base is convertible to a \ref continuable which represents
 a specified type of the \ref continuable_base on the cost of a type erasure.
 
-An asynchronous call hierarchy that is stored inside the \ref continuable_base
-is executed when its result is requested (lazy evaluation) in contrast to
-other commonly used abstractions such as `std::future` which execute the
-asynchronous call hierarchy instantly on creation (eager evaluation).
-
-\section tutorial-creating-continuables-ready From a value or exception type
+\section tutorial-creating-continuables-ready From a value or exception
 
 The library provides \ref make_ready_continuable which may be used to create a
 \ref continuable_base from an arbitrary amount of values:
@@ -84,11 +79,33 @@ auto http_request(std::string url) {
 }
 \endcode
 
-\attention After resolving a \ref promise_base it should not be used any more,
-           because the class is only usable once.
+\warning A \ref promise_base is only usable once and thus invalidated
+         after it was resolved!
 
 A \ref promise_base always exposes a call operator for resolving it as
 like when using \ref promise_base::set_value or
 \ref promise_base::set_exception. See \ref promise_base for details.
+
+\note In order to make proper use of a \ref promise_base you should
+      move it around, store it for later use and resolve it when
+      the asynchronous task was finished or rejected.
+
+\section tutorial-creating-continuables-invocation The continuable invocation model
+
+An asynchronous call hierarchy that is stored inside the \ref continuable_base
+is executed when its result is requested (lazy evaluation) in contrast to
+other commonly used abstractions such as `std::future` which execute the
+asynchronous call hierarchy instantly on creation (eager evaluation).
+
+The asynchronous call hierarchy is started when the \ref continuable_base is
+destructed or the \ref continuable_base::done method is called.
+It is possible to disable the automatic start through calling
+\ref continuable_base::freeze on the corresponding \ref continuable_base.
+
+\attention A \ref continuable_base is not designed to be stored permanently,
+           make sure you call \ref continuable_base::freeze before storing it
+           and start the continuation chain later through calling
+           \ref continuable_base::done.
+
 */
 }

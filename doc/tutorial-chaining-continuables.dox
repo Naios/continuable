@@ -26,28 +26,72 @@ namespace cti {
 
 \tableofcontents
 
+\section tutorial-chaining-continuables-then Using then and results
+
+A \ref continuable_base provides various methods to continue the asynchronous
+call hierarchy. The most important method therefor is
+\ref continuable_base::then which changes the object through attaching a
+result handler:
+
+\code{.cpp}
+http_request("github.com")
+  .then([] (std::string result) {
+    // Do something...
+  });
+\endcode
+
+A new \ref continuable_base is created which result depends on the return type
+of the handler. For instance it is possible to return plain values or the next
+\ref continuable_base to continue the call hierarchy.
+See \ref continuable_base::then for details.
+
+\code{.cpp}
+mysql_query("SELECT `id`, `name` FROM `users`")
+  .then([](ResultSet users) {
+    // Return the next continuable to process ...
+    return mysql_query("SELECT `id` name FROM `sessions`");
+  })
+  .then([](ResultSet sessions) {
+    // ... or pass multiple values to the next callback using tuples or pairs ...
+    return std::make_tuple(std::move(sessions), true);
+  })
+  .then([](ResultSet sessions, bool is_ok) {
+    // ... or pass a single value to the next callback ...
+    return 10;
+  })
+  .then([](auto value) {
+    //     ^^^^ Templated callbacks are possible too
+  })
+  // ... you may even pass continuables to the `then` method directly:
+  .then(mysql_query("SELECT * `statistics`"))
+  .then([](ResultSet result) {
+    // ...
+  });
+\endcode
+
+\section tutorial-chaining-continuables-fail Using fail and errors
+
+\code{.cpp}
+http_request("github.com")
+  .then([] (std::string result) {
+    // Is never called
+  })
+  .fail([] (std::exception_ptr ptr) {
+    try {
+      std::rethrow_exception(ptr);
+    } catch(std::exception const& e) {
+      // Handle the exception or error code here
+    }
+  });
+\endcode
+
+\section tutorial-chaining-continuables-next Using next for everything
+
+
 The \ref cti::continuable_base \ref cti::when_any \ref cti::promisify
 
-- Supply a continuable which is invoked lazily upon request:
-
-
 - Continue the continuation using `.then(...)` and `.fail(...)`, exceptions are passed to the first available handler:
-  \code{.cpp}
-  http_request("github.com")
-    .then([] (std::string result) {
-      // Do something...
-      return http_request("travis-ci.org")
-    })
-    .then([] (std::string result) {
-      // Handle the response from 'travis-ci.org'
-    })
-    .fail([] (std::exception_ptr ptr) {
-      try {
-        std::rethrow_exception(ptr);
-      } catch(std::exception const& e) {
-        // Handle the exception or error code here
-      }
-    });
+
   \endcode
 
 - Create connections between the continuables and use its compound result:

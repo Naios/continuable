@@ -24,8 +24,6 @@ namespace cti {
 /** \page tutorial Tutorial
 \brief An introduction for using the continuable library.
 
-\tableofcontents
-
 This tutorial will give a short overview about using the library.
 We assume that the library is available in your current environment,
 if not, follow the \ref installation section in order to get it to work.
