@@ -49,6 +49,12 @@ namespace cti {
 /// Use the promise type defined in `continuable/continuable_types.hpp`,
 /// in order to use this class.
 ///
+/// If we want to resolve the  promise_base trough the call operator,
+/// and we want to resolve it through an exception, we must call it with a
+/// dispatch_error_tag as first and the exception as second argument.
+/// Additionally the promise is resolveable only through its call
+/// operator when invoked as an r-value.
+///
 /// \since 2.0.0
 // clang-format off
 template <typename Data, typename Hint>

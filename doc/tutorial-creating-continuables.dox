@@ -1,0 +1,94 @@
+/*
+  Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files(the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions :
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+*/
+
+namespace cti {
+/** \page tutorial-creating-continuables Creating continuables
+\brief Explains how to create a \ref continuable_base.
+
+\tableofcontents
+
+A \ref continuable is an arbitrary instantiation of a \ref continuable_base,
+it represents the main class of the library and makes it possible to build up
+an asynchronous call hierarchy. When dealing with continuables we usually don't
+know its exact type for avoiding expensive type erasure.
+
+The \ref continuable_base is convertible to a \ref continuable which represents
+a specified type of the \ref continuable_base on the cost of a type erasure.
+
+An asynchronous call hierarchy that is stored inside the \ref continuable_base
+is executed when its result is requested (lazy evaluation) in contrast to
+other commonly used abstractions such as `std::future` which execute the
+asynchronous call hierarchy instantly on creation (eager evaluation).
+
+\section tutorial-creating-continuables-ready From a value or exception type
+
+The library provides \ref make_ready_continuable which may be used to create a
+\ref continuable_base from an arbitrary amount of values:
+
+\code{.cpp}
+cti::continuable<int> c = cti::make_ready_continuable(0);
+\endcode
+
+\note In most situations you will never use \ref make_ready_continuable
+      because the library is capable of working with plain values
+      directly and thus this burdens unnecessary overhead.
+
+Additionally a \ref continuable_base which resolves with an exception may be
+created through \ref make_exceptional_continuable.
+
+\code{.cpp}
+cti::continuable<int> c = cti::make_exceptional_continuable(std::exception{});
+\endcode
+
+\section tutorial-creating-continuables-promises From a promise taking callable
+
+The main function for creating a \ref continuable_base is \ref make_continuable
+which must be invoked with the types of arguments it resolves to.
+It accepts a callable object which accepts an arbitrary object
+(the \ref promise_base). The \ref promise_base is created by the library and
+then passed to the given callback. This is in contrast to the usage of the
+standard `std::promise` which is created by the user.
+
+The \ref promise_base exposes methods to resolve it through result values or
+through an exception. Below we implement pseudo `http_request` function
+which resolves the request asynchronously trough a `std::string`.
+
+\code{.cpp}
+auto http_request(std::string url) {
+  return cti::make_continuable<std::string>(
+    [url = std::move(url)](auto&& promise) {
+      // Resolve the promise upon completion of the task.
+      promise.set_value("<html> ... </html>");
+
+      // Or promise.set_exception(...);
+    });
+}
+\endcode
+
+\attention After resolving a \ref promise_base it should not be used any more,
+           because the class is only usable once.
+
+A \ref promise_base always exposes a call operator for resolving it as
+like when using \ref promise_base::set_value or
+\ref promise_base::set_exception. See \ref promise_base for details.
+*/
+}

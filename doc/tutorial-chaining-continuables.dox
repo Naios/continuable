@@ -1,0 +1,61 @@
+/*
+  Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files(the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions :
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+*/
+
+namespace cti {
+/** \page tutorial-chaining-continuables Chaining continuables
+\brief Explains how to chain multiple \ref continuable_base objects together.
+
+\tableofcontents
+
+The \ref cti::continuable_base \ref cti::when_any \ref cti::promisify
+
+- Supply a continuable which is invoked lazily upon request:
+
+
+- Continue the continuation using `.then(...)` and `.fail(...)`, exceptions are passed to the first available handler:
+  \code{.cpp}
+  http_request("github.com")
+    .then([] (std::string result) {
+      // Do something...
+      return http_request("travis-ci.org")
+    })
+    .then([] (std::string result) {
+      // Handle the response from 'travis-ci.org'
+    })
+    .fail([] (std::exception_ptr ptr) {
+      try {
+        std::rethrow_exception(ptr);
+      } catch(std::exception const& e) {
+        // Handle the exception or error code here
+      }
+    });
+  \endcode
+
+- Create connections between the continuables and use its compound result:
+  \code{.cpp}
+  (http_request("github.com") && (http_request("travis-ci.org") || http_request("atom.io")))
+    .then([](std::string github, std::string travis_or_atom) {
+      // The promise is called with the response of github and travis or atom.
+    });
+  \endcode
+*/
+}
