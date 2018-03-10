@@ -1,0 +1,81 @@
+/*
+  Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files(the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions :
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+*/
+
+namespace cti {
+/** \mainpage Continuable
+
+\section mainpage-overview Overview
+
+<b>Continuable is a C++14 library that provides full support for:</b>
+ - lazy async continuation chaining based on **callbacks** (*then*) and expression templates, callbacks are wrapped nicely as promises.
+ - **no enforced type-erasure** which means we need <b>less heap allocations</b> than comparable libraries, strictly following the <b>"don't pay for what you don't use"</b> principle. 
+ - support for **connections** between continuables through an **all, any or sequential** strategy through expressive operator overloads **&&**, <b>||</b> and <b>>></b>.
+ - asynchronous **error handling** through exceptions, error coded or user defined types.
+ - **syntactic sugar** for instance: **partial invocation**, **tuple unpacking** and **executors**.
+
+\section mainpage-getting-started Getting started
+
+Continuable is a header-only library with zero compilation dependencies.
+The \ref installation is explained in its own chapter.
+
+The \ref tutorial is everything you need in order to get to know the libraries
+API. Beside of this there is a detailed in-source documentation provided.
+
+\section mainpage-contact Contributing and Questions
+
+Through the [Github issue tracker](https://github.com/Naios/continuable/issues)
+you are welcomed to ask for questions, contribute code or request new features.
+Also I would like to hear your personal opinion about the library design or
+your personal experience in using the library to improve it.
+
+\note
+    If you like the library I would be glad if you star it on Github,
+    since this helps other users to find the library.
+
+\section mainpage-license License
+
+Continuable is licensed under the MIT license:
+
+>
+>   Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
+>
+>   Permission is hereby granted, free of charge, to any person obtaining a copy
+>   of this software and associated documentation files(the "Software"), to deal
+>   in the Software without restriction, including without limitation the rights
+>   to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+>   copies of the Software, and to permit persons to whom the Software is
+>   furnished to do so, subject to the following conditions :
+>
+>   The above copyright notice and this permission notice shall be included in
+>   all copies or substantial portions of the Software.
+>
+>   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+>   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+>  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+>   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+>   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+>   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+>   SOFTWARE.
+>
+
+*/
+}
