@@ -26,15 +26,85 @@ namespace cti {
 
 \tableofcontents
 
-### Coroutines
+\section tutorial-awaiting-continuables-usage Using co_await on continuables
 
-Since version 2.0.0 coroutines (`co_await` and `co_return`) are supported by continuables when the underlying toolchain supports the TS. Currently this works in MSVC 2017 and Clang 5.0.
-You have to enable this capability through the `CTI_CONTINUABLE_WITH_AWAIT` define in CMake.
+Coroutines (`co_await`) are supported by continuables when the underlying
+toolchain supports the TS. Currently this works in MSVC 2017 and Clang 5.0.
 
-\endcodec++
+\attention You have to enable this feature through defining the
+           `CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE` preprocessor definition.
+
+It is possible to await for any \ref continuable_base as shown below:
+
+\code{.cpp}
 int i = co_await cti::make_continuable<int>([](auto&& promise) {
   promise.set_value(0);
 });
+\endcode
+
+As described in \ref continuable_base::operator co_await() a continuable with
+multiple arguments as result will wrap its result into a `std::tuple`:
+
+\code{.cpp}
+std::tuple<int, int> i = co_await cti::make_ready_continuable(0, 1);
+\endcode
+
+\section tutorial-awaiting-continuables-await Using co_await with exceptions
+
+When a \ref continuable_base was resolved through an exception the exception
+is rethrown from the `co_await` expression:
+
+\code{.cpp}
+try {
+  auto response = co_await http_request("github.com");
+} catch(std::exception const& e) {
+  // Handle the exception
+}
+\endcode
+
+\section tutorial-awaiting-continuables-noexcept Using co_await with disabled exceptions
+
+In case the library is configured to use error codes or a custom
+error type the return type of the co_await expression is changed.
+
+The result is returned through an internal proxy object which may
+be queried for the error object:
+
+|          Continuation type        |          co_await returns          |
+| : ------------------------------- | : -------------------------------- |
+| `continuable_base with <>`        | `unspecified<void>`                |
+| `continuable_base with <Arg>`     | `unspecified<Arg>`                 |
+| `continuable_base with <Args...>` | `unspecified<std::tuple<Args...>>` |
+
+The interface of the proxy object is similar to the one proposed in
+the `std::expected` proposal:
+
+\code{.cpp}
+if (auto&& result = co_await http_request("github.com")) {
+  auto value = *result;
+} else {
+  cti::error_type error = result.get_exception();
+}
+
+auto result = co_await http_request("github.com");
+
+bool(result);
+result.is_value();
+result.is_exception();
+*result; // Same as result.get_value()
+result.get_value();
+result.get_exception();
+\endcode
+
+
+\note It isn't possible as of now to use a \ref continuable_base
+      as return type from coroutines:
+\code{.cpp}
+cti::continuable<int> do_sth() {
+  co_await http_request("github.com");
+  // ...
+  co_return 0;
+}
 \endcode
 
 */

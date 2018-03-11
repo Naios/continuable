@@ -648,7 +648,7 @@ public:
   /// | `continuable_base with <Arg>`     | `unspecified<Arg>`                 |
   /// | `continuable_base with <Args...>` | `unspecified<std::tuple<Args...>>` |
   /// The interface of the proxy object is similar to the one proposed in
-  /// the std::expected proposal:
+  /// the `std::expected` proposal:
   /// ```cpp
   /// if (auto&& result = co_await http_request("github.com")) {
   ///   auto value = *result;
