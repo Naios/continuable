@@ -44,10 +44,10 @@
 namespace cti {
 namespace detail {
 namespace convert {
-/// A helper class for promisifying asio style callback taking functions
-/// into a continuable.
+/// A helper class for promisifying asio and js style callback
+/// taking functions into a continuable.
 template <typename P>
-struct promisify_asio {
+struct promisify_default {
   P promise;
 
   template <typename E, typename... T>

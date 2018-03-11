@@ -61,7 +61,7 @@ struct functional_io_service {
   }
 
   auto async_resolve(std::string host, std::string service) {
-    return cti::promisify<asio::ip::udp::resolver::iterator>::from_asio(
+    return cti::promisify<asio::ip::udp::resolver::iterator>::from(
         [&](auto&&... args) {
           resolver_.async_resolve(std::forward<decltype(args)>(args)...);
         },
