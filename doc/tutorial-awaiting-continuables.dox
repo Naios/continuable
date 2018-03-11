@@ -21,21 +21,21 @@
 */
 
 namespace cti {
-/** \page tutorial Tutorial
-\brief An introduction for using the continuable library.
+/** \page tutorial-awaiting-continuables Awaiting continuables
+\brief Explains how to use the \ref continuable_base together with `co_await`.
 
-This tutorial will give a short overview about using the library.
-We assume that the library is available in your current environment,
-if not, follow the \ref installation section in order to get it to work.
+\tableofcontents
 
-This tutorial is split across multiple chapters which should be read in order:
+### Coroutines
 
-- \subpage tutorial-creating-continuables --- \copybrief tutorial-creating-continuables
-- \subpage tutorial-chaining-continuables --- \copybrief tutorial-chaining-continuables
-- \subpage tutorial-connecting-continuables --- \copybrief tutorial-connecting-continuables
-- \subpage tutorial-transforming-continuables --- \copybrief tutorial-transforming-continuables
-- \subpage tutorial-awaiting-continuables --- \copybrief tutorial-awaiting-continuables
-- \subpage tutorial-promisify-continuables --- \copybrief tutorial-promisify-continuables
+Since version 2.0.0 coroutines (`co_await` and `co_return`) are supported by continuables when the underlying toolchain supports the TS. Currently this works in MSVC 2017 and Clang 5.0.
+You have to enable this capability through the `CTI_CONTINUABLE_WITH_AWAIT` define in CMake.
+
+\endcodec++
+int i = co_await cti::make_continuable<int>([](auto&& promise) {
+  promise.set_value(0);
+});
+\endcode
 
 */
 }

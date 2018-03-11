@@ -26,5 +26,76 @@ namespace cti {
 
 \tableofcontents
 
+
+## Installation
+
+### How-to use
+
+As mentioned earlier the library is header-only. There is a cmake project provided for simple setup:
+
+#### As git submodule
+
+\endcodesh
+# Shell:
+git submodule add https://github.com/Naios/continuable.git
+\endcode
+
+\endcodecmake
+# CMake file:
+add_subdirectory(continuable)
+# continuable provides an interface target which makes it's
+# headers available to all projects using the continuable library.
+target_link_libraries(my_project continuable)
+\endcode
+
+On POSIX platforms you are required to link your application against a corresponding thread library, otherwise `std::future's` won't work properly, this is done automatically by the provided CMake project.
+
+#### As CMake library
+
+Additionally the project exports a `continuable` target which is importable through CMake when installed:
+
+\endcodesh
+mkdir build
+cd build
+cmake ..
+cmake --build . --target INSTALL --config Release
+\endcode
+
+`CMakeLists.txt`:
+
+\endcodecmake
+find_package(continuable REQUIRED)
+\endcode
+
+### Building the unit-tests
+
+In order to build the unit tests clone the repository recursively with all submodules:
+
+\endcodesh
+# Shell:
+git clone --recursive https://github.com/Naios/continuable.git
+\endcode
+## Stability and version
+
+The library follows the rules of [semantic versioning](http://semver.org/), the API is kept stable across minor versions.
+
+The CI driven unit-tests are observed through the Clang sanitizers (asan, ubsan and lsan - when compiling with Clang) or Valgrind (when compiling with GCC).
+
+
+## Compatibility
+
+Tested & compatible with:
+
+- Visual Studio 2017+ Update 2
+- Clang 5.0+
+- GCC 6.0+
+
+Although the build is observed with the latest toolchains earlier ones might work.
+
+The library only depends on the standard library when using the `continuable/continuable-base.hpp` header, which provides the basic continuation logic.
+
+> **Note:** On Posix: don't  forget to **link a corresponding thread library** into your application otherwise `std::future's` won't work `(-pthread)`  when using future based transforms.
+
+
 */
 }

@@ -44,9 +44,9 @@ namespace cti {
 
 /// Helper class for converting callback taking callable types into a
 /// a continuable. Various styles are supported.
-/// - `from_asio`: Converts callback taking callable types into continuables
-///                which pass an error code as first parameter and the rest of
-///                the result afterwards.
+/// - `from`: Converts callback taking callable types into continuables
+///           which pass an error code as first parameter and the rest of
+///           the result afterwards.
 ///
 /// \tparam Result The result of the converted continuable, this should align
 ///                with the arguments that are passed to the callback.
@@ -64,7 +64,7 @@ public:
   /// See an example of how to promisify boost asio's async_resolve below:
   /// ```cpp
   /// auto async_resolve(std::string host, std::string service) {
-  ///   return cti::promisify<asio::ip::udp::resolver::iterator>::from_asio(
+  ///   return cti::promisify<asio::ip::udp::resolver::iterator>::from(
   ///       [&](auto&&... args) {
   ///         resolver_.async_resolve(std::forward<decltype(args)>(args)...);
   ///       },
@@ -81,8 +81,8 @@ public:
   ///
   /// \since  3.0.0
   template <typename Callable, typename... Args>
-  static auto from_asio(Callable&& callable, Args&&... args) {
-    return helper::template from<detail::convert::promisify_asio>(
+  static auto from(Callable&& callable, Args&&... args) {
+    return helper::template from<detail::convert::promisify_default>(
         std::forward<Callable>(callable), std::forward<Args>(args)...);
   }
 };

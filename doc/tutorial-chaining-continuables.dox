@@ -69,6 +69,59 @@ mysql_query("SELECT `id`, `name` FROM `users`")
   });
 \endcode
 
+\subsection tutorial-chaining-continuables-then-partial Making use of partial argument application
+
+Callbacks passed to \link continuable_base::then then \endlink are only called
+with the amount of arguments that are accepted.
+
+\code{.cpp}
+(http_request("github.com") && read_file("entries.csv"))
+  .then([] {
+    // ^^^^^^ The original signature was <std::string, Buffer>,
+    // however, the callback is only invoked with the amount of
+    // arguments it's accepting.
+  });
+\endcode
+
+This makes it possible to attach a callback accepting nothing to every
+\ref continuable_base.
+
+\subsection tutorial-chaining-continuables-then-executors Assigning a specific executor to then
+
+Dispatching a callback through a specific executor is a common usage scenario and supported through the second argument of \link continuable_base::then then\endlink:
+
+\code{.cpp}
+auto executor = [](auto&& work) {
+  // Dispatch the work here, store it for later
+  // invocation or move it to another thread.
+  std::forward<decltype(work)>(work)();
+};
+
+read_file("entries.csv")
+  .then([](Buffer buffer) {
+    // ...
+  }, executor);
+//   ^^^^^^^^
+\endcode
+
+The supplied `work` callable may be stored and moved for later usage
+on a possible different thread or execution context.
+
+\note If you are intending to change the context the asynchronous task is
+      running, you need to specify this inside the function that
+      supplies the \ref continuable_base through moving the \ref promise_base.
+\code{.cpp}
+auto http_request(std::string url) {
+  return cti::make_continuable<std::string>(
+    [url = std::move(url)](auto&& promise) {
+      std::async([promise = std::forward<decltype(promise)>(promise)]
+                  () mutable {
+                    promise.set_value("<html> ... </html>");
+                  });
+    });
+}
+\endcode
+
 \section tutorial-chaining-continuables-fail Using fail and exceptions
 
 Asynchronous exceptions are supported too. Exceptions that were set through
