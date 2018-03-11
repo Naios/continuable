@@ -167,6 +167,6 @@
   ASSERT_ASYNC_BINARY_EXCEPTION_VALIDATION(                                    \
       cti::detail::testing::asserting_eq_check(), __VA_ARGS__)
 
-//// \}
+/// \}
 
 #endif // CONTINUABLE_TESTING_HPP_INCLUDED

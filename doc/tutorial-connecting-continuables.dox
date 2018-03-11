@@ -34,14 +34,30 @@ count of \ref continuable_base objects in order resolve a returned
 
 For each connection strategy \ref continuable_base provides an operator for
 for instance \ref continuable_base::operator && and a free function,
-\ref when_all for example. But work similar however 
+\ref when_all for example. Both work similar however the free functions are
+capable of working with nested sequences as described in
+\ref tutorial-connecting-continuables-nested.
 
-Currently there are following strategies available:
+\note Connections between continuable_base objects are ensured to be
+      <B>thread-safe</B> and <B>wait-free</B> by library design
+      (when assuming that `std::call_once` is wait-free - which depends
+      on the toolchain).
 
 \section tutorial-connecting-continuables-aggregated Using aggregated strategies
 
 Aggregated strategies will call the result handler with the compound result of
 all connected \ref continuable_base objects.
+
+The compound result is deduced as following. Every continuable_base maps its
+result to the result itself as shown below. When multiple continuable_base
+objects are connected on the same depth, the result is joined.
+See \ref tutorial-connecting-continuables-nested for details.
+
+|          Continuation type        |   In tuple like | In container (`std::vector`) |
+| : ------------------------------- | : --------- | : ------------------------------ |
+| `continuable_base with <>`        | `<none>`    | `<none>`                         |
+| `continuable_base with <Arg>`     | `Arg`       | `Arg`                            |
+| `continuable_base with <Args...>` | `Args...`   | `std::tuple<Args...>`            |
 
 \subsection tutorial-connecting-continuables-aggregated-all Using the all connection
 
@@ -53,6 +69,16 @@ through the *all* strategy by using \ref continuable_base::operator && or
 workin with plain types and deeply nested \ref continuable_base objects as
 described in \ref tutorial-connecting-continuables-nested .
 
+\code{.cpp}
+(http_request("github.com") && http_request("travis-ci.org") &&
+ http_request("atom.io"))
+  .then([](std::string github, std::string travis,
+           std::string atom) {
+    // The callback is called with the
+    // response of github, travis and atom.
+  });
+\endcode
+
 \subsection tutorial-connecting-continuables-aggregated-seq Using the sequential connection
 
 The *sequential* strategy invokes all connected continuable one after each other,
@@ -62,57 +88,125 @@ It is possible to connect multiple \ref continuable_base objects together
 through the *sequential* strategy by using \ref continuable_base::operator>> or
 \ref when_seq.
 
+\code{.cpp}
+(http_request("github.com") >> http_request("travis-ci.org") >>
+ http_request("atom.io"))
+  .then([](std::string github, std::string travis,
+           std::string atom) {
+    // The requests are invoked sequentially instead
+    // of requesting all at once.
+  });
+\endcode
+
 \section tutorial-connecting-continuables-any Using the any connection
 
+The any connection strategy is completely different from the two introduces
+before: It calls the result handler with the first result or exception
+available. All \ref continuable_base objects are required to have the same
+types of arguments.
+
+\code{.cpp}
+(http_request("github.com") || http_request("travis-ci.org") ||
+ http_request("atom.io"))
+  .then([](std::string github_or_travis_or_atom) {
+    // The callback is called with the first response
+    // of either github, travis or atom.
+  });
+\endcode
+
+\section tutorial-connecting-continuables-mixed Mixing different strategies
+
+Mixing different strategies through operators and free functions
+is natively supported as shown below:
+
+\code{.cpp}
+(http_request("github.com") &&
+ (http_request("travis-ci.org") || http_request("atom.io")))
+    .then([](std::string github, std::string travis_or_atom) {
+      // The callback is called with the response of
+      // github for sure and the second parameter represents
+      // the response of travis or atom.
+    });
+\endcode
 
 \section tutorial-connecting-continuables-nested Nested continuables and plain types
 
+For every operator that was shown above, there exists a free function
+that provides at least the same functionality:
 
-
-Continuables provide the operators **&&** and **||** for logical connection:
-
-* **&&** invokes the final callback with the compound result of all connected continuables, the continuables were invoked in parallel.
-* **||** invokes the final callback once with the first result which becomes available.
-* **>\>** invokes the final callback with the compound result of all connected continuables but the continuations were invokes sequentially.
-
-\endcodeC++
-auto http_request(std::string url) {
-  return cti::make_continuable<std::string>([](auto&& promise) {
-    promise.set_value("<html>...</html>");
-  });
-}
-
-// `all` of connections:
-(http_request("github.com") && http_request("travis-ci.org") && http_request("atom.io"))
-  .then([](std::string github, std::string travis, std::string atom) {
-    // The callback is called with the response of github, travis and atom.
-  });
-
-// `any` of connections:
-(http_request("github.com") || http_request("travis-ci.org") || http_request("atom.io"))
-  .then([](std::string github_or_travis_or_atom) {
-    // The callback is called with the first response of either github, travis or atom.
-  });
-
-// `sequence` of connections:
-(http_request("github.com") >> http_request("travis-ci.org") >> http_request("atom.io"))
-  .then([](std::string github, std::string travis, std::string atom) {
-    // The requests are invoked sequentially
-  });
-
-// mixed logical connections:
-(http_request("github.com") && (http_request("travis-ci.org") || http_request("atom.io")))
-  .then([](std::string github, std::string travis_or_atom) {
-    // The callback is called with the response of github for sure
-    // and the second parameter represents the response of travis or atom.
-  });
-
-// There are helper functions for connecting continuables:
-auto all = cti::when_all(http_request("github.com"), http_request("travis-ci.org"));
-auto any = cti::when_any(http_request("github.com"), http_request("travis-ci.org"));
-auto seq = cti::when_seq(http_request("github.com"), http_request("travis-ci.org"));
+\code{.cpp}
+cti::when_all(http_request("github.com"), http_request("travis-ci.org"));
+cti::when_any(http_request("github.com"), http_request("travis-ci.org"));
+cti::when_seq(http_request("github.com"), http_request("travis-ci.org"));
 \endcode
 
-> **Note:** Logical connections are ensured to be **thread-safe** and **wait-free** by library design (when assuming that *std::call_once* is wait-free - which depends on the toolchain).
+Additionally the free functions are capable of working with continuables deeply
+nested inside tuple like objects (`std::tuple`, `std::pair` and `std::array`)
+as well as homogeneous containers (`std::vector`, `std::list` etc.).
+
+\code{.cpp}
+std::tuple<std::vector<cti::continuable<int>>> outstanding;
+// ...
+
+cti::when_all(std::make_tuple(std::move(outstanding),
+                              http_request("github.com")))
+      .then([](std::tuple<std::tuple<std::vector<int>>,
+                          std::string> result) {
+        // ...
+      });
+\endcode
+
+Values which are given to such a free function are preserved and
+later passed to the result handler:
+
+\code{.cpp}
+cti::when_seq(0, 1,
+              cti::make_ready_continuable(2, 3),
+              4, 5)
+      .then([](int r0, int r1, int r2,
+               int r3, int r4) {
+        // ...
+      });
+\endcode
+
+When combining both capabilities it's even possible do something like this:
+
+\code{.cpp}
+cti::when_all(
+    cti::make_ready_continuable(0, 1),
+    2, //< See this plain value
+    cti::populate(cti::make_ready_continuable(3),  // Creates a runtime
+                  cti::make_ready_continuable(4)), // sized container.
+    std::make_tuple(std::make_tuple(cti::make_ready_continuable(5))))
+      .then([](int r0, int r1, int r2, std::vector<int> r34,
+               std::tuple<std::tuple<int>> r5) {
+        // ...
+      });
+\endcode
+
+\section tutorial-connecting-continuables-populate Populating a container from arbitrary continuables
+
+\ref populate mainly helps to create a homogeneous container from
+a runtime known count of continuables which type isn't exactly known.
+All continuables which are passed to this function should be originating
+from the same source or a method called with the same types of arguments:
+
+\code{.cpp}
+// cti::populate just creates a std::vector from the two continuables.
+auto v = cti::populate(cti::make_ready_continuable(0),
+                       cti::make_ready_continuable(1));
+
+for (int i = 2; i < 5; ++i) {
+  // It is possible to  add more continuables
+  // to the container afterwards
+  container.emplace_back(cti::make_ready_continuable(i));
+}
+                       
+cti::when_all(v)
+  .then([](std::vector<int> resolved) {
+    // ...
+  });
+\endcode
+
 */
 }

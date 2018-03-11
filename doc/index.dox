@@ -26,18 +26,23 @@ namespace cti {
 \section mainpage-overview Overview
 
 <b>Continuable is a C++14 library that provides full support for:</b>
- - lazy async continuation chaining based on **callbacks** (`then`) and
-   expression templates, callbacks are wrapped nicely as promises.
+ - lazy async continuation chaining based on **callbacks**
+   (\link continuable_base::then then\endlink) and
+   expression templates, callbacks are wrapped nicely as \link promise_base promises\endlink.
  - **no enforced type-erasure** which means we need <b>less heap
    allocations</b> than comparable libraries, strictly following the <b>"don't
    pay for what you don't use"</b> principle.
- - support for **connections** between continuables through an **all, any or
-   sequential** strategy through expressive operator overloads **&&**,
-   <b>||</b> and <b>>></b>.
- - asynchronous **error handling** through exceptions, error coded or
-   user defined types.
+ - support for **all, any and sequential connections** between continuables
+   through expressive operator overloads \link continuable_base::operator && &&\endlink,
+   \link continuable_base::operator || ||\endlink and
+   \link continuable_base::operator>> >>\endlink as well as free functions
+   \ref when_all, \ref when_any and \ref when_seq.
+ - asynchronous \link continuable_base::fail error handling\endlink through
+   \link promise_base_base::set_exception exceptions\endlink,
+   \link configuration error codes\endlink and
+   \link configuration user defined types\endlink.
  - **syntactic sugar** for instance: **partial invocation**, **tuple unpacking**
-   and **executors**.
+   and \link continuable_base::then executors\endlink.
  - **encapsuled from any runtime**, larger framework or executor making
    it possible to use continuable even in smaller or esoteric  usage scenarios.
 
@@ -47,7 +52,7 @@ Continuable is a header-only library with zero compilation dependencies.
 The \ref installation is explained in its own chapter.
 
 The \ref tutorial is everything you need in order to get to know the libraries
-API. Beside of this there is a detailed in-source documentation provided.
+API. Beside of this, there is a detailed in-source documentation provided.
 
 \section mainpage-contact Contributing and Questions
 
@@ -56,10 +61,13 @@ you are welcomed to ask for questions, contribute code or request new features.
 Also I would like to hear your personal opinion about the library design or
 your personal experience in using the library to improve it.
 
-\note
-    If you like the library I would be glad if you star it on Github,
-    because it helps other users to find this library.
+\attention If you like the library I would be glad if you star it on Github,
+           because it helps other users to find this library.
 
+\note If you are using the library in your open-source or commercial project
+      I would highly appreciate if you could give me a short notice so I can
+      add you to a list of projects and companies using this library.
+           
 \section mainpage-license License
 
 Continuable is licensed under the MIT license:

@@ -476,8 +476,8 @@ public:
   ///   });
   /// ```
   ///
-  /// \note The continuable_base objects are invoked parallel on the
-  ///       current thread, because the `all` strategy tries to resolve
+  /// \note The continuable_base objects are invoked all at onve,
+  ///       because the `all` strategy tries to resolve
   ///       the continuations as fast as possible.
   ///       Sequential invocation is also supported through the
   ///       continuable_base::operator>> method.
@@ -516,9 +516,9 @@ public:
   ///   });
   /// ```
   ///
-  /// \note The continuable_base objects are invoked parallel on the
-  ///       current thread, however, the callback is only called once with
-  ///       the first result which becomes available.
+  /// \note The continuable_base objects are invoked all at once,
+  ///       however, the callback is only called once with
+  ///       the first result or exception which becomes available.
   ///
   /// \since 1.0.0
   template <typename OData, typename OAnnotation>
@@ -545,9 +545,9 @@ public:
   ///   });
   /// ```
   ///
-  /// \note The continuable_base objects are invoked sequential on the
-  ///       current thread. Parallel invocation is also supported through the
-  ///       continuable_base::operator&& method.
+  /// \note The continuable_base objects are invoked sequential one after
+  ///       the previous one was finished. Parallel invocation is also
+  ///       supported through the continuable_base::operator && method.
   ///
   /// \since 1.0.0
   template <typename OData, typename OAnnotation>
@@ -854,6 +854,13 @@ constexpr auto make_ready_continuable(FirstResult&& first_result,
 
 /// Returns a continuable with the parameterized result which instantly
 /// resolves the promise with the given error type.
+///
+/// See an example below:
+/// ```cpp
+/// std::logic_error exception("Some issue!");
+/// auto ptr = std::make_exception_ptr(exception);
+/// auto ct = cti::make_exceptional_continuable<int>(ptr);
+/// ```
 ///
 /// \tparam Signature The fake signature of the returned continuable.
 ///

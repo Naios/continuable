@@ -101,7 +101,7 @@ auto resolve_sth() {
   return cti::make_continuable<int, int, float, char>(
     [](auto&& promise) {
       promise.set_value(0, 1, 2.f, '3');
-  });
+    });
 \endcode
 
 \warning A \ref promise_base is only usable once and thus invalidated
