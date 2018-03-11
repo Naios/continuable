@@ -38,12 +38,12 @@ namespace cti {
    \link continuable_base::operator>> >>\endlink as well as free functions
    \ref when_all, \ref when_any and \ref when_seq.
  - asynchronous \link continuable_base::fail error handling\endlink through
-   \link promise_base_base::set_exception exceptions\endlink,
+   \link promise_base::set_exception exceptions\endlink,
    \link configuration error codes\endlink and
    \link configuration user defined types\endlink.
- - **syntactic sugar** for instance: **partial invocation**, **tuple unpacking**
-   and \link continuable_base::then executors\endlink.
- - **encapsuled from any runtime**, larger framework or executor making
+ - **syntactic sugar** for instance: **partial invocation**, **tuple unpacking**,
+   `co_await` support and \link continuable_base::then executors\endlink.
+ - **encapsuled from any runtime**, larger framework or executors makes
    it possible to use continuable even in smaller or esoteric  usage scenarios.
 
 \section mainpage-getting-started Getting started
