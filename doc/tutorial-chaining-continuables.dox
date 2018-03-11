@@ -135,7 +135,7 @@ following definitions is defined:
            In order to prevent this and to allow unhandled errors
            define `CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS`.
 
-\section tutorial-chaining-continuables-next Using next for everything
+\section tutorial-chaining-continuables-next Using next to handle all paths
 
 Sometimes it's required to provide a continuation and error handler from the
 same object. In order to avoid overloading conflicts there is the special
@@ -143,7 +143,7 @@ method \ref continuable_base::next provided.
 The exception path overload is marked through the \ref dispatch_error_tag :
 
 \code{.cpp}
-struct handle_everything {
+struct handle_all_paths {
   void operator() (std::string result) {
     // ...
   }
@@ -155,7 +155,7 @@ struct handle_everything {
 // ...
 
 http_request("github.com")
-  .next(handle_everything{});
+  .next(handle_all_paths{});
 \endcode
 
 */

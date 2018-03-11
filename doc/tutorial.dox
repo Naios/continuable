@@ -32,5 +32,6 @@ This tutorial is split across multiple chapters which should be read in order:
 
 - \subpage tutorial-creating-continuables --- \copybrief tutorial-creating-continuables
 - \subpage tutorial-chaining-continuables --- \copybrief tutorial-chaining-continuables
+- \subpage tutorial-connecting-continuables --- \copybrief tutorial-connecting-continuables
 */
 }

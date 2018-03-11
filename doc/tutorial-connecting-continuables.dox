@@ -1,0 +1,118 @@
+/*
+  Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files(the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions :
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+*/
+
+namespace cti {
+/** \page tutorial-connecting-continuables Connecting continuables
+\brief Explains how to connect various \ref continuable_base objects together
+
+\tableofcontents
+
+\section tutorial-connecting-continuables-strategies Connections and strategies
+
+Connections make it possible to describe the dependencies between an arbitrary
+count of \ref continuable_base objects in order resolve a returned
+\ref continuable_base as soon as the dependencies are fulfilled.
+
+For each connection strategy \ref continuable_base provides an operator for
+for instance \ref continuable_base::operator && and a free function,
+\ref when_all for example. But work similar however 
+
+Currently there are following strategies available:
+
+\section tutorial-connecting-continuables-aggregated Using aggregated strategies
+
+Aggregated strategies will call the result handler with the compound result of
+all connected \ref continuable_base objects.
+
+\subsection tutorial-connecting-continuables-aggregated-all Using the all connection
+
+The *all* strategy invokes all connected continuable at once, it tries to resolve
+the connected \ref continuable_base objects as fast as possible.
+It is possible to connect multiple \ref continuable_base objects together
+through the *all* strategy by using \ref continuable_base::operator && or
+\ref when_all. In contrast to the operator the free functions are capable of
+workin with plain types and deeply nested \ref continuable_base objects as
+described in \ref tutorial-connecting-continuables-nested .
+
+\subsection tutorial-connecting-continuables-aggregated-seq Using the sequential connection
+
+The *sequential* strategy invokes all connected continuable one after each other,
+it tries to resolve the next connected \ref continuable_base objects as soon
+as the previous one was resolved.
+It is possible to connect multiple \ref continuable_base objects together
+through the *sequential* strategy by using \ref continuable_base::operator>> or
+\ref when_seq.
+
+\section tutorial-connecting-continuables-any Using the any connection
+
+
+\section tutorial-connecting-continuables-nested Nested continuables and plain types
+
+
+
+Continuables provide the operators **&&** and **||** for logical connection:
+
+* **&&** invokes the final callback with the compound result of all connected continuables, the continuables were invoked in parallel.
+* **||** invokes the final callback once with the first result which becomes available.
+* **>\>** invokes the final callback with the compound result of all connected continuables but the continuations were invokes sequentially.
+
+\endcodeC++
+auto http_request(std::string url) {
+  return cti::make_continuable<std::string>([](auto&& promise) {
+    promise.set_value("<html>...</html>");
+  });
+}
+
+// `all` of connections:
+(http_request("github.com") && http_request("travis-ci.org") && http_request("atom.io"))
+  .then([](std::string github, std::string travis, std::string atom) {
+    // The callback is called with the response of github, travis and atom.
+  });
+
+// `any` of connections:
+(http_request("github.com") || http_request("travis-ci.org") || http_request("atom.io"))
+  .then([](std::string github_or_travis_or_atom) {
+    // The callback is called with the first response of either github, travis or atom.
+  });
+
+// `sequence` of connections:
+(http_request("github.com") >> http_request("travis-ci.org") >> http_request("atom.io"))
+  .then([](std::string github, std::string travis, std::string atom) {
+    // The requests are invoked sequentially
+  });
+
+// mixed logical connections:
+(http_request("github.com") && (http_request("travis-ci.org") || http_request("atom.io")))
+  .then([](std::string github, std::string travis_or_atom) {
+    // The callback is called with the response of github for sure
+    // and the second parameter represents the response of travis or atom.
+  });
+
+// There are helper functions for connecting continuables:
+auto all = cti::when_all(http_request("github.com"), http_request("travis-ci.org"));
+auto any = cti::when_any(http_request("github.com"), http_request("travis-ci.org"));
+auto seq = cti::when_seq(http_request("github.com"), http_request("travis-ci.org"));
+\endcode
+
+> **Note:** Logical connections are ensured to be **thread-safe** and **wait-free** by library design (when assuming that *std::call_once* is wait-free - which depends on the toolchain).
+*/
+}

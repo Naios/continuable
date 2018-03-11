@@ -119,8 +119,14 @@ like when using \ref promise_base::set_value or
 
 An asynchronous call hierarchy that is stored inside the \ref continuable_base
 is executed when its result is requested (lazy evaluation) in contrast to
-other commonly used abstractions such as `std::future` which execute the
+other commonly used implementations such as `std::future` which execute the
 asynchronous call hierarchy instantly on creation (eager evaluation).
+
+The lazy evaluation strategy used by continuables has many benefits over
+eager evaluation that is used by other common implementations:
+- prevention of side effects
+- evasion of race conditions
+- ensured deterministic behaviour.
 
 The asynchronous call hierarchy is started when the \ref continuable_base is
 destructed or the \ref continuable_base::done method is called.
