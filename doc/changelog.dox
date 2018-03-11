@@ -1,0 +1,147 @@
+/*
+  Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files(the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions :
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+*/
+
+namespace cti {
+/** \page changelog Changelog
+\brief A description of the changes made to continuable.
+
+\section changelog-versions Versions
+
+Following versions were released:
+
+\subsection changelog-versions-3-0-0 3.0.0
+
+\subsection changelog-versions-2-0-0 2.0.0
+
+<B>Error handling</B>
+
+Usually it is inconvenient to handle error codes and exceptions in an
+asynchronous context, as we all know `std::future` supports error handling
+through exceptions already. We now introduce this capability to the
+continuable library while allowing error codes to be used as well.
+
+Consider the function `cti::continuable<> get_bad_continuable()`
+which always resolves through an error, then you may handle the error code
+or exception as following:
+
+\code{.cpp}
+get_bad_continuable()
+  .then([] {
+    // ... never invoked
+  })
+  .then([] {
+    // ... never invoked as well
+  })
+  .fail([] (std::exception_ptr e) {
+    try {
+      std::rethrow_exception(e);
+    } catch(std::exception const& e) {
+      // Handle the exception here
+    }
+  });
+\endcode
+
+
+<B>Abstracting callbacks as promises</B>
+
+Since a callback may be called through an error or result the cri::promise
+class was added in order ro provide a similar interface to std::promise:
+
+
+\code{.cpp}
+auto http_request(std::string url) {
+  return cti::make_continuable<std::string>(
+    [url = std::move(url)](cti::promise<std::string> promise) {
+      // Perform the actual request through a different library,
+      // resolve the promise upon completion of the task.
+      promise.set_value("<html> ... </html>");
+      // ...or promise.set_exception(...);
+    });
+}
+\endcode
+
+<B>`co_await` support</B>
+
+Experimental coroutine (`co_await` and `co_return`) support was added,
+this is available on MSVC 2017 and Clang 5.0.
+
+\code{.cpp}
+int i = co_await cti::make_continuable<int>([](auto&& promise) {
+  promise.set_value(0);
+});
+\endcode
+
+<B>Minor improvements</B>
+
+The library was improved in other ways:
+
+- `constexpr` and `noexcept` improvements
+- Compile-time improvements
+- Documentation improvements
+
+<B>Header split</B>
+
+Since the overall library size was increased the headers were split into smaller chunks.
+
+\subsection changelog-versions-1-0-0 1.0.0
+
+- Documentation and readme changes
+- Change the assertion type of some GTest macros from expected to assertion.
+
+\subsection changelog-versions-0-8-0 0.8.0 (unstable)
+
+- Fixes a major issue with handling the ownership for consumed continuables
+  which led to unintended invocations.
+- Adds partial application support which makes it possible to chain callbacks
+  which accept less arguments then the curret signature.
+  \code{.cpp}
+  http_request("github.com")
+    .then([] {
+      // ...
+    });
+  \endcode
+- Adds Support for sequential invocation:
+  \code{.cpp}
+  http_request("github.com") >> http_request("atom.io")
+    .then([] (std::string github, std::string atom) {
+      // ...
+    });
+  \endcode
+
+\subsection changelog-versions-0-7-0 0.7.0 (unstable)
+
+- Continuation syntactic sugar
+- Executor support
+- Connection support
+
+\section changelog-semver Semantic versioning and stability
+
+Continuable strictly follows the rules of
+[semantic versioning](http://semver.org/), the API is kept stable
+across minor versions.
+
+The CI driven unit-tests are observed through the Clang sanitizers
+(asan, ubsan and lsan - when compiling with Clang) or
+Valgrind (when compiling with GCC) in order to prevent regressions.
+
+*/
+}

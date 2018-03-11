@@ -26,76 +26,121 @@ namespace cti {
 
 \tableofcontents
 
+\section installation-requirements Requirements
 
-## Installation
+Continuable requires a fairly new toolchain and was verified to work with
+following compilers:
 
-### How-to use
+- Visual Studio 2017+ Update 2
+- Clang 5.0+
+- GCC 6.0+
 
-As mentioned earlier the library is header-only. There is a cmake project provided for simple setup:
+Although the build is observed with the listed compilers earlier
+versions might work.
 
-#### As git submodule
+\section installation-dependencies Dependencies
 
-\endcodesh
-# Shell:
-git submodule add https://github.com/Naios/continuable.git
-\endcode
+Continuable is a header-only library with one required header-only dependency:
+  
+  - [Naios/function2](https://github.com/Naios/function2) is used as type
+    erasure wrapper to convert a \ref continuable_base into a \ref continuable.
 
-\endcodecmake
-# CMake file:
+Additionally GTest is required as optional dependency for the asynchronous
+unit testing macros defined in `continuable/continuable-testing.hpp`
+if those are used:
+
+  - [google/googletest](https://github.com/google/googletest) is used as
+    unit testing framework and to provide asynchronous testing macros.
+
+For the examples and unit tests there might be more dependencies used,
+which are fetched through git submodules.
+
+\note The library only depends on the standard library when following
+      headers are used:
+- `continuable/continuable-base.hpp`
+- `continuable/continuable-promise-base.hpp`
+- `continuable/continuable-connections.hpp`
+- `continuable/continuable-promisify.hpp`
+- `continuable/continuable-transforms.hpp`
+
+\section installation-installation Installation
+
+Making continuable available inside your project is possible through
+various ways.
+
+\subsection installation-installation-cmake Through CMake
+
+The continuable build is driven by CMake and the project exposes CMake
+interface targets when being used by external projects:
+
+\code{.cmake}
 add_subdirectory(continuable)
 # continuable provides an interface target which makes it's
 # headers available to all projects using the continuable library.
 target_link_libraries(my_project continuable)
 \endcode
 
-On POSIX platforms you are required to link your application against a corresponding thread library, otherwise `std::future's` won't work properly, this is done automatically by the provided CMake project.
+When adding the continuable subdirectory as git submodule this should work
+out of the box.
 
-#### As CMake library
+\code{.sh}
+git submodule add https://github.com/Naios/continuable.git
+\endcode
 
-Additionally the project exports a `continuable` target which is importable through CMake when installed:
+\attention On POSIX platforms you are required to link your application against
+           a corresponding thread library, otherwise `std::futures` won't work
+           properly, this is done automatically by the provided CMake project.
 
-\endcodesh
+Additionally the CMake project exports a `continuable` target which is
+importable through the \code{.cmake}find_package\endcode CMake command
+when installed:
+
+\code{.sh}
 mkdir build
 cd build
 cmake ..
 cmake --build . --target INSTALL --config Release
 \endcode
 
-`CMakeLists.txt`:
+In your `CMakeLists.txt`:
 
-\endcodecmake
+\code{.cmake}
 find_package(continuable REQUIRED)
 \endcode
 
-### Building the unit-tests
+\subsection installation-installation-pkg Through package managers
 
-In order to build the unit tests clone the repository recursively with all submodules:
+Continuable is present in some package managers and registries already,
+and might be installed from there.
 
-\endcodesh
+\attention The project is still looking for contributions that would help
+           to make it available from various package managers in order to
+           make the installation easier.
+
+\subsection installation-installation-copy By copying the headers
+
+If you don't want to rely on CMake or package managers it is possible to
+copy and include the `include` directories of continuable and
+[Naios/function2](https://github.com/Naios/function2) into your project.
+
+As an improvement git submodules could be used:
+
+\code{.sh}
+git submodule add https://github.com/Naios/continuable.git
+git submodule add https://github.com/Naios/function2.git
+\endcode
+
+\section installation-unit-tests Building the unit tests
+
+In order to build the unit tests clone the repository recursively
+with all submodules:
+
+\code{.sh}
 # Shell:
 git clone --recursive https://github.com/Naios/continuable.git
 \endcode
-## Stability and version
 
-The library follows the rules of [semantic versioning](http://semver.org/), the API is kept stable across minor versions.
-
-The CI driven unit-tests are observed through the Clang sanitizers (asan, ubsan and lsan - when compiling with Clang) or Valgrind (when compiling with GCC).
-
-
-## Compatibility
-
-Tested & compatible with:
-
-- Visual Studio 2017+ Update 2
-- Clang 5.0+
-- GCC 6.0+
-
-Although the build is observed with the latest toolchains earlier ones might work.
-
-The library only depends on the standard library when using the `continuable/continuable-base.hpp` header, which provides the basic continuation logic.
-
-> **Note:** On Posix: don't  forget to **link a corresponding thread library** into your application otherwise `std::future's` won't work `(-pthread)`  when using future based transforms.
-
+Then CMake can be used to generate a project solution for testing.
 
 */
 }

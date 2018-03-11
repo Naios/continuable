@@ -54,6 +54,9 @@ The \ref installation and \ref configuration are explained in its own chapter.
 The \ref tutorial is everything you need in order to get to know the libraries
 API. Beside of this, there is a detailed in-source documentation provided.
 
+Continuable follows the semantic versioning schema and changes are listed
+in the \ref changelog.
+
 \section mainpage-contact Contributing and Questions
 
 Through the [Github issue tracker](https://github.com/Naios/continuable/issues)
