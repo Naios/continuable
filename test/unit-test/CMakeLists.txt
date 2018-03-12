@@ -34,7 +34,13 @@ add_test(
   NAME continuable-unit-tests-single
   COMMAND test-continuable-single)
 
-foreach(STEP RANGE 4)
+if (CTI_CONTINUABLE_WITH_LIGHT_TESTS)
+  set(STEP_RANGE 0)
+else()
+  set(STEP_RANGE 4)
+endif()
+
+foreach(STEP RANGE ${STEP_RANGE})
   set(PROJECT_NAME test-continuable-multi-${STEP})
   set(TEST_NAME continuable-unit-tests-multi-${STEP})
 

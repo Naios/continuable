@@ -49,6 +49,10 @@ option(CTI_CONTINUABLE_WITH_CPP_LATEST
        "Enable the highest C++ standard available for testing polyfills"
        OFF)
 
+option(CTI_CONTINUABLE_WITH_LIGHT_TESTS
+       "Disable some template heavy unit tests (for CI usage)"
+       OFF)
+
 include(cmake/CMakeLists.txt)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)

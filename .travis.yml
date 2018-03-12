@@ -24,6 +24,7 @@ matrix:
         - COMPILER=g++-6
         - WITH_NO_EXCEPTIONS=OFF
         - WITH_AWAIT=OFF
+        - WITH_LIGHT_TESTS=ON
 
     - os: linux
       compiler: clang
@@ -41,6 +42,7 @@ matrix:
         - COMPILER=clang++-5.0
         - WITH_NO_EXCEPTIONS=OFF
         - WITH_AWAIT=OFF
+        - WITH_LIGHT_TESTS=OFF
 
     - os: linux
       compiler: clang
@@ -58,6 +60,7 @@ matrix:
         - COMPILER=clang++-5.0
         - WITH_NO_EXCEPTIONS=ON
         - WITH_AWAIT=ON
+        - WITH_LIGHT_TESTS=ON
 
 install:
   - export CXX=$COMPILER
