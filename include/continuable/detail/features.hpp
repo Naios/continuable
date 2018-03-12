@@ -55,6 +55,7 @@
   #define CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
   #define CONTINUABLE_HAS_CXX17_DISJUNCTION
   #define CONTINUABLE_HAS_CXX17_CONJUNCTION
+  #define CONTINUABLE_HAS_CXX17_VOID_T
 #else
   // Generic feature detection based on __has_feature
   #if defined(__has_feature)
@@ -75,6 +76,12 @@
       (__cpp_lib_experimental_logical_traits >= 201511)
     #define CONTINUABLE_HAS_CXX17_CONJUNCTION
   #endif
+
+  #if !defined(CONTINUABLE_HAS_CXX17_VOID_T) &&                                \
+      defined(__cpp_lib_void_t) &&                                             \
+      (__cpp_lib_void_t >= 201411)
+    #define CONTINUABLE_HAS_CXX17_VOID_T
+  #endif
 #endif
 
 /// Usually this is enabled by the CMake project
@@ -85,7 +92,7 @@
 
 /// Define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE when
 /// CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE is defined.
-#if !defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE) &&                            \
+#if !defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE) &&                        \
     defined(CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE)
   #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 #endif

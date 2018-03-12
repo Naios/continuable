@@ -90,6 +90,9 @@ constexpr auto get(identity<T...>) noexcept {
   return identify<at_t<I, T...>>{};
 }
 
+#if defined(CONTINUABLE_HAS_CXX17_VOID_T)
+using std::void_t;
+#else
 namespace detail {
 // Equivalent to C++17's std::void_t which targets a bug in GCC,
 // that prevents correct SFINAE behavior.
@@ -101,6 +104,7 @@ struct deduce_to_void : std::common_type<void> {};
 /// C++17 like void_t type
 template <typename... T>
 using void_t = typename detail::deduce_to_void<T...>::type;
+#endif // CONTINUABLE_HAS_CXX17_VOID_T
 
 namespace detail {
 template <typename Type, typename TrueCallback>
