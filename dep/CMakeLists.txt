@@ -7,10 +7,6 @@ if (CTI_CONTINUABLE_WITH_TESTS OR CTI_CONTINUABLE_WITH_EXAMPLES)
     add_subdirectory(googletest)
   endif()
 
-  if(NOT TARGET cxx_function)
-    add_subdirectory(cxx_function)
-  endif()
-
   if(NOT TARGET asio)
     add_subdirectory(asio)
   endif()
