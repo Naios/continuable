@@ -44,7 +44,7 @@ versions might work.
 \section installation-dependencies Dependencies
 
 Continuable is a header-only library with one required header-only dependency:
-  
+
   - [Naios/function2](https://github.com/Naios/function2) is used as type
     erasure wrapper to convert a \ref continuable_base into a \ref continuable.
 
@@ -119,6 +119,13 @@ and might be installed from there.
 \attention The project is still looking for contributions that would help
            to make it available from various package managers in order to
            make the installation easier.
+
+\subsection installation-installation-amalgamation By using the amalgamation header
+
+For major versions there is an amalgamation header provided which can be
+included without any dependency:
+
+- [3.0.0](https://gist.githubusercontent.com/Naios/b128ab5028a7eb33e4285c0293573d9f/raw/79fe332964a786b21a8661ef65d07a5669260a3c/continuable.hpp)
 
 \subsection installation-installation-copy By copying the headers
 

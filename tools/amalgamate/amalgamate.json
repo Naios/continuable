@@ -1,0 +1,11 @@
+{
+   "project":"continuable",
+   "target":"continuable.hpp",
+   "sources":[
+      "include/continuable/continuable.hpp"
+   ],
+   "include_paths":[
+      "include",
+      "dep/function2/function2/include"
+   ]
+}
