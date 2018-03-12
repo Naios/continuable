@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_COMPOSITION_HPP_INCLUDED
-#define CONTINUABLE_DETAIL_COMPOSITION_HPP_INCLUDED
+#ifndef CONTINUABLE_DETAIL_CONNECTION_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_CONNECTION_HPP_INCLUDED
 
 #include <cassert>
 #include <tuple>
@@ -203,4 +203,4 @@ auto apply_connection(Strategy, Args&&... args) {
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_COMPOSITION_HPP_INCLUDED
+#endif // CONTINUABLE_DETAIL_CONNECTION_HPP_INCLUDED

@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_COMPOSITION_ANY_HPP_INCLUDED
-#define CONTINUABLE_DETAIL_COMPOSITION_ANY_HPP_INCLUDED
+#ifndef CONTINUABLE_DETAIL_CONNECTION_ANY_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_CONNECTION_ANY_HPP_INCLUDED
 
 #include <atomic>
 #include <memory>
@@ -170,7 +170,7 @@ template <>
 struct connection_finalizer<connection_strategy_any_tag> {
   template <typename Connection>
   static auto finalize(Connection&& connection, util::ownership ownership) {
-    auto signature = decltype(any::result_deducer::deduce(
+    constexpr auto const signature = decltype(any::result_deducer::deduce(
         traversal::container_category_of_t<std::decay_t<Connection>>{},
         traits::identity<std::decay_t<Connection>>{})){};
 
@@ -196,4 +196,4 @@ struct connection_finalizer<connection_strategy_any_tag> {
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_COMPOSITION_ANY_HPP_INCLUDED
+#endif // CONTINUABLE_DETAIL_CONNECTION_ANY_HPP_INCLUDED

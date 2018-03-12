@@ -124,6 +124,8 @@ constexpr auto create_awaiter(T&& continuable) {
 } // namespace detail
 } // namespace cti
 
+// As far as I know there is no other was to implement this specialization...
+// NOLINTNEXTLINE(cert-dcl58-cpp)
 namespace std {
 namespace experimental {
 template <typename Data, typename... Args, typename... FunctionArgs>
@@ -133,7 +135,7 @@ struct coroutine_traits<
     FunctionArgs...> {
 
   static_assert(cti::detail::traits::fail<Data>::value,
-                "Using a continuable as return value from co_return "
+                "Using a continuable as return type from co_return "
                 "expressions isn't supported yet!");
 };
 } // namespace experimental

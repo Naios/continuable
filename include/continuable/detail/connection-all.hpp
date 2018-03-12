@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_COMPOSITION_ALL_HPP_INCLUDED
-#define CONTINUABLE_DETAIL_COMPOSITION_ALL_HPP_INCLUDED
+#ifndef CONTINUABLE_DETAIL_CONNECTION_ALL_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_CONNECTION_ALL_HPP_INCLUDED
 
 #include <atomic>
 #include <memory>
@@ -189,4 +189,4 @@ struct connection_finalizer<connection_strategy_all_tag> {
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_COMPOSITION_ALL_HPP_INCLUDED
+#endif // CONTINUABLE_DETAIL_CONNECTION_ALL_HPP_INCLUDED

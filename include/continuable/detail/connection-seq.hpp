@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_COMPOSITION_SEQ_HPP_INCLUDED
-#define CONTINUABLE_DETAIL_COMPOSITION_SEQ_HPP_INCLUDED
+#ifndef CONTINUABLE_DETAIL_CONNECTION_SEQ_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_CONNECTION_SEQ_HPP_INCLUDED
 
 #include <cassert>
 #include <memory>
@@ -165,4 +165,4 @@ struct connection_finalizer<connection_strategy_seq_tag> {
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_COMPOSITION_SEQ_HPP_INCLUDED
+#endif // CONTINUABLE_DETAIL_CONNECTION_SEQ_HPP_INCLUDED
