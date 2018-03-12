@@ -30,6 +30,36 @@ Following versions were released:
 
 \subsection changelog-versions-3-0-0 3.0.0
 
+<B>New helper functions</B>
+
+New helper functions were added to create ready continuables:
+
+- \ref make_ready_continuable
+- \ref make_exceptional_continuable
+
+<B>Improvements to connections</B>
+
+The implementation of connections were rewritten entirely.
+It is possible now to connect runtime sized containers as well as
+deeply nested sequences. See \ref tutorial-connections for details.
+
+Additionally connection overloads were added that accept two iterators
+in order to come closer to the interface of the standard library.
+
+Also \ref populate was added which makes it possible to populate
+a dynamic container from \ref continuable_base objects.
+
+<B>Disabled copies for promises and continuables entirely</B>
+
+The \ref promise_base and \ref continuable_base is now non copyable.
+This change should make it easier to work with the move only
+semantic of continuables in order to make less mistakes.
+
+<B>Traversal API</B>
+
+A new traversal API for synchronous and asynchronous pack traversal
+was added which makes it easy to specify new connection types.
+
 \subsection changelog-versions-2-0-0 2.0.0
 
 <B>Error handling</B>
