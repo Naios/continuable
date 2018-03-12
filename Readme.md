@@ -11,7 +11,8 @@
   <a href="https://ci.appveyor.com/project/Naios/continuable/branch/master"><img alt="AppVeyor CI status" src="https://ci.appveyor.com/api/projects/status/328ta3r5x92f3byv/branch/master?svg=true"></a>
   <img alt="MIT Licensed" src="https://img.shields.io/badge/License-MIT-00838F.svg">
   <a href="https://naios.github.io/continuable/"><img alt="Documentation" src="https://img.shields.io/badge/Documentation-Doxygen-26A69A.svg"></a>
-  <a href="http://melpon.org/wandbox/permlink/xVM2szjDLEge3YLV"><img alt="Try continuable online" src="https://img.shields.io/badge/Try-online-4DB6AC.svg"></a>
+  <a href="https://wandbox.org/permlink/EDr7u2P5HXs2W6p1"><img alt="Try continuable online" src="https://img.shields.io/badge/Run-online-4DB6AC.svg"></a>
+  <a href="https://godbolt.org/g/iyE4Ww"><img alt="Compiler explorer" src="https://img.shields.io/badge/Compiler-explorer-58CEC2.svg"></a>
 </p>
 
 ------
