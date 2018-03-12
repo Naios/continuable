@@ -179,11 +179,15 @@ struct my_allocator {
   };
 
   pointer allocate(size_type n, void const* hint = nullptr) {
-    return std::allocator<T>{}.allocate(n, hint);
+    std::allocator<T> allocator;
+    return std::allocator_traits<std::allocator<T>>::allocate(allocator, n,
+                                                              hint);
   }
 
   void deallocate(pointer p, size_type n) {
-    return std::allocator<T>{}.deallocate(p, n);
+    std::allocator<T> allocator;
+    return std::allocator_traits<std::allocator<T>>::deallocate(allocator, p,
+                                                                n);
   }
 };
 
