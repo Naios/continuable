@@ -200,20 +200,28 @@ constexpr auto unbox_continuables(Args&&... args) {
 
 namespace detail {
 template <typename Callback, typename Data>
-void finalize_impl(traits::identity<void>, Callback&& callback, Data&&) {
-  std::forward<Callback>(callback)();
+constexpr auto finalize_impl(traits::identity<void>, Callback&& callback,
+                             Data&&) {
+  return std::forward<Callback>(callback)();
 }
 template <typename... Args, typename Callback, typename Data>
-void finalize_impl(traits::identity<std::tuple<Args...>>, Callback&& callback,
-                   Data&& data) {
+constexpr auto finalize_impl(traits::identity<std::tuple<Args...>>,
+                             Callback&& callback, Data&& data) {
   // Call the final callback with the cleaned result
-  traits::unpack(unbox_continuables(std::forward<Data>(data)),
-                 std::forward<Callback>(callback));
+  return traits::unpack(unbox_continuables(std::forward<Data>(data)),
+                        std::forward<Callback>(callback));
 }
+
+struct hint_mapper {
+  template <typename... T>
+  constexpr auto operator()(T...) -> hints::signature_hint_tag<T...> {
+    return {};
+  }
+};
 } // namespace detail
 
 template <typename Callback, typename Data>
-void finalize_data(Callback&& callback, Data&& data) {
+constexpr auto finalize_data(Callback&& callback, Data&& data) {
   using result_t = decltype(unbox_continuables(std::forward<Data>(data)));
   // Guard the final result against void
   return detail::finalize_impl(traits::identity<std::decay_t<result_t>>{},
@@ -221,54 +229,10 @@ void finalize_data(Callback&& callback, Data&& data) {
                                std::forward<Data>(data));
 }
 
-struct all_hint_deducer {
-  static constexpr auto deduce(hints::signature_hint_tag<>) noexcept {
-    return spread_this();
-  }
-
-  template <typename First>
-  static constexpr auto deduce(hints::signature_hint_tag<First>) {
-    return unpack_lazy(lazy_value_t<First>{});
-  }
-
-  template <typename First, typename Second, typename... Args>
-  static constexpr auto
-  deduce(hints::signature_hint_tag<First, Second, Args...>) {
-    return spread_this(unpack_lazy(lazy_value_t<First>{}),
-                       unpack_lazy(lazy_value_t<Second>{}),
-                       unpack_lazy(lazy_value_t<Args>{})...);
-  }
-
-  template <
-      typename T,
-      std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
-  auto operator()(T&& /*continuable*/) const {
-    return deduce(hints::hint_of(traits::identify<T>{}));
-  }
-};
-
-constexpr auto deduce_from_pack(traits::identity<void>)
-    -> hints::signature_hint_tag<>;
-template <typename... T>
-constexpr auto deduce_from_pack(traits::identity<std::tuple<T...>>)
-    -> hints::signature_hint_tag<T...>;
-template <typename T>
-constexpr auto deduce_from_pack(traits::identity<T>)
-    -> hints::signature_hint_tag<T>;
-
-// We must guard the mapped type against to be void since this represents an
-// empty signature hint.
-template <typename Composition>
-constexpr auto deduce_hint(Composition&& /*composition*/) {
-  // Don't change this way since it addresses a GCC compiler bug:
-  // error: extra ';' [-Werror=pedantic]
-  //  std::declval<Composition>()))>{})){};
-  using mapped_t =
-      decltype(map_pack(all_hint_deducer{}, std::declval<Composition>()));
-  using deduced_t = decltype(deduce_from_pack(traits::identity<mapped_t>{}));
-  return deduced_t{};
+template <typename Data>
+constexpr auto hint_of_data() {
+  return decltype(finalize_data(detail::hint_mapper{}, std::declval<Data>())){};
 }
-
 } // namespace aggregated
 } // namespace composition
 } // namespace detail

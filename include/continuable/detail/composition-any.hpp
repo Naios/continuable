@@ -169,28 +169,27 @@ struct is_composition_strategy<composition_strategy_any_tag> // ...
 template <>
 struct composition_finalizer<composition_strategy_any_tag> {
   template <typename Composition>
-  static constexpr auto hint() {
-    return decltype(any::result_deducer::deduce(
+  static auto finalize(Composition&& composition, util::ownership ownership) {
+    auto signature = decltype(any::result_deducer::deduce(
         traversal::container_category_of_t<std::decay_t<Composition>>{},
         traits::identity<std::decay_t<Composition>>{})){};
-  }
 
-  template <typename Composition>
-  static auto finalize(Composition&& composition) {
-    return [composition = std::forward<Composition>(composition)](
-        auto&& callback) mutable {
+    return base::attorney::create(
+        [composition =
+             std::forward<Composition>(composition)](auto&& callback) mutable {
 
-      using submitter_t =
-          any::any_result_submitter<std::decay_t<decltype(callback)>>;
+          using submitter_t =
+              any::any_result_submitter<std::decay_t<decltype(callback)>>;
 
-      // Create the submitter which calls the given callback once at the
-      // first callback invocation.
-      auto submitter = std::make_shared<submitter_t>(
-          std::forward<decltype(callback)>(callback));
+          // Create the submitter which calls the given callback once at the
+          // first callback invocation.
+          auto submitter = std::make_shared<submitter_t>(
+              std::forward<decltype(callback)>(callback));
 
-      traverse_pack(any::continuable_dispatcher<submitter_t>{submitter},
-                    std::move(composition));
-    };
+          traverse_pack(any::continuable_dispatcher<submitter_t>{submitter},
+                        std::move(composition));
+        },
+        signature, std::move(ownership));
   }
 };
 } // namespace composition

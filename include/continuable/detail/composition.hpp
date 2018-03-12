@@ -47,7 +47,7 @@ namespace detail {
 /// The namespace `composition` offers methods to chain continuations together
 /// with `all`, `any` or `seq` logic.
 namespace composition {
-  template <typename T>
+template <typename T>
 struct is_composition_strategy // ...
     : std::false_type {};
 
@@ -133,13 +133,8 @@ auto finalize_composition(continuable_base<Data, Strategy>&& continuation) {
   util::ownership ownership = base::attorney::ownership_of(continuation);
   auto composition = base::attorney::consume_data(std::move(continuation));
 
-  // Retrieve the new signature hint
-  constexpr auto const signature =
-      finalizer::template hint<decltype(composition)>();
-
   // Return a new continuable which
-  return base::attorney::create(finalizer::finalize(std::move(composition)),
-                                signature, std::move(ownership));
+  return finalizer::finalize(std::move(composition), std::move(ownership));
 }
 
 /// A base class from which the continuable may inherit in order to
@@ -203,13 +198,7 @@ auto apply_composition(Strategy, Args&&... args) {
   auto composition = map_pack(prepare_continuables{ownership},
                               std::make_tuple(std::forward<Args>(args)...));
 
-  // Retrieve the new signature hint
-  constexpr auto const signature =
-      finalizer::template hint<decltype(composition)>();
-
-  // Return a new continuable which
-  return base::attorney::create(finalizer::finalize(std::move(composition)),
-                                signature, std::move(ownership));
+  return finalizer::finalize(std::move(composition), std::move(ownership));
 }
 } // namespace composition
 } // namespace detail

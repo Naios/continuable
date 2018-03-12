@@ -153,36 +153,36 @@ struct is_composition_strategy<composition_strategy_all_tag> // ...
 /// Finalizes the all logic of a given composition
 template <>
 struct composition_finalizer<composition_strategy_all_tag> {
-  template <typename Composition>
-  static constexpr auto hint() {
-    return decltype(aggregated::deduce_hint(std::declval<Composition>())){};
-  }
-
   /// Finalizes the all logic of a given composition
   template <typename Composition>
-  static auto finalize(Composition&& composition) {
-    return [composition = std::forward<Composition>(composition)] // ...
-        (auto&& callback) mutable {
+  static auto finalize(Composition&& composition, util::ownership ownership) {
+    // Create the target result from the composition
+    auto result =
+        aggregated::box_continuables(std::forward<Composition>(composition));
 
-      // Create the target result from the composition
-      auto result = aggregated::box_continuables(std::move(composition));
+    auto signature = aggregated::hint_of_data<decltype(result)>();
 
-      using submitter_t =
-          all::result_submitter<std::decay_t<decltype(callback)>,
-                                std::decay_t<decltype(result)>>;
+    return base::attorney::create(
+        [result = std::move(result)](auto&& callback) mutable {
 
-      // Create the shared state which holds the result and the final callback
-      auto state = std::make_shared<submitter_t>(
-          std::forward<decltype(callback)>(callback), std::move(result));
+          using submitter_t =
+              all::result_submitter<std::decay_t<decltype(callback)>,
+                                    std::decay_t<decltype(result)>>;
 
-      // Dispatch the continuables and store its partial result
-      // in the whole result
-      traverse_pack(all::continuable_dispatcher<submitter_t>{state},
-                    state->head());
+          // Create the shared state which holds the result and the final
+          // callback
+          auto state = std::make_shared<submitter_t>(
+              std::forward<decltype(callback)>(callback), std::move(result));
 
-      // Finalize the composition if all results arrived in-place
-      state->accept();
-    };
+          // Dispatch the continuables and store its partial result
+          // in the whole result
+          traverse_pack(all::continuable_dispatcher<submitter_t>{state},
+                        state->head());
+
+          // Finalize the composition if all results arrived in-place
+          state->accept();
+        },
+        signature, std::move(ownership));
   }
 };
 } // namespace composition

@@ -134,31 +134,31 @@ struct is_composition_strategy<composition_strategy_seq_tag> // ...
 /// Finalizes the seq logic of a given composition
 template <>
 struct composition_finalizer<composition_strategy_seq_tag> {
-  template <typename Composition>
-  static constexpr auto hint() {
-    return decltype(aggregated::deduce_hint(std::declval<Composition>())){};
-  }
-
   /// Finalizes the all logic of a given composition
   template <typename Composition>
-  static auto finalize(Composition&& composition) {
-    return [composition = std::forward<Composition>(composition)] // ...
-        (auto&& callback) mutable {
+  static auto finalize(Composition&& composition, util::ownership ownership) {
 
-      auto boxed = aggregated::box_continuables(std::move(composition));
+    auto result =
+        aggregated::box_continuables(std::forward<Composition>(composition));
 
-      // The data from which the visitor is constructed in-place
-      using data_t =
-          seq::sequential_dispatch_data<std::decay_t<decltype(callback)>,
-                                        std::decay_t<decltype(boxed)>>;
+    auto signature = aggregated::hint_of_data<decltype(result)>();
 
-      // The visitor type
-      using visitor_t = seq::sequential_dispatch_visitor<data_t>;
+    return base::attorney::create(
+        [result = std::move(result)](auto&& callback) mutable {
 
-      traverse_pack_async(
-          async_traverse_in_place_tag<visitor_t>{},
-          data_t{std::forward<decltype(callback)>(callback), std::move(boxed)});
-    };
+          // The data from which the visitor is constructed in-place
+          using data_t =
+              seq::sequential_dispatch_data<std::decay_t<decltype(callback)>,
+                                            std::decay_t<decltype(result)>>;
+
+          // The visitor type
+          using visitor_t = seq::sequential_dispatch_visitor<data_t>;
+
+          traverse_pack_async(async_traverse_in_place_tag<visitor_t>{},
+                              data_t{std::forward<decltype(callback)>(callback),
+                                     std::move(result)});
+        },
+        signature, std::move(ownership));
   }
 };
 } // namespace composition
