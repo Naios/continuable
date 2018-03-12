@@ -28,16 +28,13 @@
   SOFTWARE.
 **/
 
+// Exclude this header when coroutines are not available
 #ifndef CONTINUABLE_DETAIL_AWAITING_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_AWAITING_HPP_INCLUDED
-
-// Exlude this header when coroutines are not available
-#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 
 #include <cassert>
 #include <experimental/coroutine>
 
-#include <continuable/detail/base.hpp>
 #include <continuable/detail/expected.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/hints.hpp>
@@ -133,32 +130,13 @@ template <typename Data, typename... Args, typename... FunctionArgs>
 struct coroutine_traits<
     cti::continuable_base<Data,
                           cti::detail::hints::signature_hint_tag<Args...>>,
-    FunctionArgs...> /*{
-  struct promise_type {
-    // boost::promise<R> p;
-    auto get_return_object() {
-      // return p.get_future();
-    }
-    suspend_always initial_suspend() {
-      return {};
-    }
-    suspend_never final_suspend() {
-      return {};
-    }
-    void set_exception(std::exception_ptr e) {
-      // p.set_exception(std::move(e));
-    }
-    void unhandled_exception() {
-      // p.set_exception(std::current_exception());
-    }
-    template <typename U>
-    void return_value(U&& u) {
-      // p.set_value(std::forward<U>(u));
-    }
-  };
-}*/;
+    FunctionArgs...> {
+
+  static_assert(cti::detail::traits::fail<Data>::value,
+                "Using a continuable as return value from co_return "
+                "expressions isn't supported yet!");
+};
 } // namespace experimental
 } // namespace std
 
-#endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 #endif // CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED

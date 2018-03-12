@@ -21,6 +21,9 @@
   SOFTWARE.
 **/
 
+#include <test-continuable.hpp>
+
+#include <continuable/detail/features.hpp>
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 
 #ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
@@ -28,8 +31,6 @@
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 
 #include <tuple>
-
-#include <test-continuable.hpp>
 
 namespace std {
 namespace experimental {

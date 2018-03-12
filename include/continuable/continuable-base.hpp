@@ -36,7 +36,6 @@
 #include <type_traits>
 #include <utility>
 
-#include <continuable/detail/awaiting.hpp>
 #include <continuable/detail/base.hpp>
 #include <continuable/detail/composition-all.hpp>
 #include <continuable/detail/composition-any.hpp>
@@ -45,6 +44,11 @@
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
+#include <continuable/detail/features.hpp>
+
+#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+#include <continuable/detail/awaiting.hpp>
+#endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 
 namespace cti {
 /// \defgroup Base Base
