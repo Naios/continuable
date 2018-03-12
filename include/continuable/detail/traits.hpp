@@ -102,32 +102,78 @@ struct deduce_to_void : std::common_type<void> {};
 template <typename... T>
 using void_t = typename detail::deduce_to_void<T...>::type;
 
+#if defined(CONTINUABLE_HAS_CXX17_IF_CONSTEXPR)
+#define CONTINUABLE_IF_CONSTEXPR_SELECT_2(EXPR, TRUE_BRANCH)                   \
+  [&](auto) mutable {                                                          \
+    if constexpr (EXPR) {                                                      \
+      TRUE_BRANCH                                                              \
+    }                                                                          \
+  }(0)
+#define CONTINUABLE_IF_CONSTEXPR_SELECT_3(EXPR, TRUE_BRANCH, FALSE_BRANCH)     \
+  [&](auto) mutable {                                                          \
+    if constexpr (EXPR) {                                                      \
+      TRUE_BRANCH                                                              \
+    } else {                                                                   \
+      FALSE_BRANCH                                                             \
+    }                                                                          \
+  }(0)
+#else
 namespace detail {
-template <typename Type, typename TrueCallback>
-constexpr void static_if_impl(std::true_type, Type&& type,
-                              TrueCallback&& trueCallback) {
-  std::forward<TrueCallback>(trueCallback)(std::forward<Type>(type));
+template <typename TrueCallback>
+constexpr void static_if_impl(std::true_type, TrueCallback&& trueCallback) {
+  std::forward<TrueCallback>(trueCallback)(0);
 }
 
-template <typename Type, typename TrueCallback>
-constexpr void static_if_impl(std::false_type, Type&& /*type*/,
+template <typename TrueCallback>
+constexpr void static_if_impl(std::false_type,
                               TrueCallback&& /*trueCallback*/) {
 }
 
-template <typename Type, typename TrueCallback, typename FalseCallback>
-constexpr auto static_if_impl(std::true_type, Type&& type,
-                              TrueCallback&& trueCallback,
+template <typename TrueCallback, typename FalseCallback>
+constexpr auto static_if_impl(std::true_type, TrueCallback&& trueCallback,
                               FalseCallback&& /*falseCallback*/) {
-  return std::forward<TrueCallback>(trueCallback)(std::forward<Type>(type));
+  return std::forward<TrueCallback>(trueCallback)(0);
 }
 
-template <typename Type, typename TrueCallback, typename FalseCallback>
-constexpr auto static_if_impl(std::false_type, Type&& type,
-                              TrueCallback&& /*trueCallback*/,
+template <typename TrueCallback, typename FalseCallback>
+constexpr auto static_if_impl(std::false_type, TrueCallback&& /*trueCallback*/,
                               FalseCallback&& falseCallback) {
-  return std::forward<FalseCallback>(falseCallback)(std::forward<Type>(type));
+  return std::forward<FalseCallback>(falseCallback)(0);
 }
+} // namespace detail
 
+#define CONTINUABLE_IF_CONSTEXPR_SELECT_2(EXPR, TRUE_BRANCH)                   \
+  cti::detail::traits::detail::static_if_impl(                                 \
+      std::integral_constant<bool, EXPR>{}, [&](auto) mutable { TRUE_BRANCH })
+
+#define CONTINUABLE_IF_CONSTEXPR_SELECT_3(EXPR, TRUE_BRANCH, FALSE_BRANCH)     \
+  cti::detail::traits::detail::static_if_impl(                                 \
+      std::integral_constant<bool, EXPR>{}, [&](auto) mutable { TRUE_BRANCH }, \
+      [&](auto) { FALSE_BRANCH })
+#endif // CONTINUABLE_HAS_CXX17_IF_CONSTEXPR
+
+// https://stackoverflow.com/questions/16374776/macro-overloading
+// compute number of (variadic) macro arguments from
+// http://groups.google.com/group/comp.std.c/browse_thread/thread/77ee8c8f92e4a3fb/346fc464319b1ee5?pli=1
+#define CONTINUABLE_EXPAND(X) X // for MSVC10 compatibility
+#define CONTINUABLE_PP_NARG(...)                                               \
+  CONTINUABLE_EXPAND(CONTINUABLE_PP_NARG_(__VA_ARGS__, CONTINUABLE_PP_RSEQ_N()))
+#define CONTINUABLE_PP_NARG_(...)                                              \
+  CONTINUABLE_EXPAND(CONTINUABLE_PP_ARG_N(__VA_ARGS__))
+#define CONTINUABLE_PP_ARG_N(_1, _2, _3, N, ...) N
+#define CONTINUABLE_PP_RSEQ_N() 3, 2, 1, 0
+
+#define CONTINUABLE_IF_CONSTEXPR_SELECT_(N) CONTINUABLE_IF_CONSTEXPR_SELECT_##N
+#define CONTINUABLE_IF_CONSTEXPR_SELECT_EVAL(N)                                \
+  CONTINUABLE_IF_CONSTEXPR_SELECT_(N)
+
+/// Polyfill for C++17 if constexpr, uses if constexpr when available,
+/// otherwise a polyfill through lambdas is used.
+#define CONTINUABLE_IF_CONSTEXPR(...)                                          \
+  CONTINUABLE_EXPAND(CONTINUABLE_IF_CONSTEXPR_SELECT_EVAL(                     \
+      CONTINUABLE_EXPAND(CONTINUABLE_PP_NARG(__VA_ARGS__)))(__VA_ARGS__))
+
+namespace detail {
 /// Evaluates to the size of the given tuple like type,
 // / if the type has no static size it will be one.
 template <typename T, typename Enable = void>
@@ -157,27 +203,6 @@ template <typename T>
 constexpr auto sequence_of(identity<T>) noexcept {
   constexpr auto const size = pack_size_of(identity<T>{});
   return std::make_index_sequence<size>();
-}
-
-/// Invokes the callback only if the given type matches the check
-template <typename Type, typename Check, typename TrueCallback>
-constexpr void static_if(Type&& type, Check&& check,
-                         TrueCallback&& trueCallback) {
-  detail::static_if_impl(std::forward<Check>(check)(type),
-                         std::forward<Type>(type),
-                         std::forward<TrueCallback>(trueCallback));
-}
-
-/// Invokes the callback only if the given type matches the check
-template <typename Type, typename Check, typename TrueCallback,
-          typename FalseCallback>
-constexpr auto static_if(Type&& type, Check&& check,
-                         TrueCallback&& trueCallback,
-                         FalseCallback&& falseCallback) {
-  return detail::static_if_impl(std::forward<Check>(check)(type),
-                                std::forward<Type>(type),
-                                std::forward<TrueCallback>(trueCallback),
-                                std::forward<FalseCallback>(falseCallback));
 }
 
 /// Calls the given unpacker with the content of the given sequence

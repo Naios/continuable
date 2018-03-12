@@ -52,15 +52,15 @@
 // Detect if the whole standard is available
 #if (defined(_MSC_VER) && defined(_HAS_CXX17) && _HAS_CXX17) ||                \
     (__cplusplus >= 201703L)
-  #define CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
+  #define CONTINUABLE_HAS_CXX17_IF_CONSTEXPR
   #define CONTINUABLE_HAS_CXX17_DISJUNCTION
   #define CONTINUABLE_HAS_CXX17_CONJUNCTION
 #else
   // Generic feature detection based on __has_feature
   #if defined(__has_feature)
-    #if !defined(CONTINUABLE_HAS_CXX17_CONSTEXPR_IF) &&                        \
+    #if !defined(CONTINUABLE_HAS_CXX17_IF_CONSTEXPR) &&                        \
         __has_feature(cxx_if_constexpr)
-      #define CONTINUABLE_HAS_CXX17_CONSTEXPR_IF
+      #define CONTINUABLE_HAS_CXX17_IF_CONSTEXPR
     #endif
   #endif
 
