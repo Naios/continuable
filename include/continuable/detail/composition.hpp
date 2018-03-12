@@ -47,22 +47,9 @@ namespace detail {
 /// The namespace `composition` offers methods to chain continuations together
 /// with `all`, `any` or `seq` logic.
 namespace composition {
-struct composition_strategy_all_tag {};
-struct composition_strategy_any_tag {};
-struct composition_strategy_seq_tag {};
-
-template <typename T>
+  template <typename T>
 struct is_composition_strategy // ...
     : std::false_type {};
-template <>
-struct is_composition_strategy<composition_strategy_all_tag> // ...
-    : std::true_type {};
-template <>
-struct is_composition_strategy<composition_strategy_any_tag> // ...
-    : std::true_type {};
-template <>
-struct is_composition_strategy<composition_strategy_seq_tag> // ...
-    : std::true_type {};
 
 /// Adds the given continuation tuple to the left composition
 template <typename... LeftArgs, typename... RightArgs>

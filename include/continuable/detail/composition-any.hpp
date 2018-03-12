@@ -160,6 +160,11 @@ struct continuable_dispatcher {
 };
 } // namespace any
 
+struct composition_strategy_any_tag {};
+template <>
+struct is_composition_strategy<composition_strategy_any_tag> // ...
+    : std::true_type {};
+
 /// Finalizes the any logic of a given composition
 template <>
 struct composition_finalizer<composition_strategy_any_tag> {

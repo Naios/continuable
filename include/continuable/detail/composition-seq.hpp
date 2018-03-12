@@ -126,6 +126,11 @@ public:
 };
 } // namespace seq
 
+struct composition_strategy_seq_tag {};
+template <>
+struct is_composition_strategy<composition_strategy_seq_tag> // ...
+    : std::true_type {};
+
 /// Finalizes the seq logic of a given composition
 template <>
 struct composition_finalizer<composition_strategy_seq_tag> {
