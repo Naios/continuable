@@ -119,37 +119,40 @@ using void_t = typename detail::deduce_to_void<T...>::type;
   }(0)
 #else
 namespace detail {
-template <typename TrueCallback>
-constexpr void static_if_impl(std::true_type, TrueCallback&& trueCallback) {
-  std::forward<TrueCallback>(trueCallback)(0);
+template <typename TrueCallback, typename Guard>
+constexpr void static_if_impl(std::true_type, TrueCallback&& trueCallback,
+                              Guard&& guard) {
+  std::forward<TrueCallback>(trueCallback)(guard);
 }
 
-template <typename TrueCallback>
-constexpr void static_if_impl(std::false_type,
-                              TrueCallback&& /*trueCallback*/) {
+template <typename TrueCallback, typename Guard>
+constexpr void static_if_impl(std::false_type, TrueCallback&& /*trueCallback*/,
+                              Guard&& /*guard*/) {
 }
 
-template <typename TrueCallback, typename FalseCallback>
+template <typename TrueCallback, typename FalseCallback, typename Guard>
 constexpr auto static_if_impl(std::true_type, TrueCallback&& trueCallback,
-                              FalseCallback&& /*falseCallback*/) {
-  return std::forward<TrueCallback>(trueCallback)(0);
+                              FalseCallback&& /*falseCallback*/,
+                              Guard&& guard) {
+  return std::forward<TrueCallback>(trueCallback)(guard);
 }
 
-template <typename TrueCallback, typename FalseCallback>
+template <typename TrueCallback, typename FalseCallback, typename Guard>
 constexpr auto static_if_impl(std::false_type, TrueCallback&& /*trueCallback*/,
-                              FalseCallback&& falseCallback) {
-  return std::forward<FalseCallback>(falseCallback)(0);
+                              FalseCallback&& falseCallback, Guard&& guard) {
+  return std::forward<FalseCallback>(falseCallback)(guard);
 }
 } // namespace detail
 
 #define CONTINUABLE_IF_CONSTEXPR_SELECT_2(EXPR, TRUE_BRANCH)                   \
   cti::detail::traits::detail::static_if_impl(                                 \
-      std::integral_constant<bool, EXPR>{}, [&](auto) mutable { TRUE_BRANCH })
+      std::integral_constant<bool, EXPR>{}, [&](auto) mutable { TRUE_BRANCH }, \
+      EXPR)
 
 #define CONTINUABLE_IF_CONSTEXPR_SELECT_3(EXPR, TRUE_BRANCH, FALSE_BRANCH)     \
   cti::detail::traits::detail::static_if_impl(                                 \
       std::integral_constant<bool, EXPR>{}, [&](auto) mutable { TRUE_BRANCH }, \
-      [&](auto) { FALSE_BRANCH })
+      [&](auto) { FALSE_BRANCH }, EXPR)
 #endif // CONTINUABLE_HAS_CXX17_IF_CONSTEXPR
 
 // https://stackoverflow.com/questions/16374776/macro-overloading
