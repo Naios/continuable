@@ -35,6 +35,7 @@
 #include <continuable/continuable.hpp>
 
 using cti::detail::traits::identity;
+using cti::detail::util::unused;
 
 inline auto to_hint(identity<> /*hint*/) {
   return identity<void>{};
