@@ -27,12 +27,6 @@
 
 #include <test-continuable.hpp>
 
-class non_default_constructible {
-public:
-  explicit non_default_constructible(int) {
-  }
-};
-
 TYPED_TEST(single_aggregate_tests, is_logical_seq_connectable_three_tags) {
   auto chain =
       this->ag(this->supply(1, 2), this->supply(3, 4), this->supply(5, 6));
@@ -45,20 +39,4 @@ TYPED_TEST(single_aggregate_tests, is_logical_connectable_nested) {
       this->supply(5, 6));
   EXPECT_ASYNC_RESULT(std::move(chain),
                       std::make_tuple(1, 2, std::make_tuple(3, 4)), 5, 6);
-}
-
-TYPED_TEST(single_aggregate_tests, is_logical_connectable_nested_dyn) {
-  auto chain = this->ag(std::make_tuple(cti::populate(
-      this->supply(1, 2), this->supply(3, 4), this->supply(5, 6))));
-  EXPECT_ASYNC_RESULT(std::move(chain),
-                      std::make_tuple(std::vector<std::tuple<int, int>>{
-                          {1, 2}, {3, 4}, {5, 6}}));
-}
-
-TYPED_TEST(single_aggregate_tests, is_logical_connectable_non_default) {
-  auto chain =
-      this->ag(this->supply(1, 2), this->supply(non_default_constructible{1}),
-               this->supply(5, 6));
-  ASSERT_ASYNC_TYPES(std::move(chain), int, int, non_default_constructible, int,
-                     int);
 }

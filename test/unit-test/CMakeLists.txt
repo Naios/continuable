@@ -43,7 +43,8 @@ foreach(STEP RANGE 4)
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-destruct.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-errors.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-partial.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-all-seq-ag.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-all-seq-ag-1.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-all-seq-ag-2.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-all-seq-op.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-all.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-any.cpp
