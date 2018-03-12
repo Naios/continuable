@@ -198,20 +198,25 @@ constexpr auto unbox_continuables(Args&&... args) {
                        std::forward<Args>(args)...);
 }
 
-namespace detail {
 template <typename Callback, typename Data>
-constexpr auto finalize_impl(traits::identity<void>, Callback&& callback,
-                             Data&&) {
-  return std::forward<Callback>(callback)();
-}
-template <typename... Args, typename Callback, typename Data>
-constexpr auto finalize_impl(traits::identity<std::tuple<Args...>>,
-                             Callback&& callback, Data&& data) {
-  // Call the final callback with the cleaned result
-  return traits::unpack(unbox_continuables(std::forward<Data>(data)),
-                        std::forward<Callback>(callback));
+constexpr auto finalize_data(Callback&& callback, Data&& data) {
+  using result_t = decltype(unbox_continuables(std::forward<Data>(data)));
+
+  // Guard the final result against void
+  return CONTINUABLE_IF_CONSTEXPR(
+      std::is_void<result_t>::value,
+      {
+        // Just invoke the callback with zero arguments
+        return std::forward<Callback>(callback)();
+      },
+      {
+        // Call the final callback with the cleaned result
+        return traits::unpack(unbox_continuables(std::forward<Data>(data)),
+                              std::forward<Callback>(callback));
+      });
 }
 
+namespace detail {
 struct hint_mapper {
   template <typename... T>
   constexpr auto operator()(T...) -> hints::signature_hint_tag<T...> {
@@ -219,15 +224,6 @@ struct hint_mapper {
   }
 };
 } // namespace detail
-
-template <typename Callback, typename Data>
-constexpr auto finalize_data(Callback&& callback, Data&& data) {
-  using result_t = decltype(unbox_continuables(std::forward<Data>(data)));
-  // Guard the final result against void
-  return detail::finalize_impl(traits::identity<std::decay_t<result_t>>{},
-                               std::forward<Callback>(callback),
-                               std::forward<Data>(data));
-}
 
 template <typename Data>
 constexpr auto hint_of_data() {
