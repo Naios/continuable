@@ -25,42 +25,31 @@
 #include "continuable/continuable.hpp"
 
 cti::continuable<std::string> http_request(std::string /*url*/) {
-  return [](auto&& callback) {
-    // ...
-    callback.set_value("<html>...</html>");
-  };
+  return cti::make_ready_continuable<std::string>("<html>...</html>");
 }
 
 struct ResultSet {};
 struct Buffer {};
 
 cti::continuable<ResultSet> mysql_query(std::string /*url*/) {
-  return [](auto&& callback) {
-    // ...
-    callback.set_value(ResultSet{});
-  };
+  return cti::make_ready_continuable(ResultSet{});
 }
 
 cti::continuable<Buffer> read_file(std::string /*url*/) {
-  return [](auto&& callback) {
-    // ...
-    callback.set_value(Buffer{});
-  };
+  return cti::make_ready_continuable(Buffer{});
 }
 
-struct a {
+struct functional_executor {
   auto post() const {
     return [](auto&&) {};
   }
 };
 
 int main(int, char**) {
-  a e;
+  functional_executor e;
   auto executor = &e;
+
   // clang-format off
-
-
-  // ----------
 
   (http_request("github.com") && http_request("atom.io"))
     .then([] (std::string /*github*/, std::string /*atom*/) {
@@ -71,23 +60,15 @@ int main(int, char**) {
       // ...
     }, executor->post());
 
-  // ----------
+  // clang-format on
 
-  auto c1 =      http_request("github.com") && http_request("atom.io")         ;
+  http_request("github.com") && http_request("atom.io");
 
+  http_request("github.com") || http_request("atom.io");
 
+  http_request("github.com") >> http_request("atom.io");
 
-  auto c2 =      http_request("github.com") || http_request("atom.io")         ;
-
-
-
-  auto c3 =      http_request("github.com") >> http_request("atom.io")         ;
-
-  (void)c1;
-  (void)c2;
-  (void)c3;
-
-  // ----------
+  // clang-format off
 
   read_file("entries.csv")
     .then([] (Buffer /*buffer*/) {
@@ -98,8 +79,7 @@ int main(int, char**) {
       // ...
     });
 
-  // ----------
-
   // clang-format on
+
   return 0;
 }

@@ -130,8 +130,6 @@ if (CTI_CONTINUABLE_WITH_TESTS OR CTI_CONTINUABLE_WITH_EXAMPLES)
 
   enable_testing()
 
-  add_subdirectory(doc)
-
   if (CTI_CONTINUABLE_WITH_TESTS)
     add_subdirectory(test)
   endif()
