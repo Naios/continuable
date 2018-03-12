@@ -39,13 +39,13 @@
 
 #include <continuable/continuable-traverse-async.hpp>
 #include <continuable/detail/base.hpp>
-#include <continuable/detail/composition-aggregated.hpp>
+#include <continuable/detail/connection-aggregated.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/util.hpp>
 
 namespace cti {
 namespace detail {
-namespace composition {
+namespace connection {
 namespace seq {
 /// Connects the left and the right continuable to a sequence
 ///
@@ -126,20 +126,20 @@ public:
 };
 } // namespace seq
 
-struct composition_strategy_seq_tag {};
+struct connection_strategy_seq_tag {};
 template <>
-struct is_composition_strategy<composition_strategy_seq_tag> // ...
+struct is_connection_strategy<connection_strategy_seq_tag> // ...
     : std::true_type {};
 
-/// Finalizes the seq logic of a given composition
+/// Finalizes the seq logic of a given connection
 template <>
-struct composition_finalizer<composition_strategy_seq_tag> {
-  /// Finalizes the all logic of a given composition
-  template <typename Composition>
-  static auto finalize(Composition&& composition, util::ownership ownership) {
+struct connection_finalizer<connection_strategy_seq_tag> {
+  /// Finalizes the all logic of a given connection
+  template <typename Connection>
+  static auto finalize(Connection&& connection, util::ownership ownership) {
 
     auto result =
-        aggregated::box_continuables(std::forward<Composition>(composition));
+        aggregated::box_continuables(std::forward<Connection>(connection));
 
     auto signature = aggregated::hint_of_data<decltype(result)>();
 
@@ -161,7 +161,7 @@ struct composition_finalizer<composition_strategy_seq_tag> {
         signature, std::move(ownership));
   }
 };
-} // namespace composition
+} // namespace connection
 } // namespace detail
 } // namespace cti
 

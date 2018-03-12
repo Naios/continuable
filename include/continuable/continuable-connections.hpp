@@ -36,10 +36,10 @@
 #include <utility>
 #include <vector>
 
-#include <continuable/detail/composition-all.hpp>
-#include <continuable/detail/composition-any.hpp>
-#include <continuable/detail/composition-seq.hpp>
-#include <continuable/detail/composition.hpp>
+#include <continuable/detail/connection-all.hpp>
+#include <continuable/detail/connection-any.hpp>
+#include <continuable/detail/connection-seq.hpp>
+#include <continuable/detail/connection.hpp>
 #include <continuable/detail/range.hpp>
 
 namespace cti {
@@ -77,8 +77,8 @@ namespace cti {
 /// \since      1.1.0
 template <typename... Args>
 auto when_all(Args&&... args) {
-  return detail::composition::apply_composition(
-      detail::composition::composition_strategy_all_tag{},
+  return detail::connection::apply_connection(
+      detail::connection::connection_strategy_all_tag{},
       std::forward<Args>(args)...);
 }
 
@@ -146,8 +146,8 @@ auto when_all(Iterator begin, Iterator end) {
 /// \since      1.1.0
 template <typename... Args>
 auto when_seq(Args&&... args) {
-  return detail::composition::apply_composition(
-      detail::composition::composition_strategy_seq_tag{},
+  return detail::connection::apply_connection(
+      detail::connection::connection_strategy_seq_tag{},
       std::forward<Args>(args)...);
 }
 
@@ -214,8 +214,8 @@ auto when_seq(Iterator begin, Iterator end) {
 /// \since      1.1.0
 template <typename... Args>
 auto when_any(Args&&... args) {
-  return detail::composition::apply_composition(
-      detail::composition::composition_strategy_any_tag{},
+  return detail::connection::apply_connection(
+      detail::connection::connection_strategy_any_tag{},
       std::forward<Args>(args)...);
 }
 

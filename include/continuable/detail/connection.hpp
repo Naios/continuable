@@ -44,17 +44,17 @@
 
 namespace cti {
 namespace detail {
-/// The namespace `composition` offers methods to chain continuations together
+/// The namespace `connection` offers methods to chain continuations together
 /// with `all`, `any` or `seq` logic.
-namespace composition {
+namespace connection {
 template <typename T>
-struct is_composition_strategy // ...
+struct is_connection_strategy // ...
     : std::false_type {};
 
-/// Adds the given continuation tuple to the left composition
+/// Adds the given continuation tuple to the left connection
 template <typename... LeftArgs, typename... RightArgs>
-auto chain_composition(std::tuple<LeftArgs...> leftPack,
-                       std::tuple<RightArgs...> rightPack) {
+auto chain_connection(std::tuple<LeftArgs...> leftPack,
+                      std::tuple<RightArgs...> rightPack) {
 
   return traits::merge(std::move(leftPack), std::move(rightPack));
 }
@@ -67,7 +67,7 @@ auto chain_composition(std::tuple<LeftArgs...> leftPack,
 ///   -> make a tuple containing the continuable as only element
 template <
     typename Strategy, typename Data, typename Annotation,
-    std::enable_if_t<!is_composition_strategy<Annotation>::value>* = nullptr>
+    std::enable_if_t<!is_connection_strategy<Annotation>::value>* = nullptr>
 auto normalize(Strategy /*strategy*/,
                continuable_base<Data, Annotation>&& continuation) {
 
@@ -78,7 +78,7 @@ auto normalize(Strategy /*strategy*/,
 ///   -> materialize it
 template <
     typename Strategy, typename Data, typename Annotation,
-    std::enable_if_t<is_composition_strategy<Annotation>::value>* = nullptr>
+    std::enable_if_t<is_connection_strategy<Annotation>::value>* = nullptr>
 auto normalize(Strategy /*strategy*/,
                continuable_base<Data, Annotation>&& continuation) {
 
@@ -110,8 +110,8 @@ auto connect(Strategy strategy, continuable_base<LData, LAnnotation>&& left,
 
   // Make the new data which consists of a tuple containing
   // all connected continuables.
-  auto data = chain_composition(normalize(strategy, std::move(left)),
-                                normalize(strategy, std::move(right)));
+  auto data = chain_connection(normalize(strategy, std::move(left)),
+                               normalize(strategy, std::move(right)));
 
   // Return a new continuable containing the tuple and holding
   // the current strategy as annotation.
@@ -120,21 +120,21 @@ auto connect(Strategy strategy, continuable_base<LData, LAnnotation>&& left,
 
 /// All strategies should specialize this class in order to provide:
 /// - A finalize static method that creates the callable object which
-///   is invoked with the callback to call when the composition is finished.
+///   is invoked with the callback to call when the connection is finished.
 /// - A static method hint that returns the new signature hint.
 template <typename Strategy>
-struct composition_finalizer;
+struct connection_finalizer;
 
-/// Finalizes the connection logic of a given composition
+/// Finalizes the connection logic of a given connection
 template <typename Data, typename Strategy>
-auto finalize_composition(continuable_base<Data, Strategy>&& continuation) {
-  using finalizer = composition_finalizer<Strategy>;
+auto finalize_connection(continuable_base<Data, Strategy>&& continuation) {
+  using finalizer = connection_finalizer<Strategy>;
 
   util::ownership ownership = base::attorney::ownership_of(continuation);
-  auto composition = base::attorney::consume_data(std::move(continuation));
+  auto connection = base::attorney::consume_data(std::move(continuation));
 
   // Return a new continuable which
-  return finalizer::finalize(std::move(composition), std::move(ownership));
+  return finalizer::finalize(std::move(connection), std::move(ownership));
 }
 
 /// A base class from which the continuable may inherit in order to
@@ -146,12 +146,11 @@ struct materializer {
   }
 };
 template <typename Data, typename Strategy>
-struct materializer<
-    continuable_base<Data, Strategy>,
-    std::enable_if_t<is_composition_strategy<Strategy>::value>> {
+struct materializer<continuable_base<Data, Strategy>,
+                    std::enable_if_t<is_connection_strategy<Strategy>::value>> {
 
   static constexpr auto apply(continuable_base<Data, Strategy>&& continuable) {
-    return finalize_composition(std::move(continuable));
+    return finalize_connection(std::move(continuable));
   }
 };
 
@@ -186,8 +185,8 @@ public:
 };
 
 template <typename Strategy, typename... Args>
-auto apply_composition(Strategy, Args&&... args) {
-  using finalizer = composition_finalizer<Strategy>;
+auto apply_connection(Strategy, Args&&... args) {
+  using finalizer = connection_finalizer<Strategy>;
 
   // Freeze every continuable inside the given arguments,
   // and freeze the ownership if one of the continuables
@@ -195,12 +194,12 @@ auto apply_composition(Strategy, Args&&... args) {
   // Additionally test whether every continuable is acquired.
   // Also materialize every continuable.
   util::ownership ownership;
-  auto composition = map_pack(prepare_continuables{ownership},
-                              std::make_tuple(std::forward<Args>(args)...));
+  auto connection = map_pack(prepare_continuables{ownership},
+                             std::make_tuple(std::forward<Args>(args)...));
 
-  return finalizer::finalize(std::move(composition), std::move(ownership));
+  return finalizer::finalize(std::move(connection), std::move(ownership));
 }
-} // namespace composition
+} // namespace connection
 } // namespace detail
 } // namespace cti
 

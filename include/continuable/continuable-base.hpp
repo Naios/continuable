@@ -37,14 +37,14 @@
 #include <utility>
 
 #include <continuable/detail/base.hpp>
-#include <continuable/detail/composition-all.hpp>
-#include <continuable/detail/composition-any.hpp>
-#include <continuable/detail/composition-seq.hpp>
-#include <continuable/detail/composition.hpp>
+#include <continuable/detail/connection-all.hpp>
+#include <continuable/detail/connection-any.hpp>
+#include <continuable/detail/connection-seq.hpp>
+#include <continuable/detail/connection.hpp>
+#include <continuable/detail/features.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
-#include <continuable/detail/features.hpp>
 
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 #include <continuable/detail/awaiting.hpp>
@@ -490,8 +490,8 @@ public:
   /// \since 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator&&(continuable_base<OData, OAnnotation>&& right) && {
-    return detail::composition::connect(
-        detail::composition::composition_strategy_all_tag{}, std::move(*this),
+    return detail::connection::connect(
+        detail::connection::connection_strategy_all_tag{}, std::move(*this),
         std::move(right));
   }
 
@@ -528,8 +528,8 @@ public:
   /// \since 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator||(continuable_base<OData, OAnnotation>&& right) && {
-    return detail::composition::connect(
-        detail::composition::composition_strategy_any_tag{}, std::move(*this),
+    return detail::connection::connect(
+        detail::connection::connection_strategy_any_tag{}, std::move(*this),
         std::move(right));
   }
 
@@ -557,8 +557,8 @@ public:
   /// \since 1.0.0
   template <typename OData, typename OAnnotation>
   auto operator>>(continuable_base<OData, OAnnotation>&& right) && {
-    return detail::composition::seq::sequential_connect(std::move(*this),
-                                                        std::move(right));
+    return detail::connection::seq::sequential_connect(std::move(*this),
+                                                       std::move(right));
   }
 
   /// Invokes the continuation chain manually even before the
@@ -695,7 +695,7 @@ private:
   }
 
   auto materialize() && {
-    return detail::composition::materializer<continuable_base>::apply(
+    return detail::connection::materializer<continuable_base>::apply(
         std::move(*this));
   }
 

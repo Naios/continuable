@@ -39,15 +39,15 @@
 #include <utility>
 
 #include <continuable/detail/base.hpp>
-#include <continuable/detail/composition-aggregated.hpp>
-#include <continuable/detail/composition.hpp>
+#include <continuable/detail/connection-aggregated.hpp>
+#include <continuable/detail/connection.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 
 namespace cti {
 namespace detail {
-namespace composition {
+namespace connection {
 namespace all {
 /// Caches the partial results and invokes the callback when all results
 /// are arrived. This class is thread safe.
@@ -100,7 +100,7 @@ class result_submitter
 
     template <typename... PartialArgs>
     void operator()(types::dispatch_error_tag tag, types::error_type error) && {
-      // We never complete the composition, but we forward the first error
+      // We never complete the connection, but we forward the first error
       // which was raised.
       std::call_once(me->flag_, std::move(me->callback_), tag,
                      std::move(error));
@@ -121,7 +121,7 @@ public:
   }
 
   /// Initially the counter is created with an initial count of 1 in order
-  /// to prevent that the composition is finished before all callbacks
+  /// to prevent that the connection is finished before all callbacks
   /// were registered.
   void accept() {
     complete_one();
@@ -145,20 +145,20 @@ struct continuable_dispatcher {
 };
 } // namespace all
 
-struct composition_strategy_all_tag {};
+struct connection_strategy_all_tag {};
 template <>
-struct is_composition_strategy<composition_strategy_all_tag> // ...
+struct is_connection_strategy<connection_strategy_all_tag> // ...
     : std::true_type {};
 
-/// Finalizes the all logic of a given composition
+/// Finalizes the all logic of a given connection
 template <>
-struct composition_finalizer<composition_strategy_all_tag> {
-  /// Finalizes the all logic of a given composition
-  template <typename Composition>
-  static auto finalize(Composition&& composition, util::ownership ownership) {
-    // Create the target result from the composition
+struct connection_finalizer<connection_strategy_all_tag> {
+  /// Finalizes the all logic of a given connection
+  template <typename Connection>
+  static auto finalize(Connection&& connection, util::ownership ownership) {
+    // Create the target result from the connection
     auto result =
-        aggregated::box_continuables(std::forward<Composition>(composition));
+        aggregated::box_continuables(std::forward<Connection>(connection));
 
     auto signature = aggregated::hint_of_data<decltype(result)>();
 
@@ -179,13 +179,13 @@ struct composition_finalizer<composition_strategy_all_tag> {
           traverse_pack(all::continuable_dispatcher<submitter_t>{state},
                         state->head());
 
-          // Finalize the composition if all results arrived in-place
+          // Finalize the connection if all results arrived in-place
           state->accept();
         },
         signature, std::move(ownership));
   }
 };
-} // namespace composition
+} // namespace connection
 } // namespace detail
 } // namespace cti
 

@@ -48,7 +48,7 @@
 
 namespace cti {
 namespace detail {
-namespace composition {
+namespace connection {
 namespace any {
 /// Invokes the callback with the first arriving result
 template <typename T>
@@ -160,23 +160,23 @@ struct continuable_dispatcher {
 };
 } // namespace any
 
-struct composition_strategy_any_tag {};
+struct connection_strategy_any_tag {};
 template <>
-struct is_composition_strategy<composition_strategy_any_tag> // ...
+struct is_connection_strategy<connection_strategy_any_tag> // ...
     : std::true_type {};
 
-/// Finalizes the any logic of a given composition
+/// Finalizes the any logic of a given connection
 template <>
-struct composition_finalizer<composition_strategy_any_tag> {
-  template <typename Composition>
-  static auto finalize(Composition&& composition, util::ownership ownership) {
+struct connection_finalizer<connection_strategy_any_tag> {
+  template <typename Connection>
+  static auto finalize(Connection&& connection, util::ownership ownership) {
     auto signature = decltype(any::result_deducer::deduce(
-        traversal::container_category_of_t<std::decay_t<Composition>>{},
-        traits::identity<std::decay_t<Composition>>{})){};
+        traversal::container_category_of_t<std::decay_t<Connection>>{},
+        traits::identity<std::decay_t<Connection>>{})){};
 
     return base::attorney::create(
-        [composition =
-             std::forward<Composition>(composition)](auto&& callback) mutable {
+        [connection =
+             std::forward<Connection>(connection)](auto&& callback) mutable {
 
           using submitter_t =
               any::any_result_submitter<std::decay_t<decltype(callback)>>;
@@ -187,12 +187,12 @@ struct composition_finalizer<composition_strategy_any_tag> {
               std::forward<decltype(callback)>(callback));
 
           traverse_pack(any::continuable_dispatcher<submitter_t>{submitter},
-                        std::move(composition));
+                        std::move(connection));
         },
         signature, std::move(ownership));
   }
 };
-} // namespace composition
+} // namespace connection
 } // namespace detail
 } // namespace cti
 

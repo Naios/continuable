@@ -43,14 +43,14 @@
 
 namespace cti {
 namespace detail {
-namespace composition {
+namespace connection {
 /// This namespace provides utilities for performing compound
 /// connections between deeply nested continuables and values.
 ///
 /// We create the result pack from the provides values and
 /// the async values if those are default constructible,
 /// otherwise use a lazy initialization wrapper and unwrap
-/// the whole pack when the composition is finished.
+/// the whole pack when the connection is finished.
 ///   - value -> value
 ///   - single async value -> single value
 ///   - multiple async value -> tuple of async values.
@@ -68,7 +68,7 @@ decltype(auto) unpack_lazy(T&& value) {
 template <typename T>
 T&& unpack_lazy(container::flat_variant<T>&& value) {
   assert(value.template is<T>() &&
-         "The composition was finalized before all values were present!");
+         "The connection was finalized before all values were present!");
 
   return std::move(value.template cast<T>());
 }
@@ -234,7 +234,7 @@ constexpr auto hint_of_data() {
   return decltype(finalize_data(detail::hint_mapper{}, std::declval<Data>())){};
 }
 } // namespace aggregated
-} // namespace composition
+} // namespace connection
 } // namespace detail
 } // namespace cti
 
