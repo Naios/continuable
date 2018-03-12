@@ -41,26 +41,29 @@ namespace cti {
 /// \{
 
 /// A tag which is passed to the `operator()` of the visitor
-/// if an element is visited synchronously.
+/// if an element is visited synchronously through \ref traverse_pack_async.
 ///
 /// \since 3.0.0
-using detail::traversal::async_traverse_visit_tag;
-/// A tag which is passed to the `operator()` of the visitor
-/// if an element is visited after the traversal was detached.
+using async_traverse_visit_tag = detail::traversal::async_traverse_visit_tag;
+/// A tag which is passed to the `operator()` of the visitor if an element is
+/// visited after the traversal was detached through \ref traverse_pack_async.
 ///
 /// \since 3.0.0
-using detail::traversal::async_traverse_detach_tag;
-/// A tag which is passed to the `operator()` of the visitor
-/// if the asynchronous pack traversal was finished.
+using async_traverse_detach_tag = detail::traversal::async_traverse_detach_tag;
+/// A tag which is passed to the `operator()` of the visitor if the
+/// asynchronous pack traversal was finished through \ref traverse_pack_async.
 ///
 /// \since 3.0.0
-using detail::traversal::async_traverse_complete_tag;
+using async_traverse_complete_tag =
+    detail::traversal::async_traverse_complete_tag;
 
 /// A tag to identify that a mapper shall be constructed in-place
-/// from the first argument passed.
+/// from the first argument passed to \ref traverse_pack_async.
 ///
 /// \since 3.0.0
-using detail::traversal::async_traverse_in_place_tag;
+template <typename T>
+using async_traverse_in_place_tag =
+    detail::traversal::async_traverse_in_place_tag<T>;
 
 /// Traverses the pack with the given visitor in an asynchronous way.
 ///

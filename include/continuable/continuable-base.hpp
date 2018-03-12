@@ -89,7 +89,8 @@ using error_type = detail::types::error_type;
 /// Deduces to a true_type if the given type is a continuable_base.
 ///
 /// \since 3.0.0
-using detail::base::is_continuable;
+template <typename T>
+using is_continuable = detail::base::is_continuable<T>;
 
 /// The main class of the continuable library, it provides the functionality
 /// for chaining callbacks and continuations together to a unified hierarchy.
@@ -791,7 +792,7 @@ private:
 ///
 /// \since 1.0.0
 template <typename... Args, typename Continuation>
-auto make_continuable(Continuation&& continuation) {
+constexpr auto make_continuable(Continuation&& continuation) {
   static_assert(sizeof...(Args) > 0,
                 "Since version 3.0.0 make_continuable requires an exact "
                 "signature! If you did intend to create a void continuable "
@@ -804,7 +805,7 @@ auto make_continuable(Continuation&& continuation) {
       detail::util::ownership{});
 }
 
-/// Returns a continuable with no result which instantly resolves
+/// Returns a continuable_base with no result which instantly resolves
 /// the promise with no values.
 ///
 /// \attention Usually using this function isn't needed at all since
@@ -821,7 +822,7 @@ constexpr auto make_ready_continuable() {
   });
 }
 
-/// Returns a continuable with one result value which instantly resolves
+/// Returns a continuable_base with one result value which instantly resolves
 /// the promise with the given value.
 ///
 /// \copydetails make_ready_continuable()
@@ -833,8 +834,8 @@ constexpr auto make_ready_continuable(Result&& result) {
       });
 }
 
-/// Returns a continuable with multiple result values which instantly resolves
-/// the promise with the given values.
+/// Returns a continuable_base with multiple result values which instantly
+/// resolves the promise with the given values.
 ///
 /// \copydetails make_ready_continuable()
 template <typename FirstResult, typename SecondResult, typename... Rest>
@@ -852,7 +853,7 @@ constexpr auto make_ready_continuable(FirstResult&& first_result,
       });
 }
 
-/// Returns a continuable with the parameterized result which instantly
+/// Returns a continuable_base with the parameterized result which instantly
 /// resolves the promise with the given error type.
 ///
 /// See an example below:

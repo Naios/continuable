@@ -36,14 +36,17 @@
 
 namespace cti {
 /// \defgroup Transforms Transforms
-/// provides utilities to convert \link continuable_base continuable_bases\endlink to other types (`std::future`).
+/// provides utilities to convert
+/// \link continuable_base continuable_bases\endlink to other
+/// types such as (`std::future`).
 /// \{
 
 /// A callable tag object which marks a wrapped callable object
 /// as continuable transformation which enables some useful overloads.
 ///
 /// \since 3.0.0
-using detail::types::transform;
+template <typename T>
+using transform = detail::types::transform<T>;
 
 /// Wraps the given callable object into a transform class.
 ///

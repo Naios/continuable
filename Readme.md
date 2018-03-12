@@ -37,6 +37,6 @@ The [documentation](https://naios.github.io/continuable/) offers everything you 
 
 #### Issues and contributions
 
-Issues reports are accepted through the Github issue tracker as well as Pull requests.
+Issue reports are accepted through the Github issue tracker as well as Pull requests.
 Every contribution is welcome! Don't hesitate to ask for help if you need any support
-in changing the implementation or when using the library.
+in improving the implementation or if you have any troubles in using the library.
