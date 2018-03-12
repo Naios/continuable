@@ -39,8 +39,7 @@
 
 #include <continuable/continuable-traverse-async.hpp>
 #include <continuable/detail/base.hpp>
-#include <continuable/detail/composition-all.hpp>
-#include <continuable/detail/composition-remapping.hpp>
+#include <continuable/detail/composition-aggregated.hpp>
 #include <continuable/detail/traits.hpp>
 #include <continuable/detail/util.hpp>
 
@@ -93,7 +92,7 @@ public:
     return data_.box;
   }
 
-  template <typename Box, std::enable_if_t<remapping::is_continuable_box<
+  template <typename Box, std::enable_if_t<aggregated::is_continuable_box<
                               std::decay_t<Box>>::value>* = nullptr>
   bool operator()(async_traverse_visit_tag, Box&& /*box*/) {
     return false;
@@ -121,8 +120,8 @@ public:
 
   template <typename T>
   void operator()(async_traverse_complete_tag, T&& /*pack*/) {
-    return remapping::finalize_data(std::move(data_.callback),
-                                    std::move(data_.box));
+    return aggregated::finalize_data(std::move(data_.callback),
+                                     std::move(data_.box));
   }
 };
 } // namespace seq
@@ -132,9 +131,7 @@ template <>
 struct composition_finalizer<composition_strategy_seq_tag> {
   template <typename Composition>
   static constexpr auto hint() {
-    // The result is the same as in the all composition
-    using all_finalizer = composition_finalizer<composition_strategy_all_tag>;
-    return all_finalizer::hint<Composition>();
+    return decltype(aggregated::deduce_hint(std::declval<Composition>())){};
   }
 
   /// Finalizes the all logic of a given composition
@@ -143,7 +140,7 @@ struct composition_finalizer<composition_strategy_seq_tag> {
     return [composition = std::forward<Composition>(composition)] // ...
         (auto&& callback) mutable {
 
-      auto boxed = remapping::box_continuables(std::move(composition));
+      auto boxed = aggregated::box_continuables(std::move(composition));
 
       // The data from which the visitor is constructed in-place
       using data_t =

@@ -38,6 +38,9 @@ following compilers:
 Although the build is observed with the listed compilers earlier
 versions might work.
 
+\warning GCC is proven to be slower than Clang in template compilation and
+         thus it is suggested to use Clang instead.
+
 \section installation-dependencies Dependencies
 
 Continuable is a header-only library with one required header-only dependency:

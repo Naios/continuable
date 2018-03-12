@@ -39,7 +39,7 @@
 #include <utility>
 
 #include <continuable/detail/base.hpp>
-#include <continuable/detail/composition-remapping.hpp>
+#include <continuable/detail/composition-aggregated.hpp>
 #include <continuable/detail/composition.hpp>
 #include <continuable/detail/hints.hpp>
 #include <continuable/detail/traits.hpp>
@@ -49,55 +49,6 @@ namespace cti {
 namespace detail {
 namespace composition {
 namespace all {
-struct all_hint_deducer {
-  static constexpr auto deduce(hints::signature_hint_tag<>) noexcept {
-    return spread_this();
-  }
-
-  template <typename First>
-  static constexpr auto deduce(hints::signature_hint_tag<First>) {
-    return remapping::unpack_lazy(remapping::lazy_value_t<First>{});
-  }
-
-  template <typename First, typename Second, typename... Args>
-  static constexpr auto
-  deduce(hints::signature_hint_tag<First, Second, Args...>) {
-    return spread_this(
-        remapping::unpack_lazy(remapping::lazy_value_t<First>{}),
-        remapping::unpack_lazy(remapping::lazy_value_t<Second>{}),
-        remapping::unpack_lazy(remapping::lazy_value_t<Args>{})...);
-  }
-
-  template <
-      typename T,
-      std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
-  auto operator()(T&& /*continuable*/) const {
-    return deduce(hints::hint_of(traits::identify<T>{}));
-  }
-};
-
-constexpr auto deduce_from_pack(traits::identity<void>)
-    -> hints::signature_hint_tag<>;
-template <typename... T>
-constexpr auto deduce_from_pack(traits::identity<std::tuple<T...>>)
-    -> hints::signature_hint_tag<T...>;
-template <typename T>
-constexpr auto deduce_from_pack(traits::identity<T>)
-    -> hints::signature_hint_tag<T>;
-
-// We must guard the mapped type against to be void since this represents an
-// empty signature hint.
-template <typename Composition>
-constexpr auto deduce_hint(Composition&& /*composition*/) {
-  // Don't change this way since it addresses a GCC compiler bug:
-  // error: extra ';' [-Werror=pedantic]
-  //  std::declval<Composition>()))>{})){};
-  using mapped_t =
-      decltype(map_pack(all_hint_deducer{}, std::declval<Composition>()));
-  using deduced_t = decltype(deduce_from_pack(traits::identity<mapped_t>{}));
-  return deduced_t{};
-}
-
 /// Caches the partial results and invokes the callback when all results
 /// are arrived. This class is thread safe.
 template <typename Callback, typename Result>
@@ -118,7 +69,7 @@ class result_submitter
 
     // Call the final callback with the cleaned result
     std::call_once(flag_, [&] {
-      remapping::finalize_data(std::move(callback_), std::move(result_));
+      aggregated::finalize_data(std::move(callback_), std::move(result_));
     });
   }
 
@@ -185,7 +136,7 @@ template <typename Submitter>
 struct continuable_dispatcher {
   std::shared_ptr<Submitter>& submitter;
 
-  template <typename Box, std::enable_if_t<remapping::is_continuable_box<
+  template <typename Box, std::enable_if_t<aggregated::is_continuable_box<
                               std::decay_t<Box>>::value>* = nullptr>
   void operator()(Box&& box) const {
     // Retrieve a callback from the submitter and attach it to the continuable
@@ -199,7 +150,7 @@ template <>
 struct composition_finalizer<composition_strategy_all_tag> {
   template <typename Composition>
   static constexpr auto hint() {
-    return decltype(all::deduce_hint(std::declval<Composition>())){};
+    return decltype(aggregated::deduce_hint(std::declval<Composition>())){};
   }
 
   /// Finalizes the all logic of a given composition
@@ -209,7 +160,7 @@ struct composition_finalizer<composition_strategy_all_tag> {
         (auto&& callback) mutable {
 
       // Create the target result from the composition
-      auto result = remapping::box_continuables(std::move(composition));
+      auto result = aggregated::box_continuables(std::move(composition));
 
       using submitter_t =
           all::result_submitter<std::decay_t<decltype(callback)>,

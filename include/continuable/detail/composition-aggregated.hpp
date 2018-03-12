@@ -54,7 +54,7 @@ namespace composition {
 ///   - value -> value
 ///   - single async value -> single value
 ///   - multiple async value -> tuple of async values.
-namespace remapping {
+namespace aggregated {
 /// Guards a type to be default constructible,
 /// and wraps it into an optional type if it isn't default constructible.
 template <typename T>
@@ -220,7 +220,56 @@ void finalize_data(Callback&& callback, Data&& data) {
                                std::forward<Callback>(callback),
                                std::forward<Data>(data));
 }
-} // namespace remapping
+
+struct all_hint_deducer {
+  static constexpr auto deduce(hints::signature_hint_tag<>) noexcept {
+    return spread_this();
+  }
+
+  template <typename First>
+  static constexpr auto deduce(hints::signature_hint_tag<First>) {
+    return unpack_lazy(lazy_value_t<First>{});
+  }
+
+  template <typename First, typename Second, typename... Args>
+  static constexpr auto
+  deduce(hints::signature_hint_tag<First, Second, Args...>) {
+    return spread_this(unpack_lazy(lazy_value_t<First>{}),
+                       unpack_lazy(lazy_value_t<Second>{}),
+                       unpack_lazy(lazy_value_t<Args>{})...);
+  }
+
+  template <
+      typename T,
+      std::enable_if_t<base::is_continuable<std::decay_t<T>>::value>* = nullptr>
+  auto operator()(T&& /*continuable*/) const {
+    return deduce(hints::hint_of(traits::identify<T>{}));
+  }
+};
+
+constexpr auto deduce_from_pack(traits::identity<void>)
+    -> hints::signature_hint_tag<>;
+template <typename... T>
+constexpr auto deduce_from_pack(traits::identity<std::tuple<T...>>)
+    -> hints::signature_hint_tag<T...>;
+template <typename T>
+constexpr auto deduce_from_pack(traits::identity<T>)
+    -> hints::signature_hint_tag<T>;
+
+// We must guard the mapped type against to be void since this represents an
+// empty signature hint.
+template <typename Composition>
+constexpr auto deduce_hint(Composition&& /*composition*/) {
+  // Don't change this way since it addresses a GCC compiler bug:
+  // error: extra ';' [-Werror=pedantic]
+  //  std::declval<Composition>()))>{})){};
+  using mapped_t =
+      decltype(map_pack(all_hint_deducer{}, std::declval<Composition>()));
+  using deduced_t = decltype(deduce_from_pack(traits::identity<mapped_t>{}));
+  return deduced_t{};
+}
+
+} // namespace aggregated
 } // namespace composition
 } // namespace detail
 } // namespace cti
