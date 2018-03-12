@@ -45,6 +45,10 @@ option(CTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE
        "Enable co_await support"
        OFF)
 
+option(CTI_CONTINUABLE_WITH_CPP_LATEST
+       "Enable the highest C++ standard available for testing polyfills"
+       OFF)
+
 include(cmake/CMakeLists.txt)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)

@@ -18,11 +18,10 @@ source_group(test FILES ${TEST})
 target_link_libraries(test-playground
   PRIVATE
     gtest
-    continuable)
-
-target_compile_definitions(test-playground
-  PUBLIC
-    -DCONTINUABLE_WITH_NO_EXCEPTIONS)
+    continuable
+    continuable-features-flags
+    continuable-features-warnings
+    continuable-features-noexcept)
 
 add_test(NAME continuable-playground-tests
   COMMAND test-playground)

@@ -4,7 +4,11 @@ image:
 environment:
   matrix:
     - WITH_NO_EXCEPTIONS: OFF
+      WITH_CPP_LATEST: OFF
     - WITH_NO_EXCEPTIONS: ON
+      WITH_CPP_LATEST: OFF
+    - WITH_NO_EXCEPTIONS: OFF
+      WITH_CPP_LATEST: ON
 
 configuration:
   - Debug
@@ -23,6 +27,7 @@ before_build:
          cmake -H. -Bbuild -A%PLATFORM%
          -DCTI_CONTINUABLE_WITH_NO_EXCEPTIONS=%WITH_NO_EXCEPTIONS%
          -DCTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE=ON
+         -DCTI_CONTINUABLE_WITH_CPP_LATEST=ON
 
 build_script:
   - cmd: cmake --build build --config %CONFIGURATION% --target ALL_BUILD -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /verbosity:minimal /maxcpucount:2 /nologo
