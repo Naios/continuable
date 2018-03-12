@@ -37,7 +37,11 @@ option(CTI_CONTINUABLE_WITH_NO_EXCEPTIONS
        "Disable exception support"
        OFF)
 
-option(CTI_CONTINUABLE_WITH_AWAIT
+option(CTI_CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
+       "Enable unhandled asynchronous exceptions"
+       OFF)
+
+option(CTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE
        "Enable co_await support"
        OFF)
 
@@ -77,7 +81,7 @@ target_compile_features(continuable-base
     cxx_trailing_return_types
     cxx_return_type_deduction)
 
-if (CTI_CONTINUABLE_WITH_AWAIT)
+if (CTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE)
   target_compile_options(continuable-base
     INTERFACE
       $<$<CXX_COMPILER_ID:MSVC>:/await>
@@ -86,6 +90,12 @@ if (CTI_CONTINUABLE_WITH_AWAIT)
   target_compile_definitions(continuable-base
     INTERFACE
       -DCONTINUABLE_WITH_EXPERIMENTAL_COROUTINE)
+endif()
+
+if (CTI_CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS)
+  target_compile_definitions(continuable-base
+    INTERFACE
+      -DCONTINUABLE_WITH_UNHANDLED_EXCEPTIONS)
 endif()
 
 add_library(continuable INTERFACE)
