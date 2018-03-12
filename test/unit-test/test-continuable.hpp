@@ -162,7 +162,7 @@ struct provide_continuation_seq_right {
 // clang-format off
 // Feel free to uncomment more tests, however this will increase the
 // build time significantly.
-using single_types = ::testing::Types<
+using single_types_id = identity<
 #if UNIT_TEST_STEP == 0
   provide_copyable
   // provide_erasure<cti::continuable>,
@@ -188,6 +188,13 @@ using single_types = ::testing::Types<
 >;
 // clang-format on
 
+template <typename T>
+struct to_types;
+template <typename... T>
+struct to_types<identity<T...>> : std::common_type<::testing::Types<T...>> {};
+
+using single_types = to_types<single_types_id>::type;
+
 struct tag1 {};
 struct tag2 {};
 struct tag3 {};
@@ -196,6 +203,47 @@ template <typename Provider>
 struct single_dimension_tests : continuation_provider<Provider> {};
 
 TYPED_TEST_CASE(single_dimension_tests, single_types);
+
+template <typename T, typename First, typename Second>
+struct combine_to_type;
+template <typename... T, typename First, typename Second>
+struct combine_to_type<identity<T...>, First, Second>
+    : std::common_type<testing::Types<identity<T, First>..., // ...
+                                      identity<T, Second>...>> {};
+
+struct all_connector {
+  template <typename Left, typename Right>
+  auto op(Left&& left, Right&& right) const {
+    return std::forward<Left>(left) && std::forward<Right>(right);
+  }
+
+  template <typename... Args>
+  auto ag(Args&&... args) const {
+    return cti::when_all(std::forward<Args>(args)...);
+  }
+};
+struct seq_connector {
+  template <typename Left, typename Right>
+  auto op(Left&& left, Right&& right) const {
+    return std::forward<Left>(left) >> std::forward<Right>(right);
+  }
+
+  template <typename... Args>
+  auto ag(Args&&... args) const {
+    return cti::when_seq(std::forward<Args>(args)...);
+  }
+};
+
+using aggregate_types =
+    combine_to_type<single_types_id, all_connector, seq_connector>::type;
+
+template <typename Identity>
+struct single_aggregate_tests;
+template <typename Provider, typename Connector>
+struct single_aggregate_tests<identity<Provider, Connector>>
+    : continuation_provider<Provider>, Connector {};
+
+TYPED_TEST_CASE(single_aggregate_tests, aggregate_types);
 
 template <typename T>
 auto make_step(T* me, unsigned& current, unsigned step) {

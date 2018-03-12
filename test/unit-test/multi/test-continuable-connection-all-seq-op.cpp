@@ -21,15 +21,28 @@
   SOFTWARE.
 **/
 
+#include <tuple>
+#include <type_traits>
+#include <vector>
+
 #include <test-continuable.hpp>
 
-TYPED_TEST(single_dimension_tests, is_logical_all_connectable) {
+TYPED_TEST(single_aggregate_tests, is_logical_connectable) {
+  auto chain = this->op(this->supply(), this->supply());
+  EXPECT_ASYNC_RESULT(std::move(chain));
+}
 
-  {
-    // Check the evaluation order
-    unsigned i = 0;
-    auto composed =
-        make_step(this, i, 0) && make_step(this, i, 1) && make_step(this, i, 2);
-    EXPECT_ASYNC_RESULT(std::move(composed));
-  }
+TYPED_TEST(single_aggregate_tests, is_logical_seq_connectable_value) {
+  auto chain = this->op(this->supply(1), this->supply(2));
+  EXPECT_ASYNC_RESULT(std::move(chain), 1, 2);
+}
+
+TYPED_TEST(single_aggregate_tests, is_logical_seq_connectable_duplicated_val) {
+  auto chain = this->op(this->supply(1, 2), this->supply(3, 4, 5));
+  EXPECT_ASYNC_RESULT(std::move(chain), 1, 2, 3, 4, 5);
+}
+
+TYPED_TEST(single_aggregate_tests, is_logical_seq_connectable_tag) {
+  auto chain = this->op(this->supply(tag1{}), this->supply(tag2{}, tag3{}));
+  ASSERT_ASYNC_TYPES(std::move(chain), tag1, tag2, tag3);
 }

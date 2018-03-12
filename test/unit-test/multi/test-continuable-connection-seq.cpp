@@ -21,29 +21,7 @@
   SOFTWARE.
 **/
 
-#include <test-continuable-connection-all-seq.hpp>
 #include <test-continuable.hpp>
-
-TYPED_TEST(single_dimension_tests, is_op_seq_connectable) {
-  test_all_seq_op(
-      [this](auto&&... args) {
-        return this->supply(std::forward<decltype(args)>(args)...);
-      },
-      [](auto&& left, auto&& right) {
-        return std::forward<decltype(left)>(left) >>
-               std::forward<decltype(right)>(right);
-      });
-}
-
-TYPED_TEST(single_dimension_tests, is_aggregate_seq_connectable) {
-  test_all_seq_aggregate(
-      [this](auto&&... args) {
-        return this->supply(std::forward<decltype(args)>(args)...);
-      },
-      [](auto&&... args) {
-        return cti::when_seq(std::forward<decltype(args)>(args)...);
-      });
-}
 
 TYPED_TEST(single_dimension_tests, is_logical_seq_connectable_composed) {
   // Check the evaluation order
