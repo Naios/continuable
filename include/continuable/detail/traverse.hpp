@@ -284,11 +284,17 @@ struct strategy_remap_tag {};
 template <typename Mapper, typename T>
 using is_effective_t = traits::is_invocable<typename Mapper::traversor_type, T>;
 
+// TODO find out whether the linear compile-time instantiation is faster:
+// template <typename Mapper, typename... T>
+// struct is_effective_any_of_t
+//     : traits::disjunction<is_effective_t<Mapper, T>...> {};
+// template <typename Mapper>
+// struct is_effective_any_of_t<Mapper> : std::false_type {};
+
 /// Deduces to a true type if any type leads to at least one effective
 /// call to the mapper.
 template <typename Mapper, typename... T>
 struct is_effective_any_of_t;
-
 template <typename Mapper, typename First, typename... Rest>
 struct is_effective_any_of_t<Mapper, First, Rest...>
     : std::conditional<is_effective_t<Mapper, First>::value, std::true_type,
