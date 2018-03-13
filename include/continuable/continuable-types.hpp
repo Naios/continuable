@@ -61,6 +61,9 @@ using unique_trait_of = continuable_trait<
   unique_function_adjustable,
   Args...
 >;
+
+/// A type erasure for work objects
+using work = fu2::unique_function<void()>;
 } // namespace detail
 
 /// Defines a non-copyable continuation type which uses the
@@ -80,6 +83,12 @@ template <typename... Args>
 using promise = typename detail::unique_trait_of<
   Args...
 >::promise;
+
+/// Defines a non-copyable type erasure which is capable of carrying
+/// callable objects passed to executors.
+///
+/// \since 3.1.0
+using work = detail::work;
 
 // TODO channel
 // TODO sink
