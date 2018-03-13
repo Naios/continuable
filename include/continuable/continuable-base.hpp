@@ -830,12 +830,29 @@ constexpr auto make_ready_continuable() {
 /// the promise with the given value.
 ///
 /// \copydetails make_ready_continuable()
-template <typename Result>
+template <typename Result, std::enable_if_t<!detail::traits::is_invocable<
+                               std::decay<Result>>::value>* = nullptr>
 constexpr auto make_ready_continuable(Result&& result) {
   return make_continuable<std::decay_t<Result>>( // ...
       [result = std::forward<Result>(result)](auto&& promise) mutable {
         std::forward<decltype(promise)>(promise).set_value(std::move(result));
       });
+}
+
+/// Returns a continuable_base with which arguments are dependent on the
+/// given supplier callable object.
+///
+/// The signature of the resulting continuable_base is equal to the expression:
+/// ````cpp
+/// make_ready_continuable().then(std::forward<Callable>(callable))
+/// ```
+///
+/// \since     3.1.0
+template <typename Callable, std::enable_if_t<detail::traits::is_invocable<
+                                 std::decay<Callable>>::value>* = nullptr>
+constexpr auto make_ready_continuable(Callable&& callable) {
+  // TODO Improve this for elliding the temporary object
+  return make_ready_continuable().then(std::forward<Callable>(callable));
 }
 
 /// Returns a continuable_base with multiple result values which instantly
