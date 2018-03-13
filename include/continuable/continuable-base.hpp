@@ -853,7 +853,7 @@ constexpr auto make_ready_continuable(FirstResult&& first_result,
                                 std::forward<Rest>(rest)...)](
           auto&& promise) mutable {
         detail::traits::unpack(std::forward<decltype(promise)>(promise),
-                               result);
+                               std::move(result));
       });
 }
 
