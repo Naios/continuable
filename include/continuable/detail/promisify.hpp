@@ -77,14 +77,15 @@ struct promisify_helper {
         auto&& promise) mutable {
 
       traits::unpack(
-          std::move(args), [promise = std::forward<decltype(promise)>(promise)](
-                               auto&&... args) mutable {
+          [promise = std::forward<decltype(promise)>(promise)](
+              auto&&... args) mutable {
             Evaluator<std::decay_t<decltype(promise)>> evaluator{
                 std::move(promise)};
 
             util::invoke(std::forward<decltype(args)>(args)...,
                          std::move(evaluator));
-          });
+          },
+          std::move(args));
     });
   }
 };

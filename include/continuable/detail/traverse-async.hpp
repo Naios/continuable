@@ -520,7 +520,7 @@ struct resume_state_callable {
 template <typename Frame, typename State>
 void resume_traversal_callable<Frame, State>::operator()() {
   auto hierarchy = std::tuple_cat(std::make_tuple(frame_), state_);
-  traits::unpack(std::move(hierarchy), resume_state_callable{});
+  traits::unpack(resume_state_callable{}, std::move(hierarchy));
 }
 
 /// Gives access to types related to the traversal frame

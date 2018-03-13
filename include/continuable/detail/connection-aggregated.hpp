@@ -149,9 +149,11 @@ public:
   }
 
   auto unbox() && {
-    return traits::unpack(unpack_lazy(std::move(args_)), [](auto&&... args) {
-      return spread_this(std::forward<decltype(args)>(args)...);
-    });
+    return traits::unpack(
+        [](auto&&... args) {
+          return spread_this(std::forward<decltype(args)>(args)...);
+        },
+        unpack_lazy(std::move(args_)));
   }
 };
 
@@ -208,8 +210,8 @@ template <typename... Args, typename Callback, typename Data>
 constexpr auto finalize_impl(traits::identity<std::tuple<Args...>>,
                              Callback&& callback, Data&& data) {
   // Call the final callback with the cleaned result
-  return traits::unpack(unbox_continuables(std::forward<Data>(data)),
-                        std::forward<Callback>(callback));
+  return traits::unpack(std::forward<Callback>(callback),
+                       unbox_continuables(std::forward<Data>(data)));
 }
 
 struct hint_mapper {

@@ -231,12 +231,14 @@ inline auto sequenced_unpack_invoker() {
       // the lambda.
       using Next = decltype(next_callback);
 
-      traits::unpack(std::move(result), [&](auto&&... types) {
-        /// TODO Add inplace resolution here
+      traits::unpack(
+          [&](auto&&... types) {
+            /// TODO Add inplace resolution here
 
-        invoke_no_except(std::forward<Next>(next_callback),
-                         std::forward<decltype(types)>(types)...);
-      });
+            invoke_no_except(std::forward<Next>(next_callback),
+                             std::forward<decltype(types)>(types)...);
+          },
+          std::move(result));
     CONTINUABLE_BLOCK_TRY_END
   };
 } // namespace decoration
@@ -277,12 +279,15 @@ void packed_dispatch(Executor&& executor, Invoker&& invoker, Args&&... args) {
     invoker = std::forward<Invoker>(invoker),
     args = std::make_tuple(std::forward<Args>(args)...)
   ]() mutable {
-    traits::unpack(std::move(args), [&](auto&&... captured_args) {
-      // Just use the packed dispatch method which dispatches the work on
-      // the current thread.
-      packed_dispatch(types::this_thread_executor_tag{}, std::move(invoker),
-                      std::forward<decltype(captured_args)>(captured_args)...);
-    });
+    traits::unpack(
+        [&](auto&&... captured_args) {
+          // Just use the packed dispatch method which dispatches the work on
+          // the current thread.
+          packed_dispatch(
+              types::this_thread_executor_tag{}, std::move(invoker),
+              std::forward<decltype(captured_args)>(captured_args)...);
+        },
+        std::move(args));
   };
 
   // Pass the work callable object to the executor

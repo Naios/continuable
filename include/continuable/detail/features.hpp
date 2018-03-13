@@ -58,6 +58,8 @@
   #define CONTINUABLE_HAS_CXX17_VOID_T
 #else
   // Generic feature detection based on __has_feature
+  // and other preprocessor definitions based on:
+  // http://en.cppreference.com/w/User:D41D8CD98F/feature_testing_macros
   #if defined(__has_feature)
     #if !defined(CONTINUABLE_HAS_CXX17_CONSTEXPR_IF) &&                        \
         __has_feature(cxx_if_constexpr)

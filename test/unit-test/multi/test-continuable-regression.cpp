@@ -33,21 +33,18 @@ using namespace cti::detail;
 TEST(regression_tests, are_multiple_args_mergeable) {
   {
     auto tp = std::make_tuple(1, 2, 3);
-    traits::merge(tp, tp, tp, tp, tp);
+    std::tuple_cat(tp, tp, tp, tp, tp);
   }
 
-  auto tp2 = traits::merge(std::make_tuple(), std::make_tuple(1),
-                           std::make_tuple(1, 2), std::make_tuple(1, 2, 3),
-                           std::make_tuple(1, 2, 3, 4));
+  auto tp2 = std::tuple_cat(std::make_tuple(), std::make_tuple(1),
+                            std::make_tuple(1, 2), std::make_tuple(1, 2, 3),
+                            std::make_tuple(1, 2, 3, 4));
 
-  auto count = traits::unpack(tp2, [](auto... args) {
-    std::vector<int> v{args...};
-    return std::accumulate(v.begin(), v.end(), 0);
-  });
+  auto count = traits::unpack(
+      [](auto... args) {
+        std::vector<int> v{args...};
+        return std::accumulate(v.begin(), v.end(), 0);
+      },
+      tp2);
   EXPECT_EQ(count, 20);
-}
-
-TEST(recursion_tests, are_noncopyable_mergeable) {
-  std::tuple<util::non_copyable> nc1, nc2, nc3;
-  traits::merge(std::move(nc1), std::move(nc2), std::move(nc3));
 }

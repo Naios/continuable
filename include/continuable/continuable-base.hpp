@@ -852,8 +852,8 @@ constexpr auto make_ready_continuable(FirstResult&& first_result,
                                 std::forward<SecondResult>(second_result),
                                 std::forward<Rest>(rest)...)](
           auto&& promise) mutable {
-        detail::traits::unpack(result,
-                               std::forward<decltype(promise)>(promise));
+        detail::traits::unpack(std::forward<decltype(promise)>(promise),
+                               result);
       });
 }
 

@@ -49,27 +49,27 @@ constexpr void unused(T&&...) noexcept {
 }
 
 namespace detail {
+template <typename T, std::size_t... I>
+auto forward_except_last_impl(T&& tuple,
+                              std::integer_sequence<std::size_t, I...>) {
+  (void)tuple;
+  return std::forward_as_tuple(std::get<I>(std::forward<T>(tuple))...);
+}
+
 /// Forwards every element in the tuple except the last one
 template <typename T>
 auto forward_except_last(T&& sequenceable) {
   constexpr auto const size = pack_size_of(traits::identify<T>()) - 1U;
   constexpr auto const sequence = std::make_index_sequence<size>();
 
-  return traits::unpack(std::forward<T>(sequenceable),
-                        [](auto&&... args) {
-                          return std::forward_as_tuple(
-                              std::forward<decltype(args)>(args)...);
-                        },
-                        sequence);
+  return forward_except_last_impl(std::forward<T>(sequenceable), sequence);
 }
 
 /// We are able to call the callable with the arguments given in the tuple
 template <typename T, typename... Args>
 auto partial_invoke_impl(std::true_type, T&& callable,
                          std::tuple<Args...> args) {
-  return traits::unpack(std::move(args), [&](auto&&... arg) {
-    return std::forward<T>(callable)(std::forward<decltype(arg)>(arg)...);
-  });
+  return traits::unpack(std::forward<T>(callable), std::move(args));
 }
 
 /// We were unable to call the callable with the arguments in the tuple.

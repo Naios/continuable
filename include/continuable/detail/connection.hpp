@@ -56,7 +56,7 @@ template <typename... LeftArgs, typename... RightArgs>
 auto chain_connection(std::tuple<LeftArgs...> leftPack,
                       std::tuple<RightArgs...> rightPack) {
 
-  return traits::merge(std::move(leftPack), std::move(rightPack));
+  return std::tuple_cat(std::move(leftPack), std::move(rightPack));
 }
 
 /// Normalizes a continuation to a tuple holding an arbitrary count of

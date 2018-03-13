@@ -32,7 +32,6 @@
 #define CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED
 
 #include <cstdint>
-#include <initializer_list>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -184,108 +183,33 @@ constexpr auto static_if(Type&& type, Check&& check,
                                 std::forward<FalseCallback>(falseCallback));
 }
 
-/// Calls the given unpacker with the content of the given sequence
-template <typename U, std::size_t... I>
-constexpr decltype(auto) unpack(std::integer_sequence<std::size_t, I...>,
-                                U&& unpacker) {
-  return std::forward<U>(unpacker)(std::integral_constant<std::size_t, I>{}...);
-}
-
+namespace detail {
 /// Calls the given unpacker with the content of the given sequenceable
-template <typename F, typename U, std::size_t... I>
-constexpr auto unpack(F&& first_sequenceable, U&& unpacker,
-                      std::integer_sequence<std::size_t, I...>)
+template <typename U, typename F, std::size_t... I>
+constexpr auto unpack_impl(U&& unpacker, F&& first_sequenceable,
+                           std::integer_sequence<std::size_t, I...>)
     -> decltype(std::forward<U>(unpacker)(
-        get<I>(std::forward<F>(first_sequenceable))...)) {
+        std::get<I>(std::forward<F>(first_sequenceable))...)) {
   (void)first_sequenceable;
   return std::forward<U>(unpacker)(
-      get<I>(std::forward<F>(first_sequenceable))...);
+      std::get<I>(std::forward<F>(first_sequenceable))...);
 }
-/// Calls the given unpacker with the content of the given sequenceable
-template <typename F, typename S, typename U, std::size_t... If,
-          std::size_t... Is>
-constexpr auto unpack(F&& first_sequenceable, S&& second_sequenceable,
-                      U&& unpacker, std::integer_sequence<std::size_t, If...>,
-                      std::integer_sequence<std::size_t, Is...>)
-    -> decltype(std::forward<U>(unpacker)(
-        get<If>(std::forward<F>(first_sequenceable))...,
-        get<Is>(std::forward<S>(second_sequenceable))...)) {
-  (void)first_sequenceable;
-  (void)second_sequenceable;
-  return std::forward<U>(unpacker)(
-      get<If>(std::forward<F>(first_sequenceable))...,
-      get<Is>(std::forward<S>(second_sequenceable))...);
-}
-/// Calls the given unpacker with the content of the given sequenceable
-template <typename F, typename U>
-constexpr auto unpack(F&& first_sequenceable, U&& unpacker)
-    -> decltype(unpack(std::forward<F>(first_sequenceable),
-                       std::forward<U>(unpacker),
-                       sequence_of(identify<decltype(first_sequenceable)>{}))) {
-  return unpack(std::forward<F>(first_sequenceable), std::forward<U>(unpacker),
-                sequence_of(identify<decltype(first_sequenceable)>{}));
-}
-/// Calls the given unpacker with the content of the given sequenceables
-template <typename F, typename S, typename U>
-constexpr auto unpack(F&& first_sequenceable, S&& second_sequenceable,
-                      U&& unpacker)
-    -> decltype(unpack(std::forward<F>(first_sequenceable),
-                       std::forward<S>(second_sequenceable),
-                       std::forward<U>(unpacker),
-                       sequence_of(identity_of(first_sequenceable)),
-                       sequence_of(identity_of(second_sequenceable)))) {
-  return unpack(std::forward<F>(first_sequenceable),
-                std::forward<S>(second_sequenceable), std::forward<U>(unpacker),
-                sequence_of(identity_of(first_sequenceable)),
-                sequence_of(identity_of(second_sequenceable)));
-}
+} // namespace detail
 
-/// Adds the given type at the back of the left sequenceable
-template <typename Left, typename Element>
-constexpr auto push(Left&& left, Element&& element) {
-  return unpack(std::forward<Left>(left), [&](auto&&... args) {
-    return std::make_tuple(std::forward<decltype(args)>(args)...,
-                           std::forward<Element>(element));
-  });
-}
+/// Calls the given callable object with the content of the given sequenceable
+///
+/// \note We can't use std::apply here since this implementation is SFINAE
+///       aware and the std version not! This would lead to compilation errors.
+template <typename Callable, typename TupleLike,
+          typename Sequence = std::make_index_sequence<
+              std::tuple_size<std::decay_t<TupleLike>>::value>>
+constexpr auto unpack(Callable&& obj, TupleLike&& tuple_like)
+    -> decltype(detail::unpack_impl(std::forward<Callable>(obj),
+                                    std::forward<TupleLike>(tuple_like),
+                                    Sequence{})) {
 
-/// Adds the element to the back of the identity
-template <typename... Args, typename Element>
-constexpr auto push(identity<Args...>, identity<Element>) noexcept {
-  return identity<Args..., Element>{};
-}
-
-/// Removes the first element from the identity
-template <typename First, typename... Rest>
-constexpr auto pop_first(identity<First, Rest...>) noexcept {
-  return identity<Rest...>{};
-}
-
-/// Returns the merged sequence
-template <typename Left>
-constexpr auto merge(Left&& left) {
-  return std::forward<Left>(left);
-}
-/// Merges the left sequenceable with the right ones
-template <typename Left, typename Right, typename... Rest>
-constexpr auto merge(Left&& left, Right&& right, Rest&&... rest) {
-  // Merge the left with the right sequenceable and
-  // merge the result with the rest.
-  return merge(unpack(std::forward<Left>(left), std::forward<Right>(right),
-                      [&](auto&&... args) {
-                        // Maybe use: template <template<typename...> class T,
-                        // typename... Args>
-                        return std::make_tuple(
-                            std::forward<decltype(args)>(args)...);
-                      }),
-               std::forward<Rest>(rest)...);
-}
-/// Merges the left identity with the right ones
-template <typename... LeftArgs, typename... RightArgs, typename... Rest>
-constexpr auto merge(identity<LeftArgs...> /*left*/,
-                     identity<RightArgs...> /*right*/, Rest&&... rest) {
-  return merge(identity<LeftArgs..., RightArgs...>{},
-               std::forward<Rest>(rest)...);
+  return detail::unpack_impl(std::forward<Callable>(obj),
+                             std::forward<TupleLike>(tuple_like), Sequence{});
 }
 
 namespace detail {

@@ -61,7 +61,7 @@ auto sequential_connect(Left&& left, Right&& right) {
     return std::move(right).then([previous = std::make_tuple(
                                       std::forward<decltype(args)>(args)...)](
         auto&&... args) mutable {
-      return traits::merge(
+      return std::tuple_cat(
           std::move(previous),
           std::make_tuple(std::forward<decltype(args)>(args)...));
     });
