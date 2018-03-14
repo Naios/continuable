@@ -59,7 +59,7 @@ auto forward_except_last_impl(T&& tuple,
 /// Forwards every element in the tuple except the last one
 template <typename T>
 auto forward_except_last(T&& sequenceable) {
-  constexpr auto const size = pack_size_of(traits::identify<T>()) - 1U;
+  constexpr auto const size = std::tuple_size<std::decay_t<T>>::value - 1U;
   constexpr auto const sequence = std::make_index_sequence<size>();
 
   return forward_except_last_impl(std::forward<T>(sequenceable), sequence);

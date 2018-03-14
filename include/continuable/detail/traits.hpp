@@ -87,38 +87,6 @@ using void_t = typename detail::deduce_to_void<T...>::type;
 #endif // CONTINUABLE_HAS_CXX17_VOID_T
 
 namespace detail {
-/// Evaluates to the size of the given tuple like type,
-// / if the type has no static size it will be one.
-template <typename T, typename Enable = void>
-struct tuple_like_size : std::integral_constant<std::size_t, 1U> {};
-template <typename T>
-struct tuple_like_size<T, void_t<decltype(std::tuple_size<T>::value)>>
-    : std::tuple_size<T> {};
-} // namespace detail
-
-/// Returns the pack size of the given empty pack
-constexpr std::size_t pack_size_of(identity<>) noexcept {
-  return 0U;
-}
-/// Returns the pack size of the given type
-template <typename T>
-constexpr std::size_t pack_size_of(identity<T>) noexcept {
-  return detail::tuple_like_size<T>::value;
-}
-/// Returns the pack size of the given type
-template <typename First, typename Second, typename... Args>
-constexpr std::size_t pack_size_of(identity<First, Second, Args...>) noexcept {
-  return 2U + sizeof...(Args);
-}
-
-/// Returns an index sequence of the given type
-template <typename T>
-constexpr auto sequence_of(identity<T>) noexcept {
-  constexpr auto const size = pack_size_of(identity<T>{});
-  return std::make_index_sequence<size>();
-}
-
-namespace detail {
 /// Calls the given unpacker with the content of the given sequenceable
 template <typename U, typename F, std::size_t... I>
 constexpr auto unpack_impl(U&& unpacker, F&& first_sequenceable,
