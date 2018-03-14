@@ -1,4 +1,3 @@
-
 /*
 
                         /~` _  _ _|_. _     _ |_ | _
@@ -28,32 +27,40 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_HPP_INCLUDED
-#define CONTINUABLE_HPP_INCLUDED
-
-/// Declares the continuable library namespace.
-///
-/// The most important class is cti::continuable_base, that provides the
-/// whole functionality for continuation chaining.
-///
-/// The class cti::continuable_base is created through the
-/// cti::make_continuable() function which accepts a callback taking function.
-///
-/// Also there are following support functions available:
-/// - cti::when_all() - connects cti::continuable_base's to an `all` connection.
-/// - cti::when_any() - connects cti::continuable_base's to an `any` connection.
-/// - cti::when_seq() - connects cti::continuable_base's to a sequence.
-namespace cti {}
+#ifndef CONTINUABLE_COROUTINE_HPP_INCLUDED
+#define CONTINUABLE_COROUTINE_HPP_INCLUDED
 
 #include <continuable/continuable-base.hpp>
-#include <continuable/continuable-connections.hpp>
-#include <continuable/continuable-coroutine.hpp>
-#include <continuable/continuable-promise-base.hpp>
-#include <continuable/continuable-promisify.hpp>
-#include <continuable/continuable-trait.hpp>
-#include <continuable/continuable-transforms.hpp>
-#include <continuable/continuable-traverse-async.hpp>
-#include <continuable/continuable-traverse.hpp>
 #include <continuable/continuable-types.hpp>
+#include <continuable/detail/features.hpp>
+#include <continuable/detail/types.hpp>
 
-#endif // CONTINUABLE_HPP_INCLUDED
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#include <exception>
+#endif // CONTINUABLE_HAS_EXCEPTIONS
+
+#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+#include <continuable/detail/awaiting.hpp>
+#endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+
+/// \cond false
+#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+// As far as I know there is no other way to implement this specialization...
+// NOLINTNEXTLINE(cert-dcl58-cpp)
+namespace std {
+namespace experimental {
+template <typename Data, typename... Args, typename... FunctionArgs>
+struct coroutine_traits<
+    cti::continuable_base<Data,
+                          cti::detail::hints::signature_hint_tag<Args...>>,
+    FunctionArgs...> {
+
+  using promise_type =
+      cti::detail::awaiting::promise_type<cti::promise<Args...>, Args...>;
+};
+} // namespace experimental
+} // namespace std
+#endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+/// \endcond
+
+#endif // CONTINUABLE_COROUTINE_HPP_INCLUDED

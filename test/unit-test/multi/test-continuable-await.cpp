@@ -32,42 +32,9 @@
 
 #include <tuple>
 
-namespace std {
-namespace experimental {
-template <class... T>
-struct coroutine_traits<void, T...> {
-  struct promise_type {
-    void get_return_object() {
-    }
-
-    void set_exception(exception_ptr const&) noexcept {
-    }
-
-    // FIXME This throws errors in MSVC but is required in clang
-#ifndef _MSC_VER
-    void unhandled_exception() {
-      GTEST_FATAL_FAILURE_("Unhandled async exception!");
-    }
-#endif // _MSC_VER
-
-    suspend_never initial_suspend() noexcept {
-      return {};
-    }
-
-    suspend_never final_suspend() noexcept {
-      return {};
-    }
-
-    void return_void() noexcept {
-    }
-  };
-};
-} // namespace experimental
-} // namespace std
-
 /// Resolves the given promise asynchonously
-template <typename S, typename T>
-void resolve_async(S&& supplier, T promise) {
+template <typename S>
+cti::continuable<> resolve_async(S&& supplier) {
   // 0 args
   co_await supplier();
 
@@ -79,8 +46,23 @@ void resolve_async(S&& supplier, T promise) {
   std::tuple<int, int> a2 = co_await supplier(1, 2);
   EXPECT_EQ(a2, std::make_tuple(1, 2));
 
-  promise.set_value();
   co_return;
+}
+
+template <typename S>
+cti::continuable<int> resolve_async_one(S&& supplier) {
+  // Pseudo wait
+  co_await supplier();
+
+  co_return 4644;
+}
+
+template <typename S>
+cti::continuable<int, int, int, int> resolve_async_multiple(S&& supplier) {
+  // Pseudo wait
+  co_await supplier();
+
+  co_return std::make_tuple(0, 1, 2, 3);
 }
 
 TYPED_TEST(single_dimension_tests, are_awaitable) {
@@ -89,11 +71,9 @@ TYPED_TEST(single_dimension_tests, are_awaitable) {
     return this->supply(std::forward<decltype(args)>(args)...);
   };
 
-  EXPECT_ASYNC_RESULT(
-      this->supply().then(cti::make_continuable<void>([&](auto promise) {
-        // Resolve the cotinuable through a coroutine
-        resolve_async(supply, std::move(promise));
-      })));
+  EXPECT_ASYNC_RESULT(resolve_async(supply));
+  EXPECT_ASYNC_RESULT(resolve_async_one(supply), 4644);
+  EXPECT_ASYNC_RESULT(resolve_async_multiple(supply), 0, 1, 2, 3);
 }
 
 #ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
@@ -109,8 +89,8 @@ struct await_exception : std::exception {
 };
 
 /// Resolves the given promise asynchonously through an exception
-template <typename S, typename T>
-void resolve_async_exceptional(S&& supplier, T promise) {
+template <typename S>
+cti::continuable<> resolve_async_exceptional(S&& supplier) {
   // 0 args
   co_await supplier();
 
@@ -128,7 +108,6 @@ void resolve_async_exceptional(S&& supplier, T promise) {
   EXPECT_THROW(co_await supplier().then([] { throw await_exception{}; }),
                await_exception);
 
-  promise.set_value();
   co_return;
 }
 
@@ -138,23 +117,29 @@ TYPED_TEST(single_dimension_tests, are_awaitable_with_exceptions) {
     return this->supply(std::forward<decltype(args)>(args)...);
   };
 
-  ASSERT_ASYNC_COMPLETION(
-      this->supply().then(cti::make_continuable<void>([&](auto promise) {
-        // Resolve the cotinuable through a coroutine
-        resolve_async_exceptional(supply, std::move(promise));
-      })));
+  ASSERT_ASYNC_COMPLETION(resolve_async_exceptional(supply));
 }
 
-// TODO Implement this later
-//
-//  static cti::continuable<int> async_await() {
-//   co_await cti::make_continuable<void>([](auto&& promise) {
-//     // ...
-//     promise.set_value();
-//   });
-//
-//   co_return 1;
-// }
+/// Resolves the given promise asynchonously through an exception
+template <typename S>
+cti::continuable<> resolve_coro_exceptional(S&& supplier) {
+  // Pseudo wait
+  co_await supplier();
+
+  throw await_exception{};
+
+  co_return;
+}
+
+TYPED_TEST(single_dimension_tests, are_awaitable_with_exceptions_from_coro) {
+  auto const& supply = [&](auto&&... args) {
+    // Supplies the current tested continuable
+    return this->supply(std::forward<decltype(args)>(args)...);
+  };
+
+  ASSERT_ASYNC_EXCEPTION_RESULT(resolve_coro_exceptional(supply),
+                                await_exception{})
+}
 
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 

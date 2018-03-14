@@ -48,6 +48,7 @@
 
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 #include <continuable/detail/awaiting.hpp>
+#include <experimental/coroutine>
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 
 namespace cti {
@@ -670,16 +671,32 @@ public:
   /// result.get_exception();
   /// ```
   ///
-  /// \attention Note that it isn't possible as of now to use a continuable
-  ///            as return type from coroutines as depicted below:
+  /// \note  Using continuable_base as return type for coroutines
+  ///        is supported. The coroutine is initially stopped and
+  ///        resumed when the continuation is requested in order to
+  ///        keep the lazy evaluation semantics of the continuable_base.
   /// ```cpp
-  /// cti::continuable<int> do_sth() {
+  /// cti::continuable<> resolve_async_void() {
+  ///   co_await http_request("github.com");
+  ///   // ...
+  ///   co_return;
+  /// }
+  ///
+  /// cti::continuable<int> resolve_async() {
   ///   co_await http_request("github.com");
   ///   // ...
   ///   co_return 0;
   /// }
   /// ```
-  ///            Propably this will be added in a future version of the library.
+  /// It's possible to return multiple return values from coroutines
+  /// by wrapping those in a tuple like type:
+  /// ```cpp
+  /// cti::continuable<int, int, int> resolve_async_multiple() {
+  ///   co_await http_request("github.com");
+  ///   // ...
+  ///   co_return std::make_tuple(0, 1, 2);
+  /// }
+  /// ```
   ///
   /// \since     2.0.0
   auto operator co_await() && {

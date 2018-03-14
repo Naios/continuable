@@ -96,14 +96,32 @@ result.get_value();
 result.get_exception();
 \endcode
 
+\section tutorial-awaiting-continuables-return Using continuables as return type from coroutines
 
-\note It isn't possible as of now to use a \ref continuable_base
-      as return type from coroutines:
+It is possible to use a \ref continuable_base as return type from coroutines.
+
 \code{.cpp}
-cti::continuable<int> do_sth() {
+cti::continuable<> resolve_async_void() {
+  co_await http_request("github.com");
+  // ...
+  co_return;
+}
+
+cti::continuable<int> resolve_async() {
   co_await http_request("github.com");
   // ...
   co_return 0;
+}
+\endcode
+
+Additionally it's possible to return multiple return values from coroutines
+by wrapping those in a tuple like type:
+
+\code{.cpp}
+cti::continuable<int, int, int> resolve_async_multiple() {
+  co_await http_request("github.com");
+  // ...
+  co_return std::make_tuple(0, 1, 2);
 }
 \endcode
 

@@ -76,6 +76,11 @@ public:
   /// Constructor accepting the data object
   explicit promise_base(Data data) : data_(std::move(data)) {
   }
+  /// \cond false
+  /// Constructor for constructing an empty promise
+  explicit promise_base(detail::types::promise_no_init_tag) {
+  }
+  /// \endcond
 
   /// Constructor accepting any object convertible to the data object
   template <typename OData, std::enable_if_t<std::is_convertible<

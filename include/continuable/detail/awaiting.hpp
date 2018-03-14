@@ -34,10 +34,12 @@
 
 #include <cassert>
 #include <experimental/coroutine>
+#include <tuple>
 
 #include <continuable/detail/expected.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/hints.hpp>
+#include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 #include <continuable/detail/util.hpp>
 
@@ -120,25 +122,91 @@ template <typename T>
 constexpr auto create_awaiter(T&& continuable) {
   return awaitable<std::decay_t<T>>(std::forward<T>(continuable));
 }
+
+/// This makes it possible to take the coroutine_handle over on suspension
+struct handle_takeover {
+  coroutine_handle<>& handle_;
+
+  bool await_ready() noexcept {
+    return false;
+  }
+
+  void await_suspend(coroutine_handle<> handle) noexcept {
+    handle_ = handle;
+  }
+
+  void await_resume() noexcept {
+  }
+};
+
+/// The type which is passed to the compiler that describes the properties
+/// of a continuable_base used as coroutine promise type.
+template <typename Promise, typename... Args>
+struct promise_type;
+
+/// Implements the resolving method return_void and return_value accordingly
+template <typename Base>
+struct promise_resolver_base;
+
+template <typename Promise>
+struct promise_resolver_base<promise_type<Promise>> {
+  void return_void() {
+    auto me = static_cast<promise_type<Promise>*>(this);
+    me->promise_.set_value();
+  }
+};
+template <typename Promise, typename T>
+struct promise_resolver_base<promise_type<Promise, T>> {
+  void return_value(T value) {
+    auto me = static_cast<promise_type<Promise, T>*>(this);
+    me->promise_.set_value(std::move(value));
+  }
+};
+template <typename Promise, typename... Args>
+struct promise_resolver_base<promise_type<Promise, Args...>> {
+  template <typename T>
+  void return_value(T&& tuple_like) {
+    auto me = static_cast<promise_type<Promise, Args...>*>(this);
+    traits::unpack(std::move(me->promise_), std::forward<T>(tuple_like));
+  }
+};
+
+template <typename Promise, typename... Args>
+struct promise_type
+    : promise_resolver_base<promise_type<Promise, Args...>> {
+
+  coroutine_handle<> handle_;
+  Promise promise_;
+
+  explicit promise_type() : promise_(types::promise_no_init_tag{}) {
+  }
+
+  auto get_return_object() {
+    return [this](auto&& promise) {
+      promise_ = std::forward<decltype(promise)>(promise);
+      handle_.resume();
+    };
+  }
+
+  handle_takeover initial_suspend() {
+    return {handle_};
+  }
+
+  std::experimental::suspend_never final_suspend() {
+    return {};
+  }
+
+  void unhandled_exception() noexcept {
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+    promise_.set_exception(std::current_exception());
+#else  // CONTINUABLE_HAS_EXCEPTIONS
+       // Returning error types from coroutines isn't supported
+    cti::detail::util::trap();
+#endif // CONTINUABLE_HAS_EXCEPTIONS
+  }
+};
 } // namespace awaiting
 } // namespace detail
 } // namespace cti
-
-// As far as I know there is no other was to implement this specialization...
-// NOLINTNEXTLINE(cert-dcl58-cpp)
-namespace std {
-namespace experimental {
-template <typename Data, typename... Args, typename... FunctionArgs>
-struct coroutine_traits<
-    cti::continuable_base<Data,
-                          cti::detail::hints::signature_hint_tag<Args...>>,
-    FunctionArgs...> {
-
-  static_assert(cti::detail::traits::fail<Data>::value,
-                "Using a continuable as return type from co_return "
-                "expressions isn't supported yet!");
-};
-} // namespace experimental
-} // namespace std
 
 #endif // CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED

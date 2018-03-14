@@ -77,6 +77,8 @@ public:
   using T::operator();
 };
 
+/// Tag for constructing an empty promise_base .
+struct promise_no_init_tag {};
 } // namespace types
 } // namespace detail
 } // namespace cti
