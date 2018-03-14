@@ -41,10 +41,6 @@
 namespace cti {
 namespace detail {
 namespace traits {
-/// Evaluates to the element at position I.
-template <std::size_t I, typename... Args>
-using at_t = decltype(std::get<I>(std::declval<std::tuple<Args...>>()));
-
 namespace detail {
 template <typename T, typename... Args>
 struct index_of_impl;
@@ -64,8 +60,6 @@ using index_of_t = detail::index_of_impl<T, Args...>;
 /// A tagging type for wrapping other types
 template <typename... T>
 struct identity {};
-template <typename T>
-struct identity<T> : std::common_type<T> {};
 
 template <typename>
 struct is_identity : std::false_type {};
@@ -73,21 +67,8 @@ template <typename... Args>
 struct is_identity<identity<Args...>> : std::true_type {};
 
 template <typename T>
-constexpr identity<std::decay_t<T>> identity_of(T const& /*type*/) noexcept {
-  return {};
-}
-template <typename... Args>
-constexpr identity<Args...> identity_of(identity<Args...> /*type*/) noexcept {
-  return {};
-}
-template <typename T>
 using identify = std::conditional_t<is_identity<std::decay_t<T>>::value, T,
                                     identity<std::decay_t<T>>>;
-
-template <std::size_t I, typename... T>
-constexpr auto get(identity<T...>) noexcept {
-  return identify<at_t<I, T...>>{};
-}
 
 #if defined(CONTINUABLE_HAS_CXX17_VOID_T)
 using std::void_t;
