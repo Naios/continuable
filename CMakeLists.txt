@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 cmake_minimum_required(VERSION 3.2)
-project(continuable VERSION 2.0.0 LANGUAGES C CXX)
+project(continuable VERSION 3.0.0 LANGUAGES C CXX)
 
 string(COMPARE EQUAL ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}
                      IS_TOP_LEVEL_PROJECT)
