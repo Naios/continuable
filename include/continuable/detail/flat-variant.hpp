@@ -32,6 +32,7 @@
 #define CONTINUABLE_DETAIL_FLAT_VARIANT_HPP_INCLUDED
 
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>

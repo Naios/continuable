@@ -32,7 +32,7 @@
 #define CONTINUABLE_BASE_HPP_INCLUDED
 
 #include <cassert>
-#include <cstdint>
+#include <cstddef>
 #include <type_traits>
 #include <utility>
 

@@ -31,7 +31,7 @@
 #ifndef CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_TRAITS_HPP_INCLUDED
 
-#include <cstdint>
+#include <cstddef>
 #include <tuple>
 #include <type_traits>
 #include <utility>

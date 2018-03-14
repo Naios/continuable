@@ -31,7 +31,7 @@
 #ifndef CONTINUABLE_TYPES_HPP_INCLUDED
 #define CONTINUABLE_TYPES_HPP_INCLUDED
 
-#include <cstdint>
+#include <cstddef>
 
 #include <function2/function2.hpp>
 

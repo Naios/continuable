@@ -31,7 +31,7 @@
 #ifndef CONTINUABLE_TRAIT_HPP_INCLUDED
 #define CONTINUABLE_TRAIT_HPP_INCLUDED
 
-#include <cstdint>
+#include <cstddef>
 
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-promise-base.hpp>
