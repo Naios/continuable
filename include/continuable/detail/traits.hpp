@@ -87,31 +87,6 @@ using void_t = typename detail::deduce_to_void<T...>::type;
 #endif // CONTINUABLE_HAS_CXX17_VOID_T
 
 namespace detail {
-template <typename Type, typename TrueCallback>
-constexpr void static_if_impl(std::true_type, Type&& type,
-                              TrueCallback&& trueCallback) {
-  std::forward<TrueCallback>(trueCallback)(std::forward<Type>(type));
-}
-
-template <typename Type, typename TrueCallback>
-constexpr void static_if_impl(std::false_type, Type&& /*type*/,
-                              TrueCallback&& /*trueCallback*/) {
-}
-
-template <typename Type, typename TrueCallback, typename FalseCallback>
-constexpr auto static_if_impl(std::true_type, Type&& type,
-                              TrueCallback&& trueCallback,
-                              FalseCallback&& /*falseCallback*/) {
-  return std::forward<TrueCallback>(trueCallback)(std::forward<Type>(type));
-}
-
-template <typename Type, typename TrueCallback, typename FalseCallback>
-constexpr auto static_if_impl(std::false_type, Type&& type,
-                              TrueCallback&& /*trueCallback*/,
-                              FalseCallback&& falseCallback) {
-  return std::forward<FalseCallback>(falseCallback)(std::forward<Type>(type));
-}
-
 /// Evaluates to the size of the given tuple like type,
 // / if the type has no static size it will be one.
 template <typename T, typename Enable = void>
@@ -141,27 +116,6 @@ template <typename T>
 constexpr auto sequence_of(identity<T>) noexcept {
   constexpr auto const size = pack_size_of(identity<T>{});
   return std::make_index_sequence<size>();
-}
-
-/// Invokes the callback only if the given type matches the check
-template <typename Type, typename Check, typename TrueCallback>
-constexpr void static_if(Type&& type, Check&& check,
-                         TrueCallback&& trueCallback) {
-  detail::static_if_impl(std::forward<Check>(check)(type),
-                         std::forward<Type>(type),
-                         std::forward<TrueCallback>(trueCallback));
-}
-
-/// Invokes the callback only if the given type matches the check
-template <typename Type, typename Check, typename TrueCallback,
-          typename FalseCallback>
-constexpr auto static_if(Type&& type, Check&& check,
-                         TrueCallback&& trueCallback,
-                         FalseCallback&& falseCallback) {
-  return detail::static_if_impl(std::forward<Check>(check)(type),
-                                std::forward<Type>(type),
-                                std::forward<TrueCallback>(trueCallback),
-                                std::forward<FalseCallback>(falseCallback));
 }
 
 namespace detail {
