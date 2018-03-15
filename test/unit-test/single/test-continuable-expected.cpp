@@ -25,12 +25,14 @@
 #include <utility>
 
 #include <continuable/detail/expected.hpp>
+#include <continuable/detail/traits.hpp>
 #include <continuable/detail/types.hpp>
 
 #include <test-continuable.hpp>
 
-using cti::detail::types::error_type;
 using cti::detail::container::expected;
+using cti::detail::traits::unpack;
+using cti::detail::types::error_type;
 
 static int const CANARY = 373671;
 
@@ -145,6 +147,47 @@ TYPED_TEST(expected_all_tests, is_value_assignable) {
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
     EXPECT_TRUE(e.is_exception());
+  }
+}
+
+/// This test tests whether an expected objects fulfills the requirements
+/// to be used in C++17 structured bindings:
+/// - std::tuple_size is specialized
+/// - objects are retrieveable through std::get or through ADL get
+TYPED_TEST(expected_all_tests, is_position_accessible) {
+  static_assert(std::tuple_size<TypeParam>::value == 2, "Invalid size!");
+
+  {
+    TypeParam e(this->supply(CANARY));
+    EXPECT_EQ(this->get(std::move(e).template get<1>()), CANARY);
+  }
+
+  {
+    TypeParam e(this->supply(CANARY));
+
+    /*unpack(
+        [this](auto error, auto value) {
+          // ...
+          EXPECT_EQ(this->get(value), CANARY);
+        },
+        std::move(e));*/
+  }
+
+  {
+    TypeParam e(error_type{});
+    error_type other = std::move(e).template get<0>();
+    (void)other;
+  }
+
+  {
+    TypeParam e(error_type{});
+
+    /*unpack(
+        [this](auto error, auto value) {
+          // The value was default constructed
+          EXPECT_EQ(this->get(value), 0);
+        },
+        std::move(e));*/
   }
 }
 

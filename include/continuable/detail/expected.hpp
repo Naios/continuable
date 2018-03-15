@@ -41,6 +41,12 @@
 namespace cti {
 namespace detail {
 namespace container {
+namespace detail {
+/// A specialization which returns one of multiple error codes
+template <std::size_t I, typename Expected>
+struct expected_access;
+} // namespace detail
+
 /// A class similar to the one in the expected proposal,
 /// however it is capable of carrying an exception_ptr if
 /// exceptions are used.
@@ -108,10 +114,24 @@ public:
   T const& operator*() const noexcept {
     return get_value();
   }
+
+  template <std::size_t I>
+  auto get() const& {
+    return detail::expected_access<I, expected>::access(*this);
+  }
+  template <std::size_t I>
+  auto get() && {
+    return detail::expected_access<I, expected>::access(std::move(*this));
+  }
 };
 
 namespace detail {
 struct void_guard_tag {};
+
+template <typename... Args>
+struct multiple_guard_tag {
+  std::tuple<Args...> args;
+};
 
 template <typename T>
 struct expected_result_trait;
@@ -141,15 +161,18 @@ struct expected_result_trait<traits::identity<T>> {
 };
 template <typename First, typename Second, typename... Rest>
 struct expected_result_trait<traits::identity<First, Second, Rest...>> {
-  using expected_type = expected<std::tuple<First, Second, Rest...>>;
+  using expected_type =
+      expected<multiple_guard_tag<std::tuple<First, Second, Rest...>>>;
 
   static auto wrap(First first, Second second, Rest... rest) {
-    return std::make_tuple(std::move(first), std::move(second),
-                           std::move(rest)...);
+    using tag = multiple_guard_tag<std::decay_t<First>, std::decay_t<Second>,
+                                   std::decay_t<Rest>...>;
+    return tag{std::make_tuple(std::move(first), std::move(second),
+                               std::move(rest)...)};
   }
   static auto unwrap(expected_type&& e) {
     assert(e.is_value());
-    return std::move(e.get_value());
+    return std::move(e.get_value().args_);
   }
 };
 } // namespace detail
@@ -157,8 +180,94 @@ struct expected_result_trait<traits::identity<First, Second, Rest...>> {
 template <typename Continuable>
 using expected_result_trait_t = detail::expected_result_trait<decltype(
     hints::hint_of(traits::identify<Continuable>{}))>;
+
+namespace detail {
+/// The specialization which returns an error code instead of a value
+template <typename Expected>
+struct expected_access<0U, Expected> {
+  template <typename T>
+  static types::error_type access(expected<T> const& e) {
+    if (e.is_exception()) {
+      return e.get_exception();
+    } else {
+      return T{};
+    }
+  }
+  template <typename T>
+  static types::error_type access(expected<T>&& e) {
+    if (e.is_exception()) {
+      return std::move(e.get_exception());
+    } else {
+      return T{};
+    }
+  }
+};
+template <typename T>
+struct expected_access<1U, expected<T>> {
+  static T access(expected<T> const& e) {
+    if (e.is_value()) {
+      return e.get_value();
+    } else {
+      return T{};
+    }
+  }
+  static T access(expected<T>&& e) {
+    if (e.is_value()) {
+      return std::move(e.get_value());
+    } else {
+      return T{};
+    }
+  }
+};
+template <std::size_t I, typename... Args>
+struct expected_access<I, expected<multiple_guard_tag<Args...>>> {
+  static auto access(expected<multiple_guard_tag<Args...>> const& e) {
+    if (e.is_value()) {
+      return std::get<I - 1>(e.get_value()._args);
+    } else {
+      // Default construct the value
+      return std::tuple_element_t<I - 1, std::tuple<Args...>>{};
+    }
+  }
+  static auto access(expected<multiple_guard_tag<Args...>>&& e) {
+    if (e.is_value()) {
+      return std::get<I - 1>(std::move(e.get_value()._args));
+    } else {
+      // Default construct the value
+      return std::tuple_element_t<I - 1, std::tuple<Args...>>{};
+    }
+  }
+};
+} // namespace detail
+
+/// Get specializtion mainly for using for co_await together
+/// with structured bindings.
+/*template <std::size_t I, typename T>
+constexpr auto get(expected<T> const& e) /// ...
+    -> decltype(detail::expected_access<I, expected<T>>(e)) {
+  return detail::expected_access<I, expected<T>>(e);
+}
+/// Get specializtion mainly for using for co_await together
+/// with structured bindings.
+template <std::size_t I, typename T>
+constexpr auto get(expected<T>&& e) /// ...
+    -> decltype(detail::expected_access<I, expected<T>>(std::move(e))) {
+  return detail::expected_access<I, expected<T>>(std::move(e));
+}*/
 } // namespace container
 } // namespace detail
 } // namespace cti
+
+/// \cond false
+namespace std {
+template <typename T>
+struct tuple_size<cti::detail::container::expected<T>>
+    : integral_constant<std::size_t, 2> {};
+template <typename... Args>
+struct tuple_size<cti::detail::container::expected<
+    cti::detail::container::detail::multiple_guard_tag<Args...>>>
+    : integral_constant<std::size_t, 1 + sizeof...(Args)> {};
+} // namespace std
+/// \endcond
 
 #endif // CONTINUABLE_DETAIL_EXPECTED_HPP_INCLUDED
