@@ -57,6 +57,13 @@ struct index_of_impl<T, U, Args...>
 template <typename T, typename... Args>
 using index_of_t = detail::index_of_impl<T, Args...>;
 
+/// Creates a tuple in which r-values gets copied and
+/// l-values keep their l-value.
+template <typename... T>
+auto make_flat_tuple(T&&... args) {
+  return std::tuple<T...>{std::forward<T>(args)...};
+}
+
 /// A tagging type for wrapping other types
 template <typename... T>
 struct identity {};

@@ -44,46 +44,48 @@
 namespace cti {
 namespace detail {
 namespace convert {
-/// A helper class for promisifying asio and js style callback
-/// taking functions into a continuable.
-template <typename P>
-struct promisify_default {
-  P promise;
+/// A resolver for promisifying asio and js style callbacks.
+inline auto default_resolver() {
+  return [](auto&& promise, auto&& e, auto&&... args) {
+    static_assert(
+        std::is_convertible<std::decay_t<decltype(e)>, error_type>::value,
+        "The given error type must be convertible to the error type used! "
+        "Specify a custom resolver in order to apply a conversion to the "
+        "used error type.");
 
-  template <typename E, typename... T>
-  void operator()(E&& error, T&&... result) {
-    if (error) {
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
-      promise.set_exception(std::make_exception_ptr(std::forward<E>(error)));
-#else
-      promise.set_exception(
-          std::error_condition(error.value(), error.category()));
-#endif // CONTINUABLE_HAS_EXCEPTIONS
-
+    if (e) {
+      promise.set_exception(std::forward<decltype(e)>(e));
     } else {
-      promise.set_value(std::forward<T>(result)...);
+      promise.set_value(std::forward<decltype(args)>(args)...);
     }
-  }
-};
+  };
+}
 
 template <typename... Result>
 struct promisify_helper {
-  template <template <class T> class Evaluator, typename Callable,
-            typename... Args>
-  static auto from(Callable&& callable, Args&&... args) {
-    return make_continuable<Result...>([args = std::make_tuple(
-                                            std::forward<Callable>(callable),
-                                            std::forward<Args>(args)...)](
-        auto&& promise) mutable {
+  template <typename Resolver, typename Callable, typename... Args>
+  static auto from(Resolver&& resolver, Callable&& callable, Args&&... args) {
+    return make_continuable<Result...>([
+      resolver = std::forward<Resolver>(resolver),
+      args = traits::make_flat_tuple(std::forward<Callable>(callable),
+                                     std::forward<Args>(args)...)
+    ](auto&& promise) mutable {
 
       traits::unpack(
-          [promise = std::forward<decltype(promise)>(promise)](
-              auto&&... args) mutable {
-            Evaluator<std::decay_t<decltype(promise)>> evaluator{
-                std::move(promise)};
+          [ promise = std::forward<decltype(promise)>(promise),
+            &resolver ](auto&&... args) mutable {
 
+            // Call the resolver from with the promise and result
+            auto callback = [
+              resolver = std::move(resolver), promise = std::move(promise)
+            ](auto&&... args) mutable {
+              resolver(std::move(promise),
+                       std::forward<decltype(args)>(args)...);
+            };
+
+            // Invoke the callback taking function
             util::invoke(std::forward<decltype(args)>(args)...,
-                         std::move(evaluator));
+                         std::move(callback));
           },
           std::move(args));
     });

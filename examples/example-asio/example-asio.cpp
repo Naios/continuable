@@ -34,11 +34,29 @@
 #include <string>
 #include <system_error>
 
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#include <exception>
+#endif
+
 #include <asio.hpp>
 
 #include <continuable/continuable.hpp>
 
 using namespace std::chrono_literals;
+
+inline auto error_code_remapper() {
+  return [](auto&& promise, asio::error_code e, auto&&... args) {
+    if (e) {
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+      promise.set_exception(std::make_exception_ptr(e));
+#else
+      promise.set_exception(cti::error_type(e.value(), e.category()));
+#endif
+    } else {
+      promise.set_value(std::forward<decltype(args)>(args)...);
+    }
+  };
+}
 
 struct functional_io_service {
   asio::io_context service_;
@@ -61,7 +79,8 @@ struct functional_io_service {
   }
 
   auto async_resolve(std::string host, std::string service) {
-    return cti::promisify<asio::ip::udp::resolver::iterator>::from(
+    return cti::promisify<asio::ip::udp::resolver::iterator>::with(
+        error_code_remapper(),
         [&](auto&&... args) {
           resolver_.async_resolve(std::forward<decltype(args)>(args)...);
         },

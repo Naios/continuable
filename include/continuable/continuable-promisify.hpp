@@ -72,18 +72,47 @@ public:
   /// }
   /// ```
   ///
-  /// If the error code which is passed as first parameter is set there are
-  /// two behaviours depending whether exceptions are enabled:
-  /// - If exceptions are enabled the error type is passed via
-  ///   an exception_ptr to the failure handler.
-  /// - If exceptions are disabled the error type is converted to a
-  ///   `std::error_conditon` and passed down to the error handler.
+  /// A given error variable is converted to the used error type.
+  /// If this isn't possible you need to create a custom resolver callable
+  /// object \see with for details.
   ///
   /// \since  3.0.0
   template <typename Callable, typename... Args>
   static auto from(Callable&& callable, Args&&... args) {
-    return helper::template from<detail::convert::promisify_default>(
-        std::forward<Callable>(callable), std::forward<Args>(args)...);
+    return helper::template from(detail::convert::default_resolver(),
+                                 std::forward<Callable>(callable),
+                                 std::forward<Args>(args)...);
+  }
+
+  /// \copybrief from
+  ///
+  /// This modification of \ref from additionally takes a resolver callable
+  /// object which is used to resolve the promise from the given result.
+  ///
+  /// See an example of how to promisify boost asio's async_resolve below:
+  /// ```cpp
+  /// auto async_resolve(std::string host, std::string service) {
+  ///   return cti::promisify<asio::ip::udp::resolver::iterator>::with(
+  ///       [](auto&& promise, auto&& e, auto&&... args) {
+  ///         if (e) {
+  ///           promise.set_exception(std::forward<decltype(e)>(e));
+  ///         } else {
+  ///           promise.set_value(std::forward<decltype(args)>(args)...);
+  ///         }
+  ///       },
+  ///       [&](auto&&... args) {
+  ///         resolver_.async_resolve(std::forward<decltype(args)>(args)...);
+  ///       },
+  ///       std::move(host), std::move(service));
+  /// }
+  /// ```
+  ///
+  /// \since 3.1.0
+  template <typename Resolver, typename Callable, typename... Args>
+  static auto with(Resolver&& resolver, Callable&& callable, Args&&... args) {
+    return helper::template from(std::forward<Resolver>(resolver),
+                                 std::forward<Callable>(callable),
+                                 std::forward<Args>(args)...);
   }
 };
 /// \}
