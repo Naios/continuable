@@ -461,12 +461,23 @@ struct final_callback : util::non_copyable {
   }
 
   void operator()(types::dispatch_error_tag, types::error_type error) && {
-    (void)error;
 #ifndef CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
     // There were unhandled errors inside the asynchronous call chain!
     // Define `CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS` in order
     // to ignore unhandled errors!"
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+    try {
+      std::rethrow_exception(error);
+    } catch (std::exception const& exception) {
+      (void)exception;
+      util::trap();
+    } catch (...) {
+      util::trap();
+    }
+#else
+    (void)error;
     util::trap();
+#endif
 #endif // CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
   }
 
