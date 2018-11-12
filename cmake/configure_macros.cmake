@@ -19,4 +19,4 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-include(${CMAKE_SOURCE_DIR}/cmake/macros/group_sources.cmake)
+include(${PROJECT_SOURCE_DIR}/cmake/macros/group_sources.cmake)
