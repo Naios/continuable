@@ -18,7 +18,8 @@ endif()
 find_package(Boost 1.68 REQUIRED
   COMPONENTS
     system
-    iostreams)
+    iostreams
+    thread)
 
 if (${Boost_FOUND})
   add_library(boost INTERFACE)
@@ -26,7 +27,8 @@ if (${Boost_FOUND})
   target_link_libraries(boost
     INTERFACE
       Boost::system
-      Boost::iostreams)
+      Boost::iostreams
+      Boost::thread)
 
   target_compile_definitions(boost
     INTERFACE
@@ -34,5 +36,8 @@ if (${Boost_FOUND})
       BOOST_ASIO_DISABLE_BOOST_DATE_TIME
       BOOST_ASIO_DISABLE_BOOST_REGEX
       BOOST_RANGE_ENABLE_CONCEPT_ASSERT=0
-      BOOST_FILESYSTEM_NO_DEPRECATED)
+      BOOST_THREAD_PROVIDES_FUTURE
+      BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+      BOOST_FILESYSTEM_NO_DEPRECATED
+      BOOST_THREAD_VERSION=4)
 endif()
