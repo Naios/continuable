@@ -1,3 +1,4 @@
+if(ON)
 add_library(gtest STATIC
   ${CMAKE_CURRENT_LIST_DIR}/googletest/googletest/src/gtest-all.cc)
 
@@ -42,3 +43,10 @@ target_include_directories(gmock
     ${CMAKE_CURRENT_LIST_DIR}/googletest/googlemock
   PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/googletest/googlemock/include)
+
+else()
+set(BUILD_GTEST ON)
+set(BUILD_GMOCK OFF)
+set(INSTALL_GTEST OFF)
+add_subdirectory(googletest)
+endif()

@@ -33,6 +33,10 @@ option(CTI_CONTINUABLE_WITH_EXAMPLES
        "Build the continuable examples"
        ${IS_TOP_LEVEL_PROJECT})
 
+option(CTI_CONTINUABLE_WITH_BENCHMARKS
+       "Build the continuable benchmarks"
+       ${IS_TOP_LEVEL_PROJECT})
+
 option(CTI_CONTINUABLE_WITH_NO_EXCEPTIONS
        "Disable exception support"
        OFF)
