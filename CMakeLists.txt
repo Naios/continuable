@@ -35,7 +35,7 @@ option(CTI_CONTINUABLE_WITH_EXAMPLES
 
 option(CTI_CONTINUABLE_WITH_BENCHMARKS
        "Build the continuable benchmarks"
-       ${IS_TOP_LEVEL_PROJECT})
+       OFF)
 
 option(CTI_CONTINUABLE_WITH_NO_EXCEPTIONS
        "Disable exception support"
