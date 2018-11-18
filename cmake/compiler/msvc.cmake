@@ -31,9 +31,18 @@ if (PLATFORM EQUAL 64)
       -D_WIN64)
 endif()
 
+if (CTI_CONTINUABLE_WITH_CONCURRENT_JOBS)
+  target_compile_options(continuable-features-flags
+    INTERFACE
+      /MP${CTI_CONTINUABLE_WITH_CONCURRENT_JOBS})
+else()
+  target_compile_options(continuable-features-flags
+    INTERFACE
+      /MP)
+endif()
+
 target_compile_options(continuable-features-flags
   INTERFACE
-    /MP2
     /bigobj
     /permissive-)
 

@@ -57,6 +57,13 @@ option(CTI_CONTINUABLE_WITH_LIGHT_TESTS
        "Disable some template heavy unit tests (for CI usage)"
        OFF)
 
+# Top level project settings only
+if (IS_TOP_LEVEL_PROJECT)
+  set(CTI_CONTINUABLE_WITH_CONCURRENT_JOBS
+       "0" CACHE STRING
+       "Set the number of concurrent compilation jobs (0 = unlimited, for CI usage)")
+endif()
+
 include(cmake/CMakeLists.txt)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
