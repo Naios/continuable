@@ -46,7 +46,6 @@ namespace detail {
 namespace container {
 namespace detail {
 // We don't want to pull the algorithm header in
-template <typename... T>
 constexpr std::size_t max_element_of(std::initializer_list<std::size_t> list) {
   std::size_t m = 0;
   for (auto current : list) {
@@ -57,7 +56,7 @@ constexpr std::size_t max_element_of(std::initializer_list<std::size_t> list) {
   return m;
 }
 template <typename... T>
-constexpr auto storage_of_impl() {
+constexpr auto storage_of_impl(traits::identity<T...>) {
   constexpr auto size = max_element_of({sizeof(T)...});
   constexpr auto align = max_element_of({alignof(T)...});
   return std::aligned_storage_t<size, align>{};
@@ -65,7 +64,7 @@ constexpr auto storage_of_impl() {
 
 /// Declares the aligned storage union for the given types
 template <typename... T>
-using storage_of_t = decltype(storage_of_impl<T...>());
+using storage_of_t = decltype(storage_of_impl(traits::identity<T...>{}));
 
 /// The value fpr the empty slot
 using slot_t = std::uint8_t;
