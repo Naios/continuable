@@ -33,7 +33,7 @@ endif()
 
 target_compile_options(continuable-features-flags
   INTERFACE
-    /MP
+    /MP2
     /bigobj
     /permissive-)
 
