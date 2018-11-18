@@ -23,14 +23,12 @@
 
 #include <memory>
 #include <utility>
-
-#include <continuable/detail/expected.hpp>
-#include <continuable/detail/types.hpp>
-
+#include <continuable/detail/core/types.hpp>
+#include <continuable/detail/utility/expected.hpp>
 #include <test-continuable.hpp>
 
-using cti::detail::types::error_type;
 using cti::detail::container::expected;
+using cti::detail::types::error_type;
 
 static int const CANARY = 373671;
 

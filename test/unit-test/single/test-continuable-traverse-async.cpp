@@ -30,11 +30,9 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
 #include <continuable/continuable-traverse-async.hpp>
-#include <continuable/detail/traits.hpp>
-#include <continuable/detail/util.hpp>
-
+#include <continuable/detail/utility/traits.hpp>
+#include <continuable/detail/utility/util.hpp>
 #include <test-continuable.hpp>
 
 using std::get;

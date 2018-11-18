@@ -23,9 +23,7 @@
 
 #include <memory>
 #include <utility>
-
-#include <continuable/detail/flat-variant.hpp>
-
+#include <continuable/detail/utility/flat-variant.hpp>
 #include <test-continuable.hpp>
 
 using cti::detail::container::flat_variant;
