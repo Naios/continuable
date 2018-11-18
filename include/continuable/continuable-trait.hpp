@@ -32,11 +32,10 @@
 #define CONTINUABLE_TRAIT_HPP_INCLUDED
 
 #include <cstddef>
-
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-promise-base.hpp>
-#include <continuable/detail/hints.hpp>
-#include <continuable/detail/types.hpp>
+#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/types.hpp>
 
 namespace cti {
 /// \defgroup Types Types

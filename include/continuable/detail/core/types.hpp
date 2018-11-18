@@ -32,7 +32,6 @@
 #define CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED
 
 #include <utility>
-
 #include <continuable/detail/features.hpp>
 
 #ifndef CONTINUABLE_WITH_CUSTOM_ERROR_TYPE

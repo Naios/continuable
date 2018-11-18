@@ -32,9 +32,8 @@
 #define CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED
 
 #include <type_traits>
-
-#include <continuable/detail/traits.hpp>
-#include <continuable/detail/types.hpp>
+#include <continuable/detail/core/types.hpp>
+#include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
 namespace detail {

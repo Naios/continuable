@@ -32,9 +32,7 @@
 #define CONTINUABLE_TYPES_HPP_INCLUDED
 
 #include <cstddef>
-
 #include <function2/function2.hpp>
-
 #include <continuable/continuable-trait.hpp>
 
 namespace cti {

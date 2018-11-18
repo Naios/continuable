@@ -32,15 +32,15 @@
 
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-types.hpp>
+#include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
-#include <continuable/detail/types.hpp>
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
 #include <exception>
 #endif // CONTINUABLE_HAS_EXCEPTIONS
 
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
-#include <continuable/detail/awaiting.hpp>
+#include <continuable/detail/other/coroutines.hpp>
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 
 /// \cond false

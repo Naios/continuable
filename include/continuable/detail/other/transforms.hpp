@@ -32,12 +32,11 @@
 #define CONTINUABLE_DETAIL_TRANSFORMS_HPP_INCLUDED
 
 #include <future>
-
-#include <continuable/detail/base.hpp>
+#include <continuable/detail/core/base.hpp>
+#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
-#include <continuable/detail/hints.hpp>
-#include <continuable/detail/types.hpp>
-#include <continuable/detail/util.hpp>
+#include <continuable/detail/utility/util.hpp>
 
 namespace cti {
 namespace detail {

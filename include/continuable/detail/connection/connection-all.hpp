@@ -37,13 +37,12 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
-#include <continuable/detail/base.hpp>
-#include <continuable/detail/connection-aggregated.hpp>
-#include <continuable/detail/connection.hpp>
-#include <continuable/detail/hints.hpp>
-#include <continuable/detail/traits.hpp>
-#include <continuable/detail/types.hpp>
+#include <continuable/detail/connection/connection-aggregated.hpp>
+#include <continuable/detail/connection/connection.hpp>
+#include <continuable/detail/core/base.hpp>
+#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/types.hpp>
+#include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
 namespace detail {

@@ -34,12 +34,11 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
+#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
-#include <continuable/detail/hints.hpp>
-#include <continuable/detail/traits.hpp>
-#include <continuable/detail/types.hpp>
-#include <continuable/detail/util.hpp>
+#include <continuable/detail/utility/traits.hpp>
+#include <continuable/detail/utility/util.hpp>
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
 #include <exception>

@@ -35,11 +35,10 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
 #include <continuable/continuable-traverse.hpp>
-#include <continuable/detail/base.hpp>
-#include <continuable/detail/flat-variant.hpp>
-#include <continuable/detail/traits.hpp>
+#include <continuable/detail/core/base.hpp>
+#include <continuable/detail/utility/flat-variant.hpp>
+#include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
 namespace detail {
@@ -211,7 +210,7 @@ constexpr auto finalize_impl(traits::identity<std::tuple<Args...>>,
                              Callback&& callback, Data&& data) {
   // Call the final callback with the cleaned result
   return traits::unpack(std::forward<Callback>(callback),
-                       unbox_continuables(std::forward<Data>(data)));
+                        unbox_continuables(std::forward<Data>(data)));
 }
 
 struct hint_mapper {

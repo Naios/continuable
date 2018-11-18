@@ -33,10 +33,9 @@
 
 #include <type_traits>
 #include <utility>
-
-#include <continuable/detail/flat-variant.hpp>
-#include <continuable/detail/hints.hpp>
-#include <continuable/detail/types.hpp>
+#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/types.hpp>
+#include <continuable/detail/utility/flat-variant.hpp>
 
 namespace cti {
 namespace detail {

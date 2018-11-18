@@ -33,8 +33,7 @@
 
 #include <type_traits>
 #include <utility>
-
-#include <continuable/detail/promisify.hpp>
+#include <continuable/detail/other/promisify.hpp>
 
 namespace cti {
 /// \defgroup Promisify Promisify

@@ -35,8 +35,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include <continuable/detail/traits.hpp>
+#include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
 namespace detail {

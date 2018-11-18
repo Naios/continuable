@@ -39,9 +39,8 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
-#include <continuable/detail/container-category.hpp>
-#include <continuable/detail/traits.hpp>
+#include <continuable/detail/traversal/container-category.hpp>
+#include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
 namespace detail {

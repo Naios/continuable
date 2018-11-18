@@ -32,8 +32,7 @@
 #define CONTINUABLE_TRAVERSE_ASYNC_HPP_INCLUDED
 
 #include <utility>
-
-#include <continuable/detail/traverse-async.hpp>
+#include <continuable/detail/traversal/traverse-async.hpp>
 
 namespace cti {
 /// \defgroup Traversal Traversal

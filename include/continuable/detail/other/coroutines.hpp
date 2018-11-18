@@ -33,15 +33,14 @@
 #define CONTINUABLE_DETAIL_AWAITING_HPP_INCLUDED
 
 #include <cassert>
-#include <experimental/coroutine>
 #include <tuple>
-
-#include <continuable/detail/expected.hpp>
+#include <experimental/coroutine>
+#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
-#include <continuable/detail/hints.hpp>
-#include <continuable/detail/traits.hpp>
-#include <continuable/detail/types.hpp>
-#include <continuable/detail/util.hpp>
+#include <continuable/detail/utility/expected.hpp>
+#include <continuable/detail/utility/traits.hpp>
+#include <continuable/detail/utility/util.hpp>
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
 #include <exception>
@@ -172,8 +171,7 @@ struct promise_resolver_base<promise_type<Promise, Args...>> {
 };
 
 template <typename Promise, typename... Args>
-struct promise_type
-    : promise_resolver_base<promise_type<Promise, Args...>> {
+struct promise_type : promise_resolver_base<promise_type<Promise, Args...>> {
 
   coroutine_handle<> handle_;
   Promise promise_;

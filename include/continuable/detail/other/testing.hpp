@@ -33,13 +33,11 @@
 
 #include <type_traits>
 #include <utility>
-
 #include <gtest/gtest.h>
-
+#include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
-#include <continuable/detail/traits.hpp>
-#include <continuable/detail/types.hpp>
-#include <continuable/detail/util.hpp>
+#include <continuable/detail/utility/traits.hpp>
+#include <continuable/detail/utility/util.hpp>
 
 namespace cti {
 namespace detail {

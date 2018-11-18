@@ -37,14 +37,13 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/continuable-traverse.hpp>
-#include <continuable/detail/base.hpp>
-#include <continuable/detail/container-category.hpp>
-#include <continuable/detail/hints.hpp>
-#include <continuable/detail/traits.hpp>
-#include <continuable/detail/types.hpp>
+#include <continuable/detail/core/base.hpp>
+#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/types.hpp>
+#include <continuable/detail/traversal/container-category.hpp>
+#include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
 namespace detail {

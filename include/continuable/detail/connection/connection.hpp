@@ -35,12 +35,11 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
 #include <continuable/continuable-traverse.hpp>
-#include <continuable/detail/base.hpp>
-#include <continuable/detail/traits.hpp>
-#include <continuable/detail/types.hpp>
-#include <continuable/detail/util.hpp>
+#include <continuable/detail/core/base.hpp>
+#include <continuable/detail/core/types.hpp>
+#include <continuable/detail/utility/traits.hpp>
+#include <continuable/detail/utility/util.hpp>
 
 namespace cti {
 namespace detail {

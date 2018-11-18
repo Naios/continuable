@@ -35,12 +35,11 @@
 #include <memory>
 #include <utility>
 #include <vector>
-
-#include <continuable/detail/connection-all.hpp>
-#include <continuable/detail/connection-any.hpp>
-#include <continuable/detail/connection-seq.hpp>
-#include <continuable/detail/connection.hpp>
-#include <continuable/detail/range.hpp>
+#include <continuable/detail/connection/connection-all.hpp>
+#include <continuable/detail/connection/connection-any.hpp>
+#include <continuable/detail/connection/connection-seq.hpp>
+#include <continuable/detail/connection/connection.hpp>
+#include <continuable/detail/traversal/range.hpp>
 
 namespace cti {
 /// \defgroup Connections Connections

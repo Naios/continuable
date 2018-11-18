@@ -33,10 +33,9 @@
 
 #include <type_traits>
 #include <utility>
-
-#include <continuable/detail/hints.hpp>
-#include <continuable/detail/types.hpp>
-#include <continuable/detail/util.hpp>
+#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/types.hpp>
+#include <continuable/detail/utility/util.hpp>
 
 namespace cti {
 /// \defgroup Base Base

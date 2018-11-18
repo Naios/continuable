@@ -31,8 +31,8 @@
 #ifndef CONTINUABLE_TRANSFORMS_HPP_INCLUDED
 #define CONTINUABLE_TRANSFORMS_HPP_INCLUDED
 
-#include <continuable/detail/transforms.hpp>
-#include <continuable/detail/types.hpp>
+#include <continuable/detail/core/types.hpp>
+#include <continuable/detail/other/transforms.hpp>
 
 namespace cti {
 /// \defgroup Transforms Transforms

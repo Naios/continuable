@@ -31,8 +31,8 @@
 #ifndef CONTINUABLE_TESTING_HPP_INCLUDED
 #define CONTINUABLE_TESTING_HPP_INCLUDED
 
-#include <continuable/detail/testing.hpp>
-#include <continuable/detail/traits.hpp>
+#include <continuable/detail/other/testing.hpp>
+#include <continuable/detail/utility/traits.hpp>
 
 /// \defgroup Testing Testing
 /// provides macro shortcuts for testing asynchronous continuations through

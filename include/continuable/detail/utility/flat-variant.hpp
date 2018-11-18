@@ -38,8 +38,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
-
-#include <continuable/detail/traits.hpp>
+#include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
 namespace detail {

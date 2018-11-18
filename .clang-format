@@ -10,3 +10,16 @@ FixNamespaceComments: true
 # IndentPPDirectives: AfterHash
 MacroBlockBegin: "^CONTINUABLE_BLOCK_.*_BEGIN$"
 MacroBlockEnd: "^CONTINUABLE_BLOCK_.*_END$"
+IncludeCategories:
+  - Regex:           '^<+[a-z_]+>'
+    Priority:        1
+  - Regex:           '^<experimental/+[a-z_]+>'
+    Priority:        2
+  - Regex:           '^<(gtest|function2)/.*\.(h|hpp)>'
+    Priority:        3
+  - Regex:           '^<continuable/.*\.hpp>'
+    Priority:        4
+  - Regex:           '^<.*'
+    Priority:        5
+  - Regex:           '.*'
+    Priority:        6

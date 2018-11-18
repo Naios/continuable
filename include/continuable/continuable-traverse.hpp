@@ -34,8 +34,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
-#include <continuable/detail/traverse.hpp>
+#include <continuable/detail/traversal/traverse.hpp>
 
 namespace cti {
 /// \defgroup Traversal Traversal

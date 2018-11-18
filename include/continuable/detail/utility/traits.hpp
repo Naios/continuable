@@ -35,7 +35,6 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
 #include <continuable/detail/features.hpp>
 
 namespace cti {

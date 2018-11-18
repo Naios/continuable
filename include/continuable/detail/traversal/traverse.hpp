@@ -37,9 +37,8 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
-#include <continuable/detail/container-category.hpp>
-#include <continuable/detail/traits.hpp>
+#include <continuable/detail/traversal/container-category.hpp>
+#include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
 namespace detail {
@@ -193,9 +192,9 @@ template <typename C, typename... T>
 constexpr auto apply_spread_impl(std::true_type, C&& callable, T&&... args)
     -> decltype(
         traits::unpack(std::forward<C>(callable),
-                      std::tuple_cat(undecorate(std::forward<T>(args))...))) {
+                       std::tuple_cat(undecorate(std::forward<T>(args))...))) {
   return traits::unpack(std::forward<C>(callable),
-                       std::tuple_cat(undecorate(std::forward<T>(args))...));
+                        std::tuple_cat(undecorate(std::forward<T>(args))...));
 }
 
 /// Use the linear instantiation for variadic packs which don't

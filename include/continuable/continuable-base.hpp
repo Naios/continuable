@@ -35,20 +35,19 @@
 #include <cstddef>
 #include <type_traits>
 #include <utility>
-
-#include <continuable/detail/base.hpp>
-#include <continuable/detail/connection-all.hpp>
-#include <continuable/detail/connection-any.hpp>
-#include <continuable/detail/connection-seq.hpp>
-#include <continuable/detail/connection.hpp>
+#include <continuable/detail/connection/connection-all.hpp>
+#include <continuable/detail/connection/connection-any.hpp>
+#include <continuable/detail/connection/connection-seq.hpp>
+#include <continuable/detail/connection/connection.hpp>
+#include <continuable/detail/core/base.hpp>
+#include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
-#include <continuable/detail/traits.hpp>
-#include <continuable/detail/types.hpp>
-#include <continuable/detail/util.hpp>
+#include <continuable/detail/utility/traits.hpp>
+#include <continuable/detail/utility/util.hpp>
 
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
-#include <continuable/detail/awaiting.hpp>
 #include <experimental/coroutine>
+#include <continuable/detail/other/coroutines.hpp>
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 
 namespace cti {

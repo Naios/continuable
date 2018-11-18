@@ -32,14 +32,14 @@
 #define CONTINUABLE_DETAIL_PROMISIFY_HPP_INCLUDED
 
 #include <type_traits>
+#include <continuable/continuable-base.hpp>
+#include <continuable/detail/features.hpp>
+#include <continuable/detail/utility/traits.hpp>
+#include <continuable/detail/utility/util.hpp>
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
 #include <exception>
 #endif // CONTINUABLE_HAS_EXCEPTIONS
-
-#include <continuable/continuable-base.hpp>
-#include <continuable/detail/traits.hpp>
-#include <continuable/detail/util.hpp>
 
 namespace cti {
 namespace detail {
