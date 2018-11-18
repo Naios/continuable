@@ -231,7 +231,8 @@ struct static_async_range {
   }
 
   template <std::size_t Position>
-  constexpr auto relocate() const noexcept {
+  constexpr auto relocate(std::integral_constant<std::size_t, Position>) const
+      noexcept {
     return static_async_range<Target, Position, End>{target_};
   }
 
@@ -422,8 +423,8 @@ public:
   template <std::size_t... Sequence, typename Current>
   void async_traverse_static_async_range(
       std::integer_sequence<std::size_t, Sequence...>, Current&& current) {
-    int dummy[] = {0, ((void)async_traverse_one_checked(
-                           current.template relocate<Sequence>()),
+    int dummy[] = {0, (async_traverse_one_checked(current.relocate(
+                           std::integral_constant<std::size_t, Sequence>{})),
                        0)...};
     (void)dummy;
     (void)current;
