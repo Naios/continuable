@@ -43,8 +43,8 @@ using cti::async_traverse_complete_tag;
 using cti::async_traverse_detach_tag;
 using cti::async_traverse_in_place_tag;
 using cti::async_traverse_visit_tag;
-using cti::detail::util::unused;
 using cti::traverse_pack_async;
+using cti::detail::util::unused;
 
 /// A tag which isn't accepted by any mapper
 struct not_accepted_tag {};
@@ -248,7 +248,7 @@ TEST(async_traversal_tuple_like, visit_tuple_huge) {
 }
 
 template <typename T, typename... Args,
-          typename Vector = std::vector<typename std::decay<T>::type>>
+          typename Vector = std::vector<std::decay_t<T>>>
 Vector vector_of(T&& first, Args&&... args) {
   return Vector{std::forward<T>(first), std::forward<Args>(args)...};
 }

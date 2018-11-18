@@ -97,10 +97,8 @@ public:
 /// given iterator tuple.
 template <typename Frame, typename State>
 auto make_resume_traversal_callable(Frame&& frame, State&& state)
-    -> resume_traversal_callable<typename std::decay<Frame>::type,
-                                 typename std::decay<State>::type> {
-  return resume_traversal_callable<typename std::decay<Frame>::type,
-                                   typename std::decay<State>::type>(
+    -> resume_traversal_callable<std::decay_t<Frame>, std::decay_t<State>> {
+  return resume_traversal_callable<std::decay_t<Frame>, std::decay_t<State>>(
       std::forward<Frame>(frame), std::forward<State>(state));
 }
 
@@ -291,9 +289,9 @@ struct dynamic_async_range {
 };
 
 template <typename T>
-using dynamic_async_range_of_t = dynamic_async_range<
-    typename std::decay<decltype(std::begin(std::declval<T>()))>::type,
-    typename std::decay<decltype(std::end(std::declval<T>()))>::type>;
+using dynamic_async_range_of_t =
+    dynamic_async_range<std::decay_t<decltype(std::begin(std::declval<T>()))>,
+                        std::decay_t<decltype(std::end(std::declval<T>()))>>;
 
 /// Returns a dynamic range for the given type
 template <typename T>
@@ -337,9 +335,8 @@ public:
     auto hierarchy = std::tuple_cat(
         std::make_tuple(std::forward<Parent>(parent)), hierarchy_);
 
-    return async_traversal_point<Frame, typename std::decay<Parent>::type,
-                                 Hierarchy...>(frame_, std::move(hierarchy),
-                                               detached_);
+    return async_traversal_point<Frame, std::decay_t<Parent>, Hierarchy...>(
+        frame_, std::move(hierarchy), detached_);
   }
 
   /// Forks the current traversal point and continues the child
@@ -405,7 +402,7 @@ public:
   /// Async traverse the current iterator
   template <typename Current>
   void async_traverse_one(Current&& current) {
-    using ElementType = typename std::decay<decltype(*current)>::type;
+    using ElementType = std::decay_t<decltype(*current)>;
     return async_traverse_one_impl(container_category_of_t<ElementType>{},
                                    std::forward<Current>(current));
   }
@@ -453,8 +450,7 @@ public:
 /// given frame and hierarchy
 template <typename Frame, typename... Hierarchy>
 using traversal_point_of_t =
-    async_traversal_point<typename std::decay<Frame>::type,
-                          typename std::decay<Hierarchy>::type...>;
+    async_traversal_point<std::decay_t<Frame>, std::decay_t<Hierarchy>...>;
 
 /// A callable object which is capable of resuming an asynchronous
 /// pack traversal.
@@ -528,8 +524,8 @@ template <typename Visitor, typename... Args>
 struct async_traversal_types {
   /// Deduces to the async traversal frame type of the given
   /// traversal arguments and mapper
-  using frame_t = async_traversal_frame<typename std::decay<Visitor>::type,
-                                        typename std::decay<Args>::type...>;
+  using frame_t =
+      async_traversal_frame<std::decay_t<Visitor>, std::decay_t<Args>...>;
 
   /// The type of the demoted visitor type
   using visitor_t = Visitor;

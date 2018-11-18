@@ -331,9 +331,9 @@ public:
       : counter_(counter) {
   }
 
-  template <typename T, typename std::enable_if<
-                            std::is_same<typename std::decay<T>::type,
-                                         test_tag_1>::value>::type* = nullptr>
+  template <typename T,
+            typename std::enable_if<std::is_same<
+                std::decay_t<T>, test_tag_1>::value>::type* = nullptr>
   void operator()(T) {
     ++counter_.get();
   }
@@ -609,13 +609,13 @@ TEST(test_strategic_container_traverse, every_element_remapped_rvalue) {
   container.push_back(std::unique_ptr<std::unique_ptr<int>>(
       new std::unique_ptr<int>(new int(7))));
 
-  std::vector<std::unique_ptr<int>> res = map_pack(
-      [](std::unique_ptr<std::unique_ptr<int>> &
-         ref) -> std::unique_ptr<int>&& {
+  std::vector<std::unique_ptr<int>> res =
+      map_pack([](std::unique_ptr<std::unique_ptr<int>> &
+                  ref) -> std::unique_ptr<int>&& {
         // ...
         return std::move(*ref);
       },
-      container);
+               container);
 
   EXPECT_EQ(res.size(), 1U);
   EXPECT_EQ((*res[0]), 7);
