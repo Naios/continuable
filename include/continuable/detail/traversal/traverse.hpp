@@ -169,8 +169,7 @@ struct flat_arraylizer {
   /// Deduces to the array type when the array is instantiated
   /// with the given arguments.
   template <typename First, typename... Rest>
-  using array_type_of_t =
-      Type<typename std::decay<First>::type, 1 + sizeof...(Rest)>;
+  using array_type_of_t = Type<traits::unref_t<First>, 1 + sizeof...(Rest)>;
 
   // We overload with one argument here so Clang and GCC don't
   // have any issues with overloading against zero arguments.
@@ -408,8 +407,8 @@ using element_of_t = typename std::conditional<
 /// if the type is a l-value or r-value reference.
 template <typename T>
 using dereferenced_of_t =
-    typename std::conditional<std::is_reference<T>::value,
-                              typename std::decay<T>::type, T>::type;
+    typename std::conditional<std::is_reference<T>::value, traits::unref_t<T>,
+                              T>::type;
 
 /// Returns the type which is resulting if the mapping is applied to
 /// an element in the container.
@@ -423,8 +422,8 @@ using mapped_type_from_t = dereferenced_of_t<spreading::unpacked_of_t<decltype(
 
 /// Deduces to a true_type if the mapping maps to zero elements.
 template <typename T, typename M>
-using is_empty_mapped = spreading::is_empty_spread<typename std::decay<decltype(
-    std::declval<M>()(std::declval<element_of_t<T>>()))>::type>;
+using is_empty_mapped = spreading::is_empty_spread<traits::unref_t<decltype(
+    std::declval<M>()(std::declval<element_of_t<T>>()))>>;
 
 /// We are allowed to reuse the container if we map to the same
 /// type we are accepting and when we have
@@ -472,10 +471,9 @@ template <typename M, typename T>
 auto remap_container(container_mapping_tag<false, false>, M&& mapper,
                      T&& container)
     -> decltype(rebind_container<mapped_type_from_t<T, M>>(container)) {
-  static_assert(
-      has_push_back<typename std::decay<T>::type, element_of_t<T>>::value,
-      "Can only remap containers that provide a push_back "
-      "method!");
+  static_assert(has_push_back<traits::unref_t<T>, element_of_t<T>>::value,
+                "Can only remap containers that provide a push_back "
+                "method!");
 
   // Create the new container, which is capable of holding
   // the remappped types.
@@ -503,7 +501,7 @@ auto remap_container(container_mapping_tag<false, false>, M&& mapper,
 /// type we accepted such as int -> int.
 template <typename M, typename T>
 auto remap_container(container_mapping_tag<false, true>, M&& mapper,
-                     T&& container) -> typename std::decay<T>::type {
+                     T&& container) -> traits::unref_t<T> {
   for (auto&& val : container_accessor_of(std::forward<T>(container))) {
     val = spreading::unpack(
         std::forward<M>(mapper)(std::forward<decltype(val)>(val)));
@@ -629,12 +627,11 @@ struct tuple_like_remapper<
 /// different types.
 template <typename Strategy, typename T, typename M>
 auto remap(Strategy, T&& container, M&& mapper) -> decltype(traits::unpack(
-    std::declval<tuple_like_remapper<Strategy, typename std::decay<M>::type,
-                                     typename std::decay<T>::type>>(),
+    std::declval<tuple_like_remapper<Strategy, traits::unref_t<M>,
+                                     traits::unref_t<T>>>(),
     std::forward<T>(container))) {
   return traits::unpack(
-      tuple_like_remapper<Strategy, typename std::decay<M>::type,
-                          typename std::decay<T>::type>{
+      tuple_like_remapper<Strategy, traits::unref_t<M>, traits::unref_t<T>>{
           std::forward<M>(mapper)},
       std::forward<T>(container));
 }
@@ -645,7 +642,7 @@ auto remap(Strategy, T&& container, M&& mapper) -> decltype(traits::unpack(
 template <typename Strategy>
 struct mapping_strategy_base {
   template <typename T>
-  auto may_void(T&& element) const -> typename std::decay<T>::type {
+  auto may_void(T&& element) const -> traits::unref_t<T> {
     return std::forward<T>(element);
   }
 };
@@ -803,19 +800,19 @@ class mapping_helper : protected mapping_strategy_base<Strategy> {
   template <typename T>
   auto traverse(Strategy, T&& element)
       -> decltype(std::declval<mapping_helper>().match(
-          std::declval<container_category_of_t<typename std::decay<T>::type>>(),
+          std::declval<container_category_of_t<traits::unref_t<T>>>(),
           std::declval<T>()));
 
   /// \copybrief traverse
   template <typename T>
   auto try_traverse(Strategy, T&& element)
       -> decltype(std::declval<mapping_helper>().try_match(
-          std::declval<container_category_of_t<typename std::decay<T>::type>>(),
+          std::declval<container_category_of_t<traits::unref_t<T>>>(),
           std::declval<T>())) {
     // We use tag dispatching here, to categorize the type T whether
     // it satisfies the container or tuple like requirements.
     // Then we can choose the underlying implementation accordingly.
-    return try_match(container_category_of_t<typename std::decay<T>::type>{},
+    return try_match(container_category_of_t<traits::unref_t<T>>{},
                      std::forward<T>(element));
   }
 
@@ -861,7 +858,7 @@ public:
 /// Traverses the given pack with the given mapper and strategy
 template <typename Strategy, typename Mapper, typename... T>
 decltype(auto) transform(Strategy strategy, Mapper&& mapper, T&&... pack) {
-  mapping_helper<Strategy, typename std::decay<Mapper>::type> helper(
+  mapping_helper<Strategy, traits::unref_t<Mapper>> helper(
       std::forward<Mapper>(mapper));
   return helper.init_traverse(strategy, std::forward<T>(pack)...);
 }

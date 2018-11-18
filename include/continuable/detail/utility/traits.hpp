@@ -40,6 +40,12 @@
 namespace cti {
 namespace detail {
 namespace traits {
+/// Removes all references and qualifiers from the given type T,
+/// since traits::unref_t has too much overhead through checking for
+/// function pointers and arrays.
+template <typename T>
+using unref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+
 namespace detail {
 template <typename T, typename... Args>
 struct index_of_impl;
