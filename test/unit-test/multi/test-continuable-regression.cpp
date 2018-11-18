@@ -31,11 +31,6 @@ using namespace cti;
 using namespace cti::detail;
 
 TEST(regression_tests, are_multiple_args_mergeable) {
-  {
-    auto tp = std::make_tuple(1, 2, 3);
-    std::tuple_cat(tp, tp, tp, tp, tp);
-  }
-
   auto tp2 = std::tuple_cat(std::make_tuple(), std::make_tuple(1),
                             std::make_tuple(1, 2), std::make_tuple(1, 2, 3),
                             std::make_tuple(1, 2, 3, 4));
