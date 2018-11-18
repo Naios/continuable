@@ -32,6 +32,7 @@
 #define CONTINUABLE_TRAIT_HPP_INCLUDED
 
 #include <cstddef>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/detail/core/hints.hpp>
@@ -60,8 +61,8 @@ template <template <std::size_t, typename...> class CallbackWrapper,
 class continuable_trait {
 
   using callback = CallbackWrapper<0U, void(Args...)&&,
-                                   void(detail::types::dispatch_error_tag,
-                                        detail::types::error_type) &&>;
+                                   void(exception_arg_t,
+                                        exception_t) &&>;
 
 public:
   /// The promise type which is used to resolve continuations

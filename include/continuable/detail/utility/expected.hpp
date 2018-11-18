@@ -33,8 +33,8 @@
 
 #include <type_traits>
 #include <utility>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/core/hints.hpp>
-#include <continuable/detail/core/types.hpp>
 #include <continuable/detail/utility/flat-variant.hpp>
 
 namespace cti {
@@ -45,7 +45,7 @@ namespace container {
 /// exceptions are used.
 template <typename T>
 class expected {
-  flat_variant<T, types::error_type> variant_;
+  flat_variant<T, exception_t> variant_;
 
 public:
   explicit expected() = default;
@@ -57,15 +57,14 @@ public:
 
   explicit expected(T value) : variant_(std::move(value)) {
   }
-  explicit expected(types::error_type exception)
-      : variant_(std::move(exception)) {
+  explicit expected(exception_t exception) : variant_(std::move(exception)) {
   }
 
   expected& operator=(T value) {
     variant_ = std::move(value);
     return *this;
   }
-  expected& operator=(types::error_type exception) {
+  expected& operator=(exception_t exception) {
     variant_ = std::move(exception);
     return *this;
   }
@@ -73,7 +72,7 @@ public:
   void set_value(T value) {
     variant_ = std::move(value);
   }
-  void set_exception(types::error_type exception) {
+  void set_exception(exception_t exception) {
     variant_ = std::move(exception);
   }
 
@@ -81,7 +80,7 @@ public:
     return variant_.template is<T>();
   }
   bool is_exception() const noexcept {
-    return variant_.template is<types::error_type>();
+    return variant_.template is<exception_t>();
   }
 
   explicit constexpr operator bool() const noexcept {
@@ -94,11 +93,11 @@ public:
   T const& get_value() const noexcept {
     return variant_.template cast<T>();
   }
-  types::error_type& get_exception() noexcept {
-    return variant_.template cast<types::error_type>();
+  exception_t& get_exception() noexcept {
+    return variant_.template cast<exception_t>();
   }
-  types::error_type const& get_exception() const noexcept {
-    return variant_.template cast<types::error_type>();
+  exception_t const& get_exception() const noexcept {
+    return variant_.template cast<exception_t>();
   }
 
   T& operator*() noexcept {

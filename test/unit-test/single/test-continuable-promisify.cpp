@@ -25,7 +25,7 @@
 
 template <typename T, typename Callback>
 void async_supply(T&& value, Callback&& callback) {
-  std::forward<Callback>(callback)(cti::error_type{}, std::forward<T>(value));
+  std::forward<Callback>(callback)(cti::exception_t{}, std::forward<T>(value));
 }
 
 TEST(promisify_tests, promisify_from) {
@@ -56,7 +56,7 @@ TEST(promisify_tests, promisify_with) {
   auto c = cti::promisify<int>::with(
       [](auto&& promise, auto&& /*e*/, int const& value) {
         EXPECT_EQ(value, 36354);
-        promise.set_exception(cti::error_type{});
+        promise.set_exception(cti::exception_t{});
       },
       [&](auto&&... args) {
         async_supply(std::forward<decltype(args)>(args)...);

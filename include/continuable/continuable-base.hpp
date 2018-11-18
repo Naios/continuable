@@ -35,6 +35,7 @@
 #include <cstddef>
 #include <type_traits>
 #include <utility>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/connection/connection-all.hpp>
 #include <continuable/detail/connection/connection-any.hpp>
 #include <continuable/detail/connection/connection-seq.hpp>
@@ -54,41 +55,6 @@ namespace cti {
 /// \defgroup Base Base
 /// provides classes and functions to create continuable_base objects.
 /// \{
-
-/// Represents a tag which can be placed first in a signature
-/// in order to overload callables with the asynchronous result
-/// as well as an error.
-///
-/// See the example below:
-/// ```cpp
-/// struct my_callable {
-///   void operator() (std::string result) {
-///     // ...
-///   }
-///   void operator() (cti::dispatch_error_tag, cti::error_type) {
-///     // ...
-///   }
-/// };
-///
-/// // Will receive errors and results
-/// continuable.next(my_callable{});
-/// ```
-///
-/// \note see continuable::next for details.
-///
-/// \since 2.0.0
-using dispatch_error_tag = detail::types::dispatch_error_tag;
-
-/// Represents the type that is used as error type
-///
-/// By default this type deduces to `std::exception_ptr`.
-/// If `CONTINUABLE_WITH_NO_EXCEPTIONS` is defined the type
-/// will be a `std::error_condition`.
-/// A custom error type may be set through
-/// defining `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`.
-///
-/// \since 2.0.0
-using error_type = detail::types::error_type;
 
 /// Deduces to a true_type if the given type is a continuable_base.
 ///
@@ -371,8 +337,10 @@ public:
   template <typename OData, typename OAnnotation>
   auto fail(continuable_base<OData, OAnnotation>&& continuation) && {
     continuation.freeze();
-    return std::move(*this).fail([continuation = std::move(continuation)](
-        error_type) mutable { std::move(continuation).done(); });
+    return std::move(*this).fail(
+        [continuation = std::move(continuation)](exception_t) mutable {
+          std::move(continuation).done();
+        });
   }
 
   /// A method which allows to use an overloaded callable for the error
@@ -386,7 +354,7 @@ public:
   ///   void operator() (std::string result) {
   ///     // ...
   ///   }
-  ///   void operator() (cti::dispatch_error_tag, cti::error_type) {
+  ///   void operator() (cti::exception_arg_t, cti::exception_t) {
   ///     // ...
   ///   }
   ///
@@ -658,7 +626,7 @@ public:
   /// if (auto&& result = co_await http_request("github.com")) {
   ///   auto value = *result;
   /// } else {
-  ///   cti::error_type error = result.get_exception();
+  ///   cti::exception_t error = result.get_exception();
   /// }
   ///
   /// auto result = co_await http_request("github.com");

@@ -33,6 +33,7 @@
 
 #include <type_traits>
 #include <continuable/continuable-base.hpp>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/utility/traits.hpp>
 #include <continuable/detail/utility/util.hpp>
@@ -48,7 +49,7 @@ namespace convert {
 inline auto default_resolver() {
   return [](auto&& promise, auto&& e, auto&&... args) {
     static_assert(
-        std::is_convertible<std::decay_t<decltype(e)>, error_type>::value,
+        std::is_convertible<std::decay_t<decltype(e)>, exception_t>::value,
         "The given error type must be convertible to the error type used! "
         "Specify a custom resolver in order to apply a conversion to the "
         "used error type.");
@@ -65,30 +66,28 @@ template <typename... Result>
 struct promisify_helper {
   template <typename Resolver, typename Callable, typename... Args>
   static auto from(Resolver&& resolver, Callable&& callable, Args&&... args) {
-    return make_continuable<Result...>([
-      resolver = std::forward<Resolver>(resolver),
-      args = traits::make_flat_tuple(std::forward<Callable>(callable),
-                                     std::forward<Args>(args)...)
-    ](auto&& promise) mutable {
+    return make_continuable<Result...>(
+        [resolver = std::forward<Resolver>(resolver),
+         args = traits::make_flat_tuple(std::forward<Callable>(callable),
+                                        std::forward<Args>(args)...)](
+            auto&& promise) mutable {
+          traits::unpack(
+              [promise = std::forward<decltype(promise)>(promise),
+               &resolver](auto&&... args) mutable {
+                // Call the resolver from with the promise and result
+                auto callback =
+                    [resolver = std::move(resolver),
+                     promise = std::move(promise)](auto&&... args) mutable {
+                      resolver(std::move(promise),
+                               std::forward<decltype(args)>(args)...);
+                    };
 
-      traits::unpack(
-          [ promise = std::forward<decltype(promise)>(promise),
-            &resolver ](auto&&... args) mutable {
-
-            // Call the resolver from with the promise and result
-            auto callback = [
-              resolver = std::move(resolver), promise = std::move(promise)
-            ](auto&&... args) mutable {
-              resolver(std::move(promise),
-                       std::forward<decltype(args)>(args)...);
-            };
-
-            // Invoke the callback taking function
-            util::invoke(std::forward<decltype(args)>(args)...,
-                         std::move(callback));
-          },
-          std::move(args));
-    });
+                // Invoke the callback taking function
+                util::invoke(std::forward<decltype(args)>(args)...,
+                             std::move(callback));
+              },
+              std::move(args));
+        });
   }
 };
 } // namespace convert

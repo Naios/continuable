@@ -40,7 +40,7 @@ TYPED_TEST(single_dimension_tests, are_yielding_error_result) {
 TYPED_TEST(single_dimension_tests, are_never_completed_after_error_handled) {
   auto handled = std::make_shared<bool>(false);
   auto continuation = this->supply_exception(supply_test_exception())
-                          .fail([handled](cti::error_type) {
+                          .fail([handled](cti::exception_t) {
                             ASSERT_FALSE(*handled);
                             *handled = true;
                           });
@@ -84,7 +84,7 @@ TYPED_TEST(single_dimension_tests, are_result_error_accepting) {
                                 ASSERT_FALSE(*handled);
                                 *handled = true;
                               },
-                              [](cti::dispatch_error_tag, cti::error_type) {
+                              [](cti::exception_arg_t, cti::exception_t) {
                                 // ...
                                 FAIL();
                               }));
@@ -102,7 +102,7 @@ TYPED_TEST(single_dimension_tests, are_flow_error_accepting) {
                 // ...
                 FAIL();
               },
-              [handled](cti::dispatch_error_tag, cti::error_type) {
+              [handled](cti::exception_arg_t, cti::exception_t) {
                 ASSERT_FALSE(*handled);
                 *handled = true;
               }));

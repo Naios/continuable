@@ -37,6 +37,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/connection/connection-aggregated.hpp>
 #include <continuable/detail/connection/connection.hpp>
 #include <continuable/detail/core/base.hpp>
@@ -98,7 +99,7 @@ class result_submitter
     }
 
     template <typename... PartialArgs>
-    void operator()(types::dispatch_error_tag tag, types::error_type error) && {
+    void operator()(exception_arg_t tag, exception_t error) && {
       // We never complete the connection, but we forward the first error
       // which was raised.
       std::call_once(me->flag_, std::move(me->callback_), tag,

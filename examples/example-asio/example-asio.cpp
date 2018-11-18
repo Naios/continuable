@@ -50,7 +50,7 @@ inline auto error_code_remapper() {
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
       promise.set_exception(std::make_exception_ptr(e));
 #else
-      promise.set_exception(cti::error_type(e.value(), e.category()));
+      promise.set_exception(cti::exception_t(e.value(), e.category()));
 #endif
     } else {
       promise.set_value(std::forward<decltype(args)>(args)...);
@@ -108,7 +108,7 @@ int main(int, char**) {
         // auto socket = std::make_shared<udp::socket>(service);
         // socket->async_send_to()
       })
-      .fail([](cti::error_type /*error*/) {
+      .fail([](cti::exception_t /*error*/) {
         // ...
       });
 

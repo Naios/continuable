@@ -36,6 +36,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-traverse-async.hpp>
 #include <continuable/detail/connection/connection-aggregated.hpp>
 #include <continuable/detail/core/base.hpp>
@@ -55,16 +56,16 @@ auto sequential_connect(Left&& left, Right&& right) {
   left.freeze(right.is_frozen());
   right.freeze();
 
-  return std::forward<Left>(left).then([right = std::forward<Right>(right)](
-      auto&&... args) mutable {
-    return std::move(right).then([previous = std::make_tuple(
-                                      std::forward<decltype(args)>(args)...)](
-        auto&&... args) mutable {
-      return std::tuple_cat(
-          std::move(previous),
-          std::make_tuple(std::forward<decltype(args)>(args)...));
-    });
-  });
+  return std::forward<Left>(left).then(
+      [right = std::forward<Right>(right)](auto&&... args) mutable {
+        return std::move(right).then(
+            [previous = std::make_tuple(std::forward<decltype(args)>(args)...)](
+                auto&&... args) mutable {
+              return std::tuple_cat(
+                  std::move(previous),
+                  std::make_tuple(std::forward<decltype(args)>(args)...));
+            });
+      });
 }
 
 template <typename Callback, typename Box>
@@ -100,18 +101,17 @@ public:
   template <typename Box, typename N>
   void operator()(async_traverse_detach_tag, Box&& box, N&& next) {
     box.fetch()
-        .then([ box = std::addressof(box),
-                next = std::forward<N>(next) ](auto&&... args) mutable {
-
+        .then([box = std::addressof(box),
+               next = std::forward<N>(next)](auto&&... args) mutable {
           // Assign the result to the target
           box->assign(std::forward<decltype(args)>(args)...);
 
           // Continue the asynchronous sequential traversal
           next();
         })
-        .fail([me = this->shared_from_this()](types::error_type exception) {
+        .fail([me = this->shared_from_this()](exception_t exception) {
           // Abort the traversal when an error occurred
-          std::move(me->data_.callback)(types::dispatch_error_tag{},
+          std::move(me->data_.callback)(exception_arg_t{},
                                         std::move(exception));
         })
         .done();
@@ -144,7 +144,6 @@ struct connection_finalizer<connection_strategy_seq_tag> {
 
     return base::attorney::create(
         [result = std::move(result)](auto&& callback) mutable {
-
           // The data from which the visitor is constructed in-place
           using data_t =
               seq::sequential_dispatch_data<std::decay_t<decltype(callback)>,

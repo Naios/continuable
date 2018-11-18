@@ -37,6 +37,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/continuable-traverse.hpp>
 #include <continuable/detail/core/base.hpp>

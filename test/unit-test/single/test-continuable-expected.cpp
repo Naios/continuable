@@ -28,7 +28,7 @@
 #include <test-continuable.hpp>
 
 using cti::detail::container::expected;
-using cti::detail::types::error_type;
+using cti::exception_t;
 
 static int const CANARY = 373671;
 
@@ -73,7 +73,7 @@ TYPED_TEST(expected_all_tests, can_carry_errors) {
   }
 
   {
-    TypeParam e(error_type{});
+    TypeParam e(exception_t{});
 
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
@@ -97,7 +97,7 @@ TYPED_TEST(expected_all_tests, is_move_constructible) {
   }
 
   {
-    TypeParam e(TypeParam(error_type{}));
+    TypeParam e(TypeParam(exception_t{}));
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
     EXPECT_TRUE(e.is_exception());
@@ -116,7 +116,7 @@ TYPED_TEST(expected_all_tests, is_value_move_assignable) {
 }
 
 TYPED_TEST(expected_all_tests, is_error_move_assignable) {
-  TypeParam old(error_type{});
+  TypeParam old(exception_t{});
   TypeParam e;
   e = std::move(old);
 
@@ -138,7 +138,7 @@ TYPED_TEST(expected_all_tests, is_value_assignable) {
 
   {
     TypeParam e;
-    e = error_type{};
+    e = exception_t{};
 
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
@@ -158,7 +158,7 @@ TEST(expected_copyable_tests, is_copy_constructible) {
   }
 
   {
-    copyable_type const e_old(error_type{});
+    copyable_type const e_old(exception_t{});
     copyable_type e(e_old);
 
     EXPECT_FALSE(bool(e));
@@ -180,7 +180,7 @@ TEST(expected_copyable_tests, is_copy_assignable) {
   }
 
   {
-    copyable_type const e_old(error_type{});
+    copyable_type const e_old(exception_t{});
     copyable_type e;
     e = e_old;
 

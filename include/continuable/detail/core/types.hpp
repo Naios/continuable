@@ -50,21 +50,19 @@ namespace detail {
 /// Contains types used globally across the library
 namespace types {
 #ifdef CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
-using error_type = CONTINUABLE_WITH_CUSTOM_ERROR_TYPE;
+using exception_t = CONTINUABLE_WITH_CUSTOM_ERROR_TYPE;
 #else // CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
 #ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
-/// Represents the error type when exceptions are enabled
-using error_type = std::exception_ptr;
+/// Represents the exception type when exceptions are enabled
+using exception_t = std::exception_ptr;
 #else  // CONTINUABLE_WITH_NO_EXCEPTIONS
 /// Represents the error type when exceptions are disabled
-using error_type = std::error_condition;
+using exception_t = std::error_condition;
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 #endif // CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
 
 /// A tag which is used to execute the continuation inside the current thread
 struct this_thread_executor_tag {};
-/// A tag which is used to continue with an error
-struct dispatch_error_tag {};
 
 /// Marks a given callable object as transformation
 template <typename T>

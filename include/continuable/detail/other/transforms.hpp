@@ -32,6 +32,7 @@
 #define CONTINUABLE_DETAIL_TRANSFORMS_HPP_INCLUDED
 
 #include <future>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/core/base.hpp>
 #include <continuable/detail/core/hints.hpp>
 #include <continuable/detail/core/types.hpp>
@@ -94,7 +95,7 @@ public:
   }
 
   /// Resolves the promise through the exception
-  void operator()(types::dispatch_error_tag, types::error_type error) {
+  void operator()(exception_arg_t, exception_t error) {
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
     promise_.set_exception(error);
 #else

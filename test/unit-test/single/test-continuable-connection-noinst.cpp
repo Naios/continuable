@@ -31,7 +31,7 @@ struct my_callable {
   void operator()(std::string) && {
     // ...
   }
-  void operator()(cti::dispatch_error_tag, cti::error_type) && {
+  void operator()(cti::exception_arg_t, cti::exception_t) && {
     // ...
   }
 };
@@ -54,7 +54,7 @@ TEST(simple_compilation_tests, error_compile_tests) {
       .then([](int) {
         // ...
       })
-      .fail([](cti::error_type) {
+      .fail([](cti::exception_t) {
         // ...
       });
 
@@ -62,7 +62,7 @@ TEST(simple_compilation_tests, error_compile_tests) {
       .then([](std::string, std::string) {
         // ...
       })
-      .fail([](cti::error_type) {
+      .fail([](cti::exception_t) {
         // ...
       })
       .apply([](auto&& me) {
@@ -74,7 +74,7 @@ TEST(simple_compilation_tests, error_compile_tests) {
       .then([](std::string) {
         // ...
       })
-      .fail([](cti::error_type) {
+      .fail([](cti::exception_t) {
         // ...
       });
 
@@ -82,7 +82,7 @@ TEST(simple_compilation_tests, error_compile_tests) {
       .then([](std::string, std::string) {
         // ...
       })
-      .fail([](cti::error_type) {
+      .fail([](cti::exception_t) {
         // ...
       });
 }
@@ -117,7 +117,7 @@ TEST(simple_compilation_tests, connection_compile_tests) {
         // ...
       });
 
-  cti::when_seq(cti::make_exceptional_continuable<void>(cti::error_type{}))
+  cti::when_seq(cti::make_exceptional_continuable<void>(cti::exception_t{}))
       .fail([](auto) {
         // ...
       });

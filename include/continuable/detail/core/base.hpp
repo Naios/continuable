@@ -34,6 +34,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/core/hints.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
@@ -140,7 +141,7 @@ public:
   }                                                                            \
   catch (...) {                                                                \
     std::forward<decltype(next_callback)>(next_callback)(                      \
-        types::dispatch_error_tag{}, std::current_exception());                \
+        exception_arg_t{}, std::current_exception());                          \
   }
 
 #else // CONTINUABLE_HAS_EXCEPTIONS
@@ -274,10 +275,8 @@ void packed_dispatch(Executor&& executor, Invoker&& invoker, Args&&... args) {
 
   // Create a worker object which when invoked calls the callback with the
   // the returned arguments.
-  auto work = [
-    invoker = std::forward<Invoker>(invoker),
-    args = std::make_tuple(std::forward<Args>(args)...)
-  ]() mutable {
+  auto work = [invoker = std::forward<Invoker>(invoker),
+               args = std::make_tuple(std::forward<Args>(args)...)]() mutable {
     traits::unpack(
         [&](auto&&... captured_args) {
           // Just use the packed dispatch method which dispatches the work on
@@ -345,7 +344,7 @@ struct result_handler_base<handle_results::yes, Base,
 
 inline auto make_error_invoker(
     std::integral_constant<handle_errors, handle_errors::plain>) noexcept {
-  return [](auto&& callback, types::error_type&& error) {
+  return [](auto&& callback, exception_t&& error) {
     // Errors are not partial invoked
     // NOLINTNEXTLINE(hicpp-move-const-arg)
     std::forward<decltype(callback)>(callback)(std::move(error));
@@ -353,17 +352,17 @@ inline auto make_error_invoker(
 }
 inline auto make_error_invoker(
     std::integral_constant<handle_errors, handle_errors::forward>) noexcept {
-  return [](auto&& callback, types::error_type&& error) {
+  return [](auto&& callback, exception_t&& error) {
     // Errors are not partial invoked
     std::forward<decltype(callback)>(callback)(
-        types::dispatch_error_tag{},
+        exception_arg_t{},
         std::move(error)); // NOLINT(hicpp-move-const-arg)
   };
 }
 
 template <handle_errors HandleErrors /* = plain or forward*/, typename Base>
 struct error_handler_base {
-  void operator()(types::dispatch_error_tag, types::error_type error) && {
+  void operator()(exception_arg_t, exception_t error) && {
     // Just invoke the error handler, cancel the calling hierarchy after
     auto invoker = make_error_invoker(
         std::integral_constant<handle_errors, HandleErrors>{});
@@ -377,7 +376,7 @@ struct error_handler_base {
 template <typename Base>
 struct error_handler_base<handle_errors::no, Base> {
   /// The operator which is called when an error occurred
-  void operator()(types::dispatch_error_tag tag, types::error_type error) && {
+  void operator()(exception_arg_t tag, exception_t error) && {
     // Forward the error to the next callback
     std::move(static_cast<Base*>(this)->next_callback_)(tag, std::move(error));
   }
@@ -435,8 +434,8 @@ struct callback_base<hints::signature_hint_tag<Args...>, HandleResults,
   }
 
   /// Resolves the continuation with the given error variable.
-  void set_exception(types::error_type error) {
-    std::move (*this)(types::dispatch_error_tag{}, std::move(error));
+  void set_exception(exception_t error) {
+    std::move (*this)(exception_arg_t{}, std::move(error));
   }
 };
 
@@ -459,7 +458,7 @@ struct final_callback : util::non_copyable {
   void operator()(Args... /*args*/) && {
   }
 
-  void operator()(types::dispatch_error_tag, types::error_type error) && {
+  void operator()(exception_arg_t, exception_t error) && {
     (void)error;
 #ifndef CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
     // There were unhandled errors inside the asynchronous call chain!
@@ -485,9 +484,9 @@ struct final_callback : util::non_copyable {
     std::move (*this)(std::forward<Args>(args)...);
   }
 
-  void set_exception(types::error_type error) {
+  void set_exception(exception_t error) {
     // NOLINTNEXTLINE(hicpp-move-const-arg)
-    std::move (*this)(types::dispatch_error_tag{}, std::move(error));
+    std::move (*this)(exception_arg_t{}, std::move(error));
   }
 };
 } // namespace callbacks
@@ -540,12 +539,10 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   continuation.freeze();
 
   return attorney::create(
-      [
-        continuation = std::forward<Continuation>(continuation),
-        callback = std::forward<Callback>(callback),
-        executor = std::forward<Executor>(executor)
-      ](auto&& next_callback) mutable {
-
+      [continuation = std::forward<Continuation>(continuation),
+       callback = std::forward<Callback>(callback),
+       executor =
+           std::forward<Executor>(executor)](auto&& next_callback) mutable {
         // Invokes a continuation with a given callback.
         // Passes the next callback to the resulting continuable or
         // invokes the next callback directly if possible.

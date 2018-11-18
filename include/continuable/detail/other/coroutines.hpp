@@ -35,6 +35,7 @@
 #include <cassert>
 #include <tuple>
 #include <experimental/coroutine>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/core/hints.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
@@ -110,7 +111,7 @@ private:
   }
 
   /// Resolve the continuation through an error
-  void resolve(types::dispatch_error_tag, types::error_type error) {
+  void resolve(exception_arg_t, exception_t error) {
     result_.set_exception(std::move(error));
   }
 };

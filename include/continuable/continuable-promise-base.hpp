@@ -33,6 +33,7 @@
 
 #include <type_traits>
 #include <utility>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/core/hints.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/utility/util.hpp>
@@ -50,7 +51,7 @@ namespace cti {
 ///
 /// If we want to resolve the  promise_base trough the call operator,
 /// and we want to resolve it through an exception, we must call it with a
-/// dispatch_error_tag as first and the exception as second argument.
+/// exception_arg_t as first and the exception as second argument.
 /// Additionally the promise is resolveable only through its call
 /// operator when invoked as an r-value.
 ///
@@ -100,8 +101,8 @@ public:
   /// \throws This method never throws an exception.
   ///
   /// \since  2.0.0
-  void operator()(detail::types::dispatch_error_tag tag,
-                  detail::types::error_type exception) &&
+  void operator()(exception_arg_t tag,
+                  exception_t exception) &&
       noexcept {
     std::move(data_)(tag, std::move(exception));
   }
@@ -120,8 +121,8 @@ public:
   /// \throws This method never throws an exception.
   ///
   /// \since  2.0.0
-  void set_exception(detail::types::error_type exception) noexcept {
-    std::move(data_)(detail::types::dispatch_error_tag{}, std::move(exception));
+  void set_exception(exception_t exception) noexcept {
+    std::move(data_)(exception_arg_t{}, std::move(exception));
   }
 };
 /// \}
