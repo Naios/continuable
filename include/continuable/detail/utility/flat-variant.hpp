@@ -54,10 +54,17 @@ constexpr std::size_t max_element_of(std::initializer_list<std::size_t> list) {
   }
   return m;
 }
+
+/// Workarround for a regression introduced in ~ MSVC 15.8.1
+template <typename T>
+using size_of_helper = std::integral_constant<std::size_t, sizeof(T)>;
+template <typename T>
+using align_of_helper = std::integral_constant<std::size_t, alignof(T)>;
+
 template <typename... T>
 constexpr auto storage_of_impl(traits::identity<T...>) {
-  constexpr auto size = max_element_of({sizeof(T)...});
-  constexpr auto align = max_element_of({alignof(T)...});
+  constexpr auto size = max_element_of({(size_of_helper<T>::value)...});
+  constexpr auto align = max_element_of({(align_of_helper<T>::value)...});
   return std::aligned_storage_t<size, align>{};
 }
 
