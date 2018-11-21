@@ -98,8 +98,8 @@ struct exception_arg_t {};
 ///             to the types specified in the "A Unified Future" proposal
 ///             especially regarding naming types similar.
 ///
-// [[deprecated("The dispatch_error_tag was replaced by exception_arg_t and
-//              "will be removed in a later major version!")]]
+[[deprecated("The dispatch_error_tag was replaced by exception_arg_t and will "
+             "be removed in a later major version!")]] //
 typedef exception_arg_t dispatch_error_tag;
 
 /// Represents the type that is used as exception type
@@ -119,8 +119,8 @@ using exception_t = detail::types::exception_t;
 ///             to the types specified in the "A Unified Future" proposal
 ///             especially regarding naming types similar.
 ///
-// [[deprecated("The error_type was replaced by exception_t and "
-//              "will be removed in a later major version!")]] //
+[[deprecated("The error_type was replaced by exception_t and will "
+             "be removed in a later major version!")]] //
 typedef exception_t error_type;
 /// \}
 } // namespace cti
