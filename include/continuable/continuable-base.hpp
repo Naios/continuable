@@ -895,6 +895,19 @@ constexpr auto make_exceptional_continuable(Exception&& exception) {
             std::move(exception));
       });
 }
+
+template <typename... Args>
+auto recover(Args&&... args) {
+  // TODO
+}
+
+inline auto rethrow(exception_t exception) {
+  // TODO
+}
+
+inline constexpr auto cancel() {
+  // TODO
+}
 /// \}
 } // namespace cti
 

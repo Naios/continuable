@@ -34,6 +34,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <continuable/continuable-expected.hpp>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/core/hints.hpp>
 #include <continuable/detail/core/types.hpp>

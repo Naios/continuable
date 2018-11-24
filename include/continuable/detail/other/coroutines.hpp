@@ -35,11 +35,12 @@
 #include <cassert>
 #include <tuple>
 #include <experimental/coroutine>
+#include <continuable/continuable-expected.hpp>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/core/hints.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
-#include <continuable/detail/utility/expected.hpp>
+#include <continuable/detail/utility/expected-traits.hpp>
 #include <continuable/detail/utility/traits.hpp>
 #include <continuable/detail/utility/util.hpp>
 

@@ -28,86 +28,17 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_EXPECTED_HPP_INCLUDED
-#define CONTINUABLE_DETAIL_EXPECTED_HPP_INCLUDED
+#ifndef CONTINUABLE_DETAIL_EXPECTED_TRAITS_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_EXPECTED_TRAITS_HPP_INCLUDED
 
 #include <type_traits>
 #include <utility>
-#include <continuable/continuable-primitives.hpp>
+#include <continuable/continuable-expected.hpp>
 #include <continuable/detail/core/hints.hpp>
-#include <continuable/detail/utility/flat-variant.hpp>
 
 namespace cti {
 namespace detail {
 namespace container {
-/// A class similar to the one in the expected proposal,
-/// however it is capable of carrying an exception_ptr if
-/// exceptions are used.
-template <typename T>
-class expected {
-  flat_variant<T, exception_t> variant_;
-
-public:
-  explicit expected() = default;
-  explicit expected(expected const&) = default;
-  explicit expected(expected&&) = default;
-  expected& operator=(expected const&) = default;
-  expected& operator=(expected&&) = default;
-  ~expected() = default;
-
-  explicit expected(T value) : variant_(std::move(value)) {
-  }
-  explicit expected(exception_t exception) : variant_(std::move(exception)) {
-  }
-
-  expected& operator=(T value) {
-    variant_ = std::move(value);
-    return *this;
-  }
-  expected& operator=(exception_t exception) {
-    variant_ = std::move(exception);
-    return *this;
-  }
-
-  void set_value(T value) {
-    variant_ = std::move(value);
-  }
-  void set_exception(exception_t exception) {
-    variant_ = std::move(exception);
-  }
-
-  bool is_value() const noexcept {
-    return variant_.template is<T>();
-  }
-  bool is_exception() const noexcept {
-    return variant_.template is<exception_t>();
-  }
-
-  explicit constexpr operator bool() const noexcept {
-    return is_value();
-  }
-
-  T& get_value() noexcept {
-    return variant_.template cast<T>();
-  }
-  T const& get_value() const noexcept {
-    return variant_.template cast<T>();
-  }
-  exception_t& get_exception() noexcept {
-    return variant_.template cast<exception_t>();
-  }
-  exception_t const& get_exception() const noexcept {
-    return variant_.template cast<exception_t>();
-  }
-
-  T& operator*() noexcept {
-    return get_value();
-  }
-  T const& operator*() const noexcept {
-    return get_value();
-  }
-};
-
 namespace detail {
 struct void_guard_tag {};
 
@@ -159,4 +90,4 @@ using expected_result_trait_t = detail::expected_result_trait<decltype(
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_EXPECTED_HPP_INCLUDED
+#endif // CONTINUABLE_DETAIL_EXPECTED_TRAITS_HPP_INCLUDED
