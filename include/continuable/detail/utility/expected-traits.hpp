@@ -31,62 +31,40 @@
 #ifndef CONTINUABLE_DETAIL_EXPECTED_TRAITS_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_EXPECTED_TRAITS_HPP_INCLUDED
 
+#include <tuple>
 #include <type_traits>
 #include <utility>
-#include <continuable/continuable-expected.hpp>
 #include <continuable/detail/core/hints.hpp>
 
 namespace cti {
 namespace detail {
-namespace container {
-namespace detail {
-struct void_guard_tag {};
-
-template <typename T>
-struct expected_result_trait;
+template <typename... T>
+struct expected_trait;
 template <>
-struct expected_result_trait<traits::identity<>> {
-  using expected_type = expected<void_guard_tag>;
+struct expected_trait<traits::identity<>> {
+  struct value_t {};
 
-  static constexpr void_guard_tag wrap() noexcept {
+  static constexpr value_t wrap() noexcept {
     return {};
-  }
-  static void unwrap(expected_type&& e) {
-    assert(e.is_value());
-    (void)e;
   }
 };
 template <typename T>
-struct expected_result_trait<traits::identity<T>> {
-  using expected_type = expected<T>;
+struct expected_trait<T> {
+  using value_t = T;
 
   static auto wrap(T arg) {
     return std::move(arg);
   }
-  static auto unwrap(expected_type&& e) {
-    assert(e.is_value());
-    return std::move(e.get_value());
-  }
 };
 template <typename First, typename Second, typename... Rest>
-struct expected_result_trait<traits::identity<First, Second, Rest...>> {
-  using expected_type = expected<std::tuple<First, Second, Rest...>>;
+struct expected_trait<First, Second, Rest...> {
+  using value_t = std::tuple<First, Second, Rest...>;
 
   static auto wrap(First first, Second second, Rest... rest) {
     return std::make_tuple(std::move(first), std::move(second),
                            std::move(rest)...);
   }
-  static auto unwrap(expected_type&& e) {
-    assert(e.is_value());
-    return std::move(e.get_value());
-  }
 };
-} // namespace detail
-
-template <typename Continuable>
-using expected_result_trait_t = detail::expected_result_trait<decltype(
-    hints::hint_of(traits::identify<Continuable>{}))>;
-} // namespace container
 } // namespace detail
 } // namespace cti
 

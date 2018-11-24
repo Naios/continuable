@@ -267,6 +267,11 @@ public:
     return *this;
   }
 
+  void set_empty() {
+    weak_destroy();
+    set_slot(detail::empty_slot::value);
+  }
+
   template <typename V, std::size_t Index =
                             traits::index_of_t<std::decay_t<V>, T...>::value>
   bool is() const noexcept {
@@ -282,15 +287,22 @@ public:
   }
 
   template <typename V>
-  V& cast() noexcept {
+      V& cast() & noexcept {
     assert(is_slot(traits::index_of_t<std::decay_t<V>, T...>::value));
     return *reinterpret_cast<std::decay_t<V>*>(&this->storage_);
   }
 
   template <typename V>
-  V const& cast() const noexcept {
+  V const& cast() const& noexcept {
     assert(is_slot(traits::index_of_t<std::decay_t<V>, T...>::value));
     return *reinterpret_cast<std::decay_t<V> const*>(&this->storage_);
+  }
+
+  template <typename V>
+      V&& cast() && noexcept {
+    assert(is_slot(traits::index_of_t<std::decay_t<V>, T...>::value));
+    auto& value = *reinterpret_cast<std::decay_t<V> const*>(&this->storage_);
+    return std::move(value);
   }
 
 private:

@@ -342,7 +342,7 @@ inline auto make_error_invoker(
     std::integral_constant<handle_errors, handle_errors::plain>) noexcept {
   return [](auto&& callback, exception_t&& error) {
     // Errors are not partial invoked
-    // NOLINTNEXTLINE(hicpp-move-const-arg)
+    // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
     std::forward<decltype(callback)>(callback)(std::move(error));
   };
 }
@@ -352,7 +352,8 @@ inline auto make_error_invoker(
     // Errors are not partial invoked
     std::forward<decltype(callback)>(callback)(
         exception_arg_t{},
-        std::move(error)); // NOLINT(hicpp-move-const-arg)
+        // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
+        std::move(error));
   };
 }
 

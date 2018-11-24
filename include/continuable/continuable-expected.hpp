@@ -34,14 +34,71 @@
 #include <type_traits>
 #include <utility>
 #include <continuable/continuable-primitives.hpp>
+#include <continuable/detail/utility/expected-traits.hpp>
 #include <continuable/detail/utility/flat-variant.hpp>
+#include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
+/// A class which is convertible to any expected and that definitly holds no
+/// value so the real expected gets invalidated when
+/// this object is passed to it
+struct empty_expected {
+  empty_expected() = default;
+  empty_expected(empty_expected const&) = default;
+  empty_expected(empty_expected&&) = default;
+  empty_expected& operator=(empty_expected const&) = default;
+  empty_expected& operator=(empty_expected&&) = default;
+  ~empty_expected() = default;
+};
+
+/// A class which is convertible to any expected and that definitly holds
+/// an exception which is then passed to the converted expected object.
+class exceptional_expected {
+  exception_t exception_;
+
+public:
+  exceptional_expected() = delete;
+  exceptional_expected(exceptional_expected const&) = default;
+  exceptional_expected(exceptional_expected&&) = default;
+  exceptional_expected& operator=(exceptional_expected const&) = default;
+  exceptional_expected& operator=(exceptional_expected&&) = default;
+  ~exceptional_expected() = default;
+
+  explicit exceptional_expected(exception_t exception)
+      // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
+      : exception_(std::move(exception)) {
+  }
+
+  exceptional_expected& operator=(exception_t exception) {
+    // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
+    exception_ = std::move(exception);
+    return *this;
+  }
+
+  void set_exception(exception_t exception) {
+    // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
+    exception_ = std::move(exception);
+  }
+
+  exception_t& get_exception() & noexcept {
+    return exception_;
+  }
+  exception_t const& get_exception() const& noexcept {
+    return exception_;
+  }
+  exception_t&& get_exception() && noexcept {
+    return std::move(exception_);
+  }
+};
+
 /// A class similar to the one in the expected proposal,
 /// however it's capable of carrying an exception_t.
-template <typename T>
+template <typename... T>
 class expected {
-  detail::container::flat_variant<T, exception_t> variant_;
+  using trait = detail::expected_trait<T...>;
+  using value_t = typename trait::value_t;
+
+  detail::container::flat_variant<value_t, exception_t> variant_;
 
 public:
   explicit expected() = default;
@@ -51,32 +108,39 @@ public:
   expected& operator=(expected&&) = default;
   ~expected() = default;
 
-  explicit expected(T value) : variant_(std::move(value)) {
+  explicit expected(T... values) : variant_(trait::wrap(std::move(values)...)) {
   }
   explicit expected(exception_t exception) : variant_(std::move(exception)) {
   }
-
-  expected& operator=(T value) {
-    variant_ = std::move(value);
-    return *this;
-  }
-  expected& operator=(exception_t exception) {
-    variant_ = std::move(exception);
-    return *this;
+  explicit expected(empty_expected){};
+  explicit expected(exceptional_expected exceptional_expected)
+      : variant_(std::move(exceptional_expected.get_exception())) {
   }
 
-  void set_value(T value) {
-    variant_ = std::move(value);
+  expected& operator=(empty_expected) {
+    set_empty();
+    return *this;
+  }
+  expected& operator=(exceptional_expected exceptional_expected) {
+    set_exception(std::move(exceptional_expected.get_exception()));
+    return *this;
+  }
+
+  void set_empty() {
+    variant_.set_empty();
+  }
+  void set_value(T... values) {
+    variant_ = std::move(values...);
   }
   void set_exception(exception_t exception) {
     variant_ = std::move(exception);
   }
 
-  bool is_empty() {
+  bool is_empty() const noexcept {
     return variant_.is_empty();
   }
   bool is_value() const noexcept {
-    return variant_.template is<T>();
+    return variant_.template is<value_t>();
   }
   bool is_exception() const noexcept {
     return variant_.template is<exception_t>();
@@ -86,26 +150,49 @@ public:
     return is_value();
   }
 
-  T& get_value() noexcept {
-    return variant_.template cast<T>();
+  value_t& get_value() & noexcept {
+    return variant_.template cast<value_t>();
   }
-  T const& get_value() const noexcept {
-    return variant_.template cast<T>();
+  value_t const& get_value() const& noexcept {
+    return variant_.template cast<value_t>();
   }
-  exception_t& get_exception() noexcept {
+  value_t&& get_value() && noexcept {
+    return std::move(variant_).template cast<value_t>();
+  }
+  exception_t& get_exception() & noexcept {
     return variant_.template cast<exception_t>();
   }
-  exception_t const& get_exception() const noexcept {
+  exception_t const& get_exception() const& noexcept {
     return variant_.template cast<exception_t>();
+  }
+  exception_t&& get_exception() && noexcept {
+    return std::move(variant_).template cast<exception_t>();
   }
 
-  T& operator*() noexcept {
+  value_t& operator*() & noexcept {
     return get_value();
   }
-  T const& operator*() const noexcept {
+  value_t const& operator*() const& noexcept {
     return get_value();
+  }
+  value_t&& operator*() && noexcept {
+    return std::move(*this).get_value();
   }
 };
+
+template <typename... T>
+constexpr auto make_expected(T&&... values) {
+  return expected<detail::traits::unrefcv_t<T>...>(std::forward<T>(values));
+}
+
+inline auto make_exceptional_expected(exception_t exception) {
+  // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
+  return exceptional_expected(std::move(exception));
+}
+
+inline auto make_empty_expected() {
+  return empty_expected{};
+}
 } // namespace cti
 
 #endif // CONTINUABLE_EXPECTED_HPP_INCLUDED

@@ -23,12 +23,12 @@
 
 #include <memory>
 #include <utility>
+#include <continuable/continuable-expected.hpp>
 #include <continuable/detail/core/types.hpp>
-#include <continuable/detail/utility/expected.hpp>
 #include <test-continuable.hpp>
 
-using cti::detail::container::expected;
 using cti::exception_t;
+using cti::expected;
 
 static int const CANARY = 373671;
 
@@ -125,27 +125,6 @@ TYPED_TEST(expected_all_tests, is_error_move_assignable) {
   EXPECT_TRUE(e.is_exception());
 }
 
-TYPED_TEST(expected_all_tests, is_value_assignable) {
-  {
-    TypeParam e;
-    e = this->supply(CANARY);
-
-    EXPECT_TRUE(bool(e));
-    EXPECT_EQ(this->get(*e), CANARY);
-    EXPECT_TRUE(e.is_value());
-    EXPECT_FALSE(e.is_exception());
-  }
-
-  {
-    TypeParam e;
-    e = exception_t{};
-
-    EXPECT_FALSE(bool(e));
-    EXPECT_FALSE(e.is_value());
-    EXPECT_TRUE(e.is_exception());
-  }
-}
-
 TEST(expected_copyable_tests, is_copy_constructible) {
   {
     copyable_type const e_old(CANARY);
@@ -188,6 +167,64 @@ TEST(expected_copyable_tests, is_copy_assignable) {
     EXPECT_FALSE(e.is_value());
     EXPECT_TRUE(e.is_exception());
   }
+}
+
+TYPED_TEST(expected_all_tests, is_constructible_from_error_helper) {
+  cti::exceptional_expected e1(exception_t{});
+  {
+    auto e2 = e1;
+  }
+  auto e2 = std::move(e1);
+
+  TypeParam e(std::move(e2));
+
+  EXPECT_FALSE(bool(e));
+  EXPECT_FALSE(e.is_value());
+  EXPECT_TRUE(e.is_exception());
+}
+
+TYPED_TEST(expected_all_tests, is_assignable_from_error_helper) {
+  cti::exceptional_expected e1(exception_t{});
+  {
+    auto e2 = e1;
+  }
+  auto e2 = std::move(e1);
+
+  TypeParam e;
+  e = std::move(e2);
+
+  EXPECT_FALSE(bool(e));
+  EXPECT_FALSE(e.is_value());
+  EXPECT_TRUE(e.is_exception());
+}
+
+TYPED_TEST(expected_all_tests, is_constructible_from_empty_helper) {
+  cti::empty_expected e1;
+  {
+    auto e2 = e1;
+  }
+  auto e2 = std::move(e1);
+
+  TypeParam e(std::move(e2));
+
+  EXPECT_FALSE(bool(e));
+  EXPECT_FALSE(e.is_value());
+  EXPECT_TRUE(e.is_empty());
+}
+
+TYPED_TEST(expected_all_tests, is_assignable_from_empty_helper) {
+  cti::empty_expected e1;
+  {
+    auto e2 = e1;
+  }
+  auto e2 = std::move(e1);
+
+  TypeParam e;
+  e = std::move(e2);
+
+  EXPECT_FALSE(bool(e));
+  EXPECT_FALSE(e.is_value());
+  EXPECT_TRUE(e.is_empty());
 }
 
 // This regression test shows a memory leak which happens when using the

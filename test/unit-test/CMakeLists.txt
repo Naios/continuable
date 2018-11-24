@@ -51,6 +51,7 @@ foreach(STEP RANGE ${STEP_RANGE})
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-destruct.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-errors.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-partial.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-multipath.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-all-seq-ag-1.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-all-seq-ag-2.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-all-seq-op.cpp

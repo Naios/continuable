@@ -35,6 +35,7 @@
 #include <cstddef>
 #include <type_traits>
 #include <utility>
+#include <continuable/continuable-expected.hpp>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/connection/connection-all.hpp>
 #include <continuable/detail/connection/connection-any.hpp>
@@ -898,15 +899,15 @@ constexpr auto make_exceptional_continuable(Exception&& exception) {
 
 template <typename... Args>
 auto recover(Args&&... args) {
-  // TODO
+  return make_expected(std::forward<Args>(args)...);
 }
 
 inline auto rethrow(exception_t exception) {
-  // TODO
+  return make_exceptional_expected(std::move(exception));
 }
 
-inline constexpr auto cancel() {
-  // TODO
+inline auto cancel() {
+  return make_none_expected();
 }
 /// \}
 } // namespace cti
