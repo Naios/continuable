@@ -52,7 +52,7 @@ namespace detail {
 ///
 /// Important methods are:
 /// - Creating a continuation from a callback taking functional
-///   base::attorney::create(auto&& callback)
+///   base::attorney::create_from(auto&& callback)
 ///     -> base::continuation<auto>
 /// - Chaining a continuation together with a callback
 ///   base::chain_continuation(base::continuation<auto> continuation,
@@ -67,37 +67,37 @@ struct is_continuable : std::false_type {};
 template <typename Data, typename Annotation>
 struct is_continuable<continuable_base<Data, Annotation>> : std::true_type {};
 
-/// Helper class to access private methods and members of
-/// the continuable_base class.
 struct attorney {
-  /// Makes a continuation wrapper from the given argument
-  template <typename T, typename A>
-  static auto create(T&& continuation, A /*hint*/, util::ownership ownership_) {
-    return continuable_base<std::decay_t<T>, std::decay_t<A>>(
-        std::forward<T>(continuation), ownership_);
+  /// Creates a continuable_base from the given continuation, annotation
+  /// and ownership.
+  template <
+      typename T, typename A,
+      typename Continuable = continuable_base<std::decay_t<T>, std::decay_t<A>>>
+  static auto create_from(T&& continuation, A annotation,
+                          util::ownership ownership) {
+    (void)annotation;
+    return Continuable(std::forward<T>(continuation), ownership);
   }
 
-  /// Invokes a continuation object in a reference correct way
-  template <typename Data, typename Annotation, typename Callback>
-  static auto
-  invoke_continuation(continuable_base<Data, Annotation>&& continuation,
-                      Callback&& callback) noexcept {
-    auto materialized = std::move(continuation).finish();
-    materialized.release();
-    return materialized.data_(std::forward<Callback>(callback));
-  }
-
-  template <typename Data, typename Annotation>
-  static Data&&
-  consume_data(continuable_base<Data, Annotation>&& continuation) {
-    return std::move(continuation).consume_data();
-  }
-
+  /// Returns the ownership of the given continuable_base
   template <typename Continuable>
   static util::ownership ownership_of(Continuable&& continuation) noexcept {
     return continuation.ownership_;
   }
+
+  template <typename Data, typename Annotation>
+  static Data&& consume(continuable_base<Data, Annotation>&& continuation) {
+    return std::move(continuation).consume();
+  }
 };
+
+/// Invokes a continuation object in a reference correct way
+template <typename Data, typename Annotation, typename Callback>
+void invoke_continuation(continuable_base<Data, Annotation>&& continuation,
+                         Callback&& callback) noexcept {
+  util::invoke(attorney::consume(std::move(continuation).finish()),
+               std::forward<Callback>(callback));
+}
 
 // Returns the invoker of a callback, the next callback
 // and the arguments of the previous continuation.
@@ -174,7 +174,7 @@ invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
               util::partial_invoke(std::forward<decltype(callback)>(callback),
                                    std::forward<decltype(args)>(args)...);
 
-          attorney::invoke_continuation(
+          invoke_continuation(
               std::move(continuation_),
               std::forward<decltype(next_callback)>(next_callback));
         CONTINUABLE_BLOCK_TRY_END
@@ -480,7 +480,7 @@ struct final_callback : util::non_copyable {
   }
 
   void set_exception(exception_t error) {
-    // NOLINTNEXTLINE(hicpp-move-const-arg)
+    // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
     std::move (*this)(exception_arg_t{}, std::move(error));
   }
 };
@@ -533,7 +533,7 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   auto ownership_ = attorney::ownership_of(continuation);
   continuation.freeze();
 
-  return attorney::create(
+  return attorney::create_from(
       [continuation = std::forward<Continuation>(continuation),
        callback = std::forward<Callback>(callback),
        executor =
@@ -554,8 +554,7 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
         // Invoke the continuation with a proxy callback.
         // The proxy callback is responsible for passing
         // the result to the callback as well as decorating it.
-        attorney::invoke_continuation(std::move(continuation),
-                                      std::move(proxy));
+        invoke_continuation(std::move(continuation), std::move(proxy));
       },
       next_hint, ownership_);
 }
@@ -566,8 +565,8 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
 /// - Continuation: continuation<[](auto&& callback) { callback("hi"); }>
 template <typename Continuation>
 void finalize_continuation(Continuation&& continuation) {
-  attorney::invoke_continuation(std::forward<Continuation>(continuation),
-                                callbacks::final_callback{});
+  invoke_continuation(std::forward<Continuation>(continuation),
+                      callbacks::final_callback{});
 }
 
 /// Workaround for GCC bug:

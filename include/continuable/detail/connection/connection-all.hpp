@@ -162,7 +162,7 @@ struct connection_finalizer<connection_strategy_all_tag> {
 
     auto signature = aggregated::hint_of_data<decltype(result)>();
 
-    return base::attorney::create(
+    return base::attorney::create_from(
         [result = std::move(result)](auto&& callback) mutable {
 
           using submitter_t =

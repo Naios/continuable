@@ -174,7 +174,7 @@ struct connection_finalizer<connection_strategy_any_tag> {
         traversal::container_category_of_t<std::decay_t<Connection>>{},
         traits::identity<std::decay_t<Connection>>{})){};
 
-    return base::attorney::create(
+    return base::attorney::create_from(
         [connection =
              std::forward<Connection>(connection)](auto&& callback) mutable {
 

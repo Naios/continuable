@@ -48,4 +48,8 @@ bld/
 # Visual Studo 2015 cache/options directory
 .vs/
 
+# VSCode
 .vscode/
+
+# TMP files generated from clang-format
+*.TMP

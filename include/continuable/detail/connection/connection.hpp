@@ -92,7 +92,7 @@ auto normalize(Strategy /*strategy*/,
                continuable_base<Data, Strategy>&& continuation) {
 
   // If we are in the given strategy we can just use the data of the continuable
-  return base::attorney::consume_data(std::move(continuation));
+  return base::attorney::consume(std::move(continuation));
 }
 
 /// Entry function for connecting two continuables with a given strategy.
@@ -114,7 +114,7 @@ auto connect(Strategy strategy, continuable_base<LData, LAnnotation>&& left,
 
   // Return a new continuable containing the tuple and holding
   // the current strategy as annotation.
-  return base::attorney::create(std::move(data), strategy, ownership_);
+  return base::attorney::create_from(std::move(data), strategy, ownership_);
 }
 
 /// All strategies should specialize this class in order to provide:
@@ -130,7 +130,7 @@ auto finalize_connection(continuable_base<Data, Strategy>&& continuation) {
   using finalizer = connection_finalizer<Strategy>;
 
   util::ownership ownership = base::attorney::ownership_of(continuation);
-  auto connection = base::attorney::consume_data(std::move(continuation));
+  auto connection = base::attorney::consume(std::move(continuation));
 
   // Return a new continuable which
   return finalizer::finalize(std::move(connection), std::move(ownership));

@@ -142,7 +142,7 @@ struct connection_finalizer<connection_strategy_seq_tag> {
 
     auto signature = aggregated::hint_of_data<decltype(result)>();
 
-    return base::attorney::create(
+    return base::attorney::create_from(
         [result = std::move(result)](auto&& callback) mutable {
           // The data from which the visitor is constructed in-place
           using data_t =

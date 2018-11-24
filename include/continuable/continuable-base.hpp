@@ -92,6 +92,8 @@ template <typename Data, typename Annotation>
 class continuable_base {
 
   /// \cond false
+  using ownership = detail::util::ownership;
+
   template <typename, typename>
   friend class continuable_base;
   friend struct detail::base::attorney;
@@ -104,11 +106,11 @@ class continuable_base {
   // The continuation type or intermediate result
   Data data_;
   // The transferable state which represents the validity of the object
-  detail::util::ownership ownership_;
+  ownership ownership_;
   /// \endcond
 
   /// Constructor accepting the data object while erasing the annotation
-  explicit continuable_base(Data data, detail::util::ownership ownership)
+  explicit continuable_base(Data data, ownership ownership)
       : data_(std::move(data)), ownership_(std::move(ownership)) {
   }
 
@@ -121,7 +123,8 @@ public:
   /// while erasing the annotation
   template <typename OData, std::enable_if_t<std::is_convertible<
                                 std::decay_t<OData>, Data>::value>* = nullptr>
-  continuable_base(OData&& data) : data_(std::forward<OData>(data)) {
+  continuable_base(OData&& data) // NOLINT(misc-forwarding-reference-overload)
+      : data_(std::forward<OData>(data)) {
   }
 
   /// Constructor taking the data of other continuable_base objects
@@ -131,7 +134,7 @@ public:
   /// the continuable by any object which is useful for type-erasure.
   template <typename OData, typename OAnnotation>
   continuable_base(continuable_base<OData, OAnnotation>&& other)
-      : continuable_base(std::move(other).finish().consume_data()) {
+      : continuable_base(std::move(other).finish().consume()) {
   }
 
   /// \cond false
@@ -710,7 +713,7 @@ private:
     ownership_.release();
   }
 
-  Data&& consume_data() && {
+  Data&& consume() && {
     assert_acquired();
     release();
     return std::move(data_);
@@ -814,7 +817,7 @@ constexpr auto make_continuable(Continuation&& continuation) {
                 "use make_continuable<void>(...). Continuables with an exact "
                 "signature may be created through make_continuable<Args...>.");
 
-  return detail::base::attorney::create(
+  return detail::base::attorney::create_from(
       std::forward<Continuation>(continuation),
       detail::hints::extract(detail::traits::identity<Args...>{}),
       detail::util::ownership{});
