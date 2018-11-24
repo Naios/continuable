@@ -83,7 +83,7 @@ auto normalize(Strategy /*strategy*/,
 
   // If the right continuation is a different strategy materialize it
   // in order to keep the precedence in cases where: `c1 && (c2 || c3)`.
-  return std::make_tuple(base::attorney::materialize(std::move(continuation)));
+  return std::make_tuple(std::move(continuation).finish());
 }
 /// - The continuable is inside the current strategy state:
 ///   -> return the data of the tuple
@@ -179,7 +179,7 @@ public:
 
     // Materialize every continuable
     // TODO Actually we would just need to consume the data here
-    return base::attorney::materialize(std::forward<Continuable>(continuable));
+    return std::forward<Continuable>(continuable).finish();
   }
 };
 

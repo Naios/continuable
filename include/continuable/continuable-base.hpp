@@ -96,6 +96,11 @@ class continuable_base {
   friend class continuable_base;
   friend struct detail::base::attorney;
 
+  // The materializer which is used when this continuable_base is an
+  // expression template such that is_connection_strategy<Annotation>::value
+  // holds for the Annotation.
+  using materializer = detail::connection::materializer<continuable_base>;
+
   // The continuation type or intermediate result
   Data data_;
   // The transferable state which represents the validity of the object
@@ -126,7 +131,7 @@ public:
   /// the continuable by any object which is useful for type-erasure.
   template <typename OData, typename OAnnotation>
   continuable_base(continuable_base<OData, OAnnotation>&& other)
-      : continuable_base(std::move(other).materialize().consume_data()) {
+      : continuable_base(std::move(other).finish().consume_data()) {
   }
 
   /// \cond false
@@ -241,7 +246,7 @@ public:
             E&& executor = detail::types::this_thread_executor_tag{}) && {
     return detail::base::chain_continuation<detail::base::handle_results::yes,
                                             detail::base::handle_errors::no>(
-        std::move(*this).materialize(), std::forward<T>(callback),
+        std::move(*this).finish(), std::forward<T>(callback),
         std::forward<E>(executor));
   }
 
@@ -267,7 +272,7 @@ public:
   template <typename OData, typename OAnnotation>
   auto then(continuable_base<OData, OAnnotation>&& continuation) && {
     return std::move(*this).then(
-        detail::base::wrap_continuation(std::move(continuation).materialize()));
+        detail::base::wrap_continuation(std::move(continuation).finish()));
   }
 
   /// Main method of the continuable_base to catch exceptions and error codes
@@ -314,7 +319,7 @@ public:
             E&& executor = detail::types::this_thread_executor_tag{}) && {
     return detail::base::chain_continuation<detail::base::handle_results::no,
                                             detail::base::handle_errors::plain>(
-        std::move(*this).materialize(), std::forward<T>(callback),
+        std::move(*this).finish(), std::forward<T>(callback),
         std::forward<E>(executor));
   }
 
@@ -375,7 +380,7 @@ public:
             E&& executor = detail::types::this_thread_executor_tag{}) && {
     return detail::base::chain_continuation<
         detail::base::handle_results::yes,
-        detail::base::handle_errors::forward>(std::move(*this).materialize(),
+        detail::base::handle_errors::forward>(std::move(*this).finish(),
                                               std::forward<T>(callback),
                                               std::forward<E>(executor));
   }
@@ -390,7 +395,7 @@ public:
   /// \since 2.0.0
   template <typename T>
   auto apply(T&& transform) && {
-    return std::forward<T>(transform)(std::move(*this).materialize());
+    return std::forward<T>(transform)(std::move(*this).finish());
   }
 
   /// The pipe operator | is an alias for the continuable::then method.
@@ -585,6 +590,33 @@ public:
     return std::move(*this);
   }
 
+  /// Materializes the continuation expression template and finishes
+  /// the current applied strategy.
+  ///
+  /// This can be used in the case where we are chaining continuations lazily
+  /// through a strategy, for instance when applying operators for
+  /// expressing connections and then want to return a materialized
+  /// continuable_base which uses the strategy respectively.
+  /// ```cpp
+  /// auto do_both() {
+  ///   return (wait(10s) || wait_key_pressed(KEY_SPACE)).finish();
+  /// }
+  ///
+  /// // Without a call to finish() this would lead to
+  /// // an unintended evaluation strategy:
+  /// do_both() || wait(5s);
+  /// ```
+  ///
+  /// \note When using a type erased continuable_base such as
+  ///       `continuable<...>` this method doesn't need to be called
+  ///       since the continuable_base is materialized automatically
+  ///       on conversion.
+  ///
+  /// \since 4.0.0
+  auto finish() && {
+    return materializer::apply(std::move(*this));
+  }
+
   /// \cond false
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
   /// \endcond
@@ -667,7 +699,7 @@ public:
   ///
   /// \since     2.0.0
   auto operator co_await() && {
-    return detail::awaiting::create_awaiter(std::move(*this).materialize());
+    return detail::awaiting::create_awaiter(std::move(*this).finish());
   }
   /// \cond false
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
@@ -676,11 +708,6 @@ public:
 private:
   void release() noexcept {
     ownership_.release();
-  }
-
-  auto materialize() && {
-    return detail::connection::materializer<continuable_base>::apply(
-        std::move(*this));
   }
 
   Data&& consume_data() && {

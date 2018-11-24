@@ -82,14 +82,9 @@ struct attorney {
   static auto
   invoke_continuation(continuable_base<Data, Annotation>&& continuation,
                       Callback&& callback) noexcept {
-    auto materialized = std::move(continuation).materialize();
+    auto materialized = std::move(continuation).finish();
     materialized.release();
     return materialized.data_(std::forward<Callback>(callback));
-  }
-
-  template <typename Data, typename Annotation>
-  static auto materialize(continuable_base<Data, Annotation>&& continuation) {
-    return std::move(continuation).materialize();
   }
 
   template <typename Data, typename Annotation>
@@ -167,8 +162,8 @@ template <typename Data, typename Annotation>
 constexpr auto
 invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
   /// Get the hint of the unwrapped returned continuable
-  using Type = decltype(attorney::materialize(
-      std::declval<continuable_base<Data, Annotation>>()));
+  using Type =
+      decltype(std::declval<continuable_base<Data, Annotation>>().finish());
 
   auto constexpr const hint = hints::hint_of(traits::identify<Type>{});
 
