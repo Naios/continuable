@@ -563,6 +563,7 @@ constexpr auto
 next_hint_of(std::integral_constant<handle_results, handle_results::no>,
              traits::identity<T> /*callback*/,
              hints::signature_hint_tag<Args...> current) {
+  // TODO
   return current;
 }
 

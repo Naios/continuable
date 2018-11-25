@@ -104,7 +104,7 @@ TYPED_TEST(result_all_tests, is_move_constructible) {
   }
 
   {
-    TypeParam e(TypeParam(supply_test_exception()));
+    TypeParam e{TypeParam{supply_test_exception()}};
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
     EXPECT_TRUE(e.is_exception());
