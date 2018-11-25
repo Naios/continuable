@@ -39,7 +39,7 @@ cti::continuable<> resolve_async(S&& supplier) {
   co_await supplier();
 
   // 1 args
-  int a1 = co_await supplier(1);
+  co_await supplier(1);
   EXPECT_EQ(a1, 1);
 
   // 2-n args
@@ -66,7 +66,7 @@ cti::continuable<int, int, int, int> resolve_async_multiple(S&& supplier) {
 }
 
 TYPED_TEST(single_dimension_tests, are_awaitable) {
-  auto const& supply = [&](auto&&... args) {
+  auto const supply = [&](auto&&... args) {
     // Supplies the current tested continuable
     return this->supply(std::forward<decltype(args)>(args)...);
   };

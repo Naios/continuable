@@ -86,15 +86,15 @@ public:
 
 /// A class similar to the one in the result proposal,
 /// however it's capable of carrying an exception_t.
-// TODO -> async_result
 template <typename... T>
 class result {
-  using trait = detail::result_trait<T...>;
-  using value_t = typename trait::value_t;
-
-  detail::container::flat_variant<value_t, exception_t> variant_;
+  using trait_t = detail::result_trait<T...>;
+  using surrogate_t = typename trait_t::surrogate_t;
 
 public:
+  using value_t = typename trait_t::value_t;
+  using exception_t = exception_t;
+
   result() = default;
   result(result const&) = default;
   result(result&&) = default;
@@ -103,9 +103,9 @@ public:
   ~result() = default;
 
   template <typename... Args,
-            decltype(trait::wrap(std::declval<Args>()...))* = nullptr>
+            decltype(trait_t::wrap(std::declval<Args>()...))* = nullptr>
   explicit result(Args&&... values)
-      : variant_(trait::wrap(std::forward<Args>(values)...)) {
+      : variant_(trait_t::wrap(std::forward<Args>(values)...)) {
   }
   explicit result(exception_t exception) : variant_(std::move(exception)) {
   }
@@ -127,7 +127,7 @@ public:
     variant_.set_empty();
   }
   void set_value(T... values) {
-    variant_ = trait::wrap(std::move(values)...);
+    variant_ = trait_t::wrap(std::move(values)...);
   }
   void set_exception(exception_t exception) {
     variant_ = std::move(exception);
@@ -137,7 +137,7 @@ public:
     return variant_.is_empty();
   }
   bool is_value() const noexcept {
-    return variant_.template is<value_t>();
+    return variant_.template is<surrogate_t>();
   }
   bool is_exception() const noexcept {
     return variant_.template is<exception_t>();
@@ -147,15 +147,26 @@ public:
     return is_value();
   }
 
-  value_t& get_value() & noexcept {
-    return variant_.template cast<value_t>();
+  decltype(auto) get_value() & noexcept {
+    return trait_t::unwrap(variant_.template cast<surrogate_t>());
   }
-  value_t const& get_value() const& noexcept {
-    return variant_.template cast<value_t>();
+  decltype(auto) get_value() const& noexcept {
+    return trait_t::unwrap(variant_.template cast<surrogate_t>());
   }
-  value_t&& get_value() && noexcept {
-    return std::move(variant_).template cast<value_t>();
+  decltype(auto) get_value() && noexcept {
+    return trait_t::unwrap(std::move(variant_).template cast<surrogate_t>());
   }
+
+  decltype(auto) operator*() & noexcept {
+    return get_value();
+  }
+  decltype(auto) operator*() const& noexcept {
+    return get_value();
+  }
+  decltype(auto) operator*() && noexcept {
+    return std::move(*this).get_value();
+  }
+
   exception_t& get_exception() & noexcept {
     return variant_.template cast<exception_t>();
   }
@@ -166,15 +177,8 @@ public:
     return std::move(variant_).template cast<exception_t>();
   }
 
-  value_t& operator*() & noexcept {
-    return get_value();
-  }
-  value_t const& operator*() const& noexcept {
-    return get_value();
-  }
-  value_t&& operator*() && noexcept {
-    return std::move(*this).get_value();
-  }
+private:
+  detail::container::flat_variant<surrogate_t, exception_t> variant_;
 };
 
 template <typename T>

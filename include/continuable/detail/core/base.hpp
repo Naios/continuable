@@ -595,8 +595,8 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   return attorney::create_from(
       [continuation = std::forward<Continuation>(continuation),
        callback = std::forward<Callback>(callback),
-       executor =
-           std::forward<Executor>(executor)](auto&& next_callback) mutable {
+       executor = std::forward<Executor>(executor)] //
+      (auto&& next_callback) mutable {
         // Invokes a continuation with a given callback.
         // Passes the next callback to the resulting continuable or
         // invokes the next callback directly if possible.

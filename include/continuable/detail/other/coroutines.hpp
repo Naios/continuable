@@ -98,7 +98,7 @@ public:
   }
 
   /// Resume the coroutine represented by the handle
-  auto await_resume() noexcept(false) {
+  typename result_t::value_t await_resume() noexcept(false) {
     if (result_) {
       // When the result was resolved return it
       return std::move(result_).get_value();
@@ -120,8 +120,8 @@ private:
   }
 
   /// Resolve the continuation through an error
-  void resolve(exception_arg_t, exception_t error) {
-    result_.set_exception(std::move(error));
+  void resolve(exception_arg_t, exception_t exception) {
+    result_.set_exception(std::move(exception));
   }
 };
 

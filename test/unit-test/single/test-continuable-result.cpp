@@ -28,8 +28,8 @@
 #include <test-continuable.hpp>
 
 using cti::exception_t;
-using cti::result;
 using cti::make_result;
+using cti::result;
 
 static int const CANARY = 373671;
 
@@ -66,10 +66,17 @@ TYPED_TEST_CASE(result_all_tests, result_test_types);
 TYPED_TEST(result_all_tests, is_default_constructible) {
   TypeParam e;
   result<> e1;
+  static_assert(std::is_void<decltype(e1.get_value())>::value);
+  EXPECT_TRUE(e1.is_empty());
+
   result<int> e2;
+  EXPECT_TRUE(e2.is_empty());
+
   result<int, int> e3;
+  EXPECT_TRUE(e3.is_empty());
 
   auto empty = make_result();
+  EXPECT_TRUE(empty.is_empty());
 }
 
 TYPED_TEST(result_all_tests, can_carry_errors) {

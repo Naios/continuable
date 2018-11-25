@@ -43,28 +43,43 @@ template <typename... T>
 struct result_trait;
 template <>
 struct result_trait<> {
-  struct value_t {};
+  using value_t = void;
+  struct surrogate_t {};
 
-  static constexpr value_t wrap() noexcept {
+  static constexpr surrogate_t wrap() noexcept {
     return {};
+  }
+
+  static constexpr void unwrap(surrogate_t) {
   }
 };
 template <typename T>
 struct result_trait<T> {
   using value_t = T;
+  using surrogate_t = value_t;
 
-  static auto wrap(T arg) {
+  static surrogate_t wrap(T arg) {
     return std::move(arg);
+  }
+
+  template <typename R>
+  static decltype(auto) unwrap(R&& unwrap) {
+    return std::forward<R>(unwrap);
   }
 };
 template <typename First, typename Second, typename... Rest>
 struct result_trait<First, Second, Rest...> {
   using value_t = std::tuple<First, Second, Rest...>;
+  using surrogate_t = value_t;
 
-  static std::tuple<First, Second, Rest...> wrap(First first, Second second,
-                                                 Rest... rest) {
+  static surrogate_t wrap(First first, Second second, Rest... rest) {
     return std::make_tuple(std::move(first), std::move(second),
                            std::move(rest)...);
+  }
+
+  template <typename R>
+  static decltype(auto) unwrap(R&& unwrap) {
+    return std::forward<R>(unwrap);
   }
 };
 } // namespace detail
