@@ -181,28 +181,19 @@ private:
   detail::container::flat_variant<surrogate_t, exception_t> variant_;
 };
 
-template <typename T>
-struct is_result : std::false_type {};
-template <typename... T>
-struct is_result<result<T...>> : std::true_type {};
-template <>
-struct is_result<empty_result> : std::true_type {};
-template <>
-struct is_result<exceptional_result> : std::true_type {};
-
 template <typename... T>
 auto make_result(T&&... values) {
   return result<detail::traits::unrefcv_t<T>...>(std::forward<T>(values)...);
 }
 
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
-inline auto make_exceptional_result(exception_t exception) {
+inline exceptional_result make_exceptional_result(exception_t exception) {
   // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
-  return exceptional_result(std::move(exception));
+  return exceptional_result{std::move(exception)};
 }
 
-inline auto make_empty_result() {
-  return empty_result{};
+inline empty_result make_empty_result() {
+  return {};
 }
 } // namespace cti
 
