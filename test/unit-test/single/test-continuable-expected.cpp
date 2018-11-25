@@ -62,6 +62,13 @@ using expected_test_types = testing::Types<unique_type, copyable_type>;
 
 TYPED_TEST_CASE(expected_all_tests, expected_test_types);
 
+TYPED_TEST(expected_all_tests, is_default_constructible) {
+  TypeParam e;
+  expected<> e1;
+  expected<int> e2;
+  expected<int, int> e3;
+}
+
 TYPED_TEST(expected_all_tests, can_carry_errors) {
   {
     TypeParam e(this->supply(CANARY));
@@ -171,9 +178,7 @@ TEST(expected_copyable_tests, is_copy_assignable) {
 
 TYPED_TEST(expected_all_tests, is_constructible_from_error_helper) {
   cti::exceptional_expected e1(exception_t{});
-  {
-    auto e2 = e1;
-  }
+  { auto e2 = e1; }
   auto e2 = std::move(e1);
 
   TypeParam e(std::move(e2));
@@ -185,9 +190,7 @@ TYPED_TEST(expected_all_tests, is_constructible_from_error_helper) {
 
 TYPED_TEST(expected_all_tests, is_assignable_from_error_helper) {
   cti::exceptional_expected e1(exception_t{});
-  {
-    auto e2 = e1;
-  }
+  { auto e2 = e1; }
   auto e2 = std::move(e1);
 
   TypeParam e;
@@ -200,9 +203,7 @@ TYPED_TEST(expected_all_tests, is_assignable_from_error_helper) {
 
 TYPED_TEST(expected_all_tests, is_constructible_from_empty_helper) {
   cti::empty_expected e1;
-  {
-    auto e2 = e1;
-  }
+  { auto e2 = e1; }
   auto e2 = std::move(e1);
 
   TypeParam e(std::move(e2));
@@ -214,9 +215,7 @@ TYPED_TEST(expected_all_tests, is_constructible_from_empty_helper) {
 
 TYPED_TEST(expected_all_tests, is_assignable_from_empty_helper) {
   cti::empty_expected e1;
-  {
-    auto e2 = e1;
-  }
+  { auto e2 = e1; }
   auto e2 = std::move(e1);
 
   TypeParam e;

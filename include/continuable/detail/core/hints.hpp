@@ -44,9 +44,9 @@ using signature_hint_tag = traits::identity<Args...>;
 
 /// Returns the signature hint of the given continuable
 template <typename Data, typename... Args>
-constexpr auto
+constexpr signature_hint_tag<Args...>
 hint_of(traits::identity<continuable_base<Data, signature_hint_tag<Args...>>>) {
-  return hints::signature_hint_tag<Args...>{};
+  return {};
 }
 
 /// Extracts the signature we pass to the internal continuable

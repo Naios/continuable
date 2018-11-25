@@ -42,14 +42,7 @@ namespace cti {
 /// A class which is convertible to any expected and that definitly holds no
 /// value so the real expected gets invalidated when
 /// this object is passed to it
-struct empty_expected {
-  empty_expected() = default;
-  empty_expected(empty_expected const&) = default;
-  empty_expected(empty_expected&&) = default;
-  empty_expected& operator=(empty_expected const&) = default;
-  empty_expected& operator=(empty_expected&&) = default;
-  ~empty_expected() = default;
-};
+struct empty_expected {};
 
 /// A class which is convertible to any expected and that definitly holds
 /// an exception which is then passed to the converted expected object.
@@ -93,6 +86,7 @@ public:
 
 /// A class similar to the one in the expected proposal,
 /// however it's capable of carrying an exception_t.
+// TODO -> async_result
 template <typename... T>
 class expected {
   using trait = detail::expected_trait<T...>;
@@ -101,7 +95,15 @@ class expected {
   detail::container::flat_variant<value_t, exception_t> variant_;
 
 public:
-  explicit expected() = default;
+  template <typename A = detail::traits::identity<>,
+            // I know this is a little bit hacky but it's a working version
+            // of a default constructor that is not present when the class is
+            // instantiated with zero arguments.
+            std::enable_if_t<((sizeof(A) * 0 + sizeof...(T)) > 0)>* = nullptr,
+            std::enable_if_t<
+                std::is_same<A, detail::traits::identity<>>::value>* = nullptr>
+  explicit expected(A = {}) {
+  }
   explicit expected(expected const&) = default;
   explicit expected(expected&&) = default;
   expected& operator=(expected const&) = default;
@@ -130,7 +132,7 @@ public:
     variant_.set_empty();
   }
   void set_value(T... values) {
-    variant_ = std::move(values...);
+    variant_ = trait::wrap(std::move(values)...);
   }
   void set_exception(exception_t exception) {
     variant_ = std::move(exception);

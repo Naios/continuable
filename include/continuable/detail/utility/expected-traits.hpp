@@ -35,13 +35,14 @@
 #include <type_traits>
 #include <utility>
 #include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
 namespace detail {
 template <typename... T>
 struct expected_trait;
 template <>
-struct expected_trait<traits::identity<>> {
+struct expected_trait<> {
   struct value_t {};
 
   static constexpr value_t wrap() noexcept {

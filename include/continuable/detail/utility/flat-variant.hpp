@@ -301,7 +301,7 @@ public:
   template <typename V>
       V&& cast() && noexcept {
     assert(is_slot(traits::index_of_t<std::decay_t<V>, T...>::value));
-    auto& value = *reinterpret_cast<std::decay_t<V> const*>(&this->storage_);
+    auto& value = *reinterpret_cast<std::decay_t<V>*>(&this->storage_);
     return std::move(value);
   }
 

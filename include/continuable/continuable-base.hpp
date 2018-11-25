@@ -903,11 +903,12 @@ auto recover(Args&&... args) {
 }
 
 inline auto rethrow(exception_t exception) {
+  // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
   return make_exceptional_expected(std::move(exception));
 }
 
 inline auto cancel() {
-  return make_none_expected();
+  return make_empty_expected();
 }
 /// \}
 } // namespace cti

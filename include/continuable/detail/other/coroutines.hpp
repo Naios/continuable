@@ -34,13 +34,13 @@
 
 #include <cassert>
 #include <tuple>
+#include <type_traits>
 #include <experimental/coroutine>
 #include <continuable/continuable-expected.hpp>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/core/hints.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
-#include <continuable/detail/utility/expected-traits.hpp>
 #include <continuable/detail/utility/traits.hpp>
 #include <continuable/detail/utility/util.hpp>
 
@@ -54,19 +54,25 @@ namespace awaiting {
 /// We import the coroutine handle in our namespace
 using std::experimental::coroutine_handle;
 
+template <typename T>
+struct expected_from_identity;
+template <typename... T>
+struct expected_from_identity<traits::identity<T...>> {
+  using expected_t = expected<T...>;
+};
+
 /// An object which provides the internal buffer and helper methods
 /// for waiting on a continuable in a stackless coroutine.
 template <typename Continuable>
 class awaitable {
   using hint_t = decltype(hints::hint_of(traits::identify<Continuable>{}));
-  using trait_t = expected_trait<hint_t>;
-  using value_t = expected_trait<hint_t>;
+  using expected_t = typename expected_from_identity<hint_t>::expected_t;
 
   /// The continuable which is invoked upon suspension
   Continuable continuable_;
   /// A cache which is used to pass the result of the continuation
   /// to the coroutine.
-  typename trait_t::expected_type result_;
+  expected_t result_;
 
 public:
   explicit constexpr awaitable(Continuable&& continuable)
@@ -95,7 +101,7 @@ public:
   auto await_resume() noexcept(false) {
     if (result_) {
       // When the result was resolved return it
-      return trait_t::unwrap(std::move(result_));
+      return std::move(result_).get_value();
     }
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
@@ -110,7 +116,7 @@ private:
   /// Resolve the continuation through the result
   template <typename... Args>
   void resolve(Args&&... args) {
-    result_.set_value(trait_t::wrap(std::forward<Args>(args)...));
+    result_.set_value(std::forward<Args>(args)...);
   }
 
   /// Resolve the continuation through an error
