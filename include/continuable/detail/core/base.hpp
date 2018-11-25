@@ -159,9 +159,9 @@ constexpr auto make_invoker(T&& invoke, hints::signature_hint_tag<Args...>) {
 }
 
 /// - continuable<?...> -> result(next_callback);
-template <typename Hint, typename Data, typename Annotation>
+template <typename Data, typename Annotation>
 constexpr auto
-invoker_of(Hint, traits::identity<continuable_base<Data, Annotation>>) {
+invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
   /// Get the hint of the unwrapped returned continuable
   using Type =
       decltype(std::declval<continuable_base<Data, Annotation>>().finish());
@@ -184,8 +184,8 @@ invoker_of(Hint, traits::identity<continuable_base<Data, Annotation>>) {
 }
 
 /// - ? -> next_callback(?)
-template <typename Hint, typename T>
-constexpr auto invoker_of(Hint, traits::identity<T>) {
+template <typename T>
+constexpr auto invoker_of(traits::identity<T>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         CONTINUABLE_BLOCK_TRY_BEGIN
@@ -201,8 +201,7 @@ constexpr auto invoker_of(Hint, traits::identity<T>) {
 }
 
 /// - void -> next_callback()
-template <typename Hint>
-auto invoker_of(Hint, traits::identity<void>) {
+inline auto invoker_of(traits::identity<void>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         CONTINUABLE_BLOCK_TRY_BEGIN
@@ -216,52 +215,73 @@ auto invoker_of(Hint, traits::identity<void>) {
 }
 
 /// - empty_result -> <cancel>
-template <typename Hint>
-auto invoker_of(Hint, traits::identity<empty_result>) {
+inline auto invoker_of(traits::identity<empty_result>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
-        util::unused(callback, next_callback, args...);
-        // TODO
-        /*CONTINUABLE_BLOCK_TRY_BEGIN
-          util::partial_invoke(std::forward<decltype(callback)>(callback),
-                               std::forward<decltype(args)>(args)...);
-          invoke_no_except(
-              std::forward<decltype(next_callback)>(next_callback));
-        CONTINUABLE_BLOCK_TRY_END*/
+        (void)next_callback;
+        CONTINUABLE_BLOCK_TRY_BEGIN
+          empty_result result =
+              util::partial_invoke(std::forward<decltype(callback)>(callback),
+                                   std::forward<decltype(args)>(args)...);
+
+          // Don't invoke anything here since returning an empty result
+          // cancels the asynchronous chain effectively.
+          (void)result;
+        CONTINUABLE_BLOCK_TRY_END
       },
       traits::identity<>{});
 }
 
-/// - exceptional_result -> Hint
-template <typename Hint>
-auto invoker_of(Hint, traits::identity<exceptional_result>) {
+/// - exceptional_result -> <throw>
+inline auto invoker_of(traits::identity<exceptional_result>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         util::unused(callback, next_callback, args...);
-        // TODO
-        /*CONTINUABLE_BLOCK_TRY_BEGIN
-        util::partial_invoke(std::forward<decltype(callback)>(callback),
-        std::forward<decltype(args)>(args)...);
-        invoke_no_except(
-        std::forward<decltype(next_callback)>(next_callback));
-        CONTINUABLE_BLOCK_TRY_END*/
+        CONTINUABLE_BLOCK_TRY_BEGIN
+          exceptional_result result =
+              util::partial_invoke(std::forward<decltype(callback)>(callback),
+                                   std::forward<decltype(args)>(args)...);
+
+          // Forward the exception to the next available handler
+          invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
+                           exception_arg_t{},
+                           std::move(result).get_exception());
+        CONTINUABLE_BLOCK_TRY_END
       },
       traits::identity<>{});
 }
 
-/// - result<Args...> -> Args...
-template <typename Hint, typename... Args>
-auto invoker_of(Hint, traits::identity<result<Args...>>) {
+/// - result<?...> -> next_callback(?...)
+template <typename... Args>
+auto invoker_of(traits::identity<result<Args...>>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
-        util::unused(callback, next_callback, args...);
-        // TODO
-        /*CONTINUABLE_BLOCK_TRY_BEGIN
-        util::partial_invoke(std::forward<decltype(callback)>(callback),
-        std::forward<decltype(args)>(args)...);
-        invoke_no_except(
-        std::forward<decltype(next_callback)>(next_callback));
-        CONTINUABLE_BLOCK_TRY_END*/
+        CONTINUABLE_BLOCK_TRY_BEGIN
+          result<Args...> result =
+              util::partial_invoke(std::forward<decltype(callback)>(callback),
+                                   std::forward<decltype(args)>(args)...);
+          // 
+          if (result.is_value()) {
+            // Workaround for MSVC not capturing the reference
+            // correctly inside the lambda.
+            using Next = decltype(next_callback);
+
+            traits::unpack(
+              [&](auto&&... types) {
+              /// TODO Add inplace resolution here
+
+              invoke_no_except(std::forward<Next>(next_callback),
+                std::forward<decltype(types)>(types)...);
+            },
+              std::move(result));
+
+          } else if (result.is_exception()) {
+
+          }
+
+          // Otherwise the result is empty and we are cancelling our
+          // asynchronous chain.
+        CONTINUABLE_BLOCK_TRY_END
       },
       traits::identity<Args...>{});
 }
@@ -275,8 +295,8 @@ inline auto sequenced_unpack_invoker() {
           util::partial_invoke(std::forward<decltype(callback)>(callback),
                                std::forward<decltype(args)>(args)...);
 
-      // Workaround for MSVC not capturing the reference correctly inside
-      // the lambda.
+      // Workaround for MSVC not capturing the reference
+      // correctly inside the lambda.
       using Next = decltype(next_callback);
 
       traits::unpack(
@@ -292,15 +312,15 @@ inline auto sequenced_unpack_invoker() {
 } // namespace decoration
 
 // - std::pair<?, ?> -> next_callback(?, ?)
-template <typename Hint, typename First, typename Second>
-constexpr auto invoker_of(Hint, traits::identity<std::pair<First, Second>>) {
+template <typename First, typename Second>
+constexpr auto invoker_of(traits::identity<std::pair<First, Second>>) {
   return make_invoker(sequenced_unpack_invoker(),
                       traits::identity<First, Second>{});
 }
 
 // - std::tuple<?...>  -> next_callback(?...)
-template <typename Hint, typename... Args>
-constexpr auto invoker_of(Hint, traits::identity<std::tuple<Args...>>) {
+template <typename... Args>
+constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
   return make_invoker(sequenced_unpack_invoker(), traits::identity<Args...>{});
 }
 
@@ -379,9 +399,7 @@ struct result_handler_base<handle_results::yes, Base,
         std::move(static_cast<Base*>(this)->callback_), std::move(args)...))>{};
 
     // Pick the correct invoker that handles decorating of the result
-    auto invoker =
-        decoration::invoker_of(hints::signature_hint_tag<Args...>{}, //
-                               result);
+    auto invoker = decoration::invoker_of(result);
 
     // Invoke the callback
     packed_dispatch(std::move(static_cast<Base*>(this)->executor_),
@@ -547,15 +565,13 @@ template <typename T, typename... Args>
 constexpr auto
 next_hint_of(std::integral_constant<handle_results, handle_results::yes>,
              traits::identity<T> /*callback*/,
-             hints::signature_hint_tag<Args...> current) {
+             hints::signature_hint_tag<Args...> /*current*/) {
   // Partial Invoke the given callback
   using Result = decltype(
       util::partial_invoke(std::declval<T>(), std::declval<Args>()...));
 
   // Return the hint of thr given invoker
-  return decltype(decoration::invoker_of(current, //
-                                         traits::identify<Result>{})
-                      .hint()){};
+  return decltype(decoration::invoker_of(traits::identify<Result>{}).hint()){};
 }
 /// Don't progress the hint when we don't continue
 template <typename T, typename... Args>

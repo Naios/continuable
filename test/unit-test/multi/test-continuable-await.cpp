@@ -39,7 +39,7 @@ cti::continuable<> resolve_async(S&& supplier) {
   co_await supplier();
 
   // 1 args
-  co_await supplier(1);
+  int a1 = co_await supplier(1);
   EXPECT_EQ(a1, 1);
 
   // 2-n args

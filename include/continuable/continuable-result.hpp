@@ -39,10 +39,22 @@
 #include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
-/// A class which is convertible to any result and that definitly holds no
-/// value so the real result gets invalidated when
-/// this object is passed to it
+/// \defgroup Result Result
+/// provides the \ref result class and corresponding utility functions to work
+/// with the result of an asynchronous operation which can possibly yield:
+/// - *no result*: If the operation didn't finish
+/// - *a value*: If the operation finished successfully
+/// - *an exception*: If the operation finished with an exception
+/// \{
+
+/// A class which is convertible to any \ref result and that definitly holds no
+/// value so the real result gets invalidated when this object is passed to it.
 struct empty_result {};
+
+/// Returns a new empty result
+inline empty_result make_empty_result() {
+  return {};
+}
 
 /// A class which is convertible to any result and that definitly holds
 /// an exception which is then passed to the converted result object.
@@ -68,24 +80,38 @@ public:
     return *this;
   }
 
+  /// Sets an exception
   void set_exception(exception_t exception) {
     // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
     exception_ = std::move(exception);
   }
 
+  /// Returns the contained exception
   exception_t& get_exception() & noexcept {
     return exception_;
   }
+  /// \copydoc get_exception
   exception_t const& get_exception() const& noexcept {
     return exception_;
   }
+  /// \copydoc get_exception
   exception_t&& get_exception() && noexcept {
     return std::move(exception_);
   }
 };
 
-/// A class similar to the one in the result proposal,
-/// however it's capable of carrying an exception_t.
+/// Returns a new exceptional result from the given exception
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+inline exceptional_result make_exceptional_result(exception_t exception) {
+  // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
+  return exceptional_result{std::move(exception)};
+}
+
+/// The result class can carry the three kinds of results an asynchronous
+/// operation can return: no result, a value or an exception.
+/// - *no result*: If the operation didn't finish
+/// - *a value*: If the operation finished successfully
+/// - *an exception*: If the operation finished with an exception
 template <typename... T>
 class result {
   using trait_t = detail::result_trait<T...>;
@@ -108,7 +134,8 @@ public:
   }
   explicit result(exception_t exception) : variant_(std::move(exception)) {
   }
-  result(empty_result){};
+  result(empty_result) {
+  }
   result(exceptional_result exceptional_result)
       : variant_(std::move(exceptional_result.get_exception())) {
   }
@@ -146,6 +173,7 @@ public:
     return is_value();
   }
 
+  /// Returns the
   decltype(auto) get_value() & noexcept {
     return trait_t::unwrap(variant_.template cast<surrogate_t>());
   }
@@ -184,16 +212,7 @@ template <typename... T>
 auto make_result(T&&... values) {
   return result<detail::traits::unrefcv_t<T>...>(std::forward<T>(values)...);
 }
-
-// NOLINTNEXTLINE(performance-unnecessary-value-param)
-inline exceptional_result make_exceptional_result(exception_t exception) {
-  // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
-  return exceptional_result{std::move(exception)};
-}
-
-inline empty_result make_empty_result() {
-  return {};
-}
+/// \}
 } // namespace cti
 
 #endif // CONTINUABLE_RESULT_HPP_INCLUDED
