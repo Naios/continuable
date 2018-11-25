@@ -267,7 +267,7 @@ struct test_exception : std::exception {
 
 test_exception get_test_exception_proto();
 
-inline auto supply_test_exception() {
+inline std::exception_ptr supply_test_exception() {
   try {
     throw get_test_exception_proto();
   } catch (...) {

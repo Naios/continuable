@@ -80,7 +80,7 @@ TYPED_TEST(result_all_tests, can_carry_errors) {
   }
 
   {
-    TypeParam e(exception_t{});
+    TypeParam e(supply_test_exception());
 
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
@@ -104,7 +104,7 @@ TYPED_TEST(result_all_tests, is_move_constructible) {
   }
 
   {
-    TypeParam e(TypeParam(exception_t{}));
+    TypeParam e(TypeParam(supply_test_exception()));
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
     EXPECT_TRUE(e.is_exception());
@@ -123,7 +123,7 @@ TYPED_TEST(result_all_tests, is_value_move_assignable) {
 }
 
 TYPED_TEST(result_all_tests, is_error_move_assignable) {
-  TypeParam old(exception_t{});
+  TypeParam old(supply_test_exception());
   TypeParam e;
   e = std::move(old);
 
@@ -144,7 +144,7 @@ TEST(result_copyable_tests, is_copy_constructible) {
   }
 
   {
-    copyable_type const e_old(exception_t{});
+    copyable_type const e_old(supply_test_exception());
     copyable_type e(e_old);
 
     EXPECT_FALSE(bool(e));
@@ -166,7 +166,7 @@ TEST(result_copyable_tests, is_copy_assignable) {
   }
 
   {
-    copyable_type const e_old(exception_t{});
+    copyable_type const e_old(supply_test_exception());
     copyable_type e;
     e = e_old;
 
@@ -177,7 +177,7 @@ TEST(result_copyable_tests, is_copy_assignable) {
 }
 
 TYPED_TEST(result_all_tests, is_constructible_from_error_helper) {
-  cti::exceptional_result e1(exception_t{});
+  cti::exceptional_result e1(supply_test_exception());
   { auto e2 = e1; }
   auto e2 = std::move(e1);
 
@@ -189,7 +189,7 @@ TYPED_TEST(result_all_tests, is_constructible_from_error_helper) {
 }
 
 TYPED_TEST(result_all_tests, is_assignable_from_error_helper) {
-  cti::exceptional_result e1(exception_t{});
+  cti::exceptional_result e1(supply_test_exception());
   { auto e2 = e1; }
   auto e2 = std::move(e1);
 

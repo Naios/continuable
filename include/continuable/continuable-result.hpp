@@ -114,8 +114,8 @@ public:
   }
   explicit result(exception_t exception) : variant_(std::move(exception)) {
   }
-  explicit result(empty_result){};
-  explicit result(exceptional_result exceptional_result)
+  result(empty_result){};
+  result(exceptional_result exceptional_result)
       : variant_(std::move(exceptional_result.get_exception())) {
   }
 

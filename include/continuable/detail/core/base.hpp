@@ -220,6 +220,8 @@ template <typename Hint>
 auto invoker_of(Hint, traits::identity<empty_result>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
+        util::unused(callback, next_callback, args...);
+        // TODO
         /*CONTINUABLE_BLOCK_TRY_BEGIN
           util::partial_invoke(std::forward<decltype(callback)>(callback),
                                std::forward<decltype(args)>(args)...);
@@ -235,6 +237,8 @@ template <typename Hint>
 auto invoker_of(Hint, traits::identity<exceptional_result>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
+        util::unused(callback, next_callback, args...);
+        // TODO
         /*CONTINUABLE_BLOCK_TRY_BEGIN
         util::partial_invoke(std::forward<decltype(callback)>(callback),
         std::forward<decltype(args)>(args)...);
@@ -250,6 +254,8 @@ template <typename Hint, typename... Args>
 auto invoker_of(Hint, traits::identity<result<Args...>>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
+        util::unused(callback, next_callback, args...);
+        // TODO
         /*CONTINUABLE_BLOCK_TRY_BEGIN
         util::partial_invoke(std::forward<decltype(callback)>(callback),
         std::forward<decltype(args)>(args)...);
