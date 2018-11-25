@@ -93,7 +93,6 @@ class result {
 
 public:
   using value_t = typename trait_t::value_t;
-  using exception_t = exception_t;
 
   result() = default;
   result(result const&) = default;
