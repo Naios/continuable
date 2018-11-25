@@ -95,22 +95,17 @@ class result {
   detail::container::flat_variant<value_t, exception_t> variant_;
 
 public:
-  template <typename A = detail::traits::identity<>,
-            // I know this is a little bit hacky but it's a working version
-            // of a default constructor that is not present when the class is
-            // instantiated with zero arguments.
-            std::enable_if_t<((sizeof(A) * 0 + sizeof...(T)) > 0)>* = nullptr,
-            std::enable_if_t<
-                std::is_same<A, detail::traits::identity<>>::value>* = nullptr>
-  explicit result(A = {}) {
-  }
-  explicit result(result const&) = default;
-  explicit result(result&&) = default;
+  result() = default;
+  result(result const&) = default;
+  result(result&&) = default;
   result& operator=(result const&) = default;
   result& operator=(result&&) = default;
   ~result() = default;
 
-  explicit result(T... values) : variant_(trait::wrap(std::move(values)...)) {
+  template <typename... Args,
+            decltype(trait::wrap(std::declval<Args>()...))* = nullptr>
+  explicit result(Args&&... values)
+      : variant_(trait::wrap(std::forward<Args>(values)...)) {
   }
   explicit result(exception_t exception) : variant_(std::move(exception)) {
   }
@@ -192,7 +187,7 @@ template <>
 struct is_result<exceptional_result> : std::true_type {};
 
 template <typename... T>
-constexpr auto make_result(T&&... values) {
+auto make_result(T&&... values) {
   return result<detail::traits::unrefcv_t<T>...>(std::forward<T>(values)...);
 }
 

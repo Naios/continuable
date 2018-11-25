@@ -29,6 +29,7 @@
 
 using cti::exception_t;
 using cti::result;
+using cti::make_result;
 
 static int const CANARY = 373671;
 
@@ -67,6 +68,8 @@ TYPED_TEST(result_all_tests, is_default_constructible) {
   result<> e1;
   result<int> e2;
   result<int, int> e3;
+
+  auto empty = make_result();
 }
 
 TYPED_TEST(result_all_tests, can_carry_errors) {

@@ -61,7 +61,8 @@ template <typename First, typename Second, typename... Rest>
 struct result_trait<First, Second, Rest...> {
   using value_t = std::tuple<First, Second, Rest...>;
 
-  static auto wrap(First first, Second second, Rest... rest) {
+  static std::tuple<First, Second, Rest...> wrap(First first, Second second,
+                                                 Rest... rest) {
     return std::make_tuple(std::move(first), std::move(second),
                            std::move(rest)...);
   }
