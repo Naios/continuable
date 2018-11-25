@@ -182,6 +182,15 @@ public:
   }
 };
 
+template <typename T>
+struct is_result : std::false_type {};
+template <typename... T>
+struct is_result<result<T...>> : std::true_type {};
+template <>
+struct is_result<empty_result> : std::true_type {};
+template <>
+struct is_result<exceptional_result> : std::true_type {};
+
 template <typename... T>
 constexpr auto make_result(T&&... values) {
   return result<detail::traits::unrefcv_t<T>...>(std::forward<T>(values)...);

@@ -159,9 +159,9 @@ constexpr auto make_invoker(T&& invoke, hints::signature_hint_tag<Args...>) {
 }
 
 /// - continuable<?...> -> result(next_callback);
-template <typename Data, typename Annotation>
+template <typename Hint, typename Data, typename Annotation>
 constexpr auto
-invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
+invoker_of(Hint, traits::identity<continuable_base<Data, Annotation>>) {
   /// Get the hint of the unwrapped returned continuable
   using Type =
       decltype(std::declval<continuable_base<Data, Annotation>>().finish());
@@ -184,8 +184,8 @@ invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
 }
 
 /// - ? -> next_callback(?)
-template <typename T>
-constexpr auto invoker_of(traits::identity<T>) {
+template <typename Hint, typename T>
+constexpr auto invoker_of(Hint, traits::identity<T>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         CONTINUABLE_BLOCK_TRY_BEGIN
@@ -201,7 +201,8 @@ constexpr auto invoker_of(traits::identity<T>) {
 }
 
 /// - void -> next_callback()
-inline auto invoker_of(traits::identity<void>) {
+template <typename Hint>
+auto invoker_of(Hint, traits::identity<void>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         CONTINUABLE_BLOCK_TRY_BEGIN
@@ -212,6 +213,51 @@ inline auto invoker_of(traits::identity<void>) {
         CONTINUABLE_BLOCK_TRY_END
       },
       traits::identity<>{});
+}
+
+/// - empty_result -> <cancel>
+template <typename Hint>
+auto invoker_of(Hint, traits::identity<empty_result>) {
+  return make_invoker(
+      [](auto&& callback, auto&& next_callback, auto&&... args) {
+        /*CONTINUABLE_BLOCK_TRY_BEGIN
+          util::partial_invoke(std::forward<decltype(callback)>(callback),
+                               std::forward<decltype(args)>(args)...);
+          invoke_no_except(
+              std::forward<decltype(next_callback)>(next_callback));
+        CONTINUABLE_BLOCK_TRY_END*/
+      },
+      Hint{});
+}
+
+/// - exceptional_result -> Hint
+template <typename Hint>
+auto invoker_of(Hint, traits::identity<exceptional_result>) {
+  return make_invoker(
+      [](auto&& callback, auto&& next_callback, auto&&... args) {
+        /*CONTINUABLE_BLOCK_TRY_BEGIN
+        util::partial_invoke(std::forward<decltype(callback)>(callback),
+        std::forward<decltype(args)>(args)...);
+        invoke_no_except(
+        std::forward<decltype(next_callback)>(next_callback));
+        CONTINUABLE_BLOCK_TRY_END*/
+      },
+      Hint{});
+}
+
+/// - result<Args...> -> Args...
+template <typename Hint, typename... Args>
+auto invoker_of(Hint, traits::identity<result<Args...>>) {
+  return make_invoker(
+      [](auto&& callback, auto&& next_callback, auto&&... args) {
+        /*CONTINUABLE_BLOCK_TRY_BEGIN
+        util::partial_invoke(std::forward<decltype(callback)>(callback),
+        std::forward<decltype(args)>(args)...);
+        invoke_no_except(
+        std::forward<decltype(next_callback)>(next_callback));
+        CONTINUABLE_BLOCK_TRY_END*/
+      },
+      traits::identity<Args...>{});
 }
 
 /// Returns a sequenced invoker which is able to invoke
@@ -240,15 +286,15 @@ inline auto sequenced_unpack_invoker() {
 } // namespace decoration
 
 // - std::pair<?, ?> -> next_callback(?, ?)
-template <typename First, typename Second>
-constexpr auto invoker_of(traits::identity<std::pair<First, Second>>) {
+template <typename Hint, typename First, typename Second>
+constexpr auto invoker_of(Hint, traits::identity<std::pair<First, Second>>) {
   return make_invoker(sequenced_unpack_invoker(),
                       traits::identity<First, Second>{});
 }
 
 // - std::tuple<?...>  -> next_callback(?...)
-template <typename... Args>
-constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
+template <typename Hint, typename... Args>
+constexpr auto invoker_of(Hint, traits::identity<std::tuple<Args...>>) {
   return make_invoker(sequenced_unpack_invoker(), traits::identity<Args...>{});
 }
 
@@ -327,7 +373,9 @@ struct result_handler_base<handle_results::yes, Base,
         std::move(static_cast<Base*>(this)->callback_), std::move(args)...))>{};
 
     // Pick the correct invoker that handles decorating of the result
-    auto invoker = decoration::invoker_of(result);
+    auto invoker =
+        decoration::invoker_of(hints::signature_hint_tag<Args...>{}, //
+                               result);
 
     // Invoke the callback
     packed_dispatch(std::move(static_cast<Base*>(this)->executor_),
@@ -493,13 +541,15 @@ template <typename T, typename... Args>
 constexpr auto
 next_hint_of(std::integral_constant<handle_results, handle_results::yes>,
              traits::identity<T> /*callback*/,
-             hints::signature_hint_tag<Args...> /*current*/) {
+             hints::signature_hint_tag<Args...> current) {
   // Partial Invoke the given callback
   using Result = decltype(
       util::partial_invoke(std::declval<T>(), std::declval<Args>()...));
 
   // Return the hint of thr given invoker
-  return decltype(decoration::invoker_of(traits::identify<Result>{}).hint()){};
+  return decltype(decoration::invoker_of(current, //
+                                         traits::identify<Result>{})
+                      .hint()){};
 }
 /// Don't progress the hint when we don't continue
 template <typename T, typename... Args>
