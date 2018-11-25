@@ -66,7 +66,8 @@ TYPED_TEST_CASE(result_all_tests, result_test_types);
 TYPED_TEST(result_all_tests, is_default_constructible) {
   TypeParam e;
   result<> e1;
-  static_assert(std::is_void<decltype(e1.get_value())>::value);
+  static_assert(std::is_void<decltype(e1.get_value())>::value,
+                "get_value() must return void here!");
   EXPECT_TRUE(e1.is_empty());
 
   result<int> e2;
