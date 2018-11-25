@@ -18,7 +18,7 @@ target_link_libraries(test-continuable-base
 add_executable(test-continuable-single
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-connection-noinst
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-flat-variant.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-expected.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-result.cpp
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-promisify.cpp
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-traverse.cpp
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-traverse-async.cpp)

@@ -36,8 +36,8 @@
 #include <tuple>
 #include <type_traits>
 #include <experimental/coroutine>
-#include <continuable/continuable-expected.hpp>
 #include <continuable/continuable-primitives.hpp>
+#include <continuable/continuable-result.hpp>
 #include <continuable/detail/core/hints.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
@@ -55,10 +55,10 @@ namespace awaiting {
 using std::experimental::coroutine_handle;
 
 template <typename T>
-struct expected_from_identity;
+struct result_from_identity;
 template <typename... T>
-struct expected_from_identity<traits::identity<T...>> {
-  using expected_t = expected<T...>;
+struct result_from_identity<traits::identity<T...>> {
+  using result_t = result<T...>;
 };
 
 /// An object which provides the internal buffer and helper methods
@@ -66,13 +66,13 @@ struct expected_from_identity<traits::identity<T...>> {
 template <typename Continuable>
 class awaitable {
   using hint_t = decltype(hints::hint_of(traits::identify<Continuable>{}));
-  using expected_t = typename expected_from_identity<hint_t>::expected_t;
+  using result_t = typename result_from_identity<hint_t>::result_t;
 
   /// The continuable which is invoked upon suspension
   Continuable continuable_;
   /// A cache which is used to pass the result of the continuation
   /// to the coroutine.
-  expected_t result_;
+  result_t result_;
 
 public:
   explicit constexpr awaitable(Continuable&& continuable)

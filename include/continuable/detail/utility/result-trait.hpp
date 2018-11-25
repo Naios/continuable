@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_EXPECTED_TRAITS_HPP_INCLUDED
-#define CONTINUABLE_DETAIL_EXPECTED_TRAITS_HPP_INCLUDED
+#ifndef CONTINUABLE_DETAIL_RESULT_TRAIT_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_RESULT_TRAIT_HPP_INCLUDED
 
 #include <tuple>
 #include <type_traits>
@@ -40,9 +40,9 @@
 namespace cti {
 namespace detail {
 template <typename... T>
-struct expected_trait;
+struct result_trait;
 template <>
-struct expected_trait<> {
+struct result_trait<> {
   struct value_t {};
 
   static constexpr value_t wrap() noexcept {
@@ -50,7 +50,7 @@ struct expected_trait<> {
   }
 };
 template <typename T>
-struct expected_trait<T> {
+struct result_trait<T> {
   using value_t = T;
 
   static auto wrap(T arg) {
@@ -58,7 +58,7 @@ struct expected_trait<T> {
   }
 };
 template <typename First, typename Second, typename... Rest>
-struct expected_trait<First, Second, Rest...> {
+struct result_trait<First, Second, Rest...> {
   using value_t = std::tuple<First, Second, Rest...>;
 
   static auto wrap(First first, Second second, Rest... rest) {
@@ -69,4 +69,4 @@ struct expected_trait<First, Second, Rest...> {
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_EXPECTED_TRAITS_HPP_INCLUDED
+#endif // CONTINUABLE_DETAIL_RESULT_TRAIT_HPP_INCLUDED

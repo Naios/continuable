@@ -28,41 +28,41 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_EXPECTED_HPP_INCLUDED
-#define CONTINUABLE_EXPECTED_HPP_INCLUDED
+#ifndef CONTINUABLE_RESULT_HPP_INCLUDED
+#define CONTINUABLE_RESULT_HPP_INCLUDED
 
 #include <type_traits>
 #include <utility>
 #include <continuable/continuable-primitives.hpp>
-#include <continuable/detail/utility/expected-traits.hpp>
 #include <continuable/detail/utility/flat-variant.hpp>
+#include <continuable/detail/utility/result-trait.hpp>
 #include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
-/// A class which is convertible to any expected and that definitly holds no
-/// value so the real expected gets invalidated when
+/// A class which is convertible to any result and that definitly holds no
+/// value so the real result gets invalidated when
 /// this object is passed to it
-struct empty_expected {};
+struct empty_result {};
 
-/// A class which is convertible to any expected and that definitly holds
-/// an exception which is then passed to the converted expected object.
-class exceptional_expected {
+/// A class which is convertible to any result and that definitly holds
+/// an exception which is then passed to the converted result object.
+class exceptional_result {
   exception_t exception_;
 
 public:
-  exceptional_expected() = delete;
-  exceptional_expected(exceptional_expected const&) = default;
-  exceptional_expected(exceptional_expected&&) = default;
-  exceptional_expected& operator=(exceptional_expected const&) = default;
-  exceptional_expected& operator=(exceptional_expected&&) = default;
-  ~exceptional_expected() = default;
+  exceptional_result() = delete;
+  exceptional_result(exceptional_result const&) = default;
+  exceptional_result(exceptional_result&&) = default;
+  exceptional_result& operator=(exceptional_result const&) = default;
+  exceptional_result& operator=(exceptional_result&&) = default;
+  ~exceptional_result() = default;
 
-  explicit exceptional_expected(exception_t exception)
+  explicit exceptional_result(exception_t exception)
       // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
       : exception_(std::move(exception)) {
   }
 
-  exceptional_expected& operator=(exception_t exception) {
+  exceptional_result& operator=(exception_t exception) {
     // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
     exception_ = std::move(exception);
     return *this;
@@ -84,12 +84,12 @@ public:
   }
 };
 
-/// A class similar to the one in the expected proposal,
+/// A class similar to the one in the result proposal,
 /// however it's capable of carrying an exception_t.
 // TODO -> async_result
 template <typename... T>
-class expected {
-  using trait = detail::expected_trait<T...>;
+class result {
+  using trait = detail::result_trait<T...>;
   using value_t = typename trait::value_t;
 
   detail::container::flat_variant<value_t, exception_t> variant_;
@@ -102,29 +102,29 @@ public:
             std::enable_if_t<((sizeof(A) * 0 + sizeof...(T)) > 0)>* = nullptr,
             std::enable_if_t<
                 std::is_same<A, detail::traits::identity<>>::value>* = nullptr>
-  explicit expected(A = {}) {
+  explicit result(A = {}) {
   }
-  explicit expected(expected const&) = default;
-  explicit expected(expected&&) = default;
-  expected& operator=(expected const&) = default;
-  expected& operator=(expected&&) = default;
-  ~expected() = default;
+  explicit result(result const&) = default;
+  explicit result(result&&) = default;
+  result& operator=(result const&) = default;
+  result& operator=(result&&) = default;
+  ~result() = default;
 
-  explicit expected(T... values) : variant_(trait::wrap(std::move(values)...)) {
+  explicit result(T... values) : variant_(trait::wrap(std::move(values)...)) {
   }
-  explicit expected(exception_t exception) : variant_(std::move(exception)) {
+  explicit result(exception_t exception) : variant_(std::move(exception)) {
   }
-  explicit expected(empty_expected){};
-  explicit expected(exceptional_expected exceptional_expected)
-      : variant_(std::move(exceptional_expected.get_exception())) {
+  explicit result(empty_result){};
+  explicit result(exceptional_result exceptional_result)
+      : variant_(std::move(exceptional_result.get_exception())) {
   }
 
-  expected& operator=(empty_expected) {
+  result& operator=(empty_result) {
     set_empty();
     return *this;
   }
-  expected& operator=(exceptional_expected exceptional_expected) {
-    set_exception(std::move(exceptional_expected.get_exception()));
+  result& operator=(exceptional_result exceptional_result) {
+    set_exception(std::move(exceptional_result.get_exception()));
     return *this;
   }
 
@@ -183,18 +183,19 @@ public:
 };
 
 template <typename... T>
-constexpr auto make_expected(T&&... values) {
-  return expected<detail::traits::unrefcv_t<T>...>(std::forward<T>(values));
+constexpr auto make_result(T&&... values) {
+  return result<detail::traits::unrefcv_t<T>...>(std::forward<T>(values)...);
 }
 
-inline auto make_exceptional_expected(exception_t exception) {
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+inline auto make_exceptional_result(exception_t exception) {
   // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
-  return exceptional_expected(std::move(exception));
+  return exceptional_result(std::move(exception));
 }
 
-inline auto make_empty_expected() {
-  return empty_expected{};
+inline auto make_empty_result() {
+  return empty_result{};
 }
 } // namespace cti
 
-#endif // CONTINUABLE_EXPECTED_HPP_INCLUDED
+#endif // CONTINUABLE_RESULT_HPP_INCLUDED

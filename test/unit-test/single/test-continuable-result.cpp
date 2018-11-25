@@ -23,17 +23,17 @@
 
 #include <memory>
 #include <utility>
-#include <continuable/continuable-expected.hpp>
+#include <continuable/continuable-result.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <test-continuable.hpp>
 
 using cti::exception_t;
-using cti::expected;
+using cti::result;
 
 static int const CANARY = 373671;
 
 template <typename T>
-struct expected_all_tests : testing::Test {
+struct result_all_tests : testing::Test {
   template <typename V>
   auto supply(V&& value) const {
     return std::forward<V>(value);
@@ -44,7 +44,7 @@ struct expected_all_tests : testing::Test {
   }
 };
 template <typename T>
-struct expected_all_tests<expected<std::unique_ptr<T>>> : testing::Test {
+struct result_all_tests<result<std::unique_ptr<T>>> : testing::Test {
   template <typename V>
   auto supply(V&& value) const {
     return std::make_unique<T>(std::forward<V>(value));
@@ -55,21 +55,21 @@ struct expected_all_tests<expected<std::unique_ptr<T>>> : testing::Test {
   }
 };
 
-using copyable_type = expected<int>;
-using unique_type = expected<std::unique_ptr<int>>;
+using copyable_type = result<int>;
+using unique_type = result<std::unique_ptr<int>>;
 
-using expected_test_types = testing::Types<unique_type, copyable_type>;
+using result_test_types = testing::Types<unique_type, copyable_type>;
 
-TYPED_TEST_CASE(expected_all_tests, expected_test_types);
+TYPED_TEST_CASE(result_all_tests, result_test_types);
 
-TYPED_TEST(expected_all_tests, is_default_constructible) {
+TYPED_TEST(result_all_tests, is_default_constructible) {
   TypeParam e;
-  expected<> e1;
-  expected<int> e2;
-  expected<int, int> e3;
+  result<> e1;
+  result<int> e2;
+  result<int, int> e3;
 }
 
-TYPED_TEST(expected_all_tests, can_carry_errors) {
+TYPED_TEST(result_all_tests, can_carry_errors) {
   {
     TypeParam e(this->supply(CANARY));
 
@@ -88,12 +88,12 @@ TYPED_TEST(expected_all_tests, can_carry_errors) {
   }
 }
 
-TYPED_TEST(expected_all_tests, is_empty_constructible) {
+TYPED_TEST(result_all_tests, is_empty_constructible) {
   TypeParam e;
   (void)e;
 }
 
-TYPED_TEST(expected_all_tests, is_move_constructible) {
+TYPED_TEST(result_all_tests, is_move_constructible) {
   {
     TypeParam e(TypeParam(this->supply(CANARY)));
 
@@ -111,7 +111,7 @@ TYPED_TEST(expected_all_tests, is_move_constructible) {
   }
 }
 
-TYPED_TEST(expected_all_tests, is_value_move_assignable) {
+TYPED_TEST(result_all_tests, is_value_move_assignable) {
   TypeParam old(this->supply(CANARY));
   TypeParam e;
   e = std::move(old);
@@ -122,7 +122,7 @@ TYPED_TEST(expected_all_tests, is_value_move_assignable) {
   EXPECT_FALSE(e.is_exception());
 }
 
-TYPED_TEST(expected_all_tests, is_error_move_assignable) {
+TYPED_TEST(result_all_tests, is_error_move_assignable) {
   TypeParam old(exception_t{});
   TypeParam e;
   e = std::move(old);
@@ -132,7 +132,7 @@ TYPED_TEST(expected_all_tests, is_error_move_assignable) {
   EXPECT_TRUE(e.is_exception());
 }
 
-TEST(expected_copyable_tests, is_copy_constructible) {
+TEST(result_copyable_tests, is_copy_constructible) {
   {
     copyable_type const e_old(CANARY);
     copyable_type e(e_old);
@@ -153,7 +153,7 @@ TEST(expected_copyable_tests, is_copy_constructible) {
   }
 }
 
-TEST(expected_copyable_tests, is_copy_assignable) {
+TEST(result_copyable_tests, is_copy_assignable) {
   {
     copyable_type const e_old(CANARY);
     copyable_type e;
@@ -176,8 +176,8 @@ TEST(expected_copyable_tests, is_copy_assignable) {
   }
 }
 
-TYPED_TEST(expected_all_tests, is_constructible_from_error_helper) {
-  cti::exceptional_expected e1(exception_t{});
+TYPED_TEST(result_all_tests, is_constructible_from_error_helper) {
+  cti::exceptional_result e1(exception_t{});
   { auto e2 = e1; }
   auto e2 = std::move(e1);
 
@@ -188,8 +188,8 @@ TYPED_TEST(expected_all_tests, is_constructible_from_error_helper) {
   EXPECT_TRUE(e.is_exception());
 }
 
-TYPED_TEST(expected_all_tests, is_assignable_from_error_helper) {
-  cti::exceptional_expected e1(exception_t{});
+TYPED_TEST(result_all_tests, is_assignable_from_error_helper) {
+  cti::exceptional_result e1(exception_t{});
   { auto e2 = e1; }
   auto e2 = std::move(e1);
 
@@ -201,8 +201,8 @@ TYPED_TEST(expected_all_tests, is_assignable_from_error_helper) {
   EXPECT_TRUE(e.is_exception());
 }
 
-TYPED_TEST(expected_all_tests, is_constructible_from_empty_helper) {
-  cti::empty_expected e1;
+TYPED_TEST(result_all_tests, is_constructible_from_empty_helper) {
+  cti::empty_result e1;
   { auto e2 = e1; }
   auto e2 = std::move(e1);
 
@@ -213,8 +213,8 @@ TYPED_TEST(expected_all_tests, is_constructible_from_empty_helper) {
   EXPECT_TRUE(e.is_empty());
 }
 
-TYPED_TEST(expected_all_tests, is_assignable_from_empty_helper) {
-  cti::empty_expected e1;
+TYPED_TEST(result_all_tests, is_assignable_from_empty_helper) {
+  cti::empty_result e1;
   { auto e2 = e1; }
   auto e2 = std::move(e1);
 
@@ -227,16 +227,16 @@ TYPED_TEST(expected_all_tests, is_assignable_from_empty_helper) {
 }
 
 // This regression test shows a memory leak which happens when using the
-// expected class move constructed from another expected object.
-TEST(expected_single_test, test_leak_regression) {
-  // expected_all_tests<cti::detail::util::expected<std::__1::unique_ptr<int,
+// result class move constructed from another result object.
+TEST(result_single_test, test_leak_regression) {
+  // result_all_tests<cti::detail::util::result<std::__1::unique_ptr<int,
   //        std::__1::default_delete<int> > > >::supply<int const&>(int const&)
   //        const
-  //        continuable/build/../test/unit-test/test-continuable-expected.cpp:52
+  //        continuable/build/../test/unit-test/test-continuable-result.cpp:52
   // 3:     #3 0x11cf07a in
-  //        expected_all_tests_is_value_assignable_Test<cti::detail::util::expected<std::__1::unique_ptr<int,
+  //        result_all_tests_is_value_assignable_Test<cti::detail::util::result<std::__1::unique_ptr<int,
   //        std::__1::default_delete<int> > > >::TestBody()
-  //        continuable/build/../test/unit-test/test-continuable-expected.cpp:133:15
+  //        continuable/build/../test/unit-test/test-continuable-result.cpp:133:15
   // 3:     #4 0x1339e4e in void
   //        testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test,
   //        void>(testing::Test*, void (testing::Test::*)(), char const*)
@@ -249,7 +249,7 @@ TEST(expected_single_test, test_leak_regression) {
       delete val;
     });
 
-    auto e(expected<std::shared_ptr<int>>(std::move(ptr)));
+    auto e(result<std::shared_ptr<int>>(std::move(ptr)));
     ASSERT_TRUE(e.is_value());
   }
 

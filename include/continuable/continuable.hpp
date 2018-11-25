@@ -48,10 +48,10 @@ namespace cti {}
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-connections.hpp>
 #include <continuable/continuable-coroutine.hpp>
-#include <continuable/continuable-expected.hpp>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/continuable-promisify.hpp>
+#include <continuable/continuable-result.hpp>
 #include <continuable/continuable-trait.hpp>
 #include <continuable/continuable-transforms.hpp>
 #include <continuable/continuable-traverse-async.hpp>

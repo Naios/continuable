@@ -35,8 +35,8 @@
 #include <cstddef>
 #include <type_traits>
 #include <utility>
-#include <continuable/continuable-expected.hpp>
 #include <continuable/continuable-primitives.hpp>
+#include <continuable/continuable-result.hpp>
 #include <continuable/detail/connection/connection-all.hpp>
 #include <continuable/detail/connection/connection-any.hpp>
 #include <continuable/detail/connection/connection-seq.hpp>
@@ -904,11 +904,11 @@ auto recover(Args&&... args) {
 
 inline auto rethrow(exception_t exception) {
   // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
-  return make_exceptional_expected(std::move(exception));
+  return make_exceptional_result(std::move(exception));
 }
 
 inline auto cancel() {
-  return make_empty_expected();
+  return make_empty_result();
 }
 /// \}
 } // namespace cti
