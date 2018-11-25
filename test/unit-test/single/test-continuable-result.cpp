@@ -178,7 +178,12 @@ TEST(result_copyable_tests, is_copy_assignable) {
 
 TYPED_TEST(result_all_tests, is_constructible_from_error_helper) {
   cti::exceptional_result e1(supply_test_exception());
-  { auto e2 = e1; }
+  {
+    TypeParam e2 = e1;
+    EXPECT_FALSE(bool(e2));
+    EXPECT_FALSE(e2.is_value());
+    EXPECT_TRUE(e2.is_exception());
+  }
   auto e2 = std::move(e1);
 
   TypeParam e(std::move(e2));
@@ -190,7 +195,12 @@ TYPED_TEST(result_all_tests, is_constructible_from_error_helper) {
 
 TYPED_TEST(result_all_tests, is_assignable_from_error_helper) {
   cti::exceptional_result e1(supply_test_exception());
-  { auto e2 = e1; }
+  {
+    TypeParam e2 = e1;
+    EXPECT_FALSE(bool(e2));
+    EXPECT_FALSE(e2.is_value());
+    EXPECT_TRUE(e2.is_exception());
+  }
   auto e2 = std::move(e1);
 
   TypeParam e;
@@ -203,7 +213,10 @@ TYPED_TEST(result_all_tests, is_assignable_from_error_helper) {
 
 TYPED_TEST(result_all_tests, is_constructible_from_empty_helper) {
   cti::empty_result e1;
-  { auto e2 = e1; }
+  {
+    auto e2 = e1;
+    (void)e2;
+  }
   auto e2 = std::move(e1);
 
   TypeParam e(std::move(e2));
@@ -215,7 +228,10 @@ TYPED_TEST(result_all_tests, is_constructible_from_empty_helper) {
 
 TYPED_TEST(result_all_tests, is_assignable_from_empty_helper) {
   cti::empty_result e1;
-  { auto e2 = e1; }
+  {
+    auto e2 = e1;
+    (void)e2;
+  }
   auto e2 = std::move(e1);
 
   TypeParam e;

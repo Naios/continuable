@@ -229,7 +229,7 @@ auto invoker_of(Hint, traits::identity<empty_result>) {
               std::forward<decltype(next_callback)>(next_callback));
         CONTINUABLE_BLOCK_TRY_END*/
       },
-      Hint{});
+      traits::identity<>{});
 }
 
 /// - exceptional_result -> Hint
@@ -246,7 +246,7 @@ auto invoker_of(Hint, traits::identity<exceptional_result>) {
         std::forward<decltype(next_callback)>(next_callback));
         CONTINUABLE_BLOCK_TRY_END*/
       },
-      Hint{});
+      traits::identity<>{});
 }
 
 /// - result<Args...> -> Args...
