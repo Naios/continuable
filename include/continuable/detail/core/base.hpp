@@ -409,44 +409,59 @@ struct result_handler_base<handle_results::yes, Base,
   }
 };
 
+/*
 inline auto make_exception_invoker(
-    std::integral_constant<handle_errors, handle_errors::plain>) noexcept {
-  return [](auto&& callback, exception_t&& error) {
-    // Errors are not partial invoked
-    // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
-    std::forward<decltype(callback)>(callback)(std::move(error));
-  };
+  std::integral_constant<handle_errors, handle_errors::plain>) noexcept {
+return;
 }
 inline auto make_exception_invoker(
-    std::integral_constant<handle_errors, handle_errors::forward>) noexcept {
-  return [](auto&& callback, exception_t&& error) {
-    // Errors are not partial invoked
-    std::forward<decltype(callback)>(callback)(
-        exception_arg_t{},
-        // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
-        std::move(error));
-  };
+  std::integral_constant<handle_errors, handle_errors::forward>) noexcept {
+return;
 }
+*/
 
-template <handle_errors HandleErrors /* = plain or forward*/, typename Base>
-struct error_handler_base {
-  void operator()(exception_arg_t, exception_t error) && {
-    // Just invoke the error handler, cancel the calling hierarchy after
-    auto invoker = make_exception_invoker(
-        std::integral_constant<handle_errors, HandleErrors>{});
-
-    // Invoke the error handler
-    packed_dispatch(
-        std::move(static_cast<Base*>(this)->executor_), std::move(invoker),
-        std::move(static_cast<Base*>(this)->callback_), std::move(error));
-  }
-};
+template <handle_errors HandleErrors, typename Base>
+struct error_handler_base;
 template <typename Base>
 struct error_handler_base<handle_errors::no, Base> {
   /// The operator which is called when an error occurred
-  void operator()(exception_arg_t tag, exception_t error) && {
+  void operator()(exception_arg_t tag, exception_t exception) && {
     // Forward the error to the next callback
-    std::move(static_cast<Base*>(this)->next_callback_)(tag, std::move(error));
+    std::move(static_cast<Base*>(this)->next_callback_)(tag,
+                                                        std::move(exception));
+  }
+};
+template <typename Base>
+struct error_handler_base<handle_errors::plain, Base> {
+  /// The operator which is called when an error occurred
+  void operator()(exception_arg_t, exception_t exception) && {
+    // Invoke the error handler
+    packed_dispatch(
+        std::move(static_cast<Base*>(this)->executor_),
+        [](auto&& callback, exception_t exception) {
+          // Errors are not partial invoked
+          // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
+          std::forward<decltype(callback)>(callback)(std::move(exception));
+        },
+        std::move(static_cast<Base*>(this)->callback_), std::move(exception));
+  }
+};
+template <typename Base>
+struct error_handler_base<handle_errors::forward, Base> {
+  /// The operator which is called when an error occurred
+  void operator()(exception_arg_t, exception_t exception) && {
+    // Invoke the error handler
+    packed_dispatch(
+        std::move(static_cast<Base*>(this)->executor_),
+        [](auto&& callback, exception_t exception) {
+          // Errors are not partial invoked
+          std::forward<decltype(callback)>(callback)(
+              exception_arg_t{},
+              // NOLINTNEXTLINE(hicpp-move-const-arg,
+              // performance-move-const-arg)
+              std::move(exception));
+        },
+        std::move(static_cast<Base*>(this)->callback_), std::move(exception));
   }
 };
 } // namespace proto
