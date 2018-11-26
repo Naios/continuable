@@ -37,6 +37,7 @@
 #include <continuable/detail/utility/flat-variant.hpp>
 #include <continuable/detail/utility/result-trait.hpp>
 #include <continuable/detail/utility/traits.hpp>
+#include <continuable/detail/utility/util.hpp>
 
 namespace cti {
 /// \defgroup Result Result

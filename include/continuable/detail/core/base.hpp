@@ -39,6 +39,7 @@
 #include <continuable/detail/core/hints.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
+#include <continuable/detail/utility/result-trait.hpp>
 #include <continuable/detail/utility/traits.hpp>
 #include <continuable/detail/utility/util.hpp>
 
@@ -260,23 +261,23 @@ auto invoker_of(traits::identity<result<Args...>>) {
           result<Args...> result =
               util::partial_invoke(std::forward<decltype(callback)>(callback),
                                    std::forward<decltype(args)>(args)...);
-          // 
           if (result.is_value()) {
             // Workaround for MSVC not capturing the reference
             // correctly inside the lambda.
             using Next = decltype(next_callback);
 
-            traits::unpack(
-              [&](auto&&... types) {
-              /// TODO Add inplace resolution here
-
-              invoke_no_except(std::forward<Next>(next_callback),
-                std::forward<decltype(types)>(types)...);
-            },
-              std::move(result));
+            result_trait<Args...>::visit(
+                std::move(result), //
+                [&](auto&&... values) {
+                  invoke_no_except(std::forward<Next>(next_callback),
+                                   std::forward<decltype(values)>(values)...);
+                });
 
           } else if (result.is_exception()) {
-
+            // Forward the exception to the next available handler
+            invoke_no_except(
+                std::forward<decltype(next_callback)>(next_callback),
+                exception_arg_t{}, std::move(result).get_exception());
           }
 
           // Otherwise the result is empty and we are cancelling our
@@ -300,11 +301,9 @@ inline auto sequenced_unpack_invoker() {
       using Next = decltype(next_callback);
 
       traits::unpack(
-          [&](auto&&... types) {
-            /// TODO Add inplace resolution here
-
+          [&](auto&&... values) {
             invoke_no_except(std::forward<Next>(next_callback),
-                             std::forward<decltype(types)>(types)...);
+                             std::forward<decltype(values)>(values)...);
           },
           std::move(result));
     CONTINUABLE_BLOCK_TRY_END

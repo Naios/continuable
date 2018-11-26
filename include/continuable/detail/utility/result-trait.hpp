@@ -36,6 +36,7 @@
 #include <utility>
 #include <continuable/detail/core/hints.hpp>
 #include <continuable/detail/utility/traits.hpp>
+#include <continuable/detail/utility/util.hpp>
 
 namespace cti {
 namespace detail {
@@ -52,6 +53,10 @@ struct result_trait<> {
 
   static constexpr void unwrap(surrogate_t) {
   }
+
+  template <typename Result, typename Mapper>
+  static void visit(Result&& /*result*/, Mapper&& /*mapper*/) {
+  }
 };
 template <typename T>
 struct result_trait<T> {
@@ -65,6 +70,12 @@ struct result_trait<T> {
   template <typename R>
   static decltype(auto) unwrap(R&& unwrap) {
     return std::forward<R>(unwrap);
+  }
+
+  template <typename Result, typename Mapper>
+  static auto visit(Result&& result, Mapper&& mapper) {
+    return util::invoke(std::forward<Mapper>(mapper),
+                        std::forward<Result>(result).get_value());
   }
 };
 template <typename First, typename Second, typename... Rest>
@@ -80,6 +91,12 @@ struct result_trait<First, Second, Rest...> {
   template <typename R>
   static decltype(auto) unwrap(R&& unwrap) {
     return std::forward<R>(unwrap);
+  }
+
+  template <typename Result, typename Mapper>
+  static auto visit(Result&& result, Mapper&& mapper) {
+    return traits::unpack(std::forward<Mapper>(mapper),
+                          std::forward<Result>(result).get_value());
   }
 };
 } // namespace detail
