@@ -48,7 +48,7 @@ auto to_hint(identity<Args...> hint) {
 template <typename... Args>
 auto supplier_of(Args&&... args) {
   return [values = std::make_tuple(std::forward<Args>(args)...)](
-      auto&& promise) mutable {
+             auto&& promise) mutable {
     cti::detail::traits::unpack(
         [&](auto&&... passed) {
           promise.set_value(std::forward<decltype(passed)>(passed)...);
@@ -84,12 +84,9 @@ public:
                       supplier_of(std::forward<Args>(args)...));
   }
 
-  template <typename Arg>
-  auto supply_exception(Arg&& arg) {
-    identity<> arg_types;
-    auto hint_types = to_hint(arg_types);
-
-    return this->make(arg_types, hint_types,
+  template <typename Arg, typename Hint = identity<>>
+  auto supply_exception(Arg&& arg, Hint hint = {}) {
+    return this->make(hint, to_hint(hint),
                       exception_supplier_of(std::forward<Arg>(arg)));
   }
 };
@@ -112,12 +109,12 @@ struct provide_copyable {
 struct provide_unique {
   template <typename... Args, typename... Hint, typename T>
   auto make(identity<Args...>, identity<Hint...>, T&& callback) {
-    return cti::make_continuable<Hint...>([
-      callback = std::forward<T>(callback), guard = std::make_unique<int>(0)
-    ](auto&&... args) mutable {
-      (void)(*guard);
-      return std::move(callback)(std::forward<decltype(args)>(args)...);
-    });
+    return cti::make_continuable<Hint...>(
+        [callback = std::forward<T>(callback),
+         guard = std::make_unique<int>(0)](auto&&... args) mutable {
+          (void)(*guard);
+          return std::move(callback)(std::forward<decltype(args)>(args)...);
+        });
   }
 };
 

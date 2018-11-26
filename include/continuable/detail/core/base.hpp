@@ -409,7 +409,7 @@ struct result_handler_base<handle_results::yes, Base,
   }
 };
 
-inline auto make_error_invoker(
+inline auto make_exception_invoker(
     std::integral_constant<handle_errors, handle_errors::plain>) noexcept {
   return [](auto&& callback, exception_t&& error) {
     // Errors are not partial invoked
@@ -417,7 +417,7 @@ inline auto make_error_invoker(
     std::forward<decltype(callback)>(callback)(std::move(error));
   };
 }
-inline auto make_error_invoker(
+inline auto make_exception_invoker(
     std::integral_constant<handle_errors, handle_errors::forward>) noexcept {
   return [](auto&& callback, exception_t&& error) {
     // Errors are not partial invoked
@@ -432,7 +432,7 @@ template <handle_errors HandleErrors /* = plain or forward*/, typename Base>
 struct error_handler_base {
   void operator()(exception_arg_t, exception_t error) && {
     // Just invoke the error handler, cancel the calling hierarchy after
-    auto invoker = make_error_invoker(
+    auto invoker = make_exception_invoker(
         std::integral_constant<handle_errors, HandleErrors>{});
 
     // Invoke the error handler
@@ -578,7 +578,6 @@ constexpr auto
 next_hint_of(std::integral_constant<handle_results, handle_results::no>,
              traits::identity<T> /*callback*/,
              hints::signature_hint_tag<Args...> current) {
-  // TODO
   return current;
 }
 

@@ -52,11 +52,6 @@ namespace cti {
 /// value so the real result gets invalidated when this object is passed to it.
 struct empty_result {};
 
-/// Returns a new empty result
-inline empty_result make_empty_result() {
-  return {};
-}
-
 /// A class which is convertible to any result and that definitly holds
 /// an exception which is then passed to the converted result object.
 class exceptional_result {
@@ -100,13 +95,6 @@ public:
     return std::move(exception_);
   }
 };
-
-/// Returns a new exceptional result from the given exception
-// NOLINTNEXTLINE(performance-unnecessary-value-param)
-inline exceptional_result make_exceptional_result(exception_t exception) {
-  // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
-  return exceptional_result{std::move(exception)};
-}
 
 /// The result class can carry the three kinds of results an asynchronous
 /// operation can return: no result, a value or an exception.

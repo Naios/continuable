@@ -899,17 +899,20 @@ constexpr auto make_exceptional_continuable(Exception&& exception) {
 
 template <typename... Args>
 auto recover(Args&&... args) {
-  return make_expected(std::forward<Args>(args)...);
+  return make_result(std::forward<Args>(args)...);
 }
 
+/// Returns a new exceptional result from the given exception
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
 inline auto rethrow(exception_t exception) {
   // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
-  return make_exceptional_result(std::move(exception));
+  return exceptional_result{std::move(exception)};
 }
 
 inline auto cancel() {
-  return make_empty_result();
+  return empty_result{};
 }
+
 /// \}
 } // namespace cti
 
