@@ -77,7 +77,7 @@ TYPED_TEST(result_all_tests, is_default_constructible) {
   EXPECT_TRUE(e3.is_empty());
 
   auto empty = make_result();
-  EXPECT_TRUE(empty.is_empty());
+  EXPECT_TRUE(empty.is_value());
 }
 
 TYPED_TEST(result_all_tests, can_carry_errors) {
