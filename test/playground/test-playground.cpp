@@ -22,6 +22,11 @@
 
 #include <continuable/continuable.hpp>
 
+using namespace cti;
+
 int main(int, char**) {
   // ...
+  make_exceptional_continuable<int>(exception_t{}).fail([](exception_t) {
+    // ...
+  });
 }

@@ -323,14 +323,86 @@ constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
   return make_invoker(sequenced_unpack_invoker(), traits::identity<Args...>{});
 }
 
+inline auto exception_invoker_of(traits::identity<void>) noexcept {
+  return [](auto&& callback, auto&& next_callback, auto&&... args) {
+    CONTINUABLE_BLOCK_TRY_BEGIN
+      util::invoke(std::forward<decltype(callback)>(callback),
+                   std::forward<decltype(args)>(args)...);
+
+      // The legacy behaviour is not to proceed the chain
+      // on the first invoked failure handler
+      (void)next_callback;
+    CONTINUABLE_BLOCK_TRY_END
+  };
+}
+
+inline auto exception_invoker_of(traits::identity<empty_result>) noexcept {
+  return [](auto&& callback, auto&& next_callback, auto&&... args) {
+    CONTINUABLE_BLOCK_TRY_BEGIN
+      empty_result result =
+          util::invoke(std::forward<decltype(callback)>(callback),
+                       std::forward<decltype(args)>(args)...);
+
+      // Don't invoke anything here since returning an empty result
+      // cancels the asynchronous chain effectively.
+      (void)result;
+    CONTINUABLE_BLOCK_TRY_END
+  };
+}
+
+inline auto
+exception_invoker_of(traits::identity<exceptional_result>) noexcept {
+  return [](auto&& callback, auto&& next_callback, auto&&... args) {
+    CONTINUABLE_BLOCK_TRY_BEGIN
+      exceptional_result result =
+          util::invoke(std::forward<decltype(callback)>(callback),
+                       std::forward<decltype(args)>(args)...);
+
+      // Rethrow the exception to the next handler
+      invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
+                       exception_arg_t{}, std::move(result).get_exception());
+    CONTINUABLE_BLOCK_TRY_END
+  };
+}
+
+template <typename... Args>
+auto exception_invoker_of(traits::identity<result<Args...>>) noexcept {
+  return [](auto&& callback, auto&& next_callback, auto&&... args) {
+    CONTINUABLE_BLOCK_TRY_BEGIN
+      result<Args...> result =
+          util::invoke(std::forward<decltype(callback)>(callback),
+                       std::forward<decltype(args)>(args)...);
+
+      if (result.is_value()) {
+        // Workaround for MSVC not capturing the reference
+        // correctly inside the lambda.
+
+        using Next = decltype(next_callback);
+
+        result_trait<Args...>::visit(
+            std::move(result), //
+            [&](auto&&... values) {
+              invoke_no_except(std::forward<Next>(next_callback),
+                               std::forward<decltype(values)>(values)...);
+            });
+
+      } else if (result.is_exception()) {
+        // Forward the exception to the next available handler
+        invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
+                         exception_arg_t{}, std::move(result).get_exception());
+      }
+    CONTINUABLE_BLOCK_TRY_END
+  };
+}
+
 #undef CONTINUABLE_BLOCK_TRY_BEGIN
 #undef CONTINUABLE_BLOCK_TRY_END
 } // namespace decoration
 
 /// Invoke the callback immediately
 template <typename Invoker, typename... Args>
-void packed_dispatch(types::this_thread_executor_tag, Invoker&& invoker,
-                     Args&&... args) {
+void on_executor(types::this_thread_executor_tag, Invoker&& invoker,
+                 Args&&... args) {
 
   // Invoke the callback with the decorated invoker immediately
   std::forward<Invoker>(invoker)(std::forward<Args>(args)...);
@@ -338,7 +410,7 @@ void packed_dispatch(types::this_thread_executor_tag, Invoker&& invoker,
 
 /// Invoke the callback through the given executor
 template <typename Executor, typename Invoker, typename... Args>
-void packed_dispatch(Executor&& executor, Invoker&& invoker, Args&&... args) {
+void on_executor(Executor&& executor, Invoker&& invoker, Args&&... args) {
 
   // Create a worker object which when invoked calls the callback with the
   // the returned arguments.
@@ -348,9 +420,8 @@ void packed_dispatch(Executor&& executor, Invoker&& invoker, Args&&... args) {
         [&](auto&&... captured_args) {
           // Just use the packed dispatch method which dispatches the work on
           // the current thread.
-          packed_dispatch(
-              types::this_thread_executor_tag{}, std::move(invoker),
-              std::forward<decltype(captured_args)>(captured_args)...);
+          on_executor(types::this_thread_executor_tag{}, std::move(invoker),
+                      std::forward<decltype(captured_args)>(captured_args)...);
         },
         std::move(args));
   };
@@ -394,31 +465,20 @@ struct result_handler_base<handle_results::yes, Base,
   void operator()(Args... args) && {
     // In order to retrieve the correct decorator we must know what the
     // result type is.
-    auto result = traits::identify<decltype(util::partial_invoke(
+    constexpr auto result = traits::identify<decltype(util::partial_invoke(
         std::move(static_cast<Base*>(this)->callback_), std::move(args)...))>{};
 
     // Pick the correct invoker that handles decorating of the result
     auto invoker = decoration::invoker_of(result);
 
     // Invoke the callback
-    packed_dispatch(std::move(static_cast<Base*>(this)->executor_),
-                    std::move(invoker),
-                    std::move(static_cast<Base*>(this)->callback_),
-                    std::move(static_cast<Base*>(this)->next_callback_),
-                    std::move(args)...);
+    on_executor(std::move(static_cast<Base*>(this)->executor_),
+                std::move(invoker),
+                std::move(static_cast<Base*>(this)->callback_),
+                std::move(static_cast<Base*>(this)->next_callback_),
+                std::move(args)...);
   }
 };
-
-/*
-inline auto make_exception_invoker(
-  std::integral_constant<handle_errors, handle_errors::plain>) noexcept {
-return;
-}
-inline auto make_exception_invoker(
-  std::integral_constant<handle_errors, handle_errors::forward>) noexcept {
-return;
-}
-*/
 
 template <handle_errors HandleErrors, typename Base>
 struct error_handler_base;
@@ -435,33 +495,36 @@ template <typename Base>
 struct error_handler_base<handle_errors::plain, Base> {
   /// The operator which is called when an error occurred
   void operator()(exception_arg_t, exception_t exception) && {
+    constexpr auto result = traits::identify<decltype(
+        util::invoke(std::move(static_cast<Base*>(this)->callback_),
+                     std::move(exception)))>{};
+
+    auto invoker = decoration::exception_invoker_of(result);
+
     // Invoke the error handler
-    packed_dispatch(
-        std::move(static_cast<Base*>(this)->executor_),
-        [](auto&& callback, exception_t exception) {
-          // Errors are not partial invoked
-          // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
-          std::forward<decltype(callback)>(callback)(std::move(exception));
-        },
-        std::move(static_cast<Base*>(this)->callback_), std::move(exception));
+    on_executor(std::move(static_cast<Base*>(this)->executor_),
+                std::move(invoker),
+                std::move(static_cast<Base*>(this)->callback_),
+                std::move(static_cast<Base*>(this)->next_callback_),
+                std::move(exception));
   }
 };
 template <typename Base>
 struct error_handler_base<handle_errors::forward, Base> {
   /// The operator which is called when an error occurred
   void operator()(exception_arg_t, exception_t exception) && {
+    constexpr auto result = traits::identify<decltype(
+        util::invoke(std::move(static_cast<Base*>(this)->callback_),
+                     exception_arg_t{}, std::move(exception)))>{};
+
+    auto invoker = decoration::exception_invoker_of(result);
+
     // Invoke the error handler
-    packed_dispatch(
-        std::move(static_cast<Base*>(this)->executor_),
-        [](auto&& callback, exception_t exception) {
-          // Errors are not partial invoked
-          std::forward<decltype(callback)>(callback)(
-              exception_arg_t{},
-              // NOLINTNEXTLINE(hicpp-move-const-arg,
-              // performance-move-const-arg)
-              std::move(exception));
-        },
-        std::move(static_cast<Base*>(this)->callback_), std::move(exception));
+    on_executor(std::move(static_cast<Base*>(this)->executor_),
+                std::move(invoker),
+                std::move(static_cast<Base*>(this)->callback_),
+                std::move(static_cast<Base*>(this)->next_callback_),
+                exception_arg_t{}, std::move(exception));
   }
 };
 } // namespace proto
