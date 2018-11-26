@@ -361,7 +361,8 @@ private:
   detail::slot_t get_slot() const noexcept {
     // Check for invalid values especially for memory corruption,
     // the empty element is included.
-    assert(this->slot_ <= sizeof...(T));
+    assert((this->slot_ < sizeof...(T)) ||
+           (this->slot_ == detail::empty_slot::value));
     return this->slot_;
   }
   bool is_slot(detail::slot_t const slot) const noexcept {

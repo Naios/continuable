@@ -55,7 +55,10 @@ struct result_trait<> {
   }
 
   template <typename Result, typename Mapper>
-  static void visit(Result&& /*result*/, Mapper&& /*mapper*/) {
+  static auto visit(Result&& result, Mapper&& mapper) {
+    assert(result.is_value());
+    (void)result;
+    return util::invoke(std::forward<Mapper>(mapper));
   }
 };
 template <typename T>

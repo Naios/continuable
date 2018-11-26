@@ -209,6 +209,11 @@ private:
   detail::container::flat_variant<surrogate_t, exception_t> variant_;
 };
 
+inline result<> make_result() {
+  result<> result;
+  result.set_value();
+  return result;
+}
 template <typename... T>
 auto make_result(T&&... values) {
   return result<detail::traits::unrefcv_t<T>...>(std::forward<T>(values)...);
