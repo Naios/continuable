@@ -121,10 +121,6 @@ TYPED_TEST(single_dimension_tests, multipath_exception_is_cancelable) {
           .fail([](exception_t) -> empty_result {
             //
             return cancel();
-          })
-          .fail([] {
-            //
-            FAIL();
           }));
 
   ASSERT_ASYNC_INCOMPLETION(
@@ -132,27 +128,15 @@ TYPED_TEST(single_dimension_tests, multipath_exception_is_cancelable) {
           .fail([](exception_t) -> result<int> {
             //
             return cancel();
-          })
-          .fail([] {
-            //
-            FAIL();
           }));
 }
 
 TYPED_TEST(single_dimension_tests, multipath_exception_is_autocanceled) {
   bool caught = false;
-  ASSERT_ASYNC_INCOMPLETION(this->supply_exception(supply_test_exception())
-                                .fail([&](exception_t) {
-                                  EXPECT_FALSE(caught);
-                                  caught = true;
-                                })
-                                .then([] {
-                                  // ...
-                                  FAIL();
-                                })
-                                .fail([](exception_t) {
-                                  // ...
-                                  FAIL();
-                                }));
+  ASSERT_ASYNC_INCOMPLETION(
+      this->supply_exception(supply_test_exception()).fail([&](exception_t) {
+        EXPECT_FALSE(caught);
+        caught = true;
+      }));
   ASSERT_TRUE(caught);
 }
