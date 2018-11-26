@@ -326,8 +326,8 @@ constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
 inline auto exception_invoker_of(traits::identity<void>) noexcept {
   return [](auto&& callback, auto&& next_callback, auto&&... args) {
     CONTINUABLE_BLOCK_TRY_BEGIN
-      util::invoke(std::forward<decltype(callback)>(callback),
-                   std::forward<decltype(args)>(args)...);
+      util::partial_invoke(std::forward<decltype(callback)>(callback),
+                           std::forward<decltype(args)>(args)...);
 
       // The legacy behaviour is not to proceed the chain
       // on the first invoked failure handler
@@ -336,63 +336,9 @@ inline auto exception_invoker_of(traits::identity<void>) noexcept {
   };
 }
 
-inline auto exception_invoker_of(traits::identity<empty_result>) noexcept {
-  return [](auto&& callback, auto&& next_callback, auto&&... args) {
-    CONTINUABLE_BLOCK_TRY_BEGIN
-      empty_result result =
-          util::invoke(std::forward<decltype(callback)>(callback),
-                       std::forward<decltype(args)>(args)...);
-
-      // Don't invoke anything here since returning an empty result
-      // cancels the asynchronous chain effectively.
-      (void)result;
-    CONTINUABLE_BLOCK_TRY_END
-  };
-}
-
-inline auto
-exception_invoker_of(traits::identity<exceptional_result>) noexcept {
-  return [](auto&& callback, auto&& next_callback, auto&&... args) {
-    CONTINUABLE_BLOCK_TRY_BEGIN
-      exceptional_result result =
-          util::invoke(std::forward<decltype(callback)>(callback),
-                       std::forward<decltype(args)>(args)...);
-
-      // Rethrow the exception to the next handler
-      invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
-                       exception_arg_t{}, std::move(result).get_exception());
-    CONTINUABLE_BLOCK_TRY_END
-  };
-}
-
-template <typename... Args>
-auto exception_invoker_of(traits::identity<result<Args...>>) noexcept {
-  return [](auto&& callback, auto&& next_callback, auto&&... args) {
-    CONTINUABLE_BLOCK_TRY_BEGIN
-      result<Args...> result =
-          util::invoke(std::forward<decltype(callback)>(callback),
-                       std::forward<decltype(args)>(args)...);
-
-      if (result.is_value()) {
-        // Workaround for MSVC not capturing the reference
-        // correctly inside the lambda.
-
-        using Next = decltype(next_callback);
-
-        result_trait<Args...>::visit(
-            std::move(result), //
-            [&](auto&&... values) {
-              invoke_no_except(std::forward<Next>(next_callback),
-                               std::forward<decltype(values)>(values)...);
-            });
-
-      } else if (result.is_exception()) {
-        // Forward the exception to the next available handler
-        invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
-                         exception_arg_t{}, std::move(result).get_exception());
-      }
-    CONTINUABLE_BLOCK_TRY_END
-  };
+template <typename Other>
+auto exception_invoker_of(Other other) noexcept {
+  return invoker_of(other);
 }
 
 #undef CONTINUABLE_BLOCK_TRY_BEGIN
@@ -496,8 +442,8 @@ struct error_handler_base<handle_errors::plain, Base> {
   /// The operator which is called when an error occurred
   void operator()(exception_arg_t, exception_t exception) && {
     constexpr auto result = traits::identify<decltype(
-        util::invoke(std::move(static_cast<Base*>(this)->callback_),
-                     std::move(exception)))>{};
+        util::partial_invoke(std::move(static_cast<Base*>(this)->callback_),
+                             std::move(exception)))>{};
 
     auto invoker = decoration::exception_invoker_of(result);
 
@@ -514,8 +460,8 @@ struct error_handler_base<handle_errors::forward, Base> {
   /// The operator which is called when an error occurred
   void operator()(exception_arg_t, exception_t exception) && {
     constexpr auto result = traits::identify<decltype(
-        util::invoke(std::move(static_cast<Base*>(this)->callback_),
-                     exception_arg_t{}, std::move(exception)))>{};
+        util::partial_invoke(std::move(static_cast<Base*>(this)->callback_),
+                             exception_arg_t{}, std::move(exception)))>{};
 
     auto invoker = decoration::exception_invoker_of(result);
 
