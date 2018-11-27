@@ -387,7 +387,6 @@ enum class handle_results {
 /// Tells whether we handle the error through the callback
 enum class handle_errors {
   no,     //< The error is forwarded to the next callable
-  plain,  //< The error is the only argument accepted by the callable
   forward //< The error is forwarded to the callable while keeping its tag
 };
 /// \endcond
@@ -435,24 +434,6 @@ struct error_handler_base<handle_errors::no, Base> {
     // Forward the error to the next callback
     std::move(static_cast<Base*>(this)->next_callback_)(tag,
                                                         std::move(exception));
-  }
-};
-template <typename Base>
-struct error_handler_base<handle_errors::plain, Base> {
-  /// The operator which is called when an error occurred
-  void operator()(exception_arg_t, exception_t exception) && {
-    constexpr auto result = traits::identify<decltype(
-        util::partial_invoke(std::move(static_cast<Base*>(this)->callback_),
-                             std::move(exception)))>{};
-
-    auto invoker = decoration::exception_invoker_of(result);
-
-    // Invoke the error handler
-    on_executor(std::move(static_cast<Base*>(this)->executor_),
-                std::move(invoker),
-                std::move(static_cast<Base*>(this)->callback_),
-                std::move(static_cast<Base*>(this)->next_callback_),
-                std::move(exception));
   }
 };
 template <typename Base>
@@ -543,6 +524,7 @@ auto make_callback(Callback&& callback, Executor&& executor,
       std::forward<NextCallback>(next_callback)};
 }
 
+// TODO fixate the args
 /// Once this was a workaround for GCC bug:
 /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095
 struct final_callback : util::non_copyable {
@@ -603,6 +585,18 @@ next_hint_of(std::integral_constant<handle_results, handle_results::no>,
              traits::identity<T> /*callback*/,
              hints::signature_hint_tag<Args...> current) {
   return current;
+}
+
+/// Removes the exception_arg_t from the arguments passed to the given callable
+template <typename Callable>
+auto strip_exception_arg(Callable&& callable) {
+  return [callable = std::forward<Callable>(callable)] //
+         (exception_arg_t, auto&&... args) mutable
+         -> decltype(util::invoke(std::declval<Callable>(), //
+                                  std::declval<decltype(args)>()...)) {
+           return util::invoke(std::move(callable), //
+                               std::forward<decltype(args)>(args)...);
+         };
 }
 
 /// Chains a callback together with a continuation and returns a continuation:

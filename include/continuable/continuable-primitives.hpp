@@ -73,7 +73,7 @@ namespace cti {
 /// for whether it resolves the callback instantly with its arguments
 /// without having side effects.
 ///
-/// \since 3.1.0
+/// \since 4.0.0
 struct is_ready_arg_t {};
 
 /// Represents the tag type that is used to query the continuation
@@ -81,7 +81,7 @@ struct is_ready_arg_t {};
 /// without having side effects.
 /// It's required that the query of is_ready_arg_t returns true.
 ///
-/// \since 3.1.0
+/// \since 4.0.0
 struct get_arg_t {};
 
 /// Represents the tag type that is used to disambiguate the
@@ -89,7 +89,7 @@ struct get_arg_t {};
 ///
 /// \note see continuable::next for details.
 ///
-/// \since 3.1.0
+/// \since 4.0.0
 struct exception_arg_t {};
 
 /// \copydoc exception_arg_t
@@ -110,7 +110,7 @@ typedef exception_arg_t dispatch_error_tag;
 /// A custom error type may be set through
 /// defining `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`.
 ///
-/// \since 3.1.0
+/// \since 4.0.0
 using exception_t = detail::types::exception_t;
 
 /// \copydoc exception_t

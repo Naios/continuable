@@ -316,14 +316,14 @@ public:
   /// \returns Returns a continuable_base with an asynchronous return type
   ///          depending on the previous result type.
   ///
-  ///
   /// \since 2.0.0
   template <typename T, typename E = detail::types::this_thread_executor_tag>
   auto fail(T&& callback,
             E&& executor = detail::types::this_thread_executor_tag{}) && {
-    return detail::base::chain_continuation<detail::base::handle_results::no,
-                                            detail::base::handle_errors::plain>(
-        std::move(*this).finish(), std::forward<T>(callback),
+    return detail::base::chain_continuation<
+        detail::base::handle_results::no, detail::base::handle_errors::forward>(
+        std::move(*this).finish(),
+        detail::base::strip_exception_arg(std::forward<T>(callback)),
         std::forward<E>(executor));
   }
 
@@ -345,9 +345,8 @@ public:
   /// \since 2.0.0
   template <typename OData, typename OAnnotation>
   auto fail(continuable_base<OData, OAnnotation>&& continuation) && {
-    continuation.freeze();
     return std::move(*this).fail(
-        [continuation = std::move(continuation)](exception_t) mutable {
+        [continuation = std::move(continuation).freeze()](exception_t) mutable {
           std::move(continuation).done();
         });
   }
