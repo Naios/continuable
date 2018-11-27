@@ -326,8 +326,8 @@ constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
 inline auto exception_invoker_of(traits::identity<void>) noexcept {
   return [](auto&& callback, auto&& next_callback, auto&&... args) {
     CONTINUABLE_BLOCK_TRY_BEGIN
-      util::partial_invoke(std::forward<decltype(callback)>(callback),
-                           std::forward<decltype(args)>(args)...);
+      util::invoke(std::forward<decltype(callback)>(callback),
+                   std::forward<decltype(args)>(args)...);
 
       // The legacy behaviour is not to proceed the chain
       // on the first invoked failure handler
@@ -336,9 +336,81 @@ inline auto exception_invoker_of(traits::identity<void>) noexcept {
   };
 }
 
-template <typename Other>
-auto exception_invoker_of(Other other) noexcept {
-  return invoker_of(other);
+/*template <typename... Args>
+auto exception_invoker_of(traits::identity<result<Args...>> id) noexcept {
+  return invoker_of(id);
+}*/
+
+/// - empty_result -> <cancel>
+inline auto exception_invoker_of(traits::identity<empty_result>) {
+  return make_invoker(
+      [](auto&& callback, auto&& next_callback, auto&&... args) {
+        (void)next_callback;
+        CONTINUABLE_BLOCK_TRY_BEGIN
+          empty_result result =
+              util::invoke(std::forward<decltype(callback)>(callback),
+                           std::forward<decltype(args)>(args)...);
+
+          // Don't invoke anything here since returning an empty result
+          // cancels the asynchronous chain effectively.
+          (void)result;
+        CONTINUABLE_BLOCK_TRY_END
+      },
+      traits::identity<>{});
+}
+
+/// - exceptional_result -> <throw>
+inline auto exception_invoker_of(traits::identity<exceptional_result>) {
+  return make_invoker(
+      [](auto&& callback, auto&& next_callback, auto&&... args) {
+        util::unused(callback, next_callback, args...);
+        CONTINUABLE_BLOCK_TRY_BEGIN
+          exceptional_result result =
+              util::invoke(std::forward<decltype(callback)>(callback),
+                           std::forward<decltype(args)>(args)...);
+
+          // Forward the exception to the next available handler
+          invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
+                           exception_arg_t{},
+                           std::move(result).get_exception());
+        CONTINUABLE_BLOCK_TRY_END
+      },
+      traits::identity<>{});
+}
+
+/// - result<?...> -> next_callback(?...)
+template <typename... Args>
+auto exception_invoker_of(traits::identity<result<Args...>>) {
+  return make_invoker(
+      [](auto&& callback, auto&& next_callback, auto&&... args) {
+        CONTINUABLE_BLOCK_TRY_BEGIN
+          result<Args...> result =
+              util::invoke(std::forward<decltype(callback)>(callback),
+                           std::forward<decltype(args)>(args)...);
+          if (result.is_value()) {
+            // Workaround for MSVC not capturing the reference
+            // correctly inside the lambda.
+            using Next = decltype(next_callback);
+
+            result_trait<Args...>::visit(
+                std::move(result), //
+                [&](auto&&... values) {
+                  invoke_no_except(std::forward<Next>(next_callback),
+                                   std::forward<decltype(values)>(values)...);
+                });
+
+          } else if (result.is_exception()) {
+            // Forward the exception to the next available handler
+            invoke_no_except(
+                std::forward<decltype(next_callback)>(next_callback),
+                exception_arg_t{}, std::move(result).get_exception());
+          }
+
+        // Otherwise the result is empty and we are cancelling our
+        // asynchronous chain.
+        CONTINUABLE_BLOCK_TRY_END
+      },
+      traits::identity<Args...>{});
 }
 
 #undef CONTINUABLE_BLOCK_TRY_BEGIN
@@ -587,16 +659,25 @@ next_hint_of(std::integral_constant<handle_results, handle_results::no>,
   return current;
 }
 
+namespace detail {
+template <typename Callable>
+struct exception_stripper_proxy {
+  Callable callable_;
+  template <typename... Args>
+  auto operator()(exception_arg_t, Args&&... args)
+      -> decltype(util::invoke(std::declval<Callable>(), //
+                               std::declval<Args>()...)) {
+    return util::invoke(std::move(callable_), //
+                        std::forward<decltype(args)>(args)...);
+  };
+};
+} // namespace detail
+
 /// Removes the exception_arg_t from the arguments passed to the given callable
 template <typename Callable>
 auto strip_exception_arg(Callable&& callable) {
-  return [callable = std::forward<Callable>(callable)] //
-         (exception_arg_t, auto&&... args) mutable
-         -> decltype(util::invoke(std::declval<Callable>(), //
-                                  std::declval<decltype(args)>()...)) {
-           return util::invoke(std::move(callable), //
-                               std::forward<decltype(args)>(args)...);
-         };
+  using proxy = detail::exception_stripper_proxy<traits::unrefcv_t<Callable>>;
+  return proxy{std::forward<Callable>(callable)};
 }
 
 /// Chains a callback together with a continuation and returns a continuation:

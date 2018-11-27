@@ -64,59 +64,62 @@ auto forward_except_last(T&& sequenceable) {
   return forward_except_last_impl(std::forward<T>(sequenceable), sequence);
 }
 
-/// We are able to call the callable with the arguments given in the tuple
-template <typename T, typename... Args>
-auto partial_invoke_impl(std::true_type, T&& callable,
-                         std::tuple<Args...> args) {
-  return traits::unpack(std::forward<T>(callable), std::move(args));
-}
+template <std::size_t Keep>
+struct invocation_env {
+  /// We are able to call the callable with the arguments given in the tuple
+  template <typename T, typename... Args>
+  static auto partial_invoke_impl(std::true_type, T&& callable,
+                                  std::tuple<Args...> args) {
+    return traits::unpack(std::forward<T>(callable), std::move(args));
+  }
 
-/// We were unable to call the callable with the arguments in the tuple.
-/// Remove the last argument from the tuple and try it again.
-template <typename T, typename... Args>
-auto partial_invoke_impl(std::false_type, T&& callable,
-                         std::tuple<Args...> args) {
+  /// We were unable to call the callable with the arguments in the tuple.
+  /// Remove the last argument from the tuple and try it again.
+  template <typename T, typename... Args>
+  static auto partial_invoke_impl(std::false_type, T&& callable,
+                                  std::tuple<Args...> args) {
 
-  // If you are encountering this assertion you tried to attach a callback
-  // which can't accept the arguments of the continuation.
-  //
-  // ```cpp
-  // continuable<int, int> c;
-  // std::move(c).then([](std::vector<int> v) { /*...*/ })
-  // ```
-  static_assert(
-      sizeof...(Args) > 0,
-      "There is no way to call the given object with these arguments!");
+    // If you are encountering this assertion you tried to attach a callback
+    // which can't accept the arguments of the continuation.
+    //
+    // ```cpp
+    // continuable<int, int> c;
+    // std::move(c).then([](std::vector<int> v) { /*...*/ })
+    // ```
+    static_assert(
+        sizeof...(Args) > Keep,
+        "There is no way to call the given object with these arguments!");
 
-  // Remove the last argument from the tuple
-  auto next = forward_except_last(std::move(args));
+    // Remove the last argument from the tuple
+    auto next = forward_except_last(std::move(args));
 
-  // Test whether we are able to call the function with the given tuple
-  traits::is_invokable_from_tuple<decltype(callable), decltype(next)>
-      is_invokable;
+    // Test whether we are able to call the function with the given tuple
+    traits::is_invokable_from_tuple<decltype(callable), decltype(next)>
+        is_invokable;
 
-  return partial_invoke_impl(is_invokable, std::forward<T>(callable),
-                             std::move(next));
-}
+    return partial_invoke_impl(is_invokable, std::forward<T>(callable),
+                               std::move(next));
+  }
 
-/// Shortcut - we can call the callable directly
-template <typename T, typename... Args>
-auto partial_invoke_impl_shortcut(std::true_type, T&& callable,
-                                  Args&&... args) {
-  return std::forward<T>(callable)(std::forward<Args>(args)...);
-}
+  /// Shortcut - we can call the callable directly
+  template <typename T, typename... Args>
+  static auto partial_invoke_impl_shortcut(std::true_type, T&& callable,
+                                           Args&&... args) {
+    return std::forward<T>(callable)(std::forward<Args>(args)...);
+  }
 
-/// Failed shortcut - we were unable to invoke the callable with the
-/// original arguments.
-template <typename T, typename... Args>
-auto partial_invoke_impl_shortcut(std::false_type failed, T&& callable,
-                                  Args&&... args) {
+  /// Failed shortcut - we were unable to invoke the callable with the
+  /// original arguments.
+  template <typename T, typename... Args>
+  static auto partial_invoke_impl_shortcut(std::false_type failed, T&& callable,
+                                           Args&&... args) {
 
-  // Our shortcut failed, convert the arguments into a forwarding tuple
-  return partial_invoke_impl(
-      failed, std::forward<T>(callable),
-      std::forward_as_tuple(std::forward<Args>(args)...));
-}
+    // Our shortcut failed, convert the arguments into a forwarding tuple
+    return partial_invoke_impl(
+        failed, std::forward<T>(callable),
+        std::forward_as_tuple(std::forward<Args>(args)...));
+  }
+};
 } // namespace detail
 
 /// Partially invokes the given callable with the given arguments.
@@ -131,7 +134,8 @@ template <typename T, typename... Args>
 
   // The implementation is done in a shortcut way so there are less
   // type instantiations needed to call the callable with its full signature.
-  return detail::partial_invoke_impl_shortcut(
+  using env = detail::invocation_env<0U>;
+  return env::partial_invoke_impl_shortcut(
       is_invokable, std::forward<T>(callable), std::forward<Args>(args)...);
 }
 
