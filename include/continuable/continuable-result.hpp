@@ -225,7 +225,7 @@ auto make_result(T&&... values) {
 namespace std {
 // The GCC standard library defines tuple_size as class and struct which
 // triggers a warning here.
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmismatched-tags"
 #endif

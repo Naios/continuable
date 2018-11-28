@@ -131,7 +131,8 @@ template <std::size_t KeepArgs, typename T, typename... Args>
 partial_invoke(std::integral_constant<std::size_t, KeepArgs>, T&& callable,
                Args&&... args) {
   // Test whether we are able to call the function with the given arguments.
-  traits::is_invokable_from_tuple<decltype(callable), std::tuple<Args...>>
+  constexpr traits::is_invokable_from_tuple<decltype(callable),
+                                            std::tuple<Args...>>
       is_invokable;
 
   // The implementation is done in a shortcut way so there are less

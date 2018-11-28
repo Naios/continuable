@@ -150,13 +150,13 @@ public:
 /// we don't jump accidentally from the exception path to the result path.
 template <typename T, typename... Args>
 constexpr auto invoke_callback(T&& callable, exception_arg_t exception_arg,
-                               Args&&... args) noexcept {
+                               Args&&... args) {
   return util::partial_invoke(std::integral_constant<std::size_t, 01>{},
                               std::forward<T>(callable), exception_arg,
                               std::forward<Args>(args)...);
 }
 template <typename T, typename... Args>
-constexpr auto invoke_callback(T&& callable, Args&&... args) noexcept {
+constexpr auto invoke_callback(T&& callable, Args&&... args) {
   return util::partial_invoke(std::integral_constant<std::size_t, 0U>{},
                               std::forward<T>(callable),
                               std::forward<Args>(args)...);
