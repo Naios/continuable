@@ -622,7 +622,7 @@ struct exception_stripper_proxy {
                                std::declval<Args>()...)) {
     return util::invoke(std::move(callable_), //
                         std::forward<decltype(args)>(args)...);
-  };
+  }
 };
 } // namespace detail
 
