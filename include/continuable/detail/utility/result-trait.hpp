@@ -53,13 +53,6 @@ struct result_trait<> {
 
   static constexpr void unwrap(surrogate_t) {
   }
-
-  template <typename Result, typename Mapper>
-  static auto visit(Result&& result, Mapper&& mapper) {
-    assert(result.is_value());
-    (void)result;
-    return util::invoke(std::forward<Mapper>(mapper));
-  }
 };
 template <typename T>
 struct result_trait<T> {
@@ -75,10 +68,9 @@ struct result_trait<T> {
     return std::forward<R>(unwrap);
   }
 
-  template <typename Result, typename Mapper>
-  static auto visit(Result&& result, Mapper&& mapper) {
-    return util::invoke(std::forward<Mapper>(mapper),
-                        std::forward<Result>(result).get_value());
+  template <std::size_t I, typename Result>
+  static decltype(auto) get(Result&& result) {
+    return std::forward<Result>(result).get_value();
   }
 };
 template <typename First, typename Second, typename... Rest>
@@ -96,10 +88,9 @@ struct result_trait<First, Second, Rest...> {
     return std::forward<R>(unwrap);
   }
 
-  template <typename Result, typename Mapper>
-  static auto visit(Result&& result, Mapper&& mapper) {
-    return traits::unpack(std::forward<Mapper>(mapper),
-                          std::forward<Result>(result).get_value());
+  template <std::size_t I, typename Result>
+  static decltype(auto) get(Result&& result) {
+    return std::get<I>(std::forward<Result>(result).get_value());
   }
 };
 } // namespace detail

@@ -101,9 +101,7 @@ public:
   /// \throws This method never throws an exception.
   ///
   /// \since  2.0.0
-  void operator()(exception_arg_t tag,
-                  exception_t exception) &&
-      noexcept {
+  void operator()(exception_arg_t tag, exception_t exception) && noexcept {
     std::move(data_)(tag, std::move(exception));
   }
 

@@ -197,6 +197,19 @@ private:
   detail::container::flat_variant<surrogate_t, exception_t> variant_;
 };
 
+template <std::size_t I, typename... T>
+decltype(auto) get(result<T...>& result) {
+  return detail::result_trait<T...>::template get<I>(result);
+}
+template <std::size_t I, typename... T>
+decltype(auto) get(result<T...> const& result) {
+  return detail::result_trait<T...>::template get<I>(result);
+}
+template <std::size_t I, typename... T>
+decltype(auto) get(result<T...>&& result) {
+  return detail::result_trait<T...>::template get<I>(std::move(result));
+}
+
 inline result<> make_result() {
   result<> result;
   result.set_value();
@@ -208,5 +221,24 @@ auto make_result(T&&... values) {
 }
 /// \}
 } // namespace cti
+
+namespace std {
+// The GCC standard library defines tuple_size as class and struct which
+// triggers a warning here.
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmismatched-tags"
+#endif
+template <typename... Args>
+struct tuple_size<cti::result<Args...>>
+    : std::integral_constant<size_t, sizeof...(Args)> {};
+
+template <std::size_t I, typename... Args>
+struct tuple_element<I, cti::result<Args...>>
+    : tuple_element<I, tuple<Args...>> {};
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+} // namespace std
 
 #endif // CONTINUABLE_RESULT_HPP_INCLUDED

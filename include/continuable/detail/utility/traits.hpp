@@ -98,18 +98,20 @@ template <typename... T>
 using void_t = typename detail::deduce_to_void<T...>::type;
 #endif // CONTINUABLE_HAS_CXX17_VOID_T
 
-namespace detail {
+namespace detail_unpack {
+using std::get;
+
 /// Calls the given unpacker with the content of the given sequenceable
 template <typename U, typename F, std::size_t... I>
 constexpr auto unpack_impl(U&& unpacker, F&& first_sequenceable,
                            std::integer_sequence<std::size_t, I...>)
     -> decltype(std::forward<U>(unpacker)(
-        std::get<I>(std::forward<F>(first_sequenceable))...)) {
+        get<I>(std::forward<F>(first_sequenceable))...)) {
   (void)first_sequenceable;
   return std::forward<U>(unpacker)(
-      std::get<I>(std::forward<F>(first_sequenceable))...);
+      get<I>(std::forward<F>(first_sequenceable))...);
 }
-} // namespace detail
+} // namespace detail_unpack
 
 /// Calls the given callable object with the content of the given sequenceable
 ///
@@ -119,12 +121,13 @@ template <typename Callable, typename TupleLike,
           typename Sequence = std::make_index_sequence<
               std::tuple_size<std::decay_t<TupleLike>>::value>>
 constexpr auto unpack(Callable&& obj, TupleLike&& tuple_like)
-    -> decltype(detail::unpack_impl(std::forward<Callable>(obj),
-                                    std::forward<TupleLike>(tuple_like),
-                                    Sequence{})) {
+    -> decltype(detail_unpack::unpack_impl(std::forward<Callable>(obj),
+                                           std::forward<TupleLike>(tuple_like),
+                                           Sequence{})) {
 
-  return detail::unpack_impl(std::forward<Callable>(obj),
-                             std::forward<TupleLike>(tuple_like), Sequence{});
+  return detail_unpack::unpack_impl(std::forward<Callable>(obj),
+                                    std::forward<TupleLike>(tuple_like),
+                                    Sequence{});
 }
 
 namespace detail {

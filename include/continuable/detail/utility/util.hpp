@@ -126,15 +126,17 @@ struct invocation_env {
 ///
 /// \note This function will assert statically if there is no way to call the
 ///       given object with less arguments.
-template <typename T, typename... Args>
-/*keep this inline*/ inline auto partial_invoke(T&& callable, Args&&... args) {
+template <std::size_t KeepArgs, typename T, typename... Args>
+/*keep this inline*/ inline auto
+partial_invoke(std::integral_constant<std::size_t, KeepArgs>, T&& callable,
+               Args&&... args) {
   // Test whether we are able to call the function with the given arguments.
   traits::is_invokable_from_tuple<decltype(callable), std::tuple<Args...>>
       is_invokable;
 
   // The implementation is done in a shortcut way so there are less
   // type instantiations needed to call the callable with its full signature.
-  using env = detail::invocation_env<0U>;
+  using env = detail::invocation_env<KeepArgs>;
   return env::partial_invoke_impl_shortcut(
       is_invokable, std::forward<T>(callable), std::forward<Args>(args)...);
 }

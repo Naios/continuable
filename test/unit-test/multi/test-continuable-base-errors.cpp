@@ -27,6 +27,8 @@
 
 #include <test-continuable.hpp>
 
+using namespace cti;
+
 TYPED_TEST(single_dimension_tests, are_completing_errors) {
   ASSERT_ASYNC_EXCEPTION_COMPLETION(
       this->supply_exception(supply_test_exception()));
@@ -109,4 +111,35 @@ TYPED_TEST(single_dimension_tests, are_flow_error_accepting) {
 
   ASSERT_ASYNC_INCOMPLETION(std::move(continuation));
   ASSERT_TRUE(*handled);
+}
+
+TYPED_TEST(single_dimension_tests, are_exceptions_partial_applyable) {
+  bool handled = false;
+  ASSERT_ASYNC_INCOMPLETION(
+      this->supply_exception(supply_test_exception()).fail([&]() -> void {
+        EXPECT_FALSE(handled);
+        handled = true;
+      }));
+  ASSERT_TRUE(handled);
+
+  handled = false;
+  ASSERT_ASYNC_INCOMPLETION(this->supply_exception(supply_test_exception())
+                                .fail([&]() -> empty_result {
+                                  EXPECT_FALSE(handled);
+                                  handled = true;
+                                  return cancel();
+                                }));
+  ASSERT_TRUE(handled);
+
+  handled = false;
+  ASSERT_ASYNC_INCOMPLETION(
+      this->supply_exception(supply_test_exception(),
+                             detail::traits::identity<int, int>{})
+          .fail([&]() -> result<int, int> {
+            EXPECT_FALSE(handled);
+            handled = true;
+            return cancel();
+          }));
+
+  ASSERT_TRUE(handled);
 }

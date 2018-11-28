@@ -50,11 +50,7 @@ target_compile_options(continuable-features-warnings
   INTERFACE
     /W4)
 
-if (CTI_CONTINUABLE_WITH_CPP_LATEST)
-  target_compile_options(continuable-features-flags
-    INTERFACE
-      /std:c++latest)
-else()
+if (NOT CTI_CONTINUABLE_WITH_CPP_LATEST)
   target_compile_options(continuable-features-flags
     INTERFACE
       /std:c++14)

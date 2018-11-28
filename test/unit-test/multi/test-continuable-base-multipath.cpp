@@ -140,3 +140,36 @@ TYPED_TEST(single_dimension_tests, multipath_exception_is_autocanceled) {
       }));
   ASSERT_TRUE(caught);
 }
+
+#if !defined(CONTINUABLE_WITH_NO_EXCEPTIONS)
+// Enable this test only if we support exceptions
+TYPED_TEST(single_dimension_tests, multipath_exception_can_rethrow) {
+
+  ASSERT_ASYNC_EXCEPTION_COMPLETION(
+      this->supply_exception(supply_test_exception()).fail([](exception_t) {
+        // Throw an exception from inside the exception handler
+        throw test_exception();
+      }));
+
+  ASSERT_ASYNC_EXCEPTION_COMPLETION(
+      this->supply_exception(supply_test_exception())
+          .fail([](exception_t) -> empty_result {
+            // Throw an exception from inside the exception handler
+            throw test_exception();
+          }));
+
+  ASSERT_ASYNC_EXCEPTION_COMPLETION(
+      this->supply_exception(supply_test_exception())
+          .fail([](exception_t) -> exceptional_result {
+            // Throw an exception from inside the exception handler
+            throw test_exception();
+          }));
+
+  ASSERT_ASYNC_EXCEPTION_COMPLETION(
+      this->supply_exception(supply_test_exception(), identity<int>{})
+          .fail([](exception_t) -> result<int> {
+            // Throw an exception from inside the exception handler
+            throw test_exception();
+          }));
+}
+#endif

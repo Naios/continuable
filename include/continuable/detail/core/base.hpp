@@ -146,6 +146,22 @@ public:
 #define CONTINUABLE_BLOCK_TRY_END }
 #endif // CONTINUABLE_HAS_EXCEPTIONS
 
+/// Invokes the callback partially, keeps the exception_arg_t such that
+/// we don't jump accidentally from the exception path to the result path.
+template <typename T, typename... Args>
+constexpr auto invoke_callback(T&& callable, exception_arg_t exception_arg,
+                               Args&&... args) noexcept {
+  return util::partial_invoke(std::integral_constant<std::size_t, 01>{},
+                              std::forward<T>(callable), exception_arg,
+                              std::forward<Args>(args)...);
+}
+template <typename T, typename... Args>
+constexpr auto invoke_callback(T&& callable, Args&&... args) noexcept {
+  return util::partial_invoke(std::integral_constant<std::size_t, 0U>{},
+                              std::forward<T>(callable),
+                              std::forward<Args>(args)...);
+}
+
 /// Invokes the given callable object with the given arguments while
 /// marking the operation as non exceptional.
 template <typename T, typename... Args>
@@ -173,8 +189,8 @@ invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         CONTINUABLE_BLOCK_TRY_BEGIN
           auto continuation_ =
-              util::partial_invoke(std::forward<decltype(callback)>(callback),
-                                   std::forward<decltype(args)>(args)...);
+              invoke_callback(std::forward<decltype(callback)>(callback),
+                              std::forward<decltype(args)>(args)...);
 
           invoke_continuation(
               std::move(continuation_),
@@ -191,8 +207,8 @@ constexpr auto invoker_of(traits::identity<T>) {
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         CONTINUABLE_BLOCK_TRY_BEGIN
           auto result =
-              util::partial_invoke(std::forward<decltype(callback)>(callback),
-                                   std::forward<decltype(args)>(args)...);
+              invoke_callback(std::forward<decltype(callback)>(callback),
+                              std::forward<decltype(args)>(args)...);
 
           invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
                            std::move(result));
@@ -206,8 +222,8 @@ inline auto invoker_of(traits::identity<void>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         CONTINUABLE_BLOCK_TRY_BEGIN
-          util::partial_invoke(std::forward<decltype(callback)>(callback),
-                               std::forward<decltype(args)>(args)...);
+          invoke_callback(std::forward<decltype(callback)>(callback),
+                          std::forward<decltype(args)>(args)...);
           invoke_no_except(
               std::forward<decltype(next_callback)>(next_callback));
         CONTINUABLE_BLOCK_TRY_END
@@ -222,8 +238,8 @@ inline auto invoker_of(traits::identity<empty_result>) {
         (void)next_callback;
         CONTINUABLE_BLOCK_TRY_BEGIN
           empty_result result =
-              util::partial_invoke(std::forward<decltype(callback)>(callback),
-                                   std::forward<decltype(args)>(args)...);
+              invoke_callback(std::forward<decltype(callback)>(callback),
+                              std::forward<decltype(args)>(args)...);
 
           // Don't invoke anything here since returning an empty result
           // cancels the asynchronous chain effectively.
@@ -240,8 +256,8 @@ inline auto invoker_of(traits::identity<exceptional_result>) {
         util::unused(callback, next_callback, args...);
         CONTINUABLE_BLOCK_TRY_BEGIN
           exceptional_result result =
-              util::partial_invoke(std::forward<decltype(callback)>(callback),
-                                   std::forward<decltype(args)>(args)...);
+              invoke_callback(std::forward<decltype(callback)>(callback),
+                              std::forward<decltype(args)>(args)...);
 
           // Forward the exception to the next available handler
           invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
@@ -259,19 +275,19 @@ auto invoker_of(traits::identity<result<Args...>>) {
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         CONTINUABLE_BLOCK_TRY_BEGIN
           result<Args...> result =
-              util::partial_invoke(std::forward<decltype(callback)>(callback),
-                                   std::forward<decltype(args)>(args)...);
+              invoke_callback(std::forward<decltype(callback)>(callback),
+                              std::forward<decltype(args)>(args)...);
           if (result.is_value()) {
             // Workaround for MSVC not capturing the reference
             // correctly inside the lambda.
             using Next = decltype(next_callback);
 
-            result_trait<Args...>::visit(
-                std::move(result), //
+            traits::unpack(
                 [&](auto&&... values) {
                   invoke_no_except(std::forward<Next>(next_callback),
                                    std::forward<decltype(values)>(values)...);
-                });
+                },
+                std::move(result));
 
           } else if (result.is_exception()) {
             // Forward the exception to the next available handler
@@ -292,9 +308,8 @@ auto invoker_of(traits::identity<result<Args...>>) {
 inline auto sequenced_unpack_invoker() {
   return [](auto&& callback, auto&& next_callback, auto&&... args) {
     CONTINUABLE_BLOCK_TRY_BEGIN
-      auto result =
-          util::partial_invoke(std::forward<decltype(callback)>(callback),
-                               std::forward<decltype(args)>(args)...);
+      auto result = invoke_callback(std::forward<decltype(callback)>(callback),
+                                    std::forward<decltype(args)>(args)...);
 
       // Workaround for MSVC not capturing the reference
       // correctly inside the lambda.
@@ -326,8 +341,8 @@ constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
 inline auto exception_invoker_of(traits::identity<void>) noexcept {
   return [](auto&& callback, auto&& next_callback, auto&&... args) {
     CONTINUABLE_BLOCK_TRY_BEGIN
-      util::invoke(std::forward<decltype(callback)>(callback),
-                   std::forward<decltype(args)>(args)...);
+      invoke_callback(std::forward<decltype(callback)>(callback),
+                      std::forward<decltype(args)>(args)...);
 
       // The legacy behaviour is not to proceed the chain
       // on the first invoked failure handler
@@ -336,81 +351,16 @@ inline auto exception_invoker_of(traits::identity<void>) noexcept {
   };
 }
 
-/*template <typename... Args>
+inline auto exception_invoker_of(traits::identity<empty_result> id) noexcept {
+  return invoker_of(id);
+}
+inline auto
+exception_invoker_of(traits::identity<exceptional_result> id) noexcept {
+  return invoker_of(id);
+}
+template <typename... Args>
 auto exception_invoker_of(traits::identity<result<Args...>> id) noexcept {
   return invoker_of(id);
-}*/
-
-/// - empty_result -> <cancel>
-inline auto exception_invoker_of(traits::identity<empty_result>) {
-  return make_invoker(
-      [](auto&& callback, auto&& next_callback, auto&&... args) {
-        (void)next_callback;
-        CONTINUABLE_BLOCK_TRY_BEGIN
-          empty_result result =
-              util::invoke(std::forward<decltype(callback)>(callback),
-                           std::forward<decltype(args)>(args)...);
-
-          // Don't invoke anything here since returning an empty result
-          // cancels the asynchronous chain effectively.
-          (void)result;
-        CONTINUABLE_BLOCK_TRY_END
-      },
-      traits::identity<>{});
-}
-
-/// - exceptional_result -> <throw>
-inline auto exception_invoker_of(traits::identity<exceptional_result>) {
-  return make_invoker(
-      [](auto&& callback, auto&& next_callback, auto&&... args) {
-        util::unused(callback, next_callback, args...);
-        CONTINUABLE_BLOCK_TRY_BEGIN
-          exceptional_result result =
-              util::invoke(std::forward<decltype(callback)>(callback),
-                           std::forward<decltype(args)>(args)...);
-
-          // Forward the exception to the next available handler
-          invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
-                           exception_arg_t{},
-                           std::move(result).get_exception());
-        CONTINUABLE_BLOCK_TRY_END
-      },
-      traits::identity<>{});
-}
-
-/// - result<?...> -> next_callback(?...)
-template <typename... Args>
-auto exception_invoker_of(traits::identity<result<Args...>>) {
-  return make_invoker(
-      [](auto&& callback, auto&& next_callback, auto&&... args) {
-        CONTINUABLE_BLOCK_TRY_BEGIN
-          result<Args...> result =
-              util::invoke(std::forward<decltype(callback)>(callback),
-                           std::forward<decltype(args)>(args)...);
-          if (result.is_value()) {
-            // Workaround for MSVC not capturing the reference
-            // correctly inside the lambda.
-            using Next = decltype(next_callback);
-
-            result_trait<Args...>::visit(
-                std::move(result), //
-                [&](auto&&... values) {
-                  invoke_no_except(std::forward<Next>(next_callback),
-                                   std::forward<decltype(values)>(values)...);
-                });
-
-          } else if (result.is_exception()) {
-            // Forward the exception to the next available handler
-            invoke_no_except(
-                std::forward<decltype(next_callback)>(next_callback),
-                exception_arg_t{}, std::move(result).get_exception());
-          }
-
-        // Otherwise the result is empty and we are cancelling our
-        // asynchronous chain.
-        CONTINUABLE_BLOCK_TRY_END
-      },
-      traits::identity<Args...>{});
 }
 
 #undef CONTINUABLE_BLOCK_TRY_BEGIN
@@ -482,8 +432,10 @@ struct result_handler_base<handle_results::yes, Base,
   void operator()(Args... args) && {
     // In order to retrieve the correct decorator we must know what the
     // result type is.
-    constexpr auto result = traits::identify<decltype(util::partial_invoke(
-        std::move(static_cast<Base*>(this)->callback_), std::move(args)...))>{};
+    constexpr auto result =
+        traits::identify<decltype(decoration::invoke_callback(
+            std::move(static_cast<Base*>(this)->callback_),
+            std::move(args)...))>{};
 
     // Pick the correct invoker that handles decorating of the result
     auto invoker = decoration::invoker_of(result);
@@ -512,9 +464,10 @@ template <typename Base>
 struct error_handler_base<handle_errors::forward, Base> {
   /// The operator which is called when an error occurred
   void operator()(exception_arg_t, exception_t exception) && {
-    constexpr auto result = traits::identify<decltype(
-        util::partial_invoke(std::move(static_cast<Base*>(this)->callback_),
-                             exception_arg_t{}, std::move(exception)))>{};
+    constexpr auto result =
+        traits::identify<decltype(decoration::invoke_callback(
+            std::move(static_cast<Base*>(this)->callback_), exception_arg_t{},
+            std::move(exception)))>{};
 
     auto invoker = decoration::exception_invoker_of(result);
 
@@ -645,7 +598,7 @@ next_hint_of(std::integral_constant<handle_results, handle_results::yes>,
              hints::signature_hint_tag<Args...> /*current*/) {
   // Partial Invoke the given callback
   using Result = decltype(
-      util::partial_invoke(std::declval<T>(), std::declval<Args>()...));
+      decoration::invoke_callback(std::declval<T>(), std::declval<Args>()...));
 
   // Return the hint of thr given invoker
   return decltype(decoration::invoker_of(traits::identify<Result>{}).hint()){};

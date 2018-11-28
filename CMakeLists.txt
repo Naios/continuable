@@ -100,6 +100,13 @@ target_compile_features(continuable-base
     cxx_trailing_return_types
     cxx_return_type_deduction)
 
+
+if (CTI_CONTINUABLE_WITH_CPP_LATEST)
+  target_compile_features(continuable-base
+    INTERFACE
+      cxx_std_17)
+endif()
+
 if (CTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE)
   target_compile_options(continuable-base
     INTERFACE
