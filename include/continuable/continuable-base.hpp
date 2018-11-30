@@ -551,6 +551,41 @@ public:
     detail::base::finalize_continuation(std::move(*this));
   }
 
+  /// Materializes the continuation expression template and finishes
+  /// the current applied strategy.
+  ///
+  /// This can be used in the case where we are chaining continuations lazily
+  /// through a strategy, for instance when applying operators for
+  /// expressing connections and then want to return a materialized
+  /// continuable_base which uses the strategy respectively.
+  /// ```cpp
+  /// auto do_both() {
+  ///   return (wait(10s) || wait_key_pressed(KEY_SPACE)).finish();
+  /// }
+  ///
+  /// // Without a call to finish() this would lead to
+  /// // an unintended evaluation strategy:
+  /// do_both() || wait(5s);
+  /// ```
+  ///
+  /// \note When using a type erased continuable_base such as
+  ///       `continuable<...>` this method doesn't need to be called
+  ///       since the continuable_base is materialized automatically
+  ///       on conversion.
+  ///
+  /// \since 4.0.0
+  auto finish() && {
+    return materializer::apply(std::move(*this));
+  }
+
+  /// Returns true if the continuable_base will resolve its promise
+  /// immediately on request.
+  ///
+  /// \since 4.0.0
+  bool is_ready() const noexcept {
+    return false;
+  }
+
   /// Predicate to check whether the cti::continuable_base is frozen or not.
   ///
   /// \returns Returns true when the continuable_base is frozen.
@@ -591,33 +626,6 @@ public:
   continuable_base&& freeze(bool enabled = true) && noexcept {
     ownership_.freeze(enabled);
     return std::move(*this);
-  }
-
-  /// Materializes the continuation expression template and finishes
-  /// the current applied strategy.
-  ///
-  /// This can be used in the case where we are chaining continuations lazily
-  /// through a strategy, for instance when applying operators for
-  /// expressing connections and then want to return a materialized
-  /// continuable_base which uses the strategy respectively.
-  /// ```cpp
-  /// auto do_both() {
-  ///   return (wait(10s) || wait_key_pressed(KEY_SPACE)).finish();
-  /// }
-  ///
-  /// // Without a call to finish() this would lead to
-  /// // an unintended evaluation strategy:
-  /// do_both() || wait(5s);
-  /// ```
-  ///
-  /// \note When using a type erased continuable_base such as
-  ///       `continuable<...>` this method doesn't need to be called
-  ///       since the continuable_base is materialized automatically
-  ///       on conversion.
-  ///
-  /// \since 4.0.0
-  auto finish() && {
-    return materializer::apply(std::move(*this));
   }
 
   /// \cond false
