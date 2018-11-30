@@ -165,8 +165,18 @@ constexpr auto invoke_callback(T&& callable, Args&&... args) {
 /// Invokes the given callable object with the given arguments while
 /// marking the operation as non exceptional.
 template <typename T, typename... Args>
-constexpr auto invoke_no_except(T&& callable, Args&&... args) noexcept {
-  return std::forward<T>(callable)(std::forward<Args>(args)...);
+constexpr void invoke_no_except(T&& callable, Args&&... args) noexcept {
+  std::forward<T>(callable)(std::forward<Args>(args)...);
+}
+
+template <typename... Args, typename T>
+void invoke_void_no_except(traits::identity<exception_arg_t, Args...>,
+                           T&& /*callable*/) noexcept {
+  // Don't invoke the next failure handler when being in an exception handler
+}
+template <typename... Args, typename T>
+void invoke_void_no_except(traits::identity<Args...>, T&& callable) noexcept {
+  std::forward<T>(callable)();
 }
 
 template <typename T, typename... Args>
@@ -224,7 +234,8 @@ inline auto invoker_of(traits::identity<void>) {
         CONTINUABLE_BLOCK_TRY_BEGIN
           invoke_callback(std::forward<decltype(callback)>(callback),
                           std::forward<decltype(args)>(args)...);
-          invoke_no_except(
+          invoke_void_no_except(
+              traits::identity<traits::unrefcv_t<decltype(args)>...>{},
               std::forward<decltype(next_callback)>(next_callback));
         CONTINUABLE_BLOCK_TRY_END
       },
@@ -296,8 +307,8 @@ auto invoker_of(traits::identity<result<Args...>>) {
                 exception_arg_t{}, std::move(result).get_exception());
           }
 
-          // Otherwise the result is empty and we are cancelling our
-          // asynchronous chain.
+        // Otherwise the result is empty and we are cancelling our
+        // asynchronous chain.
         CONTINUABLE_BLOCK_TRY_END
       },
       traits::identity<Args...>{});
@@ -336,37 +347,6 @@ constexpr auto invoker_of(traits::identity<std::pair<First, Second>>) {
 template <typename... Args>
 constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
   return make_invoker(sequenced_unpack_invoker(), traits::identity<Args...>{});
-}
-
-inline auto exception_invoker_of(traits::identity<void>) noexcept {
-  return [](auto&& callback, auto&& next_callback, auto&&... args) {
-    CONTINUABLE_BLOCK_TRY_BEGIN
-      invoke_callback(std::forward<decltype(callback)>(callback),
-                      std::forward<decltype(args)>(args)...);
-
-      // The legacy behaviour is not to proceed the chain
-      // on the first invoked failure handler
-      (void)next_callback;
-    CONTINUABLE_BLOCK_TRY_END
-  };
-}
-
-inline auto exception_invoker_of(traits::identity<empty_result> id) noexcept {
-  return invoker_of(id);
-}
-inline auto
-exception_invoker_of(traits::identity<exceptional_result> id) noexcept {
-  return invoker_of(id);
-}
-template <typename... Args>
-auto exception_invoker_of(traits::identity<result<Args...>> id) noexcept {
-  return invoker_of(id);
-}
-
-template <typename Data, typename Annotation>
-auto exception_invoker_of(
-    traits::identity<continuable_base<Data, Annotation>> id) {
-  return invoker_of(id);
 }
 
 #undef CONTINUABLE_BLOCK_TRY_BEGIN
@@ -475,7 +455,7 @@ struct error_handler_base<handle_errors::forward, Base> {
             std::move(static_cast<Base*>(this)->callback_), exception_arg_t{},
             std::move(exception)))>{};
 
-    auto invoker = decoration::exception_invoker_of(result);
+    auto invoker = decoration::invoker_of(result);
 
     // Invoke the error handler
     on_executor(std::move(static_cast<Base*>(this)->executor_),
