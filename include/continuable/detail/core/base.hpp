@@ -363,6 +363,12 @@ auto exception_invoker_of(traits::identity<result<Args...>> id) noexcept {
   return invoker_of(id);
 }
 
+template <typename Data, typename Annotation>
+auto exception_invoker_of(
+    traits::identity<continuable_base<Data, Annotation>> id) {
+  return invoker_of(id);
+}
+
 #undef CONTINUABLE_BLOCK_TRY_BEGIN
 #undef CONTINUABLE_BLOCK_TRY_END
 } // namespace decoration

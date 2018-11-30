@@ -131,6 +131,31 @@ TYPED_TEST(single_dimension_tests, multipath_exception_is_cancelable) {
           }));
 }
 
+TYPED_TEST(single_dimension_tests, multipath_exception_is_continuable) {
+  ASSERT_ASYNC_RESULT(
+      this->supply_exception(supply_test_exception(), identity<>{})
+          .fail([&](exception_t) {
+            //
+            return this->supply();
+          }));
+
+  ASSERT_ASYNC_RESULT(
+      this->supply_exception(supply_test_exception(), identity<int>{})
+          .fail([&](exception_t) {
+            //
+            return this->supply(CANARY);
+          }),
+      CANARY);
+
+  ASSERT_ASYNC_RESULT(
+      this->supply_exception(supply_test_exception(), identity<int, int, int>{})
+          .fail([&](exception_t) {
+            //
+            return this->supply(1, CANARY, 2);
+          }),
+      1, CANARY, 2);
+}
+
 TYPED_TEST(single_dimension_tests, multipath_exception_is_autocanceled) {
   bool caught = false;
   ASSERT_ASYNC_INCOMPLETION(
