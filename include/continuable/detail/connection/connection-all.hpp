@@ -41,7 +41,7 @@
 #include <continuable/detail/connection/connection-aggregated.hpp>
 #include <continuable/detail/connection/connection.hpp>
 #include <continuable/detail/core/base.hpp>
-#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/annotation.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/utility/traits.hpp>
 

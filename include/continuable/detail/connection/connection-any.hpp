@@ -41,7 +41,7 @@
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/continuable-traverse.hpp>
 #include <continuable/detail/core/base.hpp>
-#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/annotation.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/traversal/container-category.hpp>
 #include <continuable/detail/utility/traits.hpp>
@@ -95,7 +95,7 @@ struct result_deducer {
   }
   template <typename T>
   static auto deduce_one(std::true_type, traits::identity<T> id) {
-    return hints::hint_of(id);
+    return base::annotation_of(id);
   }
   template <typename T>
   static auto deduce(traversal::container_category_tag<false, false>,

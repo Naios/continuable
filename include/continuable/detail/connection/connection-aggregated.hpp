@@ -75,17 +75,17 @@ T&& unpack_lazy(container::flat_variant<T>&& value) {
 template <typename Continuable>
 class continuable_box;
 template <typename Data>
-class continuable_box<continuable_base<Data, hints::signature_hint_tag<>>> {
+class continuable_box<continuable_base<Data, traits::identity<>>> {
 
-  continuable_base<Data, hints::signature_hint_tag<>> continuable_;
+  continuable_base<Data, traits::identity<>> continuable_;
 
 public:
   explicit continuable_box(
-      continuable_base<Data, hints::signature_hint_tag<>>&& continuable)
+      continuable_base<Data, traits::identity<>>&& continuable)
       : continuable_(std::move(continuable)) {
   }
 
-  continuable_base<Data, hints::signature_hint_tag<>>&& fetch() {
+  continuable_base<Data, traits::identity<>>&& fetch() {
     return std::move(continuable_);
   }
 
@@ -98,18 +98,18 @@ public:
 };
 template <typename Data, typename First>
 class continuable_box<
-    continuable_base<Data, hints::signature_hint_tag<First>>> {
+    continuable_base<Data, traits::identity<First>>> {
 
-  continuable_base<Data, hints::signature_hint_tag<First>> continuable_;
+  continuable_base<Data, traits::identity<First>> continuable_;
   lazy_value_t<First> first_;
 
 public:
   explicit continuable_box(
-      continuable_base<Data, hints::signature_hint_tag<First>>&& continuable)
+      continuable_base<Data, traits::identity<First>>&& continuable)
       : continuable_(std::move(continuable)) {
   }
 
-  continuable_base<Data, hints::signature_hint_tag<First>>&& fetch() {
+  continuable_base<Data, traits::identity<First>>&& fetch() {
     return std::move(continuable_);
   }
 
@@ -123,21 +123,21 @@ public:
 };
 template <typename Data, typename First, typename Second, typename... Rest>
 class continuable_box<
-    continuable_base<Data, hints::signature_hint_tag<First, Second, Rest...>>> {
+    continuable_base<Data, traits::identity<First, Second, Rest...>>> {
 
-  continuable_base<Data, hints::signature_hint_tag<First, Second, Rest...>>
+  continuable_base<Data, traits::identity<First, Second, Rest...>>
       continuable_;
   lazy_value_t<std::tuple<First, Second, Rest...>> args_;
 
 public:
   explicit continuable_box(
       continuable_base<Data,
-                       hints::signature_hint_tag<First, Second, Rest...>>&&
+                       traits::identity<First, Second, Rest...>>&&
           continuable)
       : continuable_(std::move(continuable)) {
   }
 
-  continuable_base<Data, hints::signature_hint_tag<First, Second, Rest...>>&&
+  continuable_base<Data, traits::identity<First, Second, Rest...>>&&
   fetch() {
     return std::move(continuable_);
   }
@@ -215,7 +215,7 @@ constexpr auto finalize_impl(traits::identity<std::tuple<Args...>>,
 
 struct hint_mapper {
   template <typename... T>
-  constexpr auto operator()(T...) -> hints::signature_hint_tag<T...> {
+  constexpr auto operator()(T...) -> traits::identity<T...> {
     return {};
   }
 };

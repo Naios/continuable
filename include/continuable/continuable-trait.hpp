@@ -35,7 +35,7 @@
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-promise-base.hpp>
-#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/annotation.hpp>
 #include <continuable/detail/core/types.hpp>
 
 namespace cti {
@@ -67,12 +67,12 @@ class continuable_trait {
 public:
   /// The promise type which is used to resolve continuations
   using promise =
-      promise_base<callback, detail::hints::signature_hint_tag<Args...>>;
+      promise_base<callback, detail::traits::identity<Args...>>;
 
   /// The continuable type for the given parameters.
   using continuable =
       continuable_base<ContinuationWrapper<sizeof(callback), void(promise)>,
-                       detail::hints::signature_hint_tag<Args...>>;
+                       detail::traits::identity<Args...>>;
 };
 /// \}
 } // namespace cti

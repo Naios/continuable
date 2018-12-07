@@ -75,7 +75,7 @@ public:
 };
 
 /// Tag for constructing an empty promise_base .
-struct promise_no_init_tag {};
+struct promise_no_init_arg_t {};
 } // namespace types
 } // namespace detail
 } // namespace cti

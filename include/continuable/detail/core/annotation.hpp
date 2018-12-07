@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED
-#define CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED
+#ifndef CONTINUABLE_DETAIL_ANNOTATION_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_ANNOTATION_HPP_INCLUDED
 
 #include <type_traits>
 #include <continuable/detail/core/types.hpp>
@@ -37,18 +37,18 @@
 
 namespace cti {
 namespace detail {
-namespace hints {
-/// Represents a present signature hint
+template <typename Annotation>
+struct annotation_trait;
+
+/// Specialization for a present signature hint
 template <typename... Args>
-using signature_hint_tag = traits::identity<Args...>;
+struct annotation_trait<traits::identity<Args...>> {
+  using is_concrete_hint = std::true_type;
+  using hint_t = traits::identity<Args...>;
+  using is_materialized = std::true_type;
+};
 
-/// Returns the signature hint of the given continuable
-template <typename Data, typename... Args>
-constexpr signature_hint_tag<Args...>
-hint_of(traits::identity<continuable_base<Data, signature_hint_tag<Args...>>>) {
-  return {};
-}
-
+namespace hints {
 /// Extracts the signature we pass to the internal continuable
 /// from an argument pack as specified by make_continuable.
 ///
@@ -67,4 +67,4 @@ constexpr auto extract(traits::identity<void> /*hint*/) {
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_HINTS_HPP_INCLUDED
+#endif // CONTINUABLE_DETAIL_ANNOTATION_HPP_INCLUDED

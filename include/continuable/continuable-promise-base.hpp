@@ -34,7 +34,7 @@
 #include <type_traits>
 #include <utility>
 #include <continuable/continuable-primitives.hpp>
-#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/annotation.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/utility/util.hpp>
 
@@ -62,7 +62,7 @@ class promise_base
   /// \cond false
   ;
 template <typename Data, typename... Args>
-class promise_base<Data, detail::hints::signature_hint_tag<Args...>>
+class promise_base<Data, detail::traits::identity<Args...>>
     : detail::util::non_copyable
   /// \endcond
 { // clang-format on
@@ -78,7 +78,7 @@ public:
   }
   /// \cond false
   /// Constructor for constructing an empty promise
-  explicit promise_base(detail::types::promise_no_init_tag) {
+  explicit promise_base(detail::types::promise_no_init_arg_t) {
   }
   /// \endcond
 

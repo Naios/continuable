@@ -36,7 +36,7 @@
 #include <utility>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-result.hpp>
-#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/annotation.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/utility/result-trait.hpp>
@@ -69,6 +69,39 @@ struct is_continuable : std::false_type {};
 template <typename Data, typename Annotation>
 struct is_continuable<continuable_base<Data, Annotation>> : std::true_type {};
 
+/*template <typename... Args>
+struct ready_continuable {
+  std::tuple<Args...> values_;
+
+  template <typename Callback>
+  void operator()(Callback&& callback) && {
+    traits::unpack(std::forward<Callback>(callback), std::move(values_));
+  }
+
+  bool operator()(is_ready_arg_t) const noexcept {
+    return true;
+  }
+
+  std::tuple<Args...> operator()(get_arg_t) && {
+    return std::move(values_);
+  }
+};*/
+
+/*template <typename Continuation, typename Args>
+struct proxy_continuable : Continuation {
+  using Continuation::Continuation;
+
+  using Continuation::operator();
+
+  bool operator()(is_ready_arg_t) const noexcept {
+    return false;
+  }
+
+  std::tuple<T...> operator()(get_arg_t) && {
+    util::unreachable();
+  }
+};*/
+
 struct attorney {
   /// Creates a continuable_base from the given continuation, annotation
   /// and ownership.
@@ -78,7 +111,7 @@ struct attorney {
   static auto create_from(T&& continuation, A annotation,
                           util::ownership ownership) {
     (void)annotation;
-    return Continuable(std::forward<T>(continuation), ownership);
+    return Continuable({std::forward<T>(continuation)}, ownership);
   }
 
   /// Returns the ownership of the given continuable_base
@@ -92,6 +125,14 @@ struct attorney {
     return std::move(continuation).consume();
   }
 };
+
+/// Returns the signature hint of the given continuable
+template <typename Data, typename... Args>
+constexpr traits::identity<Args...>
+annotation_of(traits::identity<continuable_base<Data, //
+                                                traits::identity<Args...>>>) {
+  return {};
+}
 
 /// Invokes a continuation object in a reference correct way
 template <typename Data, typename Annotation, typename Callback>
@@ -180,8 +221,8 @@ void invoke_void_no_except(traits::identity<Args...>, T&& callable) noexcept {
 }
 
 template <typename T, typename... Args>
-constexpr auto make_invoker(T&& invoke, hints::signature_hint_tag<Args...>) {
-  return invoker<std::decay_t<T>, hints::signature_hint_tag<Args...>>(
+constexpr auto make_invoker(T&& invoke, traits::identity<Args...>) {
+  return invoker<std::decay_t<T>, traits::identity<Args...>>(
       std::forward<T>(invoke));
 }
 
@@ -193,7 +234,7 @@ invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
   using Type =
       decltype(std::declval<continuable_base<Data, Annotation>>().finish());
 
-  auto constexpr const hint = hints::hint_of(traits::identify<Type>{});
+  auto constexpr const hint = base::annotation_of(traits::identify<Type>{});
 
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
@@ -405,7 +446,7 @@ template <handle_results HandleResults, typename Base, typename Hint>
 struct result_handler_base;
 template <typename Base, typename... Args>
 struct result_handler_base<handle_results::no, Base,
-                           hints::signature_hint_tag<Args...>> {
+                           traits::identity<Args...>> {
   void operator()(Args... args) && {
     // Forward the arguments to the next callback
     std::move(static_cast<Base*>(this)->next_callback_)(std::move(args)...);
@@ -413,7 +454,7 @@ struct result_handler_base<handle_results::no, Base,
 };
 template <typename Base, typename... Args>
 struct result_handler_base<handle_results::yes, Base,
-                           hints::signature_hint_tag<Args...>> {
+                           traits::identity<Args...>> {
   /// The operator which is called when the result was provided
   void operator()(Args... args) && {
     // In order to retrieve the correct decorator we must know what the
@@ -475,17 +516,17 @@ struct callback_base;
 template <typename... Args, handle_results HandleResults,
           handle_errors HandleErrors, typename Callback, typename Executor,
           typename NextCallback>
-struct callback_base<hints::signature_hint_tag<Args...>, HandleResults,
-                     HandleErrors, Callback, Executor, NextCallback>
+struct callback_base<traits::identity<Args...>, HandleResults, HandleErrors,
+                     Callback, Executor, NextCallback>
     : proto::result_handler_base<
           HandleResults,
-          callback_base<hints::signature_hint_tag<Args...>, HandleResults,
-                        HandleErrors, Callback, Executor, NextCallback>,
-          hints::signature_hint_tag<Args...>>,
+          callback_base<traits::identity<Args...>, HandleResults, HandleErrors,
+                        Callback, Executor, NextCallback>,
+          traits::identity<Args...>>,
       proto::error_handler_base<
           HandleErrors,
-          callback_base<hints::signature_hint_tag<Args...>, HandleResults,
-                        HandleErrors, Callback, Executor, NextCallback>>,
+          callback_base<traits::identity<Args...>, HandleResults, HandleErrors,
+                        Callback, Executor, NextCallback>>,
       util::non_copyable {
 
   Callback callback_;
@@ -501,16 +542,15 @@ struct callback_base<hints::signature_hint_tag<Args...>, HandleResults,
   /// Pull the result handling operator() in
   using proto::result_handler_base<
       HandleResults,
-      callback_base<hints::signature_hint_tag<Args...>, HandleResults,
-                    HandleErrors, Callback, Executor, NextCallback>,
-      hints::signature_hint_tag<Args...>>::operator();
+      callback_base<traits::identity<Args...>, HandleResults, HandleErrors,
+                    Callback, Executor, NextCallback>,
+      traits::identity<Args...>>::operator();
 
   /// Pull the error handling operator() in
   using proto::error_handler_base<
       HandleErrors,
-      callback_base<hints::signature_hint_tag<Args...>, HandleResults,
-                    HandleErrors, Callback, Executor, NextCallback>>::
-  operator();
+      callback_base<traits::identity<Args...>, HandleResults, HandleErrors,
+                    Callback, Executor, NextCallback>>::operator();
 
   /// Resolves the continuation with the given values
   void set_value(Args... args) {
@@ -581,7 +621,7 @@ template <typename T, typename... Args>
 constexpr auto
 next_hint_of(std::integral_constant<handle_results, handle_results::yes>,
              traits::identity<T> /*callback*/,
-             hints::signature_hint_tag<Args...> /*current*/) {
+             traits::identity<Args...> /*current*/) {
   // Partial Invoke the given callback
   using Result = decltype(
       decoration::invoke_callback(std::declval<T>(), std::declval<Args>()...));
@@ -594,7 +634,7 @@ template <typename T, typename... Args>
 constexpr auto
 next_hint_of(std::integral_constant<handle_results, handle_results::no>,
              traits::identity<T> /*callback*/,
-             hints::signature_hint_tag<Args...> current) {
+             traits::identity<Args...> current) {
   return current;
 }
 
@@ -635,7 +675,7 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   static_assert(is_continuable<std::decay_t<Continuation>>{},
                 "Expected a continuation!");
 
-  using Hint = decltype(hints::hint_of(traits::identify<Continuation>()));
+  using Hint = decltype(base::annotation_of(traits::identify<Continuation>()));
   constexpr auto next_hint =
       next_hint_of(std::integral_constant<handle_results, HandleResults>{},
                    traits::identify<decltype(callback)>{}, Hint{});

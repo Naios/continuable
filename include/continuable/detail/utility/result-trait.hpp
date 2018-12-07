@@ -34,7 +34,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/annotation.hpp>
 #include <continuable/detail/utility/traits.hpp>
 #include <continuable/detail/utility/util.hpp>
 

@@ -578,13 +578,23 @@ public:
     return materializer::apply(std::move(*this));
   }
 
+#ifdef DOXYGEN
   /// Returns true if the continuable_base will resolve its promise
   /// immediately on request.
   ///
   /// \since 4.0.0
-  bool is_ready() const noexcept {
-    return false;
-  }
+  bool is_ready() const noexcept;
+#endif
+
+#ifdef DOXYGEN
+  /// Returns the result of this continuable immediatly.
+  ///
+  /// \attention requires that this continuable resolves immediatly on
+  ///            request which means that is_ready() holds.
+  ///
+  /// \since 4.0.0
+  unspecified request() &&;
+#endif
 
   /// Predicate to check whether the cti::continuable_base is frozen or not.
   ///
@@ -731,6 +741,18 @@ private:
     assert(ownership_.is_acquired() && "Tried to use a released continuable!");
   }
 };
+
+/*template <typename Continuable>
+struct continuable_trait
+#ifdef DOXYGEN
+{
+  /// Deduces to a true_type if the continuable_base is a concrete type
+  /// which means all lazy expression templates were materialized and
+  /// the continuable can be queried for a direct result through is_ready.
+  using is_concrete = std::true_type;
+}
+#endif
+;*/
 
 /// Creates a continuable_base from a promise/callback taking function.
 ///

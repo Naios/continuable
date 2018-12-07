@@ -52,7 +52,7 @@ namespace experimental {
 template <typename Data, typename... Args, typename... FunctionArgs>
 struct coroutine_traits<
     cti::continuable_base<Data,
-                          cti::detail::hints::signature_hint_tag<Args...>>,
+                          cti::detail::traits::identity<Args...>>,
     FunctionArgs...> {
 
   using promise_type =

@@ -38,7 +38,7 @@
 #include <experimental/coroutine>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-result.hpp>
-#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/annotation.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/utility/traits.hpp>
@@ -65,7 +65,7 @@ struct result_from_identity<traits::identity<T...>> {
 /// for waiting on a continuable in a stackless coroutine.
 template <typename Continuable>
 class awaitable {
-  using hint_t = decltype(hints::hint_of(traits::identify<Continuable>{}));
+  using hint_t = decltype(base::annotation_of(traits::identify<Continuable>{}));
   using result_t = typename result_from_identity<hint_t>::result_t;
 
   /// The continuable which is invoked upon suspension
@@ -186,7 +186,7 @@ struct promise_type : promise_resolver_base<promise_type<Promise, Args...>> {
   coroutine_handle<> handle_;
   Promise promise_;
 
-  explicit promise_type() : promise_(types::promise_no_init_tag{}) {
+  explicit promise_type() : promise_(types::promise_no_init_arg_t{}) {
   }
 
   auto get_return_object() {

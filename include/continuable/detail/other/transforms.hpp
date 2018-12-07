@@ -34,7 +34,7 @@
 #include <future>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/core/base.hpp>
-#include <continuable/detail/core/hints.hpp>
+#include <continuable/detail/core/annotation.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/utility/util.hpp>
@@ -77,7 +77,7 @@ template <typename Hint>
 class promise_callback;
 
 template <typename... Args>
-class promise_callback<hints::signature_hint_tag<Args...>>
+class promise_callback<traits::identity<Args...>>
     : public future_trait<Args...> {
 
   typename future_trait<Args...>::promise_t promise_;
@@ -119,7 +119,7 @@ template <typename Data, typename Annotation>
 auto as_future(continuable_base<Data, Annotation>&& continuable) {
   // Create the promise which is able to supply the current arguments
   constexpr auto const hint =
-      hints::hint_of(traits::identify<decltype(continuable)>{});
+      base::annotation_of(traits::identify<decltype(continuable)>{});
 
   promise_callback<std::decay_t<decltype(hint)>> callback;
   (void)hint;
