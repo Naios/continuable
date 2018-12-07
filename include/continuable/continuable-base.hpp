@@ -578,15 +578,15 @@ public:
     return materializer::apply(std::move(*this));
   }
 
-#ifdef DOXYGEN
+#ifdef CONTINUABLE_HAS_DOXYGEN
   /// Returns true if the continuable_base will resolve its promise
   /// immediately on request.
   ///
   /// \since 4.0.0
   bool is_ready() const noexcept;
-#endif
+#endif // CONTINUABLE_HAS_DOXYGEN
 
-#ifdef DOXYGEN
+#ifdef CONTINUABLE_HAS_DOXYGEN
   /// Returns the result of this continuable immediatly.
   ///
   /// \attention requires that this continuable resolves immediatly on
@@ -594,7 +594,7 @@ public:
   ///
   /// \since 4.0.0
   unspecified request() &&;
-#endif
+#endif // CONTINUABLE_HAS_DOXYGEN
 
   /// Predicate to check whether the cti::continuable_base is frozen or not.
   ///
