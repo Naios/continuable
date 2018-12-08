@@ -92,7 +92,7 @@ struct ready_continuation {
     return true;
   }
 
-  std::tuple<Args...> operator()(get_arg_t) && {
+  std::tuple<Args...> operator()(query_arg_t) && {
     return std::move(values_);
   }
 };
@@ -114,7 +114,7 @@ struct ready_continuation<> {
     return true;
   }
 
-  std::tuple<> operator()(get_arg_t) && {
+  std::tuple<> operator()(query_arg_t) && {
     return std::make_tuple();
   }
 };
@@ -141,7 +141,7 @@ struct proxy_continuable<traits::identity<Args...>, Continuation>
     return false;
   }
 
-  std::tuple<Args...> operator()(get_arg_t) && {
+  std::tuple<Args...> operator()(query_arg_t) && {
     util::unreachable();
   }
 };
@@ -754,7 +754,7 @@ struct chained_continuation<traits::identity<Args...>, HandleResults,
     return false;
   }
 
-  std::tuple<Args...> operator()(get_arg_t) && {
+  std::tuple<Args...> operator()(query_arg_t) && {
     util::unreachable();
   }
 };

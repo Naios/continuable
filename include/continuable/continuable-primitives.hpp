@@ -44,20 +44,20 @@ namespace cti {
 /// struct continuation {
 ///   void operator() (callback<Args...>);
 ///   bool operator() (cti::is_ready_arg_t) const;
-///   std::tuple<Args...> operator() (cti::get_arg_t);
+///   std::tuple<Args...> operator() (cti::query_arg_t);
 /// };
 /// template<typename T>
 /// struct continuation<T> {
 ///   template<typename Callback>
 ///   void operator() (callback<T>);
 ///   bool operator() (cti::is_ready_arg_t) const;
-///   T operator() (cti::get_arg_t);
+///   T operator() (cti::query_arg_t);
 /// };
 /// template<>
 /// struct continuation<void> {
 ///   void operator() (callback<>);
 ///   bool operator() (cti::is_ready_arg_t) const;
-///   void operator() (cti::get_arg_t);
+///   void operator() (cti::query_arg_t);
 /// };
 /// ```
 /// ```cpp
@@ -82,7 +82,7 @@ struct is_ready_arg_t {};
 /// It's required that the query of is_ready_arg_t returns true.
 ///
 /// \since 4.0.0
-struct get_arg_t {};
+struct query_arg_t {};
 
 /// Represents the tag type that is used to disambiguate the
 /// callback operator() in order to take the exception asynchronous chain.
