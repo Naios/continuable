@@ -56,13 +56,11 @@ namespace hints {
 /// from an argument pack as specified by make_continuable.
 ///
 /// This is the overload taking an arbitrary amount of args
-template <typename Hint>
-struct from_explicit;
 template <typename... HintArgs>
-struct from_explicit<traits::identity<HintArgs...>>
+struct from_args
     : std::common_type<traits::identity<HintArgs...>> {};
 template <>
-struct from_explicit<traits::identity<void>>
+struct from_args<void>
     : std::common_type<traits::identity<>> {};
 } // namespace hints
 } // namespace detail

@@ -92,7 +92,7 @@ struct ready_continuation {
     return true;
   }
 
-  std::tuple<Args...> operator()(query_arg_t) && {
+  std::tuple<Args...> operator()(query_arg_t) {
     return std::move(values_);
   }
 };
@@ -114,7 +114,7 @@ struct ready_continuation<> {
     return true;
   }
 
-  std::tuple<> operator()(query_arg_t) && {
+  std::tuple<> operator()(query_arg_t) {
     return std::make_tuple();
   }
 };
@@ -141,21 +141,32 @@ struct proxy_continuable<traits::identity<Args...>, Continuation>
     return false;
   }
 
-  std::tuple<Args...> operator()(query_arg_t) && {
+  std::tuple<Args...> operator()(query_arg_t) {
     util::unreachable();
   }
 };
 
 struct attorney {
-  /// Creates a continuable_base from the given continuation, annotation
-  /// and ownership.
-  template <
-      typename T, typename A,
-      typename Continuable = continuable_base<std::decay_t<T>, std::decay_t<A>>>
-  static auto create_from(T&& continuation, A annotation,
-                          util::ownership ownership) {
-    (void)annotation;
-    return Continuable({std::forward<T>(continuation)}, ownership);
+  /// Creates a continuable_base from the given continuation,
+  /// annotation and ownership.
+  template <typename T, typename Annotation>
+  static auto create_from_raw(T&& continuation, Annotation,
+                              util::ownership ownership) {
+    using continuation_t = continuable_base<traits::unrefcv_t<T>, //
+                                            traits::unrefcv_t<Annotation>>;
+    return continuation_t({std::forward<T>(continuation)}, ownership);
+  }
+
+  /// Creates a continuable_base from the given continuation,
+  /// annotation and ownership.
+  /// This wraps the continuable to contain the is_ready and query method
+  /// implemented empty.
+  template <typename T, typename Hint>
+  static auto create_from(T&& continuation, Hint, util::ownership ownership) {
+    using hint_t = traits::unrefcv_t<Hint>;
+    using proxy_t = proxy_continuable<hint_t, traits::unrefcv_t<T>>;
+    return continuable_base<proxy_t, hint_t>(
+        proxy_t{std::forward<T>(continuation)}, ownership);
   }
 
   /// Returns the ownership of the given continuable_base
@@ -744,17 +755,27 @@ struct chained_continuation<traits::identity<Args...>, HandleResults,
         std::move(callback_), std::move(executor_),
         std::forward<decltype(next_callback)>(next_callback));
 
-    // Invoke the continuation with a proxy callback.
-    // The proxy callback is responsible for passing
-    // the result to the callback as well as decorating it.
-    util::invoke(std::move(continuation_), std::move(proxy));
+    // TODO Detect statically whether we have a raw ready continuable here
+    // Check whether the continuation is ready
+    bool const is_ready = continuation_(is_ready_arg_t{});
+    if (is_ready) {
+      // Invoke the proxy callback directly with the result to
+      // avoid a potential type erasure.
+      // traits::unpack(std::move(proxy),
+      // std::move(continuation_)(query_arg_t{}));
+    } else {
+      // Invoke the continuation with a proxy callback.
+      // The proxy callback is responsible for passing
+      // the result to the callback as well as decorating it.
+      util::invoke(std::move(continuation_), std::move(proxy));
+    }
   }
 
   bool operator()(is_ready_arg_t) const noexcept {
     return false;
   }
 
-  std::tuple<Args...> operator()(query_arg_t) && {
+  std::tuple<Args...> operator()(query_arg_t) {
     util::unreachable();
   }
 };
@@ -791,10 +812,10 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
                            traits::unrefcv_t<Callback>,
                            traits::unrefcv_t<Executor>>;
 
-  return attorney::create_from(continuation_t(std::move(data),
-                                              std::forward<Callback>(callback),
-                                              std::forward<Executor>(executor)),
-                               next_hint, ownership);
+  return attorney::create_from_raw(
+      continuation_t(std::move(data), std::forward<Callback>(callback),
+                     std::forward<Executor>(executor)),
+      next_hint, ownership);
 }
 
 /// Final invokes the given continuation chain:

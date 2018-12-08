@@ -114,7 +114,7 @@ auto connect(Strategy strategy, continuable_base<LData, LAnnotation>&& left,
 
   // Return a new continuable containing the tuple and holding
   // the current strategy as annotation.
-  return base::attorney::create_from(std::move(data), strategy, ownership_);
+  return base::attorney::create_from_raw(std::move(data), strategy, ownership_);
 }
 
 /// All strategies should specialize this class in order to provide:

@@ -811,14 +811,9 @@ constexpr auto make_continuable(Continuation&& continuation) {
                 "use make_continuable<void>(...). Continuables with an exact "
                 "signature may be created through make_continuable<Args...>.");
 
-  using hint_t = detail::traits::identity<Args...>;
-  using continuation_t =
-      detail::base::proxy_continuable<hint_t,
-                                      detail::traits::unrefcv_t<Continuation>>;
-
   return detail::base::attorney::create_from(
-      continuation_t{std::forward<Continuation>(continuation)},
-      typename detail::hints::from_explicit<hint_t>::type{},
+      std::forward<Continuation>(continuation),
+      typename detail::hints::from_args<Args...>::type{},
       detail::util::ownership{});
 }
 
@@ -832,19 +827,14 @@ constexpr auto make_continuable(Continuation&& continuation) {
 ///            function calls.
 ///
 /// \since     3.0.0
-inline auto make_ready_continuable() {
-  return make_continuable<void>(detail::base::ready_continuation<>());
-}
-
-/// Returns a continuable_base with one result value which instantly resolves
-/// the promise with the given value.
-///
-/// \copydetails make_ready_continuable()
 template <typename... Args>
 auto make_ready_continuable(Args&&... args) {
-  return make_continuable<std::decay_t<Args>...>(
-      detail::base::ready_continuation<std::decay_t<Args>...>(
-          std::forward<Args>(args)...));
+  using detail::base::ready_continuation;
+  using detail::traits::identity;
+  using detail::traits::unrefcv_t;
+  return detail::base::attorney::create_from_raw(
+      ready_continuation<unrefcv_t<Args>...>{std::forward<Args>(args)...},
+      identity<unrefcv_t<Args>...>{}, detail::util::ownership{});
 }
 
 /// Returns a continuable_base with the parameterized result which instantly

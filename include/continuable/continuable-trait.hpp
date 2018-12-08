@@ -32,6 +32,7 @@
 #define CONTINUABLE_TRAIT_HPP_INCLUDED
 
 #include <cstddef>
+#include <tuple>
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-promise-base.hpp>
@@ -70,7 +71,10 @@ public:
   /// The continuable type for the given parameters.
   using continuable = continuable_base<
       ContinuationWrapper<sizeof(detail::base::ready_continuation<Args...>),
-                          void(promise)>,
+                          void(promise),                   //
+                          bool(is_ready_arg_t) const,      //
+                          std::tuple<Args...>(query_arg_t) //
+                          >,
       detail::traits::identity<Args...>>;
 };
 /// \}
