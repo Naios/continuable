@@ -811,10 +811,14 @@ constexpr auto make_continuable(Continuation&& continuation) {
                 "use make_continuable<void>(...). Continuables with an exact "
                 "signature may be created through make_continuable<Args...>.");
 
-  // TODO
+  using hint_t = detail::traits::identity<Args...>;
+  using continuation_t =
+      detail::base::proxy_continuable<hint_t,
+                                      detail::traits::unrefcv_t<Continuation>>;
+
   return detail::base::attorney::create_from(
-      std::forward<Continuation>(continuation),
-      detail::hints::from_explicit(detail::traits::identity<Args...>{}),
+      continuation_t{std::forward<Continuation>(continuation)},
+      typename detail::hints::from_explicit<hint_t>::type{},
       detail::util::ownership{});
 }
 

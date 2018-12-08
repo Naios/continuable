@@ -56,16 +56,14 @@ namespace hints {
 /// from an argument pack as specified by make_continuable.
 ///
 /// This is the overload taking an arbitrary amount of args
+template <typename Hint>
+struct from_explicit;
 template <typename... HintArgs>
-constexpr auto from_explicit(traits::identity<HintArgs...> hint) {
-  return hint;
-}
-/// \copybrief from_explicit
-///
-/// This is the overload taking a void arg.
-constexpr auto from_explicit(traits::identity<void> /*hint*/) {
-  return traits::identity<>{};
-}
+struct from_explicit<traits::identity<HintArgs...>>
+    : std::common_type<traits::identity<HintArgs...>> {};
+template <>
+struct from_explicit<traits::identity<void>>
+    : std::common_type<traits::identity<>> {};
 } // namespace hints
 } // namespace detail
 } // namespace cti

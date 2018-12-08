@@ -119,6 +119,33 @@ struct ready_continuation<> {
   }
 };
 
+template <typename Hint, typename Continuation>
+struct proxy_continuable;
+template <typename... Args, typename Continuation>
+struct proxy_continuable<traits::identity<Args...>, Continuation>
+    : Continuation {
+
+  explicit proxy_continuable(Continuation continuation)
+      : Continuation(std::move(continuation)) {
+  }
+  ~proxy_continuable() = default;
+  proxy_continuable(proxy_continuable&&) = default;
+  proxy_continuable(proxy_continuable const&) = delete;
+  proxy_continuable& operator=(proxy_continuable&&) = default;
+  proxy_continuable& operator=(proxy_continuable const&) = delete;
+
+  using Continuation::Continuation;
+  using Continuation::operator();
+
+  bool operator()(is_ready_arg_t) const noexcept {
+    return false;
+  }
+
+  std::tuple<Args...> operator()(get_arg_t) && {
+    util::unreachable();
+  }
+};
+
 struct attorney {
   /// Creates a continuable_base from the given continuation, annotation
   /// and ownership.
