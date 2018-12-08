@@ -32,8 +32,8 @@
 #define CONTINUABLE_TRAIT_HPP_INCLUDED
 
 #include <cstddef>
-#include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-base.hpp>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/detail/core/annotation.hpp>
 #include <continuable/detail/core/types.hpp>
@@ -61,18 +61,17 @@ template <template <std::size_t, typename...> class CallbackWrapper,
 class continuable_trait {
 
   using callback = CallbackWrapper<0U, void(Args...)&&,
-                                   void(exception_arg_t,
-                                        exception_t) &&>;
+                                   void(exception_arg_t, exception_t) &&>;
 
 public:
   /// The promise type which is used to resolve continuations
-  using promise =
-      promise_base<callback, detail::traits::identity<Args...>>;
+  using promise = promise_base<callback, detail::traits::identity<Args...>>;
 
   /// The continuable type for the given parameters.
-  using continuable =
-      continuable_base<ContinuationWrapper<sizeof(callback), void(promise)>,
-                       detail::traits::identity<Args...>>;
+  using continuable = continuable_base<
+      ContinuationWrapper<sizeof(detail::base::ready_continuable<Args...>),
+                          void(promise)>,
+      detail::traits::identity<Args...>>;
 };
 /// \}
 } // namespace cti

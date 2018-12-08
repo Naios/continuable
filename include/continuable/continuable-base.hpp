@@ -849,7 +849,7 @@ constexpr auto make_continuable(Continuation&& continuation) {
 
   return detail::base::attorney::create_from(
       std::forward<Continuation>(continuation),
-      detail::hints::extract(detail::traits::identity<Args...>{}),
+      detail::hints::from_explicit(detail::traits::identity<Args...>{}),
       detail::util::ownership{});
 }
 
@@ -864,41 +864,22 @@ constexpr auto make_continuable(Continuation&& continuation) {
 ///
 /// \since     3.0.0
 template <typename... Args>
-constexpr auto make_ready_continuable() {
-  return make_continuable<void>([](auto&& promise) {
-    std::forward<decltype(promise)>(promise).set_value();
-  });
+auto make_ready_continuable() {
+  static_assert(
+      sizeof...(Args) == 0,
+      "make_ready_continuable with void continuables requires zero args!");
+  return make_continuable<void>(detail::base::ready_continuable<>());
 }
 
 /// Returns a continuable_base with one result value which instantly resolves
 /// the promise with the given value.
 ///
 /// \copydetails make_ready_continuable()
-template <typename Result>
-constexpr auto make_ready_continuable(Result&& result) {
-  return make_continuable<std::decay_t<Result>>( // ...
-      [result = std::forward<Result>(result)](auto&& promise) mutable {
-        std::forward<decltype(promise)>(promise).set_value(std::move(result));
-      });
-}
-
-/// Returns a continuable_base with multiple result values which instantly
-/// resolves the promise with the given values.
-///
-/// \copydetails make_ready_continuable()
-template <typename FirstResult, typename SecondResult, typename... Rest>
-constexpr auto make_ready_continuable(FirstResult&& first_result,
-                                      SecondResult&& second_result,
-                                      Rest&&... rest) {
-  return make_continuable<std::decay_t<FirstResult>, std::decay_t<SecondResult>,
-                          std::decay_t<Rest>...>( // ...
-      [result = std::make_tuple(std::forward<FirstResult>(first_result),
-                                std::forward<SecondResult>(second_result),
-                                std::forward<Rest>(rest)...)](
-          auto&& promise) mutable {
-        detail::traits::unpack(std::forward<decltype(promise)>(promise),
-                               std::move(result));
-      });
+template <typename... Args>
+auto make_ready_continuable(Args&&... args) {
+  return make_continuable<std::decay_t<Args>...>(
+      detail::base::ready_continuable<std::decay_t<Args>...>(
+          std::forward<Args>(args)));
 }
 
 /// Returns a continuable_base with the parameterized result which instantly

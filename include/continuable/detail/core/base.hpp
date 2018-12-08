@@ -69,23 +69,40 @@ struct is_continuable : std::false_type {};
 template <typename Data, typename Annotation>
 struct is_continuable<continuable_base<Data, Annotation>> : std::true_type {};
 
-/*template <typename... Args>
+template <typename... Args>
 struct ready_continuable {
   std::tuple<Args...> values_;
+
+  explicit ready_continuable(Args... values) : values_(std::move(values)) {
+  }
 
   template <typename Callback>
   void operator()(Callback&& callback) && {
     traits::unpack(std::forward<Callback>(callback), std::move(values_));
   }
 
-  bool operator()(is_ready_arg_t) const noexcept {
+  /*bool operator()(is_ready_arg_t) const noexcept {
     return true;
   }
 
   std::tuple<Args...> operator()(get_arg_t) && {
     return std::move(values_);
+  }*/
+};
+template <>
+struct ready_continuable<> {
+  template <typename Callback>
+  void operator()(Callback&& callback) && {
+    util::invoke(std::forward<Callback>(callback));
   }
-};*/
+
+  /*bool operator()(is_ready_arg_t) const noexcept {
+  return true;
+  }
+
+  void operator()(get_arg_t) && {
+  }*/
+};
 
 /*template <typename Continuation, typename Args>
 struct proxy_continuable : Continuation {

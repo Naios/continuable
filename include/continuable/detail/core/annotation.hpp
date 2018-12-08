@@ -54,13 +54,13 @@ namespace hints {
 ///
 /// This is the overload taking an arbitrary amount of args
 template <typename... HintArgs>
-constexpr auto extract(traits::identity<HintArgs...> hint) {
+constexpr auto from_explicit(traits::identity<HintArgs...> hint) {
   return hint;
 }
-/// \copybrief extract
+/// \copybrief from_explicit
 ///
 /// This is the overload taking a void arg.
-constexpr auto extract(traits::identity<void> /*hint*/) {
+constexpr auto from_explicit(traits::identity<void> /*hint*/) {
   return traits::identity<>{};
 }
 } // namespace hints
