@@ -718,18 +718,6 @@ private:
   }
 };
 
-/*template <typename Continuable>
-struct continuable_trait
-#ifdef DOXYGEN
-{
-  /// Deduces to a true_type if the continuable_base is a concrete type
-  /// which means all lazy expression templates were materialized and
-  /// the continuable can be queried for a direct result through is_ready.
-  using is_concrete = std::true_type;
-}
-#endif
-;*/
-
 /// Creates a continuable_base from a promise/callback taking function.
 ///
 /// \tparam Args The types (signature hint) the given promise is resolved with.

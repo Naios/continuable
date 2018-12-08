@@ -126,7 +126,7 @@ struct attorney {
       typename T, typename A,
       typename Continuable = continuable_base<std::decay_t<T>, std::decay_t<A>>>
   static auto create_from(T&& continuation, A annotation,
-                          util::ownership ownership = {}) {
+                          util::ownership ownership) {
     (void)annotation;
     return Continuable({std::forward<T>(continuation)}, ownership);
   }
@@ -755,6 +755,7 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
       next_hint_of(std::integral_constant<handle_results, HandleResults>{},
                    traits::identify<decltype(callback)>{}, Hint{});
 
+  auto ownership = attorney::ownership_of(continuation);
   auto data =
       attorney::consume(std::forward<Continuation>(continuation).finish());
 
@@ -766,7 +767,7 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   return attorney::create_from(continuation_t(std::move(data),
                                               std::forward<Callback>(callback),
                                               std::forward<Executor>(executor)),
-                               next_hint);
+                               next_hint, ownership);
 }
 
 /// Final invokes the given continuation chain:
