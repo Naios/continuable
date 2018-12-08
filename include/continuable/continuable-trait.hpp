@@ -69,7 +69,7 @@ public:
 
   /// The continuable type for the given parameters.
   using continuable = continuable_base<
-      ContinuationWrapper<sizeof(detail::base::ready_continuable<Args...>),
+      ContinuationWrapper<sizeof(detail::base::ready_continuation<Args...>),
                           void(promise)>,
       detail::traits::identity<Args...>>;
 };

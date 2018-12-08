@@ -564,7 +564,8 @@ public:
 
 #ifdef CONTINUABLE_HAS_DOXYGEN
   /// Materializes the continuation expression template and finishes
-  /// the current applied strategy.
+  /// the current applied strategy such that the resulting continuable
+  /// will always be a concrete type and Continuable::is_concrete holds.
   ///
   /// This can be used in the case where we are chaining continuations lazily
   /// through a strategy, for instance when applying operators for
@@ -587,24 +588,6 @@ public:
   ///
   /// \since 4.0.0
   unspecified finish() &&;
-#endif // CONTINUABLE_HAS_DOXYGEN
-
-#ifdef CONTINUABLE_HAS_DOXYGEN
-  /// Returns true if the continuable_base will resolve its promise
-  /// immediately on request.
-  ///
-  /// \since 4.0.0
-  bool is_ready() const noexcept;
-#endif // CONTINUABLE_HAS_DOXYGEN
-
-#ifdef CONTINUABLE_HAS_DOXYGEN
-  /// Returns the result of this continuable immediatly.
-  ///
-  /// \attention requires that this continuable resolves immediatly on
-  ///            request which means that is_ready() holds.
-  ///
-  /// \since 4.0.0
-  unspecified request() &&;
 #endif // CONTINUABLE_HAS_DOXYGEN
 
   /// Predicate to check whether the cti::continuable_base is frozen or not.
@@ -840,6 +823,7 @@ constexpr auto make_continuable(Continuation&& continuation) {
                 "use make_continuable<void>(...). Continuables with an exact "
                 "signature may be created through make_continuable<Args...>.");
 
+  // TODO
   return detail::base::attorney::create_from(
       std::forward<Continuation>(continuation),
       detail::hints::from_explicit(detail::traits::identity<Args...>{}),
@@ -857,7 +841,7 @@ constexpr auto make_continuable(Continuation&& continuation) {
 ///
 /// \since     3.0.0
 inline auto make_ready_continuable() {
-  return make_continuable<void>(detail::base::ready_continuable<>());
+  return make_continuable<void>(detail::base::ready_continuation<>());
 }
 
 /// Returns a continuable_base with one result value which instantly resolves
@@ -867,7 +851,7 @@ inline auto make_ready_continuable() {
 template <typename... Args>
 auto make_ready_continuable(Args&&... args) {
   return make_continuable<std::decay_t<Args>...>(
-      detail::base::ready_continuable<std::decay_t<Args>...>(
+      detail::base::ready_continuation<std::decay_t<Args>...>(
           std::forward<Args>(args)...));
 }
 

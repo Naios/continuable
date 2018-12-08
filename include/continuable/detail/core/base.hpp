@@ -70,15 +70,17 @@ template <typename Data, typename Annotation>
 struct is_continuable<continuable_base<Data, Annotation>> : std::true_type {};
 
 template <typename... Args>
-struct ready_continuable {
+struct ready_continuation {
   std::tuple<Args...> values_;
 
-  ready_continuable(ready_continuable&&) = default;
-  ready_continuable(ready_continuable const&) = default;
-  ready_continuable& operator=(ready_continuable&&) = default;
-  ready_continuable& operator=(ready_continuable const&) = default;
+  ready_continuation() = delete;
+  ~ready_continuation() = default;
+  ready_continuation(ready_continuation&&) = default;
+  ready_continuation(ready_continuation const&) = delete;
+  ready_continuation& operator=(ready_continuation&&) = default;
+  ready_continuation& operator=(ready_continuation const&) = delete;
 
-  explicit ready_continuable(Args... values) : values_(std::move(values)...) {
+  explicit ready_continuation(Args... values) : values_(std::move(values)...) {
   }
 
   template <typename Callback>
@@ -86,43 +88,36 @@ struct ready_continuable {
     traits::unpack(std::forward<Callback>(callback), std::move(values_));
   }
 
-  /*bool operator()(is_ready_arg_t) const noexcept {
+  bool operator()(is_ready_arg_t) const noexcept {
     return true;
   }
 
   std::tuple<Args...> operator()(get_arg_t) && {
     return std::move(values_);
-  }*/
+  }
 };
 template <>
-struct ready_continuable<> {
+struct ready_continuation<> {
+  ready_continuation() = default;
+  ~ready_continuation() = default;
+  ready_continuation(ready_continuation&&) = default;
+  ready_continuation(ready_continuation const&) = delete;
+  ready_continuation& operator=(ready_continuation&&) = default;
+  ready_continuation& operator=(ready_continuation const&) = delete;
+
   template <typename Callback>
   void operator()(Callback&& callback) {
     util::invoke(std::forward<Callback>(callback));
   }
 
-  /*bool operator()(is_ready_arg_t) const noexcept {
-  return true;
-  }
-
-  void operator()(get_arg_t) && {
-  }*/
-};
-
-/*template <typename Continuation, typename Args>
-struct proxy_continuable : Continuation {
-  using Continuation::Continuation;
-
-  using Continuation::operator();
-
   bool operator()(is_ready_arg_t) const noexcept {
-    return false;
+    return true;
   }
 
-  std::tuple<T...> operator()(get_arg_t) && {
-    util::unreachable();
+  std::tuple<> operator()(get_arg_t) && {
+    return std::make_tuple();
   }
-};*/
+};
 
 struct attorney {
   /// Creates a continuable_base from the given continuation, annotation
@@ -681,13 +676,71 @@ auto strip_exception_arg(Callable&& callable) {
   return proxy{std::forward<Callable>(callable)};
 }
 
-/// Chains a callback together with a continuation and returns a continuation:
+template <typename Hint, handle_results HandleResults,
+          handle_errors HandleErrors, typename Continuation, typename Callback,
+          typename Executor>
+struct chained_continuation;
+template <typename... Args, handle_results HandleResults,
+          handle_errors HandleErrors, typename Continuation, typename Callback,
+          typename Executor>
+struct chained_continuation<traits::identity<Args...>, HandleResults,
+                            HandleErrors, Continuation, Callback, Executor> {
+  Continuation continuation_;
+  Callback callback_;
+  Executor executor_;
+
+  explicit chained_continuation(Continuation continuation, Callback callback,
+                                Executor executor)
+      : continuation_(std::move(continuation)), callback_(std::move(callback)),
+        executor_(std::move(executor)) {
+  }
+
+  chained_continuation() = delete;
+  ~chained_continuation() = default;
+  chained_continuation(chained_continuation const&) = delete;
+  chained_continuation(chained_continuation&&) = default;
+  chained_continuation& operator=(chained_continuation const&) = delete;
+  chained_continuation& operator=(chained_continuation&&) = default;
+
+  template <typename NextCallback>
+  void operator()(NextCallback&& next_callback) {
+    // Invokes a continuation with a given callback.
+    // Passes the next callback to the resulting continuable or
+    // invokes the next callback directly if possible.
+    //
+    // For example given:
+    // - Continuation: continuation<[](auto&& callback) { callback("hi"); }>
+    // - Callback: [](std::string) { }
+    // - NextCallback: []() { }
+    auto proxy = callbacks::make_callback<traits::identity<Args...>,
+                                          HandleResults, HandleErrors>(
+        std::move(callback_), std::move(executor_),
+        std::forward<decltype(next_callback)>(next_callback));
+
+    // Invoke the continuation with a proxy callback.
+    // The proxy callback is responsible for passing
+    // the result to the callback as well as decorating it.
+    invoke_continuation(std::move(continuation_), std::move(proxy));
+  }
+
+  bool operator()(is_ready_arg_t) const noexcept {
+    return false;
+  }
+
+  std::tuple<Args...> operator()(get_arg_t) && {
+    util::unreachable();
+  }
+};
+
+/// Chains a callback together with a continuation and returns a
+/// continuation:
 ///
 /// For example given:
 /// - Continuation: continuation<[](auto&& callback) { callback("hi"); }>
 /// - Callback: [](std::string) { }
 ///
-/// This function returns a function accepting the next callback in the chain:
+/// This function returns a function accepting the next callback in the
+/// chain:
 /// - Result: continuation<[](auto&& callback) { /*...*/ }>
 ///
 template <handle_results HandleResults, handle_errors HandleErrors,
@@ -706,29 +759,14 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   auto ownership_ = attorney::ownership_of(continuation);
   continuation.freeze();
 
-  return attorney::create_from(
-      [continuation = std::forward<Continuation>(continuation),
-       callback = std::forward<Callback>(callback),
-       executor = std::forward<Executor>(executor)] //
-      (auto&& next_callback) mutable {
-        // Invokes a continuation with a given callback.
-        // Passes the next callback to the resulting continuable or
-        // invokes the next callback directly if possible.
-        //
-        // For example given:
-        // - Continuation: continuation<[](auto&& callback) { callback("hi"); }>
-        // - Callback: [](std::string) { }
-        // - NextCallback: []() { }
-        auto proxy =
-            callbacks::make_callback<Hint, HandleResults, HandleErrors>(
-                std::move(callback), std::move(executor),
-                std::forward<decltype(next_callback)>(next_callback));
+  using continuation_t = chained_continuation<
+      Hint, HandleResults, HandleErrors, traits::unrefcv_t<Continuation>,
+      traits::unrefcv_t<Callback>, traits::unrefcv_t<Executor>>;
 
-        // Invoke the continuation with a proxy callback.
-        // The proxy callback is responsible for passing
-        // the result to the callback as well as decorating it.
-        invoke_continuation(std::move(continuation), std::move(proxy));
-      },
+  return attorney::create_from(
+      continuation_t(std::forward<Continuation>(continuation),
+                     std::forward<Callback>(callback),
+                     std::forward<Executor>(executor)),
       next_hint, ownership_);
 }
 

@@ -48,11 +48,7 @@ struct annotation_trait<traits::identity<Args...>> {
     Continuable&& finish() {
       return std::move(*static_cast<Continuable*>(this));
     }
-
-    static constexpr bool is_concrete = true;
   };
-
-  using is_concrete = std::true_type;
 };
 
 namespace hints {

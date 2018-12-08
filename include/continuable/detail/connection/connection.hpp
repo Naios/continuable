@@ -143,8 +143,6 @@ struct connection_annotation_trait {
       return finalizer::finalize(std::move(connection), std::move(ownership));
     }
   };
-
-  using is_concrete = std::false_type;
 };
 
 class prepare_continuables {
