@@ -43,9 +43,16 @@ struct annotation_trait;
 /// Specialization for a present signature hint
 template <typename... Args>
 struct annotation_trait<traits::identity<Args...>> {
-  using is_concrete_hint = std::true_type;
-  using hint_t = traits::identity<Args...>;
-  using is_materialized = std::true_type;
+  template <typename Continuable>
+  struct annotation_base {
+    Continuable&& finish() {
+      return std::move(*static_cast<Continuable*>(this));
+    }
+
+    static constexpr bool is_concrete = true;
+  };
+
+  using is_concrete = std::true_type;
 };
 
 namespace hints {

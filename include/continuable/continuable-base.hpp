@@ -90,7 +90,9 @@ using is_continuable = detail::base::is_continuable<T>;
 ///
 /// \since 1.0.0
 template <typename Data, typename Annotation>
-class continuable_base {
+class continuable_base
+    : public detail::annotation_trait<Annotation>::template //
+      annotation_base<continuable_base<Data, Annotation>> {
 
   /// \cond false
   using ownership = detail::util::ownership;
@@ -98,11 +100,6 @@ class continuable_base {
   template <typename, typename>
   friend class continuable_base;
   friend struct detail::base::attorney;
-
-  // The materializer which is used when this continuable_base is an
-  // expression template such that is_connection_strategy<Annotation>::value
-  // holds for the Annotation.
-  using materializer = detail::connection::materializer<continuable_base>;
 
   // The continuation type or intermediate result
   Data data_;
@@ -565,6 +562,7 @@ public:
     detail::base::finalize_continuation(std::move(*this));
   }
 
+#ifdef CONTINUABLE_HAS_DOXYGEN
   /// Materializes the continuation expression template and finishes
   /// the current applied strategy.
   ///
@@ -588,9 +586,8 @@ public:
   ///       on conversion.
   ///
   /// \since 4.0.0
-  auto finish() && {
-    return materializer::apply(std::move(*this));
-  }
+  unspecified finish() &&;
+#endif // CONTINUABLE_HAS_DOXYGEN
 
 #ifdef CONTINUABLE_HAS_DOXYGEN
   /// Returns true if the continuable_base will resolve its promise

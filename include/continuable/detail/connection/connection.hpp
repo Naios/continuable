@@ -124,33 +124,27 @@ auto connect(Strategy strategy, continuable_base<LData, LAnnotation>&& left,
 template <typename Strategy>
 struct connection_finalizer;
 
-/// Finalizes the connection logic of a given connection
-template <typename Data, typename Strategy>
-auto finalize_connection(continuable_base<Data, Strategy>&& continuation) {
-  using finalizer = connection_finalizer<Strategy>;
+struct connection_annotation_trait {
+  template <typename Continuable>
+  struct annotation_base;
+  template <typename Data, typename Strategy>
+  struct annotation_base<continuable_base<Data, Strategy>> {
+    /// Finalizes the connection logic of a given connection
+    auto finish() && {
+      using continuable_t = continuable_base<Data, Strategy>;
+      auto&& continuation = std::move(*static_cast<continuable_t*>(this));
 
-  util::ownership ownership = base::attorney::ownership_of(continuation);
-  auto connection = base::attorney::consume(std::move(continuation));
+      using finalizer = connection_finalizer<Strategy>;
 
-  // Return a new continuable which
-  return finalizer::finalize(std::move(connection), std::move(ownership));
-}
+      util::ownership ownership = base::attorney::ownership_of(continuation);
+      auto connection = base::attorney::consume(std::move(continuation));
 
-/// A base class from which the continuable may inherit in order to
-/// provide a materializer method which will finalize an oustanding strategy.
-template <typename Continuable, typename = void>
-struct materializer {
-  static constexpr auto&& apply(Continuable&& continuable) {
-    return std::move(continuable);
-  }
-};
-template <typename Data, typename Strategy>
-struct materializer<continuable_base<Data, Strategy>,
-                    std::enable_if_t<is_connection_strategy<Strategy>::value>> {
+      // Return a new continuable which
+      return finalizer::finalize(std::move(connection), std::move(ownership));
+    }
+  };
 
-  static constexpr auto apply(continuable_base<Data, Strategy>&& continuable) {
-    return finalize_connection(std::move(continuable));
-  }
+  using is_concrete = std::false_type;
 };
 
 class prepare_continuables {

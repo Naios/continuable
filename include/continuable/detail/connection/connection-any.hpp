@@ -40,8 +40,8 @@
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/continuable-traverse.hpp>
-#include <continuable/detail/core/base.hpp>
 #include <continuable/detail/core/annotation.hpp>
+#include <continuable/detail/core/base.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/traversal/container-category.hpp>
 #include <continuable/detail/utility/traits.hpp>
@@ -177,7 +177,6 @@ struct connection_finalizer<connection_strategy_any_tag> {
     return base::attorney::create_from(
         [connection =
              std::forward<Connection>(connection)](auto&& callback) mutable {
-
           using submitter_t =
               any::any_result_submitter<std::decay_t<decltype(callback)>>;
 
@@ -193,6 +192,12 @@ struct connection_finalizer<connection_strategy_any_tag> {
   }
 };
 } // namespace connection
+
+  /// Specialization for a connection annotation
+template <>
+struct annotation_trait<connection::connection_strategy_any_tag>
+  : connection::connection_annotation_trait {};
+
 } // namespace detail
 } // namespace cti
 
