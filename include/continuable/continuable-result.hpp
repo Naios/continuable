@@ -104,6 +104,19 @@ public:
 /// - *no result*: If the operation didn't finish
 /// - *a value*: If the operation finished successfully
 /// - *an exception*: If the operation finished with an exception
+///
+/// The interface of the result object is similar to the one proposed in
+/// the `std::expected` proposal:
+/// ```cpp
+/// result<std::string> result = make_result("Hello World!");
+/// bool(result);
+/// result.is_value();
+/// result.is_exception();
+/// *result; // Same as result.get_value()
+/// result.get_value();
+/// result.get_exception();
+/// ```
+///
 template <typename... T>
 class result {
   using trait_t = detail::result_trait<T...>;

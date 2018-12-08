@@ -215,12 +215,15 @@ public:
   /// | `Arg`                      | `continuable_base with <Arg>`             |
   /// | `std::pair<First, Second>` | `continuable_base with <First, Second>`   |
   /// | `std::tuple<Args...>`      | `continuable_base with <Args...>`         |
+  /// | `result<Args...>`          | `continuable_base with <Args...>`         |
   /// | `continuable_base<Arg...>` | `continuable_base with <Args...>`         |
   ///          Which means the result type of the continuable_base is equal to
   ///          the plain types the callback returns (`std::tuple` and
   ///          `std::pair` arguments are unwrapped).
   ///          A single continuable_base as argument is resolved and the result
   ///          type is equal to the resolved continuable_base.
+  ///          A result<...> can be used to cancel the continuation or to
+  ///          transition to the exception handler.
   ///          Consider the following examples:
   /// ```cpp
   /// http_request("github.com")
@@ -242,6 +245,17 @@ public:
   /// http_request("github.com")
   ///   .then([](std::string github) { return http_request("atom.io"); })
   ///   .then([](std::string atom) { }); // <std::string>
+  ///
+  /// http_request("example.com")
+  ///   .then([](std::string content) -> result<std::string> {
+  ///     return rethrow(std::make_exception_ptr(std::exception{}));
+  ///   })
+  ///   .fail([] -> result<std::string> {
+  ///     return recover("Hello World!");
+  ///   })
+  ///   .then([](std::string content) -> result<std::string> {
+  ///     return cancel();
+  ///   })
   /// ```
   ///
   /// \since 1.0.0
@@ -665,31 +679,13 @@ public:
   /// ```
   ///
   /// In case the library is configured to use error codes or a custom
-  /// error type the return type of the co_await expression is changed.
-  /// The result is returned through an internal proxy object which may
-  /// be queried for the error object.
+  /// exception type the return type of the co_await expression is changed.
+  /// The result is returned through a cti::result<...>.
   /// |          Continuation type        |          co_await returns          |
   /// | : ------------------------------- | : -------------------------------- |
-  /// | `continuable_base with <>`        | `unspecified<void>`                |
-  /// | `continuable_base with <Arg>`     | `unspecified<Arg>`                 |
-  /// | `continuable_base with <Args...>` | `unspecified<std::tuple<Args...>>` |
-  /// The interface of the proxy object is similar to the one proposed in
-  /// the `std::expected` proposal:
-  /// ```cpp
-  /// if (auto&& result = co_await http_request("github.com")) {
-  ///   auto value = *result;
-  /// } else {
-  ///   cti::exception_t error = result.get_exception();
-  /// }
-  ///
-  /// auto result = co_await http_request("github.com");
-  /// bool(result);
-  /// result.is_value();
-  /// result.is_exception();
-  /// *result; // Same as result.get_value()
-  /// result.get_value();
-  /// result.get_exception();
-  /// ```
+  /// | `continuable_base with <>`        | `result<void>`                     |
+  /// | `continuable_base with <Arg>`     | `result<Arg>`                      |
+  /// | `continuable_base with <Args...>` | `result<Args...>`                  |
   ///
   /// \note  Using continuable_base as return type for coroutines
   ///        is supported. The coroutine is initially stopped and
@@ -903,11 +899,13 @@ constexpr auto make_exceptional_continuable(Exception&& exception) {
       });
 }
 
+// TODO Document this
 template <typename... Args>
 auto recover(Args&&... args) {
   return make_result(std::forward<Args>(args)...);
 }
 
+// TODO Document this
 /// Returns a new exceptional result from the given exception
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
 inline auto rethrow(exception_t exception) {
@@ -915,6 +913,7 @@ inline auto rethrow(exception_t exception) {
   return exceptional_result{std::move(exception)};
 }
 
+// TODO Document this
 inline auto cancel() {
   return empty_result{};
 }
