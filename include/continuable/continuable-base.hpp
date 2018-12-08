@@ -875,7 +875,7 @@ template <typename... Args>
 auto make_ready_continuable(Args&&... args) {
   return make_continuable<std::decay_t<Args>...>(
       detail::base::ready_continuable<std::decay_t<Args>...>(
-          std::forward<Args>(args)));
+          std::forward<Args>(args)...));
 }
 
 /// Returns a continuable_base with the parameterized result which instantly

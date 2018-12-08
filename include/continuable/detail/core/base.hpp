@@ -73,11 +73,16 @@ template <typename... Args>
 struct ready_continuable {
   std::tuple<Args...> values_;
 
-  explicit ready_continuable(Args... values) : values_(std::move(values)) {
+  ready_continuable(ready_continuable&&) = default;
+  ready_continuable(ready_continuable const&) = default;
+  ready_continuable& operator=(ready_continuable&&) = default;
+  ready_continuable& operator=(ready_continuable const&) = default;
+
+  explicit ready_continuable(Args... values) : values_(std::move(values)...) {
   }
 
   template <typename Callback>
-  void operator()(Callback&& callback) && {
+  void operator()(Callback&& callback) {
     traits::unpack(std::forward<Callback>(callback), std::move(values_));
   }
 
@@ -92,7 +97,7 @@ struct ready_continuable {
 template <>
 struct ready_continuable<> {
   template <typename Callback>
-  void operator()(Callback&& callback) && {
+  void operator()(Callback&& callback) {
     util::invoke(std::forward<Callback>(callback));
   }
 

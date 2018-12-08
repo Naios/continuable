@@ -97,7 +97,10 @@ public:
 };
 
 /// The result class can carry the three kinds of results an asynchronous
-/// operation can return: no result, a value or an exception.
+/// operation possibly can return, it's implemented in a variant like
+/// data structure which is also specialized to hold arbitrary arguments.
+///
+/// The result can be in the following three states:
 /// - *no result*: If the operation didn't finish
 /// - *a value*: If the operation finished successfully
 /// - *an exception*: If the operation finished with an exception
@@ -106,8 +109,29 @@ class result {
   using trait_t = detail::result_trait<T...>;
   using surrogate_t = typename trait_t::surrogate_t;
 
+  struct init_arg_t {};
+  template <typename Args>
+  friend result<detail::traits::unrefcv_t<T>...> make_result(Args&&...);
+
+  template <typename... Args, detail::traits::void_t<decltype(trait_t::wrap(
+                                  std::declval<Args>()...))>* = nullptr>
+  explicit result(init_arg_t, Args&&... values)
+      : variant_(trait_t::wrap(std::forward<Args>(values)...)) {
+  }
+  explicit result(init_arg_t, exception_t exception)
+      : variant_(std::move(exception)) {
+  }
+
 public:
   using value_t = typename trait_t::value_t;
+
+  template <typename FirstArg, typename... Args,
+            detail::traits::void_t<decltype(trait_t::wrap(
+                std::declval<FirstArg>(), std::declval<Args>()...))>* = nullptr>
+  explicit result(FirstArg&& first, Args&&... values)
+      : variant_(trait_t::wrap(std::forward<FirstArg>(first),
+                               std::forward<Args>(values)...)) {
+  }
 
   result() = default;
   result(result const&) = default;
@@ -116,11 +140,6 @@ public:
   result& operator=(result&&) = default;
   ~result() = default;
 
-  template <typename... Args,
-            decltype(trait_t::wrap(std::declval<Args>()...))* = nullptr>
-  explicit result(Args&&... values)
-      : variant_(trait_t::wrap(std::forward<Args>(values)...)) {
-  }
   explicit result(exception_t exception) : variant_(std::move(exception)) {
   }
   result(empty_result) {
@@ -138,86 +157,112 @@ public:
     return *this;
   }
 
+  /// Set the result to an empty state
   void set_empty() {
     variant_.set_empty();
   }
+  /// Set the result to a the state which holds the corresponding value
   void set_value(T... values) {
     variant_ = trait_t::wrap(std::move(values)...);
   }
+  /// Set the result into a state which holds the corresponding exception
   void set_exception(exception_t exception) {
     variant_ = std::move(exception);
   }
 
+  /// Returns true if the state of the result is empty
   bool is_empty() const noexcept {
     return variant_.is_empty();
   }
+  /// Returns true if the state of the result holds the result
   bool is_value() const noexcept {
     return variant_.template is<surrogate_t>();
   }
+  /// Returns true if the state of the result holds an exception
   bool is_exception() const noexcept {
     return variant_.template is<exception_t>();
   }
 
+  /// \copydoc is_value
   explicit constexpr operator bool() const noexcept {
     return is_value();
   }
 
-  /// Returns the
+  /// Returns the values of the result, if the result doesn't hold the value
+  /// the behaviour is undefined but will assert in debug mode.
   decltype(auto) get_value() & noexcept {
     return trait_t::unwrap(variant_.template cast<surrogate_t>());
   }
+  ///\copydoc get_value
   decltype(auto) get_value() const& noexcept {
     return trait_t::unwrap(variant_.template cast<surrogate_t>());
   }
+  ///\copydoc get_value
   decltype(auto) get_value() && noexcept {
     return trait_t::unwrap(std::move(variant_).template cast<surrogate_t>());
   }
 
+  ///\copydoc get_value
   decltype(auto) operator*() & noexcept {
     return get_value();
   }
+  ///\copydoc get_value
   decltype(auto) operator*() const& noexcept {
     return get_value();
   }
+  ///\copydoc get_value
   decltype(auto) operator*() && noexcept {
     return std::move(*this).get_value();
   }
 
+  /// Returns the exception of the result, if the result doesn't hold an
+  /// exception the behaviour is undefined but will assert in debug mode.
   exception_t& get_exception() & noexcept {
     return variant_.template cast<exception_t>();
   }
+  /// \copydoc get_exception
   exception_t const& get_exception() const& noexcept {
     return variant_.template cast<exception_t>();
   }
+  /// \copydoc get_exception
   exception_t&& get_exception() && noexcept {
     return std::move(variant_).template cast<exception_t>();
+  }
+
+  /// Creates a present result from the given values
+  static result from(T... values) {
+    return result{init_arg_t{}, std::move(values)...};
+  }
+  /// Creates a present result from the given exception
+  static result from(exception_t exception) {
+    return result{init_arg_t{}, std::move(exception)};
   }
 
 private:
   detail::container::flat_variant<surrogate_t, exception_t> variant_;
 };
 
+/// Returns the value at position I of the given result
 template <std::size_t I, typename... T>
 decltype(auto) get(result<T...>& result) {
   return detail::result_trait<T...>::template get<I>(result);
 }
+/// \copydoc get
 template <std::size_t I, typename... T>
 decltype(auto) get(result<T...> const& result) {
   return detail::result_trait<T...>::template get<I>(result);
 }
+/// \copydoc get
 template <std::size_t I, typename... T>
 decltype(auto) get(result<T...>&& result) {
   return detail::result_trait<T...>::template get<I>(std::move(result));
 }
 
-inline result<> make_result() {
-  result<> result;
-  result.set_value();
-  return result;
-}
-template <typename... T>
-auto make_result(T&&... values) {
-  return result<detail::traits::unrefcv_t<T>...>(std::forward<T>(values)...);
+/// Creates a present result from the given values
+template <typename... T,
+          typename Result = result<detail::traits::unrefcv_t<T>...>>
+Result make_result(T&&... values) {
+  return Result::from(std::forward<T>(values)...);
 }
 /// \}
 } // namespace cti
