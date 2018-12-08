@@ -757,12 +757,12 @@ struct chained_continuation<traits::identity<Args...>, HandleResults,
 
     // TODO Detect statically whether we have a raw ready continuable here
     // Check whether the continuation is ready
-    bool const is_ready = continuation_(is_ready_arg_t{});
+    bool const is_ready = util::as_const(continuation_)(is_ready_arg_t{});
     if (is_ready) {
       // Invoke the proxy callback directly with the result to
       // avoid a potential type erasure.
       // traits::unpack(std::move(proxy),
-      // std::move(continuation_)(query_arg_t{}));
+      std::move(continuation_)(query_arg_t{});
     } else {
       // Invoke the continuation with a proxy callback.
       // The proxy callback is responsible for passing

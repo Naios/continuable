@@ -167,6 +167,12 @@ constexpr auto invoke(Type T::*member, Self&& self, Args&&... args) noexcept(
   return (std::forward<Self>(self)->*member)(std::forward<Args>(args)...);
 }
 
+/// Returns a constant view on the object
+template <typename T>
+constexpr std::add_const_t<T>& as_const(T& object) noexcept {
+  return object;
+}
+
 // Class for making child classes non copyable
 struct non_copyable {
   constexpr non_copyable() = default;

@@ -99,11 +99,11 @@ class result_submitter
     }
 
     template <typename... PartialArgs>
-    void operator()(exception_arg_t tag, exception_t error) && {
+    void operator()(exception_arg_t tag, exception_t exception) && {
       // We never complete the connection, but we forward the first error
       // which was raised.
       std::call_once(me->flag_, std::move(me->callback_), tag,
-                     std::move(error));
+                     std::move(exception));
     }
   };
 
@@ -168,8 +168,8 @@ struct connection_finalizer<connection_strategy_all_tag> {
               all::result_submitter<std::decay_t<decltype(callback)>,
                                     std::decay_t<decltype(result)>>;
 
-          // Create the shared state which holds the result and the final
-          // callback
+          // Create the shared state which holds the result
+          // and the final callback
           auto state = std::make_shared<submitter_t>(
               std::forward<decltype(callback)>(callback), std::move(result));
 
