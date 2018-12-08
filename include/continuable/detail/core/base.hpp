@@ -126,7 +126,7 @@ struct attorney {
       typename T, typename A,
       typename Continuable = continuable_base<std::decay_t<T>, std::decay_t<A>>>
   static auto create_from(T&& continuation, A annotation,
-                          util::ownership ownership) {
+                          util::ownership ownership = {}) {
     (void)annotation;
     return Continuable({std::forward<T>(continuation)}, ownership);
   }
@@ -720,7 +720,7 @@ struct chained_continuation<traits::identity<Args...>, HandleResults,
     // Invoke the continuation with a proxy callback.
     // The proxy callback is responsible for passing
     // the result to the callback as well as decorating it.
-    invoke_continuation(std::move(continuation_), std::move(proxy));
+    util::invoke(std::move(continuation_), std::move(proxy));
   }
 
   bool operator()(is_ready_arg_t) const noexcept {
@@ -755,19 +755,18 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
       next_hint_of(std::integral_constant<handle_results, HandleResults>{},
                    traits::identify<decltype(callback)>{}, Hint{});
 
-  // TODO consume only the data here so the freeze isn't needed
-  auto ownership_ = attorney::ownership_of(continuation);
-  continuation.freeze();
+  auto data =
+      attorney::consume(std::forward<Continuation>(continuation).finish());
 
-  using continuation_t = chained_continuation<
-      Hint, HandleResults, HandleErrors, traits::unrefcv_t<Continuation>,
-      traits::unrefcv_t<Callback>, traits::unrefcv_t<Executor>>;
+  using continuation_t =
+      chained_continuation<Hint, HandleResults, HandleErrors, decltype(data),
+                           traits::unrefcv_t<Callback>,
+                           traits::unrefcv_t<Executor>>;
 
-  return attorney::create_from(
-      continuation_t(std::forward<Continuation>(continuation),
-                     std::forward<Callback>(callback),
-                     std::forward<Executor>(executor)),
-      next_hint, ownership_);
+  return attorney::create_from(continuation_t(std::move(data),
+                                              std::forward<Callback>(callback),
+                                              std::forward<Executor>(executor)),
+                               next_hint);
 }
 
 /// Final invokes the given continuation chain:
