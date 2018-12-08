@@ -863,11 +863,7 @@ constexpr auto make_continuable(Continuation&& continuation) {
 ///            function calls.
 ///
 /// \since     3.0.0
-template <typename... Args>
-auto make_ready_continuable() {
-  static_assert(
-      sizeof...(Args) == 0,
-      "make_ready_continuable with void continuables requires zero args!");
+inline auto make_ready_continuable() {
   return make_continuable<void>(detail::base::ready_continuable<>());
 }
 
