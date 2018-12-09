@@ -129,8 +129,6 @@ struct connection_annotation_trait {
   /// Finalizes the connection logic of a given connection
   template <typename Continuable>
   static auto finish(Continuable&& continuable) {
-    using continuable_t = traits::unrefcv_t<Continuable>;
-
     using finalizer = connection_finalizer<Strategy>;
 
     util::ownership ownership = base::attorney::ownership_of(continuable);
