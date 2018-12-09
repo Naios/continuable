@@ -77,11 +77,15 @@ public:
 
   template <typename... Args>
   auto supply(Args&&... args) {
+#ifdef UNIT_TEST_READY_CONTINUABLES
+    return cti::make_ready_continuable(std::forward<Args>(args)...);
+#else
     identity<std::decay_t<Args>...> arg_types;
     auto hint_types = to_hint(arg_types);
 
     return this->make(arg_types, hint_types,
                       supplier_of(std::forward<Args>(args)...));
+#endif // UNIT_TEST_READY_CONTINUABLES
   }
 
   template <typename Arg, typename Hint = identity<>>

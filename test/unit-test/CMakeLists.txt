@@ -41,11 +41,7 @@ else()
   set(STEP_RANGE 4)
 endif()
 
-foreach(STEP RANGE ${STEP_RANGE})
-  set(PROJECT_NAME test-continuable-multi-${STEP})
-  set(TEST_NAME continuable-unit-tests-multi-${STEP})
-
-  add_executable(${PROJECT_NAME}
+set(TEST_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-await.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-chaining.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-base-destruct.cpp
@@ -61,6 +57,12 @@ foreach(STEP RANGE ${STEP_RANGE})
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-erasure.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-regression.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-transforms.cpp)
+
+foreach(STEP RANGE ${STEP_RANGE})
+  set(PROJECT_NAME test-continuable-multi-${STEP})
+  set(TEST_NAME continuable-unit-tests-multi-${STEP})
+
+  add_executable(${PROJECT_NAME} ${TEST_SOURCES})
 
   target_link_libraries(${PROJECT_NAME}
     PUBLIC
@@ -79,3 +81,27 @@ foreach(STEP RANGE ${STEP_RANGE})
     NAME ${TEST_NAME}
     COMMAND ${PROJECT_NAME})
 endforeach()
+
+# The ready tests
+set(PROJECT_NAME test-continuable-multi-ready)
+set(TEST_NAME continuable-unit-tests-multi-ready)
+
+add_executable(${PROJECT_NAME} ${TEST_SOURCES})
+
+target_link_libraries(${PROJECT_NAME}
+  PUBLIC
+    test-continuable-base)
+
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/multi)
+
+target_compile_definitions(${PROJECT_NAME}
+  PUBLIC
+    -DUNIT_TEST_STEP=0
+    -DUNIT_TEST_READY_CONTINUABLES)
+
+add_test(
+  NAME ${TEST_NAME}
+  COMMAND ${PROJECT_NAME})

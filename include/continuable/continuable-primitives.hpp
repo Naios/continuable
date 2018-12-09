@@ -46,19 +46,6 @@ namespace cti {
 ///   bool operator() (cti::is_ready_arg_t) const;
 ///   std::tuple<Args...> operator() (cti::query_arg_t);
 /// };
-/// template<typename T>
-/// struct continuation<T> {
-///   template<typename Callback>
-///   void operator() (callback<T>);
-///   bool operator() (cti::is_ready_arg_t) const;
-///   T operator() (cti::query_arg_t);
-/// };
-/// template<>
-/// struct continuation<void> {
-///   void operator() (callback<>);
-///   bool operator() (cti::is_ready_arg_t) const;
-///   void operator() (cti::query_arg_t);
-/// };
 /// ```
 /// ```cpp
 /// template<typename... Args>
