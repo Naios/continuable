@@ -193,10 +193,11 @@ struct connection_finalizer<connection_strategy_any_tag> {
 };
 } // namespace connection
 
-  /// Specialization for a connection annotation
+/// Specialization for a connection annotation
 template <>
 struct annotation_trait<connection::connection_strategy_any_tag>
-  : connection::connection_annotation_trait {};
+    : connection::connection_annotation_trait<
+          connection::connection_strategy_any_tag> {};
 
 } // namespace detail
 } // namespace cti

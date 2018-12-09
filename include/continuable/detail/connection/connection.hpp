@@ -124,25 +124,22 @@ auto connect(Strategy strategy, continuable_base<LData, LAnnotation>&& left,
 template <typename Strategy>
 struct connection_finalizer;
 
+template <typename Strategy>
 struct connection_annotation_trait {
+  /// Finalizes the connection logic of a given connection
   template <typename Continuable>
-  struct annotation_base;
-  template <typename Data, typename Strategy>
-  struct annotation_base<continuable_base<Data, Strategy>> {
-    /// Finalizes the connection logic of a given connection
-    auto finish() && {
-      using continuable_t = continuable_base<Data, Strategy>;
-      auto&& continuation = std::move(*static_cast<continuable_t*>(this));
+  static auto finish(Continuable&& continuable) {
+    using continuable_t = traits::unrefcv_t<Continuable>;
 
-      using finalizer = connection_finalizer<Strategy>;
+    using finalizer = connection_finalizer<Strategy>;
 
-      util::ownership ownership = base::attorney::ownership_of(continuation);
-      auto connection = base::attorney::consume(std::move(continuation));
+    util::ownership ownership = base::attorney::ownership_of(continuable);
+    auto connection =
+        base::attorney::consume(std::forward<Continuable>(continuable));
 
-      // Return a new continuable which
-      return finalizer::finalize(std::move(connection), std::move(ownership));
-    }
-  };
+    // Return a new continuable which
+    return finalizer::finalize(std::move(connection), std::move(ownership));
+  }
 };
 
 class prepare_continuables {

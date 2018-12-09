@@ -32,6 +32,7 @@
 #define CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED
 
 #include <cassert>
+#include <cstdlib>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -258,11 +259,12 @@ private:
   __builtin_unreachable();
 #elif defined(__has_builtin) && __has_builtin(__builtin_unreachable)
   __builtin_unreachable();
+#else
+  std::abort();
 #endif
 }
 
-/// Causes the application to exit abnormally because we are
-/// in an invalid state.
+/// Causes the application to exit abnormally.
 [[noreturn]] inline void trap() {
 #if defined(_MSC_VER)
   __debugbreak();

@@ -90,12 +90,12 @@ using is_continuable = detail::base::is_continuable<T>;
 ///
 /// \since 1.0.0
 template <typename Data, typename Annotation>
-class continuable_base
-    : public detail::annotation_trait<Annotation>::template //
-      annotation_base<continuable_base<Data, Annotation>> {
+class continuable_base {
 
   /// \cond false
   using ownership = detail::util::ownership;
+
+  using annotation_trait = detail::annotation_trait<Annotation>;
 
   template <typename, typename>
   friend class continuable_base;
@@ -562,7 +562,6 @@ public:
     detail::base::finalize_continuation(std::move(*this));
   }
 
-#ifdef CONTINUABLE_HAS_DOXYGEN
   /// Materializes the continuation expression template and finishes
   /// the current applied strategy such that the resulting continuable
   /// will always be a concrete type and Continuable::is_concrete holds.
@@ -587,8 +586,9 @@ public:
   ///       on conversion.
   ///
   /// \since 4.0.0
-  unspecified finish() &&;
-#endif // CONTINUABLE_HAS_DOXYGEN
+  auto finish() && {
+    return annotation_trait::finish(std::move(*this));
+  }
 
   /// Predicate to check whether the cti::continuable_base is frozen or not.
   ///

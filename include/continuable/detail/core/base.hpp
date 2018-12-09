@@ -761,14 +761,55 @@ struct chained_continuation<traits::identity<Args...>, HandleResults,
     if (is_ready) {
       // Invoke the proxy callback directly with the result to
       // avoid a potential type erasure.
-      // traits::unpack(std::move(proxy),
-      std::move(continuation_)(query_arg_t{});
+      traits::unpack(std::move(proxy), std::move(continuation_)(query_arg_t{}));
     } else {
       // Invoke the continuation with a proxy callback.
       // The proxy callback is responsible for passing
       // the result to the callback as well as decorating it.
       util::invoke(std::move(continuation_), std::move(proxy));
     }
+  }
+
+  bool operator()(is_ready_arg_t) const noexcept {
+    return false;
+  }
+
+  std::tuple<Args...> operator()(query_arg_t) {
+    util::unreachable();
+  }
+};
+// Specialization to unpack ready continuables directly
+template <typename... Args, handle_results HandleResults,
+          handle_errors HandleErrors, typename Callback, typename Executor>
+struct chained_continuation<traits::identity<Args...>, HandleResults,
+                            HandleErrors, ready_continuation<Args...>, Callback,
+                            Executor> {
+  ready_continuation<Args...> continuation_;
+  Callback callback_;
+  Executor executor_;
+
+  explicit chained_continuation(ready_continuation<Args...> continuation,
+                                Callback callback, Executor executor)
+      : continuation_(std::move(continuation)), callback_(std::move(callback)),
+        executor_(std::move(executor)) {
+  }
+
+  chained_continuation() = delete;
+  ~chained_continuation() = default;
+  chained_continuation(chained_continuation const&) = delete;
+  chained_continuation(chained_continuation&&) = default;
+  chained_continuation& operator=(chained_continuation const&) = delete;
+  chained_continuation& operator=(chained_continuation&&) = default;
+
+  template <typename NextCallback>
+  void operator()(NextCallback&& next_callback) {
+    auto proxy = callbacks::make_callback<traits::identity<Args...>,
+                                          HandleResults, HandleErrors>(
+        std::move(callback_), std::move(executor_),
+        std::forward<decltype(next_callback)>(next_callback));
+
+    // Extract the result out of the ready continuable
+    traits::unpack(std::move(proxy), std::move(continuation_)(query_arg_t{}));
   }
 
   bool operator()(is_ready_arg_t) const noexcept {

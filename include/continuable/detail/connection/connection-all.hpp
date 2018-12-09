@@ -189,7 +189,8 @@ struct connection_finalizer<connection_strategy_all_tag> {
 /// Specialization for a connection annotation
 template <>
 struct annotation_trait<connection::connection_strategy_all_tag>
-    : connection::connection_annotation_trait {};
+    : connection::connection_annotation_trait<
+          connection::connection_strategy_all_tag> {};
 
 } // namespace detail
 } // namespace cti

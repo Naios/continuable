@@ -44,11 +44,9 @@ struct annotation_trait;
 template <typename... Args>
 struct annotation_trait<traits::identity<Args...>> {
   template <typename Continuable>
-  struct annotation_base {
-    Continuable&& finish() {
-      return std::move(*static_cast<Continuable*>(this));
-    }
-  };
+  static Continuable&& finish(Continuable&& continuable) {
+    return std::forward<Continuable>(continuable);
+  }
 };
 
 namespace hints {
@@ -57,11 +55,9 @@ namespace hints {
 ///
 /// This is the overload taking an arbitrary amount of args
 template <typename... HintArgs>
-struct from_args
-    : std::common_type<traits::identity<HintArgs...>> {};
+struct from_args : std::common_type<traits::identity<HintArgs...>> {};
 template <>
-struct from_args<void>
-    : std::common_type<traits::identity<>> {};
+struct from_args<void> : std::common_type<traits::identity<>> {};
 } // namespace hints
 } // namespace detail
 } // namespace cti

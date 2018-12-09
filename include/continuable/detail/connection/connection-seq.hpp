@@ -164,7 +164,8 @@ struct connection_finalizer<connection_strategy_seq_tag> {
 /// Specialization for a connection annotation
 template <>
 struct annotation_trait<connection::connection_strategy_seq_tag>
-    : connection::connection_annotation_trait {};
+    : connection::connection_annotation_trait<
+          connection::connection_strategy_seq_tag> {};
 
 } // namespace detail
 } // namespace cti
