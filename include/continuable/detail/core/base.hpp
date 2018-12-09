@@ -714,15 +714,17 @@ auto strip_exception_arg(Callable&& callable) {
   return proxy{std::forward<Callable>(callable)};
 }
 
-template <typename Hint, handle_results HandleResults,
+template <typename Hint, typename NextHint, handle_results HandleResults,
           handle_errors HandleErrors, typename Continuation, typename Callback,
           typename Executor>
 struct chained_continuation;
-template <typename... Args, handle_results HandleResults,
+template <typename... Args, typename... NextArgs, handle_results HandleResults,
           handle_errors HandleErrors, typename Continuation, typename Callback,
           typename Executor>
-struct chained_continuation<traits::identity<Args...>, HandleResults,
+struct chained_continuation<traits::identity<Args...>,
+                            traits::identity<NextArgs...>, HandleResults,
                             HandleErrors, Continuation, Callback, Executor> {
+
   Continuation continuation_;
   Callback callback_;
   Executor executor_;
@@ -755,9 +757,9 @@ struct chained_continuation<traits::identity<Args...>, HandleResults,
         std::move(callback_), std::move(executor_),
         std::forward<decltype(next_callback)>(next_callback));
 
-    // TODO Detect statically whether we have a raw ready continuable here
     // Check whether the continuation is ready
     bool const is_ready = util::as_const(continuation_)(is_ready_arg_t{});
+
     if (is_ready) {
       // Invoke the proxy callback directly with the result to
       // avoid a potential type erasure.
@@ -774,16 +776,17 @@ struct chained_continuation<traits::identity<Args...>, HandleResults,
     return false;
   }
 
-  std::tuple<Args...> operator()(query_arg_t) {
+  std::tuple<NextArgs...> operator()(query_arg_t) {
     util::unreachable();
   }
 };
 // Specialization to unpack ready continuables directly
-template <typename... Args, handle_results HandleResults,
+template <typename... Args, typename... NextArgs, handle_results HandleResults,
           handle_errors HandleErrors, typename Callback, typename Executor>
-struct chained_continuation<traits::identity<Args...>, HandleResults,
-                            HandleErrors, ready_continuation<Args...>, Callback,
-                            Executor> {
+struct chained_continuation<
+    traits::identity<Args...>, traits::identity<NextArgs...>, HandleResults,
+    HandleErrors, ready_continuation<Args...>, Callback, Executor> {
+
   ready_continuation<Args...> continuation_;
   Callback callback_;
   Executor executor_;
@@ -816,7 +819,7 @@ struct chained_continuation<traits::identity<Args...>, HandleResults,
     return false;
   }
 
-  std::tuple<Args...> operator()(query_arg_t) {
+  std::tuple<NextArgs...> operator()(query_arg_t) {
     util::unreachable();
   }
 };
@@ -848,10 +851,9 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   auto data =
       attorney::consume(std::forward<Continuation>(continuation).finish());
 
-  using continuation_t =
-      chained_continuation<Hint, HandleResults, HandleErrors, decltype(data),
-                           traits::unrefcv_t<Callback>,
-                           traits::unrefcv_t<Executor>>;
+  using continuation_t = chained_continuation<
+      Hint, traits::unrefcv_t<decltype(next_hint)>, HandleResults, HandleErrors,
+      decltype(data), traits::unrefcv_t<Callback>, traits::unrefcv_t<Executor>>;
 
   return attorney::create_from_raw(
       continuation_t(std::move(data), std::forward<Callback>(callback),
@@ -868,6 +870,23 @@ void finalize_continuation(Continuation&& continuation) {
   invoke_continuation(std::forward<Continuation>(continuation),
                       callbacks::final_callback{});
 }
+
+/// Deduces to a true type if the given callable data can be wrapped
+/// with the given hint and converted to the given Data.
+template <typename Data, typename Annotation, typename Continuation,
+          typename = void>
+struct can_accept_continuation : std::false_type {};
+template <typename Data, typename... Args, typename Continuation>
+struct can_accept_continuation<
+    Data, traits::identity<Args...>, Continuation,
+    traits::void_t<
+        std::enable_if_t<traits::is_invocable<
+            Continuation, callbacks::final_callback>::value>,
+        std::enable_if_t<std::is_convertible<
+            proxy_continuable<traits::identity<Args...>, Continuation>,
+            Data>::value>>> : std::true_type
+
+{};
 
 /// Workaround for GCC bug:
 /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095

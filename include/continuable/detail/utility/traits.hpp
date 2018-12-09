@@ -148,16 +148,16 @@ struct is_invokable_impl<
 /// arguments inside lambda closures.
 ///
 /// ```cpp
-/// traits::is_invokable<object, std::tuple<Args...>>
+/// traits::is_invocable<object, std::tuple<Args...>>
 /// ```
 template <typename T, typename Args>
-using is_invokable_from_tuple =
+using is_invocable_from_tuple =
     typename detail::is_invokable_impl<T, Args>::type;
 
 // Checks whether the given callable object is invocable with the given
 // arguments. This doesn't take member functions into account!
 template <typename T, typename... Args>
-using is_invocable = is_invokable_from_tuple<T, std::tuple<Args...>>;
+using is_invocable = is_invocable_from_tuple<T, std::tuple<Args...>>;
 
 /// Deduces to a std::false_type
 template <typename T>

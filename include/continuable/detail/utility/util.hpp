@@ -95,10 +95,10 @@ struct invocation_env {
     auto next = forward_except_last(std::move(args));
 
     // Test whether we are able to call the function with the given tuple
-    traits::is_invokable_from_tuple<decltype(callable), decltype(next)>
-        is_invokable;
+    traits::is_invocable_from_tuple<decltype(callable), decltype(next)>
+        is_invocable;
 
-    return partial_invoke_impl(is_invokable, std::forward<T>(callable),
+    return partial_invoke_impl(is_invocable, std::forward<T>(callable),
                                std::move(next));
   }
 
@@ -132,15 +132,15 @@ template <std::size_t KeepArgs, typename T, typename... Args>
 partial_invoke(std::integral_constant<std::size_t, KeepArgs>, T&& callable,
                Args&&... args) {
   // Test whether we are able to call the function with the given arguments.
-  constexpr traits::is_invokable_from_tuple<decltype(callable),
+  constexpr traits::is_invocable_from_tuple<decltype(callable),
                                             std::tuple<Args...>>
-      is_invokable;
+      is_invocable;
 
   // The implementation is done in a shortcut way so there are less
   // type instantiations needed to call the callable with its full signature.
   using env = detail::invocation_env<KeepArgs>;
   return env::partial_invoke_impl_shortcut(
-      is_invokable, std::forward<T>(callable), std::forward<Args>(args)...);
+      is_invocable, std::forward<T>(callable), std::forward<Args>(args)...);
 }
 
 /// Invokes the given callable object with the given arguments
