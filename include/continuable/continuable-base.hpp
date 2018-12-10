@@ -866,23 +866,122 @@ constexpr auto make_exceptional_continuable(Exception&& exception) {
       });
 }
 
-// TODO Document this
+/// Can be used to recover to from a failure handler,
+/// the result handler which comes after will be called with the
+/// corresponding result.
+///
+/// The \ref exceptional_result returned by this function can be returned
+/// from any result or failure handler in order to rethrow the exception.
+/// ```cpp
+/// http_request("example.com")
+///   .then([](std::string content) {
+///     return recover(1, 2);
+///   })
+///   .fail([](cti::exception_t exception) {
+///     return recover(1, 2);
+///   })
+///   .then([](int a, int b) {
+///     // Recovered from the failure
+///   })
+/// ```
+/// A corresponding \ref result is returned by \ref recover:
+/// ```cpp
+/// http_request("example.com")
+///   .then([](std::string content) -> cti::result<int, int> {
+///     return recover(1, 2);
+///   })
+///   .fail([](cti::exception_t exception) -> cti::result<int, int> {
+///     return recover(1, 2);
+///   })
+///   .then([](int a, int b) -> cti::result<int, int> {
+///     // Recovered from the failure
+///   })
+/// ```
+///
+/// \since 4.0.0
+///
 template <typename... Args>
 auto recover(Args&&... args) {
   return make_result(std::forward<Args>(args)...);
 }
 
-// TODO Document this
-/// Returns a new exceptional result from the given exception
+/// Can be used to rethrow an exception to the asynchronous continuation chain,
+/// the failure handler which comes after will be called with the
+/// corresponding exception.
+///
+/// The \ref exceptional_result returned by this function can be returned
+/// from any result or failure handler in order to rethrow the exception.
+/// ```cpp
+/// http_request("example.com")
+///   .then([](std::string content) {
+///     return rethrow(std::make_exception_ptr(std::exception{}));
+///   })
+///   .fail([](cti::exception_t exception) {
+///     return rethrow(std::make_exception_ptr(std::exception{}));
+///   })
+///   .next([](auto&&...) {
+///     return rethrow(std::make_exception_ptr(std::exception{}));
+///   });
+/// ```
+/// The returned \ref exceptional_result is convertible to
+/// any \ref result as shown below:
+/// ```cpp
+/// http_request("example.com")
+///   .then([](std::string content) -> cti::result<> {
+///     return rethrow(std::make_exception_ptr(std::exception{}));
+///   })
+///   .fail([](cti::exception_t exception) -> cti::result<> {
+///     return rethrow(std::make_exception_ptr(std::exception{}));
+///   })
+///   .next([](auto&&...) -> cti::result<> {
+///     return rethrow(std::make_exception_ptr(std::exception{}));
+///   });
+/// ```
+///
+/// \since 4.0.0
+///
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
-inline auto rethrow(exception_t exception) {
+inline exceptional_result rethrow(exception_t exception) {
   // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
   return exceptional_result{std::move(exception)};
 }
 
-// TODO Document this
-inline auto cancel() {
-  return empty_result{};
+/// Can be used to cancel an asynchronous continuation chain,
+/// no handler which comes after cancel was received won't be called.
+///
+/// The \ref empty_result returned by this function can be returned from
+/// any result or failure handler in order to cancel the chain.
+/// ```cpp
+/// http_request("example.com")
+///   .then([](std::string content) {
+///     return cancel();
+///   })
+///   .fail([](cti::exception_t exception) {
+///     return cancel();
+///   })
+///   .next([](auto&&...) {
+///     return cancel();
+///   });
+/// ```
+/// The returned \ref empty_result is convertible to
+/// any \ref result as shown below:
+/// ```cpp
+/// http_request("example.com")
+///   .then([](std::string content) -> cti::result<> {
+///     return cancel();
+///   })
+///   .fail([](cti::exception_t exception) -> cti::result<> {
+///     return cancel();
+///   })
+///   .next([](auto&&...) -> cti::result<> {
+///     return cancel();
+///   });
+/// ```
+///
+/// \since 4.0.0
+///
+inline empty_result cancel() {
+  return {};
 }
 
 /// \}
