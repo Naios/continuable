@@ -94,8 +94,18 @@ public:
 
   template <typename Box, std::enable_if_t<aggregated::is_continuable_box<
                               std::decay_t<Box>>::value>* = nullptr>
-  bool operator()(async_traverse_visit_tag, Box&& /*box*/) {
-    return false;
+  bool operator()(async_traverse_visit_tag, Box&& box) {
+    if (base::attorney::is_ready(box.peek())) {
+      // The result can be resolved directly
+      traits::unpack(
+          [&](auto&&... args) mutable {
+            box.assign(std::forward<decltype(args)>(args)...);
+          },
+          base::attorney::query(box.fetch()));
+      return true;
+    } else {
+      return false;
+    }
   }
 
   template <typename Box, typename N>

@@ -74,7 +74,7 @@ using async_traverse_in_place_tag =
 ///    ```cpp
 ///    struct my_async_visitor {
 ///      /// The synchronous overload is called for each object,
-///      /// it may return false to suspend the current control.
+///      /// it may return false to suspend the current control flow.
 ///      /// In that case the overload below is called.
 ///      template <typename T>
 ///      bool operator()(async_traverse_visit_tag, T&& element) {

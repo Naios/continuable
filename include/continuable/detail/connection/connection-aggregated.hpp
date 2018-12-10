@@ -85,7 +85,11 @@ public:
       : continuable_(std::move(continuable)) {
   }
 
-  continuable_base<Data, traits::identity<>>&& fetch() {
+  auto const& peek() const {
+    return continuable_;
+  }
+
+  auto&& fetch() {
     return std::move(continuable_);
   }
 
@@ -97,8 +101,7 @@ public:
   }
 };
 template <typename Data, typename First>
-class continuable_box<
-    continuable_base<Data, traits::identity<First>>> {
+class continuable_box<continuable_base<Data, traits::identity<First>>> {
 
   continuable_base<Data, traits::identity<First>> continuable_;
   lazy_value_t<First> first_;
@@ -109,7 +112,11 @@ public:
       : continuable_(std::move(continuable)) {
   }
 
-  continuable_base<Data, traits::identity<First>>&& fetch() {
+  auto const& peek() const {
+    return continuable_;
+  }
+
+  auto&& fetch() {
     return std::move(continuable_);
   }
 
@@ -125,20 +132,21 @@ template <typename Data, typename First, typename Second, typename... Rest>
 class continuable_box<
     continuable_base<Data, traits::identity<First, Second, Rest...>>> {
 
-  continuable_base<Data, traits::identity<First, Second, Rest...>>
-      continuable_;
+  continuable_base<Data, traits::identity<First, Second, Rest...>> continuable_;
   lazy_value_t<std::tuple<First, Second, Rest...>> args_;
 
 public:
   explicit continuable_box(
-      continuable_base<Data,
-                       traits::identity<First, Second, Rest...>>&&
+      continuable_base<Data, traits::identity<First, Second, Rest...>>&&
           continuable)
       : continuable_(std::move(continuable)) {
   }
 
-  continuable_base<Data, traits::identity<First, Second, Rest...>>&&
-  fetch() {
+  auto const& peek() const {
+    return continuable_;
+  }
+
+  auto&& fetch() {
     return std::move(continuable_);
   }
 

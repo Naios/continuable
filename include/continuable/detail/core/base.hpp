@@ -178,6 +178,16 @@ struct attorney {
   static Data&& consume(continuable_base<Data, Annotation>&& continuation) {
     return std::move(continuation).consume();
   }
+
+  template <typename Continuable>
+  static bool is_ready(Continuable&& continuation) noexcept {
+    return util::as_const(continuation.data_)(is_ready_arg_t{});
+  }
+
+  template <typename Data, typename Annotation>
+  static auto query(continuable_base<Data, Annotation>&& continuation) {
+    return std::move(continuation).consume()(query_arg_t{});
+  }
 };
 
 /// Returns the signature hint of the given continuable
