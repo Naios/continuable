@@ -50,10 +50,16 @@ namespace cti {
 
 /// A class which is convertible to any \ref result and that definitly holds no
 /// value so the real result gets invalidated when this object is passed to it.
+///
+/// \since 4.0.0
+///
 struct empty_result {};
 
 /// A class which is convertible to any result and that definitly holds
 /// an exception which is then passed to the converted result object.
+///
+/// \since 4.0.0
+///
 class exceptional_result {
   exception_t exception_;
 
@@ -117,14 +123,14 @@ public:
 /// result.get_exception();
 /// ```
 ///
+/// \since 4.0.0
+///
 template <typename... T>
 class result {
   using trait_t = detail::result_trait<T...>;
   using surrogate_t = typename trait_t::surrogate_t;
 
   struct init_arg_t {};
-  template <typename Args>
-  friend result<detail::traits::unrefcv_t<T>...> make_result(Args&&...);
 
   template <typename... Args, detail::traits::void_t<decltype(trait_t::wrap(
                                   std::declval<Args>()...))>* = nullptr>
@@ -272,6 +278,8 @@ decltype(auto) get(result<T...>&& result) {
 }
 
 /// Creates a present result from the given values
+///
+/// \since 4.0.0
 template <typename... T,
           typename Result = result<detail::traits::unrefcv_t<T>...>>
 Result make_result(T&&... values) {
