@@ -1,4 +1,4 @@
-if(NOT TARGET function2)
+if(NOT TARGET function2::function2)
   add_subdirectory(function2)
 endif()
 

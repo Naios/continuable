@@ -22,57 +22,86 @@
 cmake_minimum_required(VERSION 3.2)
 project(continuable VERSION 3.0.0 LANGUAGES C CXX)
 
-string(COMPARE EQUAL ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}
-                     IS_TOP_LEVEL_PROJECT)
+if (NOT CTI_CONTINUABLE_IS_FIND_INCLUDED)
+  string(COMPARE EQUAL ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}
+                      CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT)
+endif()
 
-option(CTI_CONTINUABLE_WITH_TESTS
-       "Build the continuable unit tests"
-       ${IS_TOP_LEVEL_PROJECT})
+if (CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT)
+  option(CTI_CONTINUABLE_WITH_INSTALL
+        "Add the continuable install targets"
+        ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
 
-option(CTI_CONTINUABLE_WITH_EXAMPLES
-       "Build the continuable examples"
-       ${IS_TOP_LEVEL_PROJECT})
+  option(CTI_CONTINUABLE_WITH_TESTS
+        "Build the continuable unit tests"
+        ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
 
-option(CTI_CONTINUABLE_WITH_BENCHMARKS
-       "Build the continuable benchmarks"
-       OFF)
+  option(CTI_CONTINUABLE_WITH_EXAMPLES
+        "Build the continuable examples"
+        ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
 
-option(CTI_CONTINUABLE_WITH_NO_EXCEPTIONS
-       "Disable exception support"
-       OFF)
+  option(CTI_CONTINUABLE_WITH_BENCHMARKS
+        "Build the continuable benchmarks"
+        OFF)
 
-option(CTI_CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
-       "Enable unhandled asynchronous exceptions"
-       OFF)
+  option(CTI_CONTINUABLE_WITH_NO_EXCEPTIONS
+        "Disable exception support"
+        OFF)
 
-option(CTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE
-       "Enable co_await support"
-       OFF)
+  option(CTI_CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
+        "Enable unhandled asynchronous exceptions"
+        OFF)
 
-option(CTI_CONTINUABLE_WITH_CPP_LATEST
-       "Enable the highest C++ standard available for testing polyfills"
-       OFF)
+  option(CTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE
+        "Enable co_await support"
+        OFF)
 
-option(CTI_CONTINUABLE_WITH_LIGHT_TESTS
-       "Disable some template heavy unit tests (for CI usage)"
-       OFF)
+  option(CTI_CONTINUABLE_WITH_CPP_LATEST
+        "Enable the highest C++ standard available for testing polyfills"
+        OFF)
 
-# Top level project settings only
-if (IS_TOP_LEVEL_PROJECT)
+  option(CTI_CONTINUABLE_WITH_LIGHT_TESTS
+        "Disable some template heavy unit tests (for CI usage)"
+        OFF)
+
+  # Top level project settings only
   set(CTI_CONTINUABLE_WITH_CONCURRENT_JOBS
        "0" CACHE STRING
        "Set the number of concurrent compilation jobs (0 = unlimited, for CI usage)")
+else()
+  set(CTI_CONTINUABLE_WITH_INSTALL ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
+  set(CTI_CONTINUABLE_WITH_TESTS ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
+  set(CTI_CONTINUABLE_WITH_EXAMPLES ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
+  set(CTI_CONTINUABLE_WITH_BENCHMARKS OFF)
+  set(CTI_CONTINUABLE_WITH_NO_EXCEPTIONS OFF)
+  set(CTI_CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS OFF)
+  set(CTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE OFF)
+  set(CTI_CONTINUABLE_WITH_CPP_LATEST OFF)
+  set(CTI_CONTINUABLE_WITH_LIGHT_TESTS OFF)
+  set(CTI_CONTINUABLE_WITH_CONCURRENT_JOBS "0")
 endif()
 
-include(cmake/CMakeLists.txt)
+if(NOT TARGET Threads::Threads)
+  set(THREADS_PREFER_PTHREAD_FLAG ON)
+  find_package(Threads REQUIRED)
+endif()
 
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
-
-add_subdirectory(dep)
+if (CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT)
+  include(cmake/CMakeLists.txt)
+  add_subdirectory(dep)
+else()
+  if(NOT TARGET function2::function2)
+    find_package(function2 2 REQUIRED)
+  endif()
+endif()
 
 # continuable-base
-add_library(continuable-base INTERFACE)
+if (CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT)
+  add_library(continuable-base INTERFACE)
+else()
+  add_library(continuable-base INTERFACE IMPORTED GLOBAL)
+endif()
+
 add_library(continuable::continuable-base ALIAS continuable-base)
 
 target_include_directories(continuable-base
@@ -100,7 +129,6 @@ target_compile_features(continuable-base
     cxx_trailing_return_types
     cxx_return_type_deduction)
 
-
 if (CTI_CONTINUABLE_WITH_CPP_LATEST)
   target_compile_features(continuable-base
     INTERFACE
@@ -115,46 +143,76 @@ if (CTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE)
 
   target_compile_definitions(continuable-base
     INTERFACE
-      -DCONTINUABLE_WITH_EXPERIMENTAL_COROUTINE)
+      CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE)
 endif()
 
 if (CTI_CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS)
   target_compile_definitions(continuable-base
     INTERFACE
-      -DCONTINUABLE_WITH_UNHANDLED_EXCEPTIONS)
+      CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS)
 endif()
 
-add_library(continuable INTERFACE)
+if (CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT)
+  add_library(continuable INTERFACE)
+else()
+  add_library(continuable INTERFACE IMPORTED GLOBAL)
+endif()
+
 add_library(continuable::continuable ALIAS continuable)
 
 target_link_libraries(continuable
   INTERFACE
-    continuable-base
-    function2)
+    continuable::continuable-base
+    function2::function2)
 
-# Create an install target
-install(TARGETS continuable-base continuable
-        EXPORT continuable-config
-        INCLUDES DESTINATION include)
+if (CTI_CONTINUABLE_WITH_INSTALL)
+  include(ExternalProject)
+  include(GNUInstallDirs)
+  include(CMakePackageConfigHelpers)
 
-install(EXPORT continuable-config
-        FILE continuable-config.cmake
-        NAMESPACE continuable::
-        DESTINATION share/continuable/cmake)
+  # Create an install target:
+  # Headers and license files
+  install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/continuable"
+          DESTINATION "include")
+  install(FILES "LICENSE.txt" DESTINATION .)
+  install(FILES "Readme.md" DESTINATION .)
 
-install(DIRECTORY include/continuable
-        DESTINATION include FILES_MATCHING PATTERN "*.hpp")
+  # Config.cmake
+  write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+          DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 
-install(FILES LICENSE.txt DESTINATION . RENAME continuable-LICENSE.txt)
-install(FILES Readme.md DESTINATION . RENAME continuable-Readme.md)
+  # ConfigVersion.cmake
+  configure_package_config_file("cmake/config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+    # PATH_VARS INCLUDE_INSTALL_DIR SYSCONFIG_INSTALL_DIR
+  )
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+          DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 
-# Setup CPack for bundling
-set(CPACK_GENERATOR "ZIP")
-set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
-set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
-set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+  # Targets.cmake
+  export(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}-base
+         NAMESPACE ${PROJECT_NAME}::
+         FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake")
+  install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}-base
+          EXPORT "${PROJECT_NAME}Targets"
+          INCLUDES DESTINATION "include")
+  install(EXPORT "${PROJECT_NAME}Targets"
+          NAMESPACE ${PROJECT_NAME}::
+          DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 
-include(CPack)
+  # Setup CPack for bundling
+  set(CPACK_GENERATOR "ZIP")
+  set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+  set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+  set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+
+  include(CPack)
+endif()
 
 # Testing and examples
 if (CTI_CONTINUABLE_WITH_TESTS OR CTI_CONTINUABLE_WITH_EXAMPLES)
