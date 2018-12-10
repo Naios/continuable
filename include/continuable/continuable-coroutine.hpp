@@ -51,12 +51,12 @@ namespace std {
 namespace experimental {
 template <typename Data, typename... Args, typename... FunctionArgs>
 struct coroutine_traits<
-    cti::continuable_base<Data,
-                          cti::detail::traits::identity<Args...>>,
+    cti::continuable_base<Data, cti::detail::traits::identity<Args...>>,
     FunctionArgs...> {
 
   using promise_type =
-      cti::detail::awaiting::promise_type<cti::promise<Args...>, Args...>;
+      cti::detail::awaiting::promise_type<cti::continuable<Args...>,
+                                          cti::promise<Args...>, Args...>;
 };
 } // namespace experimental
 } // namespace std

@@ -150,38 +150,39 @@ struct handle_takeover {
 
 /// The type which is passed to the compiler that describes the properties
 /// of a continuable_base used as coroutine promise type.
-template <typename Promise, typename... Args>
+template <typename Continuable, typename Promise, typename... Args>
 struct promise_type;
 
 /// Implements the resolving method return_void and return_value accordingly
 template <typename Base>
 struct promise_resolver_base;
 
-template <typename Promise>
-struct promise_resolver_base<promise_type<Promise>> {
+template <typename Continuable, typename Promise>
+struct promise_resolver_base<promise_type<Continuable, Promise>> {
   void return_void() {
-    auto me = static_cast<promise_type<Promise>*>(this);
+    auto me = static_cast<promise_type<Continuable, Promise>*>(this);
     me->promise_.set_value();
   }
 };
-template <typename Promise, typename T>
-struct promise_resolver_base<promise_type<Promise, T>> {
+template <typename Continuable, typename Promise, typename T>
+struct promise_resolver_base<promise_type<Continuable, Promise, T>> {
   void return_value(T value) {
-    auto me = static_cast<promise_type<Promise, T>*>(this);
+    auto me = static_cast<promise_type<Continuable, Promise, T>*>(this);
     me->promise_.set_value(std::move(value));
   }
 };
-template <typename Promise, typename... Args>
-struct promise_resolver_base<promise_type<Promise, Args...>> {
+template <typename Continuable, typename Promise, typename... Args>
+struct promise_resolver_base<promise_type<Continuable, Promise, Args...>> {
   template <typename T>
   void return_value(T&& tuple_like) {
-    auto me = static_cast<promise_type<Promise, Args...>*>(this);
+    auto me = static_cast<promise_type<Continuable, Promise, Args...>*>(this);
     traits::unpack(std::move(me->promise_), std::forward<T>(tuple_like));
   }
 };
 
-template <typename Promise, typename... Args>
-struct promise_type : promise_resolver_base<promise_type<Promise, Args...>> {
+template <typename Continuable, typename Promise, typename... Args>
+struct promise_type
+    : promise_resolver_base<promise_type<Continuable, Promise, Args...>> {
 
   coroutine_handle<> handle_;
   Promise promise_;
@@ -189,7 +190,7 @@ struct promise_type : promise_resolver_base<promise_type<Promise, Args...>> {
   explicit promise_type() : promise_(types::promise_no_init_arg_t{}) {
   }
 
-  auto get_return_object() {
+  Continuable get_return_object() {
     return [this](auto&& promise) {
       promise_ = std::forward<decltype(promise)>(promise);
       handle_.resume();
