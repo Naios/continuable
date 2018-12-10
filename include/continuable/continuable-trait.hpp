@@ -70,11 +70,17 @@ public:
 
   /// The continuable type for the given parameters.
   using continuable = continuable_base<
-      ContinuationWrapper<sizeof(detail::base::ready_continuation<Args...>),
-                          void(promise),                   //
-                          bool(is_ready_arg_t) const,      //
-                          std::tuple<Args...>(query_arg_t) //
-                          >,
+      ContinuationWrapper<
+          // Size the buffer for the small functor optimization so the
+          // result itself fits in and guarantee that a pointer can
+          // fit in as well.
+          (sizeof(detail::base::ready_continuation<Args...>) < sizeof(void*)
+               ? sizeof(void*)
+               : sizeof(detail::base::ready_continuation<Args...>)),
+          void(promise),                   //
+          bool(is_ready_arg_t) const,      //
+          std::tuple<Args...>(query_arg_t) //
+          >,
       detail::traits::identity<Args...>>;
 };
 /// \}
