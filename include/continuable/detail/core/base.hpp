@@ -134,7 +134,6 @@ struct proxy_continuable<traits::identity<Args...>, Continuation>
   proxy_continuable& operator=(proxy_continuable&&) = default;
   proxy_continuable& operator=(proxy_continuable const&) = delete;
 
-  using Continuation::Continuation;
   using Continuation::operator();
 
   bool operator()(is_ready_arg_t) const noexcept {
@@ -154,7 +153,7 @@ struct attorney {
                               util::ownership ownership) {
     using continuation_t = continuable_base<traits::unrefcv_t<T>, //
                                             traits::unrefcv_t<Annotation>>;
-    return continuation_t({std::forward<T>(continuation)}, ownership);
+    return continuation_t{std::forward<T>(continuation), ownership};
   }
 
   /// Creates a continuable_base from the given continuation,
@@ -165,8 +164,8 @@ struct attorney {
   static auto create_from(T&& continuation, Hint, util::ownership ownership) {
     using hint_t = traits::unrefcv_t<Hint>;
     using proxy_t = proxy_continuable<hint_t, traits::unrefcv_t<T>>;
-    return continuable_base<proxy_t, hint_t>(
-        proxy_t{std::forward<T>(continuation)}, ownership);
+    return continuable_base<proxy_t, hint_t>{
+        proxy_t{std::forward<T>(continuation)}, ownership};
   }
 
   /// Returns the ownership of the given continuable_base
@@ -873,20 +872,15 @@ void finalize_continuation(Continuation&& continuation) {
 
 /// Deduces to a true type if the given callable data can be wrapped
 /// with the given hint and converted to the given Data.
-template <typename Data, typename Annotation, typename Continuation,
-          typename = void>
+template <typename Data, typename Annotation, typename Continuation>
 struct can_accept_continuation : std::false_type {};
 template <typename Data, typename... Args, typename Continuation>
-struct can_accept_continuation<
-    Data, traits::identity<Args...>, Continuation,
-    traits::void_t<
-        std::enable_if_t<traits::is_invocable<
-            Continuation, callbacks::final_callback>::value>,
-        std::enable_if_t<std::is_convertible<
-            proxy_continuable<traits::identity<Args...>, Continuation>,
-            Data>::value>>> : std::true_type
-
-{};
+struct can_accept_continuation<Data, traits::identity<Args...>, Continuation>
+    : traits::conjunction<
+          traits::is_invocable<Continuation, callbacks::final_callback>,
+          std::is_convertible<
+              proxy_continuable<traits::identity<Args...>, Continuation>,
+              Data>> {};
 
 /// Workaround for GCC bug:
 /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095

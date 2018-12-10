@@ -119,13 +119,14 @@ public:
 
   /// Constructor accepting any object convertible to the data object,
   /// while erasing the annotation
-  template <typename OData,
+  template <typename OtherData,
             std::enable_if_t<detail::base::can_accept_continuation<
-                Data, Annotation, detail::traits::unrefcv_t<OData>>::value>* =
-                nullptr>
-  continuable_base(OData&& data) // NOLINT(misc-forwarding-reference-overload)
-      : data_(detail::base::proxy_continuable<Annotation, OData>(
-            std::forward<OData>(data))) {
+                Data, Annotation,
+                detail::traits::unrefcv_t<OtherData>>::value>* = nullptr>
+  continuable_base(OtherData&& data)
+      : data_(detail::base::proxy_continuable<
+              Annotation, detail::traits::unrefcv_t<OtherData>>(
+            std::forward<OtherData>(data))) {
   }
 
   /// Constructor taking the data of other continuable_base objects

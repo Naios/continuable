@@ -43,3 +43,9 @@ TEST(regression_tests, are_multiple_args_mergeable) {
       tp2);
   EXPECT_EQ(count, 20);
 }
+
+/// Recursive instantiation issue which affects Clang and GCC
+TEST(regression_tests, are_erasures_direct_chainable) {
+  continuable<>(make_ready_continuable())
+      .then(continuable<>(make_ready_continuable()));
+}
