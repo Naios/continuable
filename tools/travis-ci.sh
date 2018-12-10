@@ -1,4 +1,15 @@
 #!/bin/bash -e
+# Install some dependencies manually
+DEPS_DIR="${HOME}/deps"
+mkdir -p ${DEPS_DIR}
+cd ${DEPS_DIR}
+
+# Recent CMake:
+CMAKE_URL="https://cmake.org/files/v3.11/cmake-3.11.4-Linux-x86_64.tar.gz"
+mkdir cmake && wget --no-check-certificate --quiet -O - ${CMAKE_URL} | tar --strip-components=1 -xz -C cmake
+export PATH=${DEPS_DIR}/cmake/bin:${PATH}
+cmake --version
+
 ############################################################################
 # Install libc++ and libc++abi if needed
 # Taken from here: https://github.com/boostorg/hana/blob/master/.travis.yml
