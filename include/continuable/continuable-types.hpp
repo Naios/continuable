@@ -5,7 +5,7 @@
                         \_,(_)| | | || ||_|(_||_)|(/_
 
                     https://github.com/Naios/continuable
-                                   v3.0.0
+                                   v4.0.0
 
   Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
 
@@ -85,7 +85,7 @@ using promise = typename detail::unique_trait_of<
 /// Defines a non-copyable type erasure which is capable of carrying
 /// callable objects passed to executors.
 ///
-/// \since 3.1.0
+/// \since 4.0.0
 using work = detail::work;
 
 // TODO channel

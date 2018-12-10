@@ -5,7 +5,7 @@
                         \_,(_)| | | || ||_|(_||_)|(/_
 
                     https://github.com/Naios/continuable
-                                   v3.0.0
+                                   v4.0.0
 
   Copyright(c) 2015 - 2018 Denis Blank <denis.blank at outlook dot com>
 
@@ -106,7 +106,7 @@ public:
   /// }
   /// ```
   ///
-  /// \since 3.1.0
+  /// \since 4.0.0
   template <typename Resolver, typename Callable, typename... Args>
   static auto with(Resolver&& resolver, Callable&& callable, Args&&... args) {
     return helper::template from(std::forward<Resolver>(resolver),
