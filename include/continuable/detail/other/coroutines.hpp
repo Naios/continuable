@@ -33,12 +33,12 @@
 #define CONTINUABLE_DETAIL_AWAITING_HPP_INCLUDED
 
 #include <cassert>
-#include <tuple>
 #include <type_traits>
 #include <experimental/coroutine>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-result.hpp>
 #include <continuable/detail/core/annotation.hpp>
+#include <continuable/detail/core/base.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/utility/traits.hpp>
@@ -77,17 +77,28 @@ class awaitable {
 public:
   explicit constexpr awaitable(Continuable&& continuable)
       : continuable_(std::move(continuable)) {
+
+    // If the continuable is ready resolve the result from the
+    // continuable immediatly.
+    if (base::attorney::is_ready(continuable_)) {
+      traits::unpack(
+          [&](auto&&... args) {
+            resolve(std::forward<decltype(args)>(args)...);
+          },
+          base::attorney::query(std::move(continuable_)));
+    }
   }
 
   /// Since continuables are evaluated lazily we are not
   /// capable to say whether the resumption will be instantly.
   bool await_ready() const noexcept {
-    return false;
+    return !result_.is_empty();
   }
 
   /// Suspend the current context
   // TODO Convert this to an r-value function once possible
   void await_suspend(coroutine_handle<> h) {
+    assert(result_.is_empty());
     // Forward every result to the current awaitable
     std::move(continuable_)
         .next([h, this](auto&&... args) mutable {
@@ -116,11 +127,13 @@ private:
   /// Resolve the continuation through the result
   template <typename... Args>
   void resolve(Args&&... args) {
+    assert(result_.is_empty());
     result_.set_value(std::forward<Args>(args)...);
   }
 
   /// Resolve the continuation through an error
   void resolve(exception_arg_t, exception_t exception) {
+    assert(result_.is_empty());
     result_.set_exception(std::move(exception));
   }
 };
