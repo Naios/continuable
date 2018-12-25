@@ -270,7 +270,7 @@ TYPED_TEST(result_all_tests, can_make_from_multipath_args) {
 
     EXPECT_FALSE(bool(e));
     EXPECT_FALSE(e.is_value());
-    EXPECT_TRUE(e.is_empty());
+    EXPECT_TRUE(e.is_exception());
   }
 }
 
