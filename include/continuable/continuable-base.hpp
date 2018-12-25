@@ -404,6 +404,24 @@ public:
                                               std::forward<E>(executor));
   }
 
+  /// Returns a continuable_base which will have its signature converted
+  /// to the given Args.
+  ///
+  /// A signature can only be converted if it can be partially applied
+  /// from the previous one as shown below:
+  /// ```cpp
+  /// continuable<long> c = make_ready_continuable(0, 1, 2).as<long>();
+  /// ```
+  ///
+  /// \returns Returns a continuable_base with an asynchronous return type
+  ///          matching the given Args.
+  ///
+  /// \since 4.0.0
+  template <typename... Args>
+  auto as() && {
+    return std::move(*this).then(detail::base::convert_to<Args...>{});
+  }
+
   /// A method which allows to apply this continuable to the given callable.
   ///
   /// \param transform A transform which shall accept this continuable

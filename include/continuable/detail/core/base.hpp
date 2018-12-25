@@ -473,8 +473,10 @@ void on_executor(Executor&& executor, Invoker&& invoker, Args&&... args) {
 
   // Create a worker object which when invoked calls the callback with the
   // the returned arguments.
-  auto work = [invoker = std::forward<Invoker>(invoker),
-               args = std::make_tuple(std::forward<Args>(args)...)]() mutable {
+  auto work = [
+    invoker = std::forward<Invoker>(invoker),
+    args = std::make_tuple(std::forward<Args>(args)...)
+  ]() mutable {
     traits::unpack(
         [&](auto&&... captured_args) {
           // Just use the packed dispatch method which dispatches the work on
@@ -915,6 +917,25 @@ auto wrap_continuation(Continuation&& continuation) {
   return supplier_callback<std::decay_t<Continuation>>(
       std::forward<Continuation>(continuation));
 }
+
+/// Callback which converts its input to the given set of arguments
+template <typename... Args>
+struct convert_to {
+  std::tuple<Args...> operator()(Args... args) {
+    return std::make_tuple(std::move(args)...);
+  }
+};
+template <typename T>
+struct convert_to<T> {
+  T operator()(T arg) noexcept {
+    return std::move(arg);
+  }
+};
+template <>
+struct convert_to<> {
+  void operator()() noexcept {
+  }
+};
 } // namespace base
 } // namespace detail
 } // namespace cti

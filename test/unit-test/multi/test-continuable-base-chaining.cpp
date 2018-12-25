@@ -60,3 +60,27 @@ TYPED_TEST(single_dimension_tests, are_continuing_chainable) {
 
   ASSERT_ASYNC_TYPES(std::move(chain), tag1);
 }
+
+TYPED_TEST(single_dimension_tests, are_converted_chainable_0) {
+  auto chain =
+      this->supply().then([&] { return this->supply(tag1{}).template as<>(); });
+
+  ASSERT_ASYNC_COMPLETION(std::move(chain).then([](auto&&... args) {
+    ASSERT_EQ(sizeof...(args), 0U); //
+  }));
+}
+
+TYPED_TEST(single_dimension_tests, are_converted_chainable_1) {
+  auto chain = this->supply().then(
+      [&] { return this->supply(float(0)).template as<double>(); });
+
+  ASSERT_ASYNC_TYPES(std::move(chain), double);
+}
+
+TYPED_TEST(single_dimension_tests, are_converted_chainable_2) {
+  auto chain = this->supply().then([&] {
+    return this->supply(int(0), float(0)).template as<long, double>();
+  });
+
+  ASSERT_ASYNC_TYPES(std::move(chain), long, double);
+}
