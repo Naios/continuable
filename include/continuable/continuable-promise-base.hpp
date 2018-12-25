@@ -62,7 +62,7 @@ class promise_base
   /// \cond false
   ;
 template <typename Data, typename... Args>
-class promise_base<Data, detail::traits::identity<Args...>>
+class promise_base<Data, detail::identity<Args...>>
     : detail::util::non_copyable
   /// \endcond
 { // clang-format on

@@ -122,7 +122,7 @@ struct ready_continuation<> {
 template <typename Hint, typename Continuation>
 struct proxy_continuable;
 template <typename... Args, typename Continuation>
-struct proxy_continuable<traits::identity<Args...>, Continuation>
+struct proxy_continuable<identity<Args...>, Continuation>
     : Continuation {
 
   explicit proxy_continuable(Continuation continuation)
@@ -192,9 +192,9 @@ struct attorney {
 
 /// Returns the signature hint of the given continuable
 template <typename Data, typename... Args>
-constexpr traits::identity<Args...>
-annotation_of(traits::identity<continuable_base<Data, //
-                                                traits::identity<Args...>>>) {
+constexpr identity<Args...>
+annotation_of(identity<continuable_base<Data, //
+                                                identity<Args...>>>) {
   return {};
 }
 
@@ -275,30 +275,30 @@ constexpr void invoke_no_except(T&& callable, Args&&... args) noexcept {
 }
 
 template <typename... Args, typename T>
-void invoke_void_no_except(traits::identity<exception_arg_t, Args...>,
+void invoke_void_no_except(identity<exception_arg_t, Args...>,
                            T&& /*callable*/) noexcept {
   // Don't invoke the next failure handler when being in an exception handler
 }
 template <typename... Args, typename T>
-void invoke_void_no_except(traits::identity<Args...>, T&& callable) noexcept {
+void invoke_void_no_except(identity<Args...>, T&& callable) noexcept {
   std::forward<T>(callable)();
 }
 
 template <typename T, typename... Args>
-constexpr auto make_invoker(T&& invoke, traits::identity<Args...>) {
-  return invoker<std::decay_t<T>, traits::identity<Args...>>(
+constexpr auto make_invoker(T&& invoke, identity<Args...>) {
+  return invoker<std::decay_t<T>, identity<Args...>>(
       std::forward<T>(invoke));
 }
 
 /// - continuable<?...> -> result(next_callback);
 template <typename Data, typename Annotation>
 constexpr auto
-invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
+invoker_of(identity<continuable_base<Data, Annotation>>) {
   /// Get the hint of the unwrapped returned continuable
   using Type =
       decltype(std::declval<continuable_base<Data, Annotation>>().finish());
 
-  auto constexpr const hint = base::annotation_of(traits::identify<Type>{});
+  auto constexpr const hint = base::annotation_of(identify<Type>{});
 
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
@@ -317,7 +317,7 @@ invoker_of(traits::identity<continuable_base<Data, Annotation>>) {
 
 /// - ? -> next_callback(?)
 template <typename T>
-constexpr auto invoker_of(traits::identity<T>) {
+constexpr auto invoker_of(identity<T>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         CONTINUABLE_BLOCK_TRY_BEGIN
@@ -329,26 +329,26 @@ constexpr auto invoker_of(traits::identity<T>) {
                            std::move(result));
         CONTINUABLE_BLOCK_TRY_END
       },
-      traits::identify<T>{});
+      identify<T>{});
 }
 
 /// - void -> next_callback()
-inline auto invoker_of(traits::identity<void>) {
+inline auto invoker_of(identity<void>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         CONTINUABLE_BLOCK_TRY_BEGIN
           invoke_callback(std::forward<decltype(callback)>(callback),
                           std::forward<decltype(args)>(args)...);
           invoke_void_no_except(
-              traits::identity<traits::unrefcv_t<decltype(args)>...>{},
+              identity<traits::unrefcv_t<decltype(args)>...>{},
               std::forward<decltype(next_callback)>(next_callback));
         CONTINUABLE_BLOCK_TRY_END
       },
-      traits::identity<>{});
+      identity<>{});
 }
 
 /// - empty_result -> <cancel>
-inline auto invoker_of(traits::identity<empty_result>) {
+inline auto invoker_of(identity<empty_result>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         (void)next_callback;
@@ -362,11 +362,11 @@ inline auto invoker_of(traits::identity<empty_result>) {
           (void)result;
         CONTINUABLE_BLOCK_TRY_END
       },
-      traits::identity<>{});
+      identity<>{});
 }
 
 /// - exceptional_result -> <throw>
-inline auto invoker_of(traits::identity<exceptional_result>) {
+inline auto invoker_of(identity<exceptional_result>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         util::unused(callback, next_callback, args...);
@@ -381,12 +381,12 @@ inline auto invoker_of(traits::identity<exceptional_result>) {
                            std::move(result).get_exception());
         CONTINUABLE_BLOCK_TRY_END
       },
-      traits::identity<>{});
+      identity<>{});
 }
 
 /// - result<?...> -> next_callback(?...)
 template <typename... Args>
-auto invoker_of(traits::identity<result<Args...>>) {
+auto invoker_of(identity<result<Args...>>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
         CONTINUABLE_BLOCK_TRY_BEGIN
@@ -416,7 +416,7 @@ auto invoker_of(traits::identity<result<Args...>>) {
         // asynchronous chain.
         CONTINUABLE_BLOCK_TRY_END
       },
-      traits::identity<Args...>{});
+      identity<Args...>{});
 }
 
 /// Returns a sequenced invoker which is able to invoke
@@ -443,15 +443,15 @@ inline auto sequenced_unpack_invoker() {
 
 // - std::pair<?, ?> -> next_callback(?, ?)
 template <typename First, typename Second>
-constexpr auto invoker_of(traits::identity<std::pair<First, Second>>) {
+constexpr auto invoker_of(identity<std::pair<First, Second>>) {
   return make_invoker(sequenced_unpack_invoker(),
-                      traits::identity<First, Second>{});
+                      identity<First, Second>{});
 }
 
 // - std::tuple<?...>  -> next_callback(?...)
 template <typename... Args>
-constexpr auto invoker_of(traits::identity<std::tuple<Args...>>) {
-  return make_invoker(sequenced_unpack_invoker(), traits::identity<Args...>{});
+constexpr auto invoker_of(identity<std::tuple<Args...>>) {
+  return make_invoker(sequenced_unpack_invoker(), identity<Args...>{});
 }
 
 #undef CONTINUABLE_BLOCK_TRY_BEGIN
@@ -510,7 +510,7 @@ template <handle_results HandleResults, typename Base, typename Hint>
 struct result_handler_base;
 template <typename Base, typename... Args>
 struct result_handler_base<handle_results::no, Base,
-                           traits::identity<Args...>> {
+                           identity<Args...>> {
   void operator()(Args... args) && {
     // Forward the arguments to the next callback
     std::move(static_cast<Base*>(this)->next_callback_)(std::move(args)...);
@@ -518,13 +518,13 @@ struct result_handler_base<handle_results::no, Base,
 };
 template <typename Base, typename... Args>
 struct result_handler_base<handle_results::yes, Base,
-                           traits::identity<Args...>> {
+                           identity<Args...>> {
   /// The operator which is called when the result was provided
   void operator()(Args... args) && {
     // In order to retrieve the correct decorator we must know what the
     // result type is.
     constexpr auto result =
-        traits::identify<decltype(decoration::invoke_callback(
+        identify<decltype(decoration::invoke_callback(
             std::move(static_cast<Base*>(this)->callback_),
             std::move(args)...))>{};
 
@@ -556,7 +556,7 @@ struct error_handler_base<handle_errors::forward, Base> {
   /// The operator which is called when an error occurred
   void operator()(exception_arg_t, exception_t exception) && {
     constexpr auto result =
-        traits::identify<decltype(decoration::invoke_callback(
+        identify<decltype(decoration::invoke_callback(
             std::move(static_cast<Base*>(this)->callback_), exception_arg_t{},
             std::move(exception)))>{};
 
@@ -580,16 +580,16 @@ struct callback_base;
 template <typename... Args, handle_results HandleResults,
           handle_errors HandleErrors, typename Callback, typename Executor,
           typename NextCallback>
-struct callback_base<traits::identity<Args...>, HandleResults, HandleErrors,
+struct callback_base<identity<Args...>, HandleResults, HandleErrors,
                      Callback, Executor, NextCallback>
     : proto::result_handler_base<
           HandleResults,
-          callback_base<traits::identity<Args...>, HandleResults, HandleErrors,
+          callback_base<identity<Args...>, HandleResults, HandleErrors,
                         Callback, Executor, NextCallback>,
-          traits::identity<Args...>>,
+          identity<Args...>>,
       proto::error_handler_base<
           HandleErrors,
-          callback_base<traits::identity<Args...>, HandleResults, HandleErrors,
+          callback_base<identity<Args...>, HandleResults, HandleErrors,
                         Callback, Executor, NextCallback>>,
       util::non_copyable {
 
@@ -606,14 +606,14 @@ struct callback_base<traits::identity<Args...>, HandleResults, HandleErrors,
   /// Pull the result handling operator() in
   using proto::result_handler_base<
       HandleResults,
-      callback_base<traits::identity<Args...>, HandleResults, HandleErrors,
+      callback_base<identity<Args...>, HandleResults, HandleErrors,
                     Callback, Executor, NextCallback>,
-      traits::identity<Args...>>::operator();
+      identity<Args...>>::operator();
 
   /// Pull the error handling operator() in
   using proto::error_handler_base<
       HandleErrors,
-      callback_base<traits::identity<Args...>, HandleResults, HandleErrors,
+      callback_base<identity<Args...>, HandleResults, HandleErrors,
                     Callback, Executor, NextCallback>>::operator();
 
   /// Resolves the continuation with the given values
@@ -684,21 +684,21 @@ struct final_callback : util::non_copyable {
 template <typename T, typename... Args>
 constexpr auto
 next_hint_of(std::integral_constant<handle_results, handle_results::yes>,
-             traits::identity<T> /*callback*/,
-             traits::identity<Args...> /*current*/) {
+             identity<T> /*callback*/,
+             identity<Args...> /*current*/) {
   // Partial Invoke the given callback
   using Result = decltype(
       decoration::invoke_callback(std::declval<T>(), std::declval<Args>()...));
 
   // Return the hint of thr given invoker
-  return decltype(decoration::invoker_of(traits::identify<Result>{}).hint()){};
+  return decltype(decoration::invoker_of(identify<Result>{}).hint()){};
 }
 /// Don't progress the hint when we don't continue
 template <typename T, typename... Args>
 constexpr auto
 next_hint_of(std::integral_constant<handle_results, handle_results::no>,
-             traits::identity<T> /*callback*/,
-             traits::identity<Args...> current) {
+             identity<T> /*callback*/,
+             identity<Args...> current) {
   return current;
 }
 
@@ -730,8 +730,8 @@ struct chained_continuation;
 template <typename... Args, typename... NextArgs, handle_results HandleResults,
           handle_errors HandleErrors, typename Continuation, typename Callback,
           typename Executor>
-struct chained_continuation<traits::identity<Args...>,
-                            traits::identity<NextArgs...>, HandleResults,
+struct chained_continuation<identity<Args...>,
+                            identity<NextArgs...>, HandleResults,
                             HandleErrors, Continuation, Callback, Executor> {
 
   Continuation continuation_;
@@ -761,7 +761,7 @@ struct chained_continuation<traits::identity<Args...>,
     // - Continuation: continuation<[](auto&& callback) { callback("hi"); }>
     // - Callback: [](std::string) { }
     // - NextCallback: []() { }
-    auto proxy = callbacks::make_callback<traits::identity<Args...>,
+    auto proxy = callbacks::make_callback<identity<Args...>,
                                           HandleResults, HandleErrors>(
         std::move(callback_), std::move(executor_),
         std::forward<decltype(next_callback)>(next_callback));
@@ -793,7 +793,7 @@ struct chained_continuation<traits::identity<Args...>,
 template <typename... Args, typename... NextArgs, handle_results HandleResults,
           handle_errors HandleErrors, typename Callback, typename Executor>
 struct chained_continuation<
-    traits::identity<Args...>, traits::identity<NextArgs...>, HandleResults,
+    identity<Args...>, identity<NextArgs...>, HandleResults,
     HandleErrors, ready_continuation<Args...>, Callback, Executor> {
 
   ready_continuation<Args...> continuation_;
@@ -815,7 +815,7 @@ struct chained_continuation<
 
   template <typename NextCallback>
   void operator()(NextCallback&& next_callback) {
-    auto proxy = callbacks::make_callback<traits::identity<Args...>,
+    auto proxy = callbacks::make_callback<identity<Args...>,
                                           HandleResults, HandleErrors>(
         std::move(callback_), std::move(executor_),
         std::forward<decltype(next_callback)>(next_callback));
@@ -851,10 +851,10 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
   static_assert(is_continuable<std::decay_t<Continuation>>{},
                 "Expected a continuation!");
 
-  using Hint = decltype(base::annotation_of(traits::identify<Continuation>()));
+  using Hint = decltype(base::annotation_of(identify<Continuation>()));
   constexpr auto next_hint =
       next_hint_of(std::integral_constant<handle_results, HandleResults>{},
-                   traits::identify<decltype(callback)>{}, Hint{});
+                   identify<decltype(callback)>{}, Hint{});
 
   auto ownership = attorney::ownership_of(continuation);
   auto data =
@@ -885,11 +885,11 @@ void finalize_continuation(Continuation&& continuation) {
 template <typename Data, typename Annotation, typename Continuation>
 struct can_accept_continuation : std::false_type {};
 template <typename Data, typename... Args, typename Continuation>
-struct can_accept_continuation<Data, traits::identity<Args...>, Continuation>
+struct can_accept_continuation<Data, identity<Args...>, Continuation>
     : traits::conjunction<
           traits::is_invocable<Continuation, callbacks::final_callback>,
           std::is_convertible<
-              proxy_continuable<traits::identity<Args...>, Continuation>,
+              proxy_continuable<identity<Args...>, Continuation>,
               Data>> {};
 
 /// Workaround for GCC bug:

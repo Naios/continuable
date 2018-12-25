@@ -34,7 +34,7 @@
 #include <continuable/continuable-testing.hpp>
 #include <continuable/continuable.hpp>
 
-using cti::detail::traits::identity;
+using cti::detail::identity;
 using cti::detail::util::unused;
 
 inline auto to_hint(identity<> /*hint*/) {
@@ -48,7 +48,7 @@ auto to_hint(identity<Args...> hint) {
 template <typename... Args>
 auto supplier_of(Args&&... args) {
   return [values = std::make_tuple(std::forward<Args>(args)...)](
-             auto&& promise) mutable {
+      auto&& promise) mutable {
     cti::detail::traits::unpack(
         [&](auto&&... passed) {
           promise.set_value(std::forward<decltype(passed)>(passed)...);
@@ -113,12 +113,12 @@ struct provide_copyable {
 struct provide_unique {
   template <typename... Args, typename... Hint, typename T>
   auto make(identity<Args...>, identity<Hint...>, T&& callback) {
-    return cti::make_continuable<Hint...>(
-        [callback = std::forward<T>(callback),
-         guard = std::make_unique<int>(0)](auto&&... args) mutable {
-          (void)(*guard);
-          return std::move(callback)(std::forward<decltype(args)>(args)...);
-        });
+    return cti::make_continuable<Hint...>([
+      callback = std::forward<T>(callback), guard = std::make_unique<int>(0)
+    ](auto&&... args) mutable {
+      (void)(*guard);
+      return std::move(callback)(std::forward<decltype(args)>(args)...);
+    });
   }
 };
 

@@ -28,38 +28,27 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_ANNOTATION_HPP_INCLUDED
-#define CONTINUABLE_DETAIL_ANNOTATION_HPP_INCLUDED
+#ifndef CONTINUABLE_DETAIL_IDENTITY_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_IDENTITY_HPP_INCLUDED
 
 #include <type_traits>
-#include <continuable/detail/core/types.hpp>
-#include <continuable/detail/utility/traits.hpp>
+#include <continuable/detail/features.hpp>
 
 namespace cti {
 namespace detail {
-template <typename Annotation>
-struct annotation_trait;
+/// A tagging type for wrapping other types
+template <typename... T>
+struct identity {};
 
-/// Specialization for a present signature hint
+template <typename>
+struct is_identity : std::false_type {};
 template <typename... Args>
-struct annotation_trait<identity<Args...>> {
-  template <typename Continuable>
-  static Continuable&& finish(Continuable&& continuable) {
-    return std::forward<Continuable>(continuable);
-  }
-};
+struct is_identity<identity<Args...>> : std::true_type {};
 
-namespace hints {
-/// Extracts the signature we pass to the internal continuable
-/// from an argument pack as specified by make_continuable.
-///
-/// This is the overload taking an arbitrary amount of args
-template <typename... HintArgs>
-struct from_args : std::common_type<identity<HintArgs...>> {};
-template <>
-struct from_args<void> : std::common_type<identity<>> {};
-} // namespace hints
+template <typename T>
+using identify = std::conditional_t<is_identity<std::decay_t<T>>::value, T,
+                                    identity<std::decay_t<T>>>;
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_ANNOTATION_HPP_INCLUDED
+#endif // CONTINUABLE_DETAIL_IDENTITY_HPP_INCLUDED

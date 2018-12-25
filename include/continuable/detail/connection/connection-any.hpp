@@ -88,30 +88,30 @@ private:
 
 struct result_deducer {
   template <typename T>
-  static auto deduce_one(std::false_type, traits::identity<T>) {
+  static auto deduce_one(std::false_type, identity<T>) {
     static_assert(traits::fail<T>::value,
                   "Non continuable types except tuple like and homogeneous "
                   "containers aren't allowed inside an any expression!");
   }
   template <typename T>
-  static auto deduce_one(std::true_type, traits::identity<T> id) {
+  static auto deduce_one(std::true_type, identity<T> id) {
     return base::annotation_of(id);
   }
   template <typename T>
   static auto deduce(traversal::container_category_tag<false, false>,
-                     traits::identity<T> id) {
+                     identity<T> id) {
     return deduce_one<T>(base::is_continuable<T>{}, id);
   }
 
   /// Deduce a homogeneous container
   template <bool IsTupleLike, typename T>
   static auto deduce(traversal::container_category_tag<true, IsTupleLike>,
-                     traits::identity<T>) {
+                     identity<T>) {
 
     // Deduce the containing type
     using element_t = std::decay_t<decltype(*std::declval<T>().begin())>;
     return deduce(traversal::container_category_of_t<element_t>{},
-                  traits::identity<element_t>{});
+                  identity<element_t>{});
   }
 
   template <typename First, typename... T>
@@ -125,19 +125,19 @@ struct result_deducer {
 
   template <std::size_t... I, typename T>
   static auto deduce_tuple_like(std::integer_sequence<std::size_t, I...>,
-                                traits::identity<T>) {
+                                identity<T>) {
 
     return deduce_same_hints(deduce(
         traversal::container_category_of_t<
             std::decay_t<decltype(std::get<I>(std::declval<T>()))>>{},
-        traits::identity<
+        identity<
             std::decay_t<decltype(std::get<I>(std::declval<T>()))>>{})...);
   }
 
   /// Traverse tuple like container
   template <typename T>
   static auto deduce(traversal::container_category_tag<false, true>,
-                     traits::identity<T> id) {
+                     identity<T> id) {
 
     constexpr auto const size = std::tuple_size<T>::value;
     return deduce_tuple_like(std::make_index_sequence<size>{}, id);
@@ -172,7 +172,7 @@ struct connection_finalizer<connection_strategy_any_tag> {
   static auto finalize(Connection&& connection, util::ownership ownership) {
     constexpr auto const signature = decltype(any::result_deducer::deduce(
         traversal::container_category_of_t<std::decay_t<Connection>>{},
-        traits::identity<std::decay_t<Connection>>{})){};
+        identity<std::decay_t<Connection>>{})){};
 
     return base::attorney::create_from(
         [connection =

@@ -62,7 +62,7 @@ template <typename T>
 using align_of_helper = std::integral_constant<std::size_t, alignof(T)>;
 
 template <typename... T>
-constexpr auto storage_of_impl(traits::identity<T...>) {
+constexpr auto storage_of_impl(identity<T...>) {
   constexpr auto size = max_element_of({(size_of_helper<T>::value)...});
   constexpr auto align = max_element_of({(align_of_helper<T>::value)...});
   return std::aligned_storage_t<size, align>{};
@@ -70,7 +70,7 @@ constexpr auto storage_of_impl(traits::identity<T...>) {
 
 /// Declares the aligned storage union for the given types
 template <typename... T>
-using storage_of_t = decltype(storage_of_impl(traits::identity<T...>{}));
+using storage_of_t = decltype(storage_of_impl(identity<T...>{}));
 
 /// The value fpr the empty slot
 using slot_t = std::uint8_t;

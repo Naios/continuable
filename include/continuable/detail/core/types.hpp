@@ -33,6 +33,7 @@
 
 #include <utility>
 #include <continuable/detail/features.hpp>
+#include <continuable/detail/utility/identity.hpp>
 
 #ifndef CONTINUABLE_WITH_CUSTOM_ERROR_TYPE
 #ifndef CONTINUABLE_WITH_NO_EXCEPTIONS

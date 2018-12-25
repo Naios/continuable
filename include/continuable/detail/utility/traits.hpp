@@ -36,6 +36,7 @@
 #include <type_traits>
 #include <utility>
 #include <continuable/detail/features.hpp>
+#include <continuable/detail/utility/identity.hpp>
 
 namespace cti {
 namespace detail {
@@ -68,19 +69,6 @@ template <typename... T>
 auto make_flat_tuple(T&&... args) {
   return std::tuple<T...>{std::forward<T>(args)...};
 }
-
-/// A tagging type for wrapping other types
-template <typename... T>
-struct identity {};
-
-template <typename>
-struct is_identity : std::false_type {};
-template <typename... Args>
-struct is_identity<identity<Args...>> : std::true_type {};
-
-template <typename T>
-using identify = std::conditional_t<is_identity<std::decay_t<T>>::value, T,
-                                    identity<std::decay_t<T>>>;
 
 #if defined(CONTINUABLE_HAS_CXX17_VOID_T)
 using std::void_t;

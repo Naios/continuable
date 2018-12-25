@@ -33,7 +33,10 @@
 
 #include <cstddef>
 #include <function2/function2.hpp>
-#include <continuable/continuable-trait.hpp>
+#include <continuable/continuable-base.hpp>
+#include <continuable/continuable-primitives.hpp>
+#include <continuable/continuable-promise-base.hpp>
+#include <continuable/detail/other/erasure.hpp>
 
 namespace cti {
 /// \defgroup Types Types
@@ -41,66 +44,40 @@ namespace cti {
 /// cti::promise promise\endlink facility for type erasure.
 /// \{
 
-namespace detail {
-/// A type erasure which isn't size adjusted and move only
-template <std::size_t, typename... Args>
-class type_erasure : public fu2::unique_function<Args...> {
-public:
-  using fu2::unique_function<Args...>::unique_function;
-  using fu2::unique_function<Args...>::operator=;
-  using fu2::unique_function<Args...>::operator();
-};
-
-/// A function which is size adjusted and move only
-template <std::size_t Size, typename... Args>
-class sized_type_erasure
-    : public fu2::function_base<true, false, Size, true, false, Args...> {
-
-public:
-  using fu2::function_base<true, false, Size, //
-                           true, false, Args...>::function_base;
-  using fu2::function_base<true, false, Size, //
-                           true, false, Args...>::operator=;
-  using fu2::function_base<true, false, Size, //
-                           true, false, Args...>::operator();
-};
-
-/// We adjust the internal capacity of the outer function wrapper so
-/// we don't have to allocate twice when using `continuable<...>`.
-template <typename... Args>
-using unique_trait_of = continuable_trait< //
-    type_erasure, sized_type_erasure,
-    Args... //
-    >;
-
-/// A type erasure for work objects
-class work_type_erasure : public fu2::unique_function<void()> {
-public:
-  using fu2::unique_function<void()>::unique_function;
-  using fu2::unique_function<void()>::operator=;
-  using fu2::unique_function<void()>::operator();
-};
-} // namespace detail
+/// Deduces to the preferred continuation capacity for a possible
+/// small functor optimization. The given capacity size is always enough to
+/// to avoid any allocation when storing ready a continuable_base.
+///
+/// \since 4.0.0
+// template <typename... Args>
+// using continuation_capacity = detail::erasure::continuation_capacity<Args...>;
 
 /// Defines a non-copyable continuation type which uses the
 /// function2 backend for type erasure.
 ///
 /// Usable like: `continuable<int, float>`
 template <typename... Args>
-using continuable = typename detail::unique_trait_of<Args...>::continuable;
+using continuable = continuable_base<detail::erasure::continuation<Args...>, //
+                                     signature_arg_t<Args...>>;
 
 /// Defines a non-copyable promise type which is using the
 /// function2 backend for type erasure.
 ///
 /// Usable like: `promise<int, float>`
 template <typename... Args>
-using promise = typename detail::unique_trait_of<Args...>::promise;
+using promise = promise_base<detail::erasure::callback<Args...>, //
+                             signature_arg_t<Args...>>;
 
 /// Defines a non-copyable type erasure which is capable of carrying
 /// callable objects passed to executors.
 ///
 /// \since 4.0.0
-using work = detail::work_type_erasure;
+class work : public fu2::unique_function<void()> {
+public:
+  using fu2::unique_function<void()>::unique_function;
+  using fu2::unique_function<void()>::operator=;
+  using fu2::unique_function<void()>::operator();
+};
 
 // TODO channel
 // TODO sink

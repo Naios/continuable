@@ -59,17 +59,12 @@ namespace cti {
 template <template <std::size_t, typename...> class CallbackWrapper,
           template <std::size_t, typename...> class ContinuationWrapper,
           typename... Args>
-class continuable_trait {
-
+struct continuable_trait {
   using callback = CallbackWrapper<0U, void(Args...)&&,
                                    void(exception_arg_t, exception_t) &&>;
 
-public:
-  /// The promise type which is used to resolve continuations
-  using promise = promise_base<callback, detail::traits::identity<Args...>>;
-
   /// The continuable type for the given parameters.
-  using continuable = continuable_base<
+  using continuation = continuable_base<
       ContinuationWrapper<
           // Size the buffer for the small functor optimization so the
           // result itself fits in and guarantee that a pointer can
@@ -81,7 +76,7 @@ public:
           bool(is_ready_arg_t) const,      //
           std::tuple<Args...>(query_arg_t) //
           >,
-      detail::traits::identity<Args...>>;
+      detail::identity<Args...>>;
 };
 /// \}
 } // namespace cti

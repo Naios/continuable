@@ -32,6 +32,7 @@
 #define CONTINUABLE_PRIMITIVES_HPP_INCLUDED
 
 #include <continuable/detail/core/types.hpp>
+#include <continuable/detail/utility/identity.hpp>
 
 namespace cti {
 /// \defgroup Primitives Primitives
@@ -55,6 +56,13 @@ namespace cti {
 /// };
 /// ```
 /// \{
+
+/// Represents the tag type that is used to specify the signature hint
+/// of a continuable_base or promise_base.
+///
+/// \since 4.0.0
+template <typename... Args>
+using signature_arg_t = detail::identity<Args...>;
 
 /// Represents the tag type that is used to query the continuation
 /// for whether it resolves the callback instantly with its arguments

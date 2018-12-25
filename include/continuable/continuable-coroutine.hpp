@@ -51,7 +51,7 @@ namespace std {
 namespace experimental {
 template <typename Data, typename... Args, typename... FunctionArgs>
 struct coroutine_traits<
-    cti::continuable_base<Data, cti::detail::traits::identity<Args...>>,
+    cti::continuable_base<Data, cti::detail::identity<Args...>>,
     FunctionArgs...> {
 
   using promise_type =

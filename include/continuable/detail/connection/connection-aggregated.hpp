@@ -75,13 +75,13 @@ T&& unpack_lazy(container::flat_variant<T>&& value) {
 template <typename Continuable>
 class continuable_box;
 template <typename Data>
-class continuable_box<continuable_base<Data, traits::identity<>>> {
+class continuable_box<continuable_base<Data, identity<>>> {
 
-  continuable_base<Data, traits::identity<>> continuable_;
+  continuable_base<Data, identity<>> continuable_;
 
 public:
   explicit continuable_box(
-      continuable_base<Data, traits::identity<>>&& continuable)
+      continuable_base<Data, identity<>>&& continuable)
       : continuable_(std::move(continuable)) {
   }
 
@@ -101,14 +101,14 @@ public:
   }
 };
 template <typename Data, typename First>
-class continuable_box<continuable_base<Data, traits::identity<First>>> {
+class continuable_box<continuable_base<Data, identity<First>>> {
 
-  continuable_base<Data, traits::identity<First>> continuable_;
+  continuable_base<Data, identity<First>> continuable_;
   lazy_value_t<First> first_;
 
 public:
   explicit continuable_box(
-      continuable_base<Data, traits::identity<First>>&& continuable)
+      continuable_base<Data, identity<First>>&& continuable)
       : continuable_(std::move(continuable)) {
   }
 
@@ -130,14 +130,14 @@ public:
 };
 template <typename Data, typename First, typename Second, typename... Rest>
 class continuable_box<
-    continuable_base<Data, traits::identity<First, Second, Rest...>>> {
+    continuable_base<Data, identity<First, Second, Rest...>>> {
 
-  continuable_base<Data, traits::identity<First, Second, Rest...>> continuable_;
+  continuable_base<Data, identity<First, Second, Rest...>> continuable_;
   lazy_value_t<std::tuple<First, Second, Rest...>> args_;
 
 public:
   explicit continuable_box(
-      continuable_base<Data, traits::identity<First, Second, Rest...>>&&
+      continuable_base<Data, identity<First, Second, Rest...>>&&
           continuable)
       : continuable_(std::move(continuable)) {
   }
@@ -209,12 +209,12 @@ constexpr auto unbox_continuables(Args&&... args) {
 
 namespace detail {
 template <typename Callback, typename Data>
-constexpr auto finalize_impl(traits::identity<void>, Callback&& callback,
+constexpr auto finalize_impl(identity<void>, Callback&& callback,
                              Data&&) {
   return std::forward<Callback>(callback)();
 }
 template <typename... Args, typename Callback, typename Data>
-constexpr auto finalize_impl(traits::identity<std::tuple<Args...>>,
+constexpr auto finalize_impl(identity<std::tuple<Args...>>,
                              Callback&& callback, Data&& data) {
   // Call the final callback with the cleaned result
   return traits::unpack(std::forward<Callback>(callback),
@@ -223,7 +223,7 @@ constexpr auto finalize_impl(traits::identity<std::tuple<Args...>>,
 
 struct hint_mapper {
   template <typename... T>
-  constexpr auto operator()(T...) -> traits::identity<T...> {
+  constexpr auto operator()(T...) -> identity<T...> {
     return {};
   }
 };
@@ -233,7 +233,7 @@ template <typename Callback, typename Data>
 constexpr auto finalize_data(Callback&& callback, Data&& data) {
   using result_t = decltype(unbox_continuables(std::forward<Data>(data)));
   // Guard the final result against void
-  return detail::finalize_impl(traits::identity<std::decay_t<result_t>>{},
+  return detail::finalize_impl(identity<std::decay_t<result_t>>{},
                                std::forward<Callback>(callback),
                                std::forward<Data>(data));
 }

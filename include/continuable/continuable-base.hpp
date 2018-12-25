@@ -835,7 +835,7 @@ constexpr auto make_continuable(Continuation&& continuation) {
 template <typename... Args>
 auto make_ready_continuable(Args&&... args) {
   using detail::base::ready_continuation;
-  using detail::traits::identity;
+  using detail::identity;
   using detail::traits::unrefcv_t;
   return detail::base::attorney::create_from_raw(
       ready_continuation<unrefcv_t<Args>...>{std::forward<Args>(args)...},

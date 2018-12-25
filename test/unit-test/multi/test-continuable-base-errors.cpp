@@ -134,7 +134,7 @@ TYPED_TEST(single_dimension_tests, are_exceptions_partial_applyable) {
   handled = false;
   ASSERT_ASYNC_INCOMPLETION(
       this->supply_exception(supply_test_exception(),
-                             detail::traits::identity<int, int>{})
+                             detail::identity<int, int>{})
           .fail([&]() -> result<int, int> {
             EXPECT_FALSE(handled);
             handled = true;
