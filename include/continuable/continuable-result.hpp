@@ -302,7 +302,7 @@ struct tuple_size<cti::result<Args...>>
 template <std::size_t I, typename... Args>
 struct tuple_element<I, cti::result<Args...>>
     : tuple_element<I, tuple<Args...>> {};
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 } // namespace std
