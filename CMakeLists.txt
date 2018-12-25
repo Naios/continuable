@@ -22,62 +22,55 @@
 cmake_minimum_required(VERSION 3.11)
 project(continuable VERSION 3.0.0 LANGUAGES C CXX)
 
-if (NOT CTI_CONTINUABLE_IS_FIND_INCLUDED)
+if (CTI_CONTINUABLE_IS_FIND_INCLUDED)
+  set(CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT OFF)
+else()
   string(COMPARE EQUAL ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}
                       CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT)
 endif()
 
+option(CTI_CONTINUABLE_WITH_INSTALL
+      "Add the continuable install targets"
+      ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
+
+option(CTI_CONTINUABLE_WITH_TESTS
+      "Build the continuable unit tests"
+      ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
+
+option(CTI_CONTINUABLE_WITH_EXAMPLES
+      "Build the continuable examples"
+      ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
+
+option(CTI_CONTINUABLE_WITH_BENCHMARKS
+      "Build the continuable benchmarks"
+      OFF)
+
+option(CTI_CONTINUABLE_WITH_NO_EXCEPTIONS
+      "Disable exception support"
+      OFF)
+
+option(CTI_CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
+      "Enable unhandled asynchronous exceptions"
+      OFF)
+
+option(CTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE
+      "Enable co_await support"
+      OFF)
+
+option(CTI_CONTINUABLE_WITH_CPP_LATEST
+      "Enable the highest C++ standard available for testing polyfills"
+      OFF)
+
+option(CTI_CONTINUABLE_WITH_LIGHT_TESTS
+      "Disable some template heavy unit tests (for CI usage)"
+      OFF)
+
+# Top level project settings only
 if (CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT)
-  option(CTI_CONTINUABLE_WITH_INSTALL
-        "Add the continuable install targets"
-        ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
-
-  option(CTI_CONTINUABLE_WITH_TESTS
-        "Build the continuable unit tests"
-        ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
-
-  option(CTI_CONTINUABLE_WITH_EXAMPLES
-        "Build the continuable examples"
-        ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
-
-  option(CTI_CONTINUABLE_WITH_BENCHMARKS
-        "Build the continuable benchmarks"
-        OFF)
-
-  option(CTI_CONTINUABLE_WITH_NO_EXCEPTIONS
-        "Disable exception support"
-        OFF)
-
-  option(CTI_CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
-        "Enable unhandled asynchronous exceptions"
-        OFF)
-
-  option(CTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE
-        "Enable co_await support"
-        OFF)
-
-  option(CTI_CONTINUABLE_WITH_CPP_LATEST
-        "Enable the highest C++ standard available for testing polyfills"
-        OFF)
-
-  option(CTI_CONTINUABLE_WITH_LIGHT_TESTS
-        "Disable some template heavy unit tests (for CI usage)"
-        OFF)
-
-  # Top level project settings only
   set(CTI_CONTINUABLE_WITH_CONCURRENT_JOBS
-       "0" CACHE STRING
-       "Set the number of concurrent compilation jobs (0 = unlimited, for CI usage)")
+      "0" CACHE STRING
+      "Set the number of concurrent compilation jobs (0 = unlimited, for CI usage)")
 else()
-  set(CTI_CONTINUABLE_WITH_INSTALL ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
-  set(CTI_CONTINUABLE_WITH_TESTS ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
-  set(CTI_CONTINUABLE_WITH_EXAMPLES ${CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT})
-  set(CTI_CONTINUABLE_WITH_BENCHMARKS OFF)
-  set(CTI_CONTINUABLE_WITH_NO_EXCEPTIONS OFF)
-  set(CTI_CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS OFF)
-  set(CTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE OFF)
-  set(CTI_CONTINUABLE_WITH_CPP_LATEST OFF)
-  set(CTI_CONTINUABLE_WITH_LIGHT_TESTS OFF)
   set(CTI_CONTINUABLE_WITH_CONCURRENT_JOBS "0")
 endif()
 
