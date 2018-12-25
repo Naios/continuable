@@ -360,10 +360,11 @@ public:
   /// \since 2.0.0
   template <typename OData, typename OAnnotation>
   auto fail(continuable_base<OData, OAnnotation>&& continuation) && {
-    return std::move(*this).fail(
-        [continuation = std::move(continuation).freeze()](exception_t) mutable {
-          std::move(continuation).done();
-        });
+    return std::move(*this)                                     //
+        .fail([continuation = std::move(continuation).freeze()] //
+              (exception_t) mutable {
+                std::move(continuation).done(); //
+              });
   }
 
   /// A method which allows to use an overloaded callable for the error
@@ -864,6 +865,35 @@ constexpr auto make_exceptional_continuable(Exception&& exception) {
         std::forward<decltype(promise)>(promise).set_exception(
             std::move(exception));
       });
+}
+
+/// Returns a continuable_base with the parameterized result which never
+/// resolves its promise and thus cancels the asynchronous continuation chain.
+///
+/// This can be used to cancel an asynchronous continuation chain when
+/// returning a continuable_base from a handler where other paths could
+/// possibly continue the asynchronous chain. See an example below:
+/// ```cpp
+/// do_sth().then([weak = this->weak_from_this()]() -> continuable<> {
+///   if (auto me = weak.lock()) {
+///     return do_sth_more();
+///   } else {
+///     // Abort the asynchronous continuation chain since the
+///     // weakly referenced object expired previously.
+///     return make_cancelling_continuable<void>();
+///   }
+/// });
+/// ```
+///
+/// \tparam Signature The fake signature of the returned continuable.
+///
+/// \since            4.0.0
+template <typename... Signature>
+auto make_cancelling_continuable() {
+  static_assert(sizeof...(Signature) > 0,
+                "Requires at least one type for the fake signature!");
+
+  return make_continuable<Signature...>([](auto&&) { /* ... */ });
 }
 
 /// Can be used to recover to from a failure handler,

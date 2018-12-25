@@ -45,7 +45,8 @@ TYPED_TEST(single_dimension_tests, are_called_on_destruct) {
   ASSERT_ASYNC_TYPES(this->supply(tag1{}), tag1);
 }
 
-template <typename T> auto create_incomplete(T* me) {
+template <typename T>
+auto create_incomplete(T* me) {
   return me->make(identity<>{}, identity<void>{}, [](auto&& callback) mutable {
     // Destruct the callback here
     auto destroy = std::forward<decltype(callback)>(callback);
@@ -53,7 +54,16 @@ template <typename T> auto create_incomplete(T* me) {
   });
 }
 
-template <typename T> auto assert_invocation(T* me) {
+template <typename T>
+auto create_incomplete_cancelling(T* me) {
+  return me->make(identity<>{}, identity<void>{}, [](auto&& callback) mutable {
+    make_cancelling_continuable<void>().next(
+        std::forward<decltype(callback)>(callback));
+  });
+}
+
+template <typename T>
+auto assert_invocation(T* me) {
   return me->make(identity<>{}, identity<void>{},
                   [](auto&& /*callback*/) mutable { FAIL(); });
 }
@@ -86,6 +96,18 @@ TYPED_TEST(single_dimension_tests, are_not_finished_when_not_continued) {
 
   {
     auto chain = create_incomplete(this);
+    ASSERT_ASYNC_INCOMPLETION(std::move(chain).then(this->supply()));
+  }
+}
+
+TYPED_TEST(single_dimension_tests, are_not_finished_when_cancelling) {
+  {
+    auto chain = create_incomplete_cancelling(this);
+    ASSERT_ASYNC_INCOMPLETION(std::move(chain));
+  }
+
+  {
+    auto chain = create_incomplete_cancelling(this);
     ASSERT_ASYNC_INCOMPLETION(std::move(chain).then(this->supply()));
   }
 }
