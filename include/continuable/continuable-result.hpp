@@ -277,13 +277,34 @@ decltype(auto) get(result<T...>&& result) {
   return detail::result_trait<T...>::template get<I>(std::move(result));
 }
 
-/// Creates a present result from the given values
+/// Creates a present result from the given values.
+///
+/// This could be used to pass the result of the next handler to the same
+/// asynchronous path it came from as shown below:
+/// ```cpp
+/// make_ready_continuable().next([&](auto&&... args) {
+///   result<> captured = make_result(std::forward<decltype(args)>(args)...);
+///   return shutdown().then([captured = std::move(captured)]() mutable {
+///     return std::move(captured);
+///   });
+/// });
+/// ```
 ///
 /// \since 4.0.0
 template <typename... T,
           typename Result = result<detail::traits::unrefcv_t<T>...>>
 Result make_result(T&&... values) {
   return Result::from(std::forward<T>(values)...);
+}
+
+/// Creates an exceptional_result from the given exception.
+///
+/// \copydetails make_result
+///
+/// \since 4.0.0
+inline exceptional_result make_result(exception_arg_t, exception_t exception) {
+  // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
+  return exceptional_result{std::move(exception)};
 }
 /// \}
 } // namespace cti

@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <utility>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-result.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <test-continuable.hpp>
@@ -251,6 +252,26 @@ TYPED_TEST(result_all_tests, is_assignable_from_empty_helper) {
   EXPECT_FALSE(bool(e));
   EXPECT_FALSE(e.is_value());
   EXPECT_TRUE(e.is_empty());
+}
+
+TYPED_TEST(result_all_tests, can_make_from_multipath_args) {
+  {
+    TypeParam e = make_result(this->supply(CANARY));
+
+    EXPECT_TRUE(bool(e));
+    EXPECT_EQ(this->get(*e), CANARY);
+    EXPECT_TRUE(e.is_value());
+    EXPECT_FALSE(e.is_exception());
+  }
+
+  {
+    TypeParam e = make_result(cti::exception_arg_t{}, //
+                              supply_test_exception());
+
+    EXPECT_FALSE(bool(e));
+    EXPECT_FALSE(e.is_value());
+    EXPECT_TRUE(e.is_empty());
+  }
 }
 
 // This regression test shows a memory leak which happens when using the
