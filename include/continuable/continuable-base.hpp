@@ -949,7 +949,7 @@ auto make_cancelling_continuable() {
 /// \since 4.0.0
 ///
 template <typename... Args>
-auto recover(Args&&... args) {
+result<detail::traits::unrefcv_t<Args>...> recover(Args&&... args) {
   return make_result(std::forward<Args>(args)...);
 }
 
