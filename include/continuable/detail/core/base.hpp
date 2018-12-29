@@ -641,11 +641,9 @@ auto make_callback(Callback&& callback, Executor&& executor,
       std::forward<NextCallback>(next_callback)};
 }
 
-// TODO fixate the args
-/// Once this was a workaround for GCC bug:
-/// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64095
+/// Represents the last callback in the asynchronous continuation chain
+template <typename... Args>
 struct final_callback : util::non_copyable {
-  template <typename... Args>
   void operator()(Args... /*args*/) && {
   }
 
@@ -670,7 +668,6 @@ struct final_callback : util::non_copyable {
 #endif // CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
   }
 
-  template <typename... Args>
   void set_value(Args... args) {
     std::move (*this)(std::forward<Args>(args)...);
   }
@@ -876,10 +873,16 @@ auto chain_continuation(Continuation&& continuation, Callback&& callback,
 ///
 /// For example given:
 /// - Continuation: continuation<[](auto&& callback) { callback("hi"); }>
-template <typename Continuation>
-void finalize_continuation(Continuation&& continuation) {
-  invoke_continuation(std::forward<Continuation>(continuation),
-                      callbacks::final_callback{});
+template <typename Data, typename... Args>
+void finalize_continuation(
+    continuable_base<Data, traits::identity<Args...>>&& continuation) noexcept {
+#ifdef CONTINUABLE_WITH_CUSTOM_FINAL_CALLBACK
+  invoke_continuation(std::move(continuation),
+                      CONTINUABLE_WITH_CUSTOM_FINAL_CALLBACK<Args...>{});
+#else  // CONTINUABLE_WITH_CUSTOM_FINAL_CALLBACK
+  invoke_continuation(std::move(continuation),
+                      callbacks::final_callback<Args...>{});
+#endif // CONTINUABLE_WITH_CUSTOM_FINAL_CALLBACK
 }
 
 /// Deduces to a true type if the given callable data can be wrapped
@@ -889,7 +892,8 @@ struct can_accept_continuation : std::false_type {};
 template <typename Data, typename... Args, typename Continuation>
 struct can_accept_continuation<Data, traits::identity<Args...>, Continuation>
     : traits::conjunction<
-          traits::is_invocable<Continuation, callbacks::final_callback>,
+          traits::is_invocable<Continuation,
+                               callbacks::final_callback<Args...>>,
           std::is_convertible<
               proxy_continuable<traits::identity<Args...>, Continuation>,
               Data>> {};

@@ -582,7 +582,7 @@ public:
   ///
   /// \since 1.0.0
   void done() && {
-    detail::base::finalize_continuation(std::move(*this));
+    detail::base::finalize_continuation(std::move(*this).finish());
   }
 
   /// Materializes the continuation expression template and finishes
