@@ -36,6 +36,7 @@
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/core/annotation.hpp>
 #include <continuable/detail/core/types.hpp>
+#include <continuable/detail/utility/traits.hpp>
 #include <continuable/detail/utility/util.hpp>
 
 namespace cti {
@@ -62,7 +63,7 @@ class promise_base
   /// \cond false
   ;
 template <typename Data, typename... Args>
-class promise_base<Data, detail::traits::identity<Args...>>
+class promise_base<Data, detail::identity<Args...>>
     : detail::util::non_copyable
   /// \endcond
 { // clang-format on
@@ -83,8 +84,9 @@ public:
   /// \endcond
 
   /// Constructor accepting any object convertible to the data object
-  template <typename OData, std::enable_if_t<std::is_convertible<
-                                std::decay_t<OData>, Data>::value>* = nullptr>
+  template <typename OData,
+            std::enable_if_t<std::is_convertible<
+                detail::traits::unrefcv_t<OData>, Data>::value>* = nullptr>
   promise_base(OData&& data) : data_(std::forward<OData>(data)) {
   }
 

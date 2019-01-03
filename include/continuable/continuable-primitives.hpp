@@ -32,6 +32,7 @@
 #define CONTINUABLE_PRIMITIVES_HPP_INCLUDED
 
 #include <continuable/detail/core/types.hpp>
+#include <continuable/detail/utility/identity.hpp>
 
 namespace cti {
 /// \defgroup Primitives Primitives
@@ -50,11 +51,18 @@ namespace cti {
 /// ```cpp
 /// template<typename... Args>
 /// struct callback {
-///   void operator() (Args...);
-///   void operator() (cti::exception_arg_t, cti::exception_t);
+///   void operator() (Args...) &&;
+///   void operator() (cti::exception_arg_t, cti::exception_t) &&;
 /// };
 /// ```
 /// \{
+
+/// Represents the tag type that is used to specify the signature hint
+/// of a continuable_base or promise_base.
+///
+/// \since 4.0.0
+template <typename... Args>
+using signature_arg_t = detail::identity<Args...>;
 
 /// Represents the tag type that is used to query the continuation
 /// for whether it resolves the callback instantly with its arguments
@@ -69,7 +77,7 @@ struct is_ready_arg_t {};
 /// It's required that the query of is_ready_arg_t returns true.
 ///
 /// \since 4.0.0
-struct query_arg_t {};
+struct query_arg_t { };
 
 /// Represents the tag type that is used to disambiguate the
 /// callback operator() in order to take the exception asynchronous chain.
@@ -87,7 +95,7 @@ struct exception_arg_t {};
 ///
 [[deprecated("The dispatch_error_tag was replaced by exception_arg_t and will "
              "be removed in a later major version!")]] //
-typedef exception_arg_t dispatch_error_tag;
+    typedef exception_arg_t dispatch_error_tag;
 
 /// Represents the type that is used as exception type
 ///
@@ -108,7 +116,7 @@ using exception_t = detail::types::exception_t;
 ///
 [[deprecated("The error_type was replaced by exception_t and will "
              "be removed in a later major version!")]] //
-typedef exception_t error_type;
+    typedef exception_t error_type;
 /// \}
 } // namespace cti
 

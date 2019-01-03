@@ -158,7 +158,7 @@
 /// \since 1.0.0
 #define ASSERT_ASYNC_TYPES(CONTINUABLE, ...)                                   \
   cti::detail::testing::assert_async_types(                                    \
-      CONTINUABLE, cti::detail::traits::identity<__VA_ARGS__>{})
+      CONTINUABLE, cti::detail::identity<__VA_ARGS__>{})
 
 /// Asserts that the continuable is finished with the given exception
 ///

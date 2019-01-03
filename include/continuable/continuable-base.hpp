@@ -123,7 +123,7 @@ public:
             std::enable_if_t<detail::base::can_accept_continuation<
                 Data, Annotation,
                 detail::traits::unrefcv_t<OtherData>>::value>* = nullptr>
-  continuable_base(OtherData&& data)
+  /* implicit */ continuable_base(OtherData&& data)
       : data_(detail::base::proxy_continuable<
               Annotation, detail::traits::unrefcv_t<OtherData>>(
             std::forward<OtherData>(data))) {
@@ -134,8 +134,20 @@ public:
   ///
   /// This constructor makes it possible to replace the internal data object of
   /// the continuable by any object which is useful for type-erasure.
+  /*template <typename OData,
+            std::enable_if_t<std::is_convertible<
+                detail::traits::unrefcv_t<OData>, Data>::value>* = nullptr>
+continuable_base(continuable_base<OData, Annotation>&& other)
+      : continuable_base(std::move(other).consume()) {
+  }*/
+
+  /// Constructor taking the data of other continuable_base objects
+  /// while erasing the hint.
+  ///
+  /// This constructor makes it possible to replace the internal data object of
+  /// the continuable by any object which is useful for type-erasure.
   template <typename OData, typename OAnnotation>
-  continuable_base(continuable_base<OData, OAnnotation>&& other)
+  /* implicit */ continuable_base(continuable_base<OData, OAnnotation>&& other)
       : continuable_base(std::move(other).finish().consume()) {
   }
 
@@ -853,7 +865,7 @@ constexpr auto make_continuable(Continuation&& continuation) {
 template <typename... Args>
 auto make_ready_continuable(Args&&... args) {
   using detail::base::ready_continuation;
-  using detail::traits::identity;
+  using detail::identity;
   using detail::traits::unrefcv_t;
   return detail::base::attorney::create_from_raw(
       ready_continuation<unrefcv_t<Args>...>{std::forward<Args>(args)...},
@@ -932,7 +944,7 @@ auto make_cancelling_continuable() {
 ///     // Recovered from the failure
 ///   })
 /// ```
-/// A corresponding \ref result is returned by \ref recover:
+/// A corresponding \ref result is returned by \ref recover
 /// ```cpp
 /// http_request("example.com")
 ///   .then([](std::string content) -> cti::result<int, int> {

@@ -179,15 +179,15 @@ template <typename... Expected>
 struct assert_async_types_validator {
   template <typename... Actual>
   void operator()(Actual...) {
-    static_assert(std::is_same<traits::identity<Actual...>,
-                               traits::identity<Expected...>>::value,
+    static_assert(std::is_same<identity<Actual...>,
+                               identity<Expected...>>::value,
                   "The called arguments don't match with the expected ones!");
   }
 };
 
 template <typename C, typename... Args>
 void assert_async_types(C&& continuable,
-                        traits::identity<Args...> /*expected*/) {
+                        identity<Args...> /*expected*/) {
   assert_async_validation(std::forward<C>(continuable),
                           assert_async_types_validator<Args...>{});
 }

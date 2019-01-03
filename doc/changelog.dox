@@ -41,7 +41,7 @@ New helper functions were added to create ready continuables:
 
 The implementation of connections were rewritten entirely.
 It is possible now to connect runtime sized containers as well as
-deeply nested sequences. See \ref tutorial-connections for details.
+deeply nested sequences. See \ref tutorial-connecting-continuables for details.
 
 Additionally connection overloads were added that accept two iterators
 in order to come closer to the interface of the standard library.

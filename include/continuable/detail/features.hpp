@@ -106,6 +106,18 @@
 #else
   #undef CONTINUABLE_HAS_EXCEPTIONS
 #endif
+
+/// Define CONTINUABLE_HAS_IMMEDIATE_TYPES when either
+/// - CONTINUABLE_WITH_IMMEDIATE_TYPES is defined
+/// - Building in release mode (NDEBUG is defined)
+///
+/// Build error messages will become more readable in debug mode while
+/// we don't suffer any runtime penalty in release.
+#if defined(CONTINUABLE_WITH_IMMEDIATE_TYPES) || defined(NDEBUG)
+  #define CONTINUABLE_HAS_IMMEDIATE_TYPES 1
+#else
+  #undef CONTINUABLE_HAS_IMMEDIATE_TYPES
+#endif
 // clang-format on
 
 #endif // CONTINUABLE_DETAIL_FEATURES_HPP_INCLUDED

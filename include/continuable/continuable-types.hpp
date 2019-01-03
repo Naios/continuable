@@ -31,9 +31,11 @@
 #ifndef CONTINUABLE_TYPES_HPP_INCLUDED
 #define CONTINUABLE_TYPES_HPP_INCLUDED
 
-#include <cstddef>
 #include <function2/function2.hpp>
-#include <continuable/continuable-trait.hpp>
+#include <continuable/continuable-base.hpp>
+#include <continuable/continuable-primitives.hpp>
+#include <continuable/continuable-promise-base.hpp>
+#include <continuable/detail/other/erasure.hpp>
 
 namespace cti {
 /// \defgroup Types Types
@@ -41,57 +43,65 @@ namespace cti {
 /// cti::promise promise\endlink facility for type erasure.
 /// \{
 
-// clang-format off
-namespace detail {
-/// A function which isn't size adjusted and move only
-template<std::size_t, typename... Args>
-using unique_function_adapter = fu2::unique_function<Args...>;
-/// A function which is size adjusted and move only
-template<std::size_t Size, typename... Args>
-using unique_function_adjustable = fu2::function_base<true, false, Size,
-                                                      true, false, Args...>;
-
-/// We adjust the internal capacity of the outer function wrapper so
-/// we don't have to allocate twice when using `continuable<...>`.
-template<typename... Args>
-using unique_trait_of = continuable_trait<
-  unique_function_adapter,
-  unique_function_adjustable,
-  Args...
->;
-
-/// A type erasure for work objects
-using work = fu2::unique_function<void()>;
-} // namespace detail
+/// Deduces to the preferred continuation capacity for a possible
+/// small functor optimization. The given capacity size is always enough to
+/// to avoid any allocation when storing a ready continuable_base.
+///
+/// \since 4.0.0
+template <typename... Args>
+using continuation_capacity = detail::erasure::continuation_capacity<Args...>;
 
 /// Defines a non-copyable continuation type which uses the
 /// function2 backend for type erasure.
 ///
 /// Usable like: `continuable<int, float>`
+///
+/// \note You can always define your own continuable with a type erasure of
+///       choice, the type erasure wrapper just needs to accept a
+///       callable object with a continuation signature as specified
+///       in the Primitives section.
+///
+/// \since 1.0.0
 template <typename... Args>
-using continuable = typename detail::unique_trait_of<
-  Args...
->::continuable;
+using continuable = continuable_base<detail::erasure::continuation<Args...>, //
+                                     signature_arg_t<Args...>>;
 
 /// Defines a non-copyable promise type which is using the
 /// function2 backend for type erasure.
 ///
 /// Usable like: `promise<int, float>`
+///
+/// \note You can always define your own promise with a type erasure of
+///       choice, the type erasure wrapper just needs to accept a
+///       callable object with a callback signature as specified
+///       in the Primitives section.
+///
+/// \since 1.0.0
 template <typename... Args>
-using promise = typename detail::unique_trait_of<
-  Args...
->::promise;
+using promise = promise_base<detail::erasure::callback<Args...>, //
+                             signature_arg_t<Args...>>;
 
 /// Defines a non-copyable type erasure which is capable of carrying
 /// callable objects passed to executors.
 ///
+/// \note You can always define your own work with a type erasure of
+///       choice, the type erasure wrapper just needs to accept a
+///       callable object which is callable with a `void()` signature.
+///
 /// \since 4.0.0
-using work = detail::work;
+class work : public fu2::unique_function<void()> {
+public:
+  work() = default;
+  ~work() = default;
+  work(work const&) = delete;
+  work(work&&) = default;
+  work& operator=(work const&) = delete;
+  work& operator=(work&&) = default;
 
-// TODO channel
-// TODO sink
-
-// clang-format on
+  using fu2::unique_function<void()>::unique_function;
+  using fu2::unique_function<void()>::operator=;
+  using fu2::unique_function<void()>::operator();
+};
 /// \}
 } // namespace cti
 

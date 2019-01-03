@@ -34,6 +34,7 @@ in order to change the libraries behaviour:
 | `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`      | Exceptions are disabled and the type defined by `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE` is used as \ref error_type . See \ref tutorial-chaining-continuables-fail for details. |
 | `CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS`   | Allows unhandled exceptions in asynchronous call hierarchies. See \ref tutorial-chaining-continuables-fail for details. |
 | `CONTINUABLE_WITH_CUSTOM_FINAL_CALLBACK`  | Allows to customize the final callback which can be used to implement custom unhandled asynchronous exception handlers. |
+| `CONTINUABLE_WITH_IMMEDIATE_TYPES`        | Don't decorate the used type erasure, which is done to keep type names minimal for better error messages in debug builds. |
 | `CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE` | Enables support for experimental coroutines and `co_await` expressions. See \ref continuable_base::operator co_await() for details. |
 
 */

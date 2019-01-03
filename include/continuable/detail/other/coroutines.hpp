@@ -57,7 +57,7 @@ using std::experimental::coroutine_handle;
 template <typename T>
 struct result_from_identity;
 template <typename... T>
-struct result_from_identity<traits::identity<T...>> {
+struct result_from_identity<identity<T...>> {
   using result_t = result<T...>;
 };
 
@@ -65,7 +65,7 @@ struct result_from_identity<traits::identity<T...>> {
 /// for waiting on a continuable in a stackless coroutine.
 template <typename Continuable>
 class awaitable {
-  using hint_t = decltype(base::annotation_of(traits::identify<Continuable>{}));
+  using hint_t = decltype(base::annotation_of(identify<Continuable>{}));
   using result_t = typename result_from_identity<hint_t>::result_t;
 
   /// The continuable which is invoked upon suspension

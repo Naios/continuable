@@ -20,6 +20,7 @@ matrix:
             - ninja-build
       env:
         - COMPILER=g++-6
+        - BUILD_CONFIG=Debug
         - WITH_NO_EXCEPTIONS=OFF
         - WITH_AWAIT=OFF
         - WITH_LIGHT_TESTS=ON
@@ -36,6 +37,7 @@ matrix:
             - ninja-build
       env:
         - COMPILER=clang++-5.0
+        - BUILD_CONFIG=Release
         - WITH_NO_EXCEPTIONS=OFF
         - WITH_AWAIT=OFF
         - WITH_LIGHT_TESTS=OFF
@@ -52,6 +54,7 @@ matrix:
             - ninja-build
       env:
         - COMPILER=clang++-5.0
+        - BUILD_CONFIG=Debug
         - WITH_NO_EXCEPTIONS=ON
         - WITH_AWAIT=ON
         - WITH_LIGHT_TESTS=ON
