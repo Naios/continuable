@@ -84,7 +84,7 @@ if (CTI_CONTINUABLE_IS_TOP_LEVEL_PROJECT)
   add_subdirectory(dep)
 else()
   if(NOT TARGET function2::function2)
-    find_package(function2 2 REQUIRED)
+    find_package(function2 4 REQUIRED)
   endif()
 endif()
 
