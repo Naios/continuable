@@ -1,12 +1,5 @@
 
 /*
-
-                        /~` _  _ _|_. _     _ |_ | _
-                        \_,(_)| | | || ||_|(_||_)|(/_
-
-                    https://github.com/Naios/continuable
-                                   v4.0.0
-
   Copyright(c) 2015 - 2019 Denis Blank <denis.blank at outlook dot com>
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -28,28 +21,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_OPERATIONS_LOOP_HPP_INCLUDED
-#define CONTINUABLE_OPERATIONS_LOOP_HPP_INCLUDED
+#include <test-continuable.hpp>
 
-#include <utility>
-#include <continuable/detail/operations/loop.hpp>
+TYPED_TEST(single_dimension_tests, operations_async_) {
 
-namespace cti {
-/// \ingroup Operations
-/// \{
-template <typename Callable, typename... Args>
-auto loop(Callable&& callable, Args&&... args) {
-  return detail::operations::loop(std::forward<Callable>(callable),
-                                  std::forward<Args>(args)...);
 }
-
-template <typename Callable, typename Iterator>
-auto range_loop(Callable&& callable, Iterator begin, Iterator end) {
-  auto looper = detail::operations::make_range_looper(
-      std::forward<Callable>(callable), begin);
-  return detail::operations::loop(std::move(looper), end);
-}
-/// \}
-} // namespace cti
-
-#endif // CONTINUABLE_OPERATIONS_LOOP_HPP_INCLUDED

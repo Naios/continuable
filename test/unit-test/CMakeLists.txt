@@ -56,6 +56,8 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-all.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-any.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-connection-seq.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-operations-async.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-operations-loop.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-erasure.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-regression.cpp
     ${CMAKE_CURRENT_LIST_DIR}/multi/test-continuable-transforms.cpp)

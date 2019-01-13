@@ -37,8 +37,13 @@
 #include <type_traits>
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-result.hpp>
+#include <continuable/detail/features.hpp>
 #include <continuable/detail/utility/traits.hpp>
 #include <continuable/detail/utility/util.hpp>
+
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#include <exception>
+#endif // CONTINUABLE_HAS_EXCEPTIONS
 
 namespace cti {
 namespace detail {
@@ -74,23 +79,51 @@ class loop_frame : public std::enable_shared_from_this<
   ArgsTuple args_;
 
 public:
+  explicit loop_frame(Promise promise, Callable callable, ArgsTuple args)
+      : promise_(std::move(promise)), callable_(std::move(callable)),
+        args_(std::move(args)) {
+  }
+
   void loop() {
+    // MSVC can't evaluate this inside the lambda capture
+    auto me = this->shared_from_this();
+
     traits::unpack(
-        [&callable_](auto&&... args) {
-          util::invoke(callable_, std::forward<decltype(args)>(args)...)
-              .then([me = this->shared_from_this()](auto&& result) {
-                if (result.is_empty()) {
-                  me->loop();
-                } else if (result.is_value()) {
-                  traits::unpack(std::move(promise_), result);
-                } else {
-                  assert(result.is_exception());
-                  traits::unpack(std::move(promise_), exception_arg_t{},
-                                 result.get_exception());
-                }
-              });
+        [&](auto&&... args) mutable {
+
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+          try {
+#endif // CONTINUABLE_HAS_EXCEPTIONS
+
+            util::invoke(callable_, std::forward<decltype(args)>(args)...)
+                .next([me = std::move(me)](auto&&... args) {
+                  me->resolve(std::forward<decltype(args)>(args)...);
+                });
+
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+          } catch (...) {
+            resolve(exception_arg_t{}, std::current_exception());
+          }
+#endif // CONTINUABLE_HAS_EXCEPTIONS
         },
         args_);
+  }
+
+  template <typename Result>
+  void resolve(Result&& result) {
+    if (result.is_empty()) {
+      loop();
+    } else if (result.is_value()) {
+      traits::unpack(std::move(promise_), std::forward<Result>(result));
+    } else {
+      assert(result.is_exception());
+      std::move(promise_).set_exception(
+          std::forward<Result>(result).get_exception());
+    }
+  }
+
+  void resolve(exception_arg_t, exception_t exception) {
+    promise_.set_exception(std::move(exception));
   }
 };
 
@@ -115,9 +148,26 @@ auto loop(Callable&& callable, Args&&... args) {
                         args = std::make_tuple(std::forward<decltype(args)>(
                             args)...)](auto&& promise) mutable {
     // Do the actual looping
-    auto frame = make_loop_frame(std::forward<decltype(promise)>(promise));
+    auto frame = make_loop_frame(std::forward<decltype(promise)>(promise),
+                                 std::move(callable), std::move(args));
     frame->loop();
   });
+}
+
+template <typename Callable, typename Begin>
+auto make_range_looper(Callable&& callable, Begin&& begin) {
+  return [callable = std::forward<Callable>(callable),
+          begin = std::forward<Begin>(begin)](auto&& end) mutable {
+    return util::invoke(callable, begin)
+        .then([&begin, // begin stays valid over the `then`.
+               end = std::forward<decltype(end)>(end)]() mutable -> result<> {
+          if (++begin != end) {
+            return empty_result{};
+          } else {
+            return make_result();
+          }
+        });
+  };
 }
 } // namespace operations
 } // namespace detail
