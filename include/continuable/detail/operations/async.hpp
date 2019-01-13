@@ -28,34 +28,20 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_HPP_INCLUDED
-#define CONTINUABLE_HPP_INCLUDED
-
-/// Declares the continuable library namespace.
-///
-/// The most important class is cti::continuable_base, that provides the
-/// whole functionality for continuation chaining.
-///
-/// The class cti::continuable_base is created through the
-/// cti::make_continuable() function which accepts a callback taking function.
-///
-/// Also there are following support functions available:
-/// - cti::when_all() - connects cti::continuable_base's to an `all` connection.
-/// - cti::when_any() - connects cti::continuable_base's to an `any` connection.
-/// - cti::when_seq() - connects cti::continuable_base's to a sequence.
-namespace cti {}
+#ifndef CONTINUABLE_DETAIL_OPERATIONS_ASYNC_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_OPERATIONS_ASYNC_HPP_INCLUDED
 
 #include <continuable/continuable-base.hpp>
-#include <continuable/continuable-connections.hpp>
-#include <continuable/continuable-coroutine.hpp>
-#include <continuable/continuable-operations.hpp>
-#include <continuable/continuable-primitives.hpp>
-#include <continuable/continuable-promise-base.hpp>
-#include <continuable/continuable-promisify.hpp>
-#include <continuable/continuable-result.hpp>
-#include <continuable/continuable-transforms.hpp>
-#include <continuable/continuable-traverse-async.hpp>
-#include <continuable/continuable-traverse.hpp>
-#include <continuable/continuable-types.hpp>
 
-#endif // CONTINUABLE_HPP_INCLUDED
+namespace cti {
+namespace detail {
+namespace operations {
+template <typename Callable, typename... Args>
+auto async(Callable&& callable, Args&&... args) {
+}
+} // namespace operations
+
+} // namespace detail
+} // namespace cti
+
+#endif // CONTINUABLE_DETAIL_OPERATIONS_ASYNC_HPP_INCLUDED
