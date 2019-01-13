@@ -55,9 +55,9 @@ namespace hints {
 ///
 /// This is the overload taking an arbitrary amount of args
 template <typename... HintArgs>
-struct from_args : std::common_type<identity<HintArgs...>> {};
+struct from_args : std::common_type<signature_arg_t<HintArgs...>> {};
 template <>
-struct from_args<void> : std::common_type<identity<>> {};
+struct from_args<void> : std::common_type<signature_arg_t<>> {};
 } // namespace hints
 } // namespace detail
 } // namespace cti

@@ -32,12 +32,31 @@
 #define CONTINUABLE_DETAIL_OPERATIONS_ASYNC_HPP_INCLUDED
 
 #include <continuable/continuable-base.hpp>
+#include <continuable/detail/core/annotation.hpp>
+#include <continuable/detail/core/base.hpp>
+#include <continuable/detail/utility/identity.hpp>
 
 namespace cti {
 namespace detail {
 namespace operations {
+template <typename... SignatureArgs, typename Callable, typename... Args>
+auto make_async(signature_arg_t<SignatureArgs...>, Callable&& callable,
+                Args&&... args) {
+
+  auto continuation = [](auto&& promise) mutable { promise.set_value(); };
+
+  return base::attorney::create_from(std::move(continuation), //
+                                     signature_arg_t<Args...>{},
+                                     util::ownership{});
+}
+
 template <typename Callable, typename... Args>
 auto async(Callable&& callable, Args&&... args) {
+  using result_t = void;
+  using invoker_t =
+      decltype(base::decoration::invoker_of(identify<result_t>{}));
+  return make_async(invoker_t::hint(), std::forward<Callable>(callable),
+                    std::forward<Args>(args)...);
 }
 } // namespace operations
 

@@ -154,17 +154,18 @@ auto loop(Callable&& callable, Args&&... args) {
   });
 }
 
-template <typename Callable, typename Begin>
-auto make_range_looper(Callable&& callable, Begin&& begin) {
+template <typename Callable, typename Begin, typename End>
+auto make_range_looper(Callable&& callable, Begin&& begin, End&& end) {
   return [callable = std::forward<Callable>(callable),
-          begin = std::forward<Begin>(begin)](auto&& end) mutable {
+          begin = std::forward<Begin>(begin),
+          end = std::forward<End>(end)]() mutable {
     return util::invoke(callable, begin)
-        .then([&begin, // begin stays valid over the `then`.
-               end = std::forward<decltype(end)>(end)]() mutable -> result<> {
+        .then([&begin, &end]() mutable -> std::tuple<result<>> {
+          // begin and end stays valid over the `then` here
           if (++begin != end) {
-            return empty_result{};
+            return std::make_tuple(result<>(empty_result{}));
           } else {
-            return make_result();
+            return std::make_tuple(make_result());
           }
         });
   };

@@ -32,6 +32,7 @@
 #define CONTINUABLE_OPERATIONS_LOOP_HPP_INCLUDED
 
 #include <utility>
+#include <continuable/continuable-result.hpp>
 #include <continuable/detail/operations/loop.hpp>
 
 namespace cti {
@@ -45,9 +46,9 @@ auto loop(Callable&& callable, Args&&... args) {
 
 template <typename Callable, typename Iterator>
 auto range_loop(Callable&& callable, Iterator begin, Iterator end) {
-  auto looper = detail::operations::make_range_looper(
-      std::forward<Callable>(callable), begin);
-  return detail::operations::loop(std::move(looper), end);
+  return detail::operations::loop( //
+      detail::operations::make_range_looper(std::forward<Callable>(callable),
+                                            begin, end));
 }
 /// \}
 } // namespace cti
