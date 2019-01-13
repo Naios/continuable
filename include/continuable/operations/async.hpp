@@ -37,7 +37,6 @@
 namespace cti {
 /// \ingroup Operations
 /// \{
-
 template <typename Callable, typename... Args>
 auto async(Callable&& callable, Args&&... args) {
   return detail::operations::async(std::forward<Callable>(callable),

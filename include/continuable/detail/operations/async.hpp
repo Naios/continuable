@@ -39,24 +39,30 @@
 namespace cti {
 namespace detail {
 namespace operations {
-template <typename... SignatureArgs, typename Callable, typename... Args>
-auto make_async(signature_arg_t<SignatureArgs...>, Callable&& callable,
-                Args&&... args) {
-
-  auto continuation = [](auto&& promise) mutable { promise.set_value(); };
-
-  return base::attorney::create_from(std::move(continuation), //
-                                     signature_arg_t<Args...>{},
-                                     util::ownership{});
-}
-
 template <typename Callable, typename... Args>
 auto async(Callable&& callable, Args&&... args) {
-  using result_t = void;
-  using invoker_t =
-      decltype(base::decoration::invoker_of(identify<result_t>{}));
-  return make_async(invoker_t::hint(), std::forward<Callable>(callable),
-                    std::forward<Args>(args)...);
+  using result_t =
+      decltype(util::invoke(std::forward<decltype(callable)>(callable),
+                            std::forward<decltype(args)>(args)...));
+
+  auto const hint =
+      decltype(base::decoration::invoker_of(identify<result_t>{}))::hint();
+
+  auto continuation = [callable = std::forward<decltype(callable)>(callable),
+                       args = std::make_tuple(std::forward<decltype(args)>(
+                           args)...)](auto&& promise) mutable {
+    // Select the invoker
+    auto invoker = base::decoration::invoker_of(identify<result_t>{});
+
+    traits::unpack([&](auto&&... args) {
+      // Invoke the promise through the dedicated invoker
+      invoker(std::move(callable), std::forward<decltype(promise)>(promise),
+              std::forward<decltype(args)>(args)...);
+    });
+  };
+
+  return base::attorney::create_from(std::move(continuation), //
+                                     hint, util::ownership{});
 }
 } // namespace operations
 

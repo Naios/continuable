@@ -23,6 +23,24 @@
 
 #include <test-continuable.hpp>
 
-TYPED_TEST(single_dimension_tests, operations_async_) {
+using namespace cti;
 
+static int const CANARY = 19372;
+
+TYPED_TEST(single_dimension_tests, operations_async) {
+  ASSERT_ASYNC_COMPLETION(async([] {
+    //
+  }));
+
+  ASSERT_ASYNC_RESULT(async([] {
+                        //
+                        return CANARY;
+                      }),
+                      CANARY);
+
+  ASSERT_ASYNC_RESULT(async([] {
+                        //
+                        return std::make_tuple(CANARY, 2, CANARY);
+                      }),
+                      CANARY, 2, CANARY);
 }
