@@ -90,7 +90,7 @@ struct exception_arg_t {};
 
 /// \copydoc exception_arg_t
 ///
-/// \deprecated The exception_arg_t was deprecated in order to move closer
+/// \deprecated The dispatch_error_tag was deprecated in order to move closer
 ///             to the types specified in the "A Unified Future" proposal
 ///             especially regarding naming types similar.
 ///
@@ -111,7 +111,7 @@ using exception_t = detail::types::exception_t;
 
 /// \copydoc exception_t
 ///
-/// \deprecated The exception_t was deprecated in order to move closer
+/// \deprecated The error_type was deprecated in order to move closer
 ///             to the types specified in the "A Unified Future" proposal
 ///             especially regarding naming types similar.
 ///
