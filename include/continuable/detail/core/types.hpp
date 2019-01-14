@@ -31,6 +31,7 @@
 #ifndef CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_TYPES_HPP_INCLUDED
 
+#include <type_traits>
 #include <utility>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/utility/identity.hpp>
@@ -84,6 +85,10 @@ class plain_tag {
   T value_;
 
 public:
+  template <typename O, std::enable_if_t<std::is_constructible<
+                            T, std::decay_t<O>>::value>* = nullptr>
+  /* implicit */ plain_tag(O&& value) : value_(std::forward<O>(value)) {
+  }
   explicit plain_tag(T value) : value_(std::move(value)) {
   }
 

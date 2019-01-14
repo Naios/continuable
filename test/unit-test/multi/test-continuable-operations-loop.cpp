@@ -52,6 +52,22 @@ TYPED_TEST(single_dimension_tests, operations_loop_completion) {
                       CANARY, 2, CANARY);
 }
 
+TYPED_TEST(single_dimension_tests, operations_loop_until) {
+  int i = 0;
+
+  ASSERT_ASYNC_COMPLETION(loop([&i] {
+    return make_ready_continuable(++i).then([](int i) -> loop_result<> {
+      if (i == 3) {
+        return loop_break();
+      } else {
+        return loop_continue();
+      }
+    });
+  }));
+
+  ASSERT_EQ(i, 3);
+}
+
 TYPED_TEST(single_dimension_tests, operations_loop_looping) {
   int i = 0;
 
@@ -61,7 +77,7 @@ TYPED_TEST(single_dimension_tests, operations_loop_looping) {
         ++i;
         return make_ready_continuable();
       },
-      0, 10));
+      0, 3));
 
-  ASSERT_EQ(i, 10);
+  ASSERT_EQ(i, 3);
 }

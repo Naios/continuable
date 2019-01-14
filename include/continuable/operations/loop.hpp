@@ -32,6 +32,7 @@
 #define CONTINUABLE_OPERATIONS_LOOP_HPP_INCLUDED
 
 #include <utility>
+#include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-result.hpp>
 #include <continuable/detail/operations/loop.hpp>
 
@@ -42,10 +43,29 @@ namespace cti {
 /// Can be used to create an asynchronous loop.
 ///
 /// The callable will be called repeatedly until it returns a
-/// cti::continuable_base which then resolves to present cti::result.
+/// cti::continuable_base which then resolves to a present cti::result.
+///
+/// For better readability cti::loop_result, cti::loop_break and
+/// cti::loop_continue are provided which can be used as following:
+/// ```cpp
+/// auto while_answer_not_yes() {
+///   return loop([] {
+///     return ask_something().then([](std::string answer) -> loop_result<> {
+///       if (answer == "yes") {
+///         return loop_break();
+///       } else {
+///         return loop_continue();
+///       }
+///     });
+///   });
+/// }
+/// ```
 ///
 /// \param callable The callable type which must return a cti::continuable_base
 ///        which then resolves to a cti::result of arbitrary values.
+///
+/// \param args The arguments that are passed to the callable upon
+///             each invocation.
 ///
 /// \since 4.0.0
 ///
@@ -53,6 +73,34 @@ template <typename Callable, typename... Args>
 auto loop(Callable&& callable, Args&&... args) {
   return detail::operations::loop(std::forward<Callable>(callable),
                                   std::forward<Args>(args)...);
+}
+
+/// Can be used to indicate a specific result inside an asynchronous loop.
+///
+/// See cti::loop for details.
+///
+/// \since 4.0.0
+template <typename... T>
+using loop_result = plain_t<result<T...>>;
+
+/// Can be used to create a loop_result which causes the loop to be
+/// cancelled and resolved with the given arguments.
+///
+/// See cti::loop for details.
+///
+/// \since 4.0.0
+template <typename... T>
+auto loop_break(T&&... args) {
+  return make_plain(make_result(std::forward<T>(args)...));
+}
+
+/// Can be used to create a loop_result which causes the loop to be repeated.
+///
+/// See cti::loop for details.
+///
+/// \since 4.0.0
+inline auto loop_continue() noexcept {
+  return empty_result{};
 }
 
 ///
@@ -64,6 +112,7 @@ auto range_loop(Callable&& callable, Iterator begin, Iterator end) {
       detail::operations::make_range_looper(std::forward<Callable>(callable),
                                             begin, end));
 }
+
 /// \}
 } // namespace cti
 
