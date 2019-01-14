@@ -37,6 +37,29 @@
 namespace cti {
 /// \ingroup Operations
 /// \{
+
+/// Wraps the given callable inside a continuable_base such that it is
+/// invoked when the asynchronous result is requested to return the result.
+///
+/// The behaviour will be equal as when using make_ready_continuable together
+/// with continuable_base::then, but async is implemented in
+/// a more efficient way:
+/// ```cpp
+/// auto do_sth() {
+///   return async([] {
+///     do_sth_more();
+///     return 0;
+///   });
+/// }
+/// ```
+///
+/// \param callable The callable type which is invoked on request
+///
+/// \param args The arguments which are passed to the callable upon invocation.
+///
+/// \returns A continuable_base which asynchronous result type will
+///          be computated with the same rules as continuable_base::then .
+///
 template <typename Callable, typename... Args>
 auto async(Callable&& callable, Args&&... args) {
   return detail::operations::async(std::forward<Callable>(callable),

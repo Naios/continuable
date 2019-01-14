@@ -45,20 +45,24 @@ auto async(Callable&& callable, Args&&... args) {
       decltype(util::invoke(std::forward<decltype(callable)>(callable),
                             std::forward<decltype(args)>(args)...));
 
-  auto const hint =
-      decltype(base::decoration::invoker_of(identify<result_t>{}))::hint();
+  constexpr auto hint =
+      decltype(base::decoration::invoker_of(identity<result_t>{}))::hint();
 
   auto continuation = [callable = std::forward<decltype(callable)>(callable),
                        args = std::make_tuple(std::forward<decltype(args)>(
                            args)...)](auto&& promise) mutable {
-    // Select the invoker
-    auto invoker = base::decoration::invoker_of(identify<result_t>{});
 
-    traits::unpack([&](auto&&... args) {
-      // Invoke the promise through the dedicated invoker
-      invoker(std::move(callable), std::forward<decltype(promise)>(promise),
-              std::forward<decltype(args)>(args)...);
-    });
+    auto invoker = base::decoration::invoker_of(identity<result_t>{});
+
+    using promise_t = decltype(promise);
+
+    traits::unpack(
+        [&](auto&&... args) {
+          // Invoke the promise through the dedicated invoker
+          invoker(std::move(callable), std::forward<promise_t>(promise),
+                  std::forward<decltype(args)>(args)...);
+        },
+        std::move(args));
   };
 
   return base::attorney::create_from(std::move(continuation), //
