@@ -102,7 +102,7 @@ public:
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
           } catch (...) {
-            resolve(exception_arg_t{}, std::current_exception());
+            me->resolve(exception_arg_t{}, std::current_exception());
           }
 #endif // CONTINUABLE_HAS_EXCEPTIONS
         },
