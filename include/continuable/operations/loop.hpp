@@ -103,6 +103,28 @@ inline auto loop_continue() noexcept {
   return empty_result{};
 }
 
+/// Can be used to create an asynchronous loop over a specific range.
+///
+/// The callable will be called repeatedly with each with begin increased
+/// until end is reached.
+///
+/// ```cpp
+/// auto iterate_some() {
+///   // Iterate step from 0 to 9
+///   return range_loop([] (int step) {
+///     return do_something(i).then([] {
+///       // You don't have to return a result here
+///     });
+///   }, 0, 10);
+/// }
+/// ```
+///
+/// \param callable The callable type which must return a cti::continuable_base
+///        which then resolves to a cti::result of arbitrary values.
+///
+/// \param begin The iterator to iterate over
+///
+/// \param end The iterator to iterate until
 ///
 /// \since 4.0.0
 ///
