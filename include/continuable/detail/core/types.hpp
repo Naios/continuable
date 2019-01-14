@@ -77,6 +77,20 @@ public:
 
 /// Tag for constructing an empty promise_base .
 struct promise_no_init_arg_t {};
+
+/// Marks a given callable object as transformation
+template <typename T>
+class plain_tag {
+  T value_;
+
+public:
+  explicit plain_tag(T value) : value_(std::move(value)) {
+  }
+
+  T&& consume() && {
+    return std::move(value_);
+  }
+};
 } // namespace types
 } // namespace detail
 } // namespace cti

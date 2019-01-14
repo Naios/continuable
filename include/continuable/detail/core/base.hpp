@@ -329,6 +329,23 @@ constexpr auto invoker_of(identity<T>) {
       identify<T>{});
 }
 
+/// - plain_tag<?> -> next_callback(?)
+template <typename T>
+constexpr auto invoker_of(identity<types::plain_tag<T>>) {
+  return make_invoker(
+      [](auto&& callback, auto&& next_callback, auto&&... args) {
+        CONTINUABLE_BLOCK_TRY_BEGIN
+          types::plain_tag<T> result =
+              invoke_callback(std::forward<decltype(callback)>(callback),
+                              std::forward<decltype(args)>(args)...);
+
+          invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
+                           std::move(result).consume());
+        CONTINUABLE_BLOCK_TRY_END
+      },
+      identify<T>{});
+}
+
 /// - void -> next_callback()
 inline auto invoker_of(identity<void>) {
   return make_invoker(
@@ -469,10 +486,8 @@ void on_executor(Executor&& executor, Invoker&& invoker, Args&&... args) {
 
   // Create a worker object which when invoked calls the callback with the
   // the returned arguments.
-  auto work = [
-    invoker = std::forward<Invoker>(invoker),
-    args = std::make_tuple(std::forward<Args>(args)...)
-  ]() mutable {
+  auto work = [invoker = std::forward<Invoker>(invoker),
+               args = std::make_tuple(std::forward<Args>(args)...)]() mutable {
     traits::unpack(
         [&](auto&&... captured_args) {
           // Just use the packed dispatch method which dispatches the work on

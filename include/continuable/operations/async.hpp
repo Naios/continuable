@@ -60,6 +60,8 @@ namespace cti {
 /// \returns A continuable_base which asynchronous result type will
 ///          be computated with the same rules as continuable_base::then .
 ///
+/// \since 4.0.0
+///
 template <typename Callable, typename... Args>
 auto async(Callable&& callable, Args&&... args) {
   return detail::operations::async(std::forward<Callable>(callable),

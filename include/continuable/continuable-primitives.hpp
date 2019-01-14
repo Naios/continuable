@@ -62,6 +62,7 @@ namespace cti {
 /// of a continuable_base or promise_base.
 ///
 /// \since 4.0.0
+///
 template <typename... Args>
 using signature_arg_t = detail::identity<Args...>;
 
@@ -70,6 +71,7 @@ using signature_arg_t = detail::identity<Args...>;
 /// without having side effects.
 ///
 /// \since 4.0.0
+///
 struct is_ready_arg_t {};
 
 /// Represents the tag type that is used to query the continuation
@@ -78,6 +80,7 @@ struct is_ready_arg_t {};
 /// It's required that the query of is_ready_arg_t returns true.
 ///
 /// \since 4.0.0
+///
 struct query_arg_t {};
 
 /// Represents the tag type that is used to disambiguate the
@@ -86,6 +89,7 @@ struct query_arg_t {};
 /// \note see continuable::next for details.
 ///
 /// \since 4.0.0
+///
 struct exception_arg_t {};
 
 /// \copydoc exception_arg_t
@@ -96,7 +100,7 @@ struct exception_arg_t {};
 ///
 [[deprecated("The dispatch_error_tag was replaced by exception_arg_t and will "
              "be removed in a later major version!")]] //
-    typedef exception_arg_t dispatch_error_tag;
+typedef exception_arg_t dispatch_error_tag;
 
 /// Represents the type that is used as exception type
 ///
@@ -107,6 +111,7 @@ struct exception_arg_t {};
 /// defining `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`.
 ///
 /// \since 4.0.0
+///
 using exception_t = detail::types::exception_t;
 
 /// \copydoc exception_t
@@ -117,7 +122,16 @@ using exception_t = detail::types::exception_t;
 ///
 [[deprecated("The error_type was replaced by exception_t and will "
              "be removed in a later major version!")]] //
-    typedef exception_t error_type;
+typedef exception_t error_type;
+
+/// Represents the type that is used to disable the special meaning of types
+/// which are returned by a asynchronous result handler.
+/// See cti::plain for details.
+///
+/// \since 4.0.0
+///
+template <typename T>
+using plain_t = detail::types::plain_tag<T>;
 /// \}
 } // namespace cti
 

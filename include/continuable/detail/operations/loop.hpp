@@ -160,12 +160,12 @@ auto make_range_looper(Callable&& callable, Begin&& begin, End&& end) {
           begin = std::forward<Begin>(begin),
           end = std::forward<End>(end)]() mutable {
     return util::invoke(callable, begin)
-        .then([&begin, &end]() mutable -> std::tuple<result<>> {
+        .then([&begin, &end]() mutable -> plain_t<result<>> {
           // begin and end stays valid over the `then` here
           if (++begin != end) {
-            return std::make_tuple(result<>(empty_result{}));
+            return make_plain(result<>::empty());
           } else {
-            return std::make_tuple(make_result());
+            return make_plain(make_result());
           }
         });
   };

@@ -228,15 +228,17 @@ continuable_base(continuable_base<OData, Annotation>&& other)
   /// | `Arg`                      | `continuable_base with <Arg>`             |
   /// | `std::pair<First, Second>` | `continuable_base with <First, Second>`   |
   /// | `std::tuple<Args...>`      | `continuable_base with <Args...>`         |
-  /// | `result<Args...>`          | `continuable_base with <Args...>`         |
+  /// | `cti::result<Args...>`     | `continuable_base with <Args...>`         |
   /// | `continuable_base<Arg...>` | `continuable_base with <Args...>`         |
   ///          Which means the result type of the continuable_base is equal to
   ///          the plain types the callback returns (`std::tuple` and
   ///          `std::pair` arguments are unwrapped).
   ///          A single continuable_base as argument is resolved and the result
   ///          type is equal to the resolved continuable_base.
-  ///          A result<...> can be used to cancel the continuation or to
+  ///          A cti::result can be used to cancel the continuation or to
   ///          transition to the exception handler.
+  ///          The special unwrapping of types can be disabled through wrapping
+  ///          such objects through a call to cti::make_plain.
   ///          Consider the following examples:
   /// ```cpp
   /// http_request("github.com")
@@ -864,8 +866,8 @@ constexpr auto make_continuable(Continuation&& continuation) {
 /// \since     3.0.0
 template <typename... Args>
 auto make_ready_continuable(Args&&... args) {
-  using detail::base::ready_continuation;
   using detail::identity;
+  using detail::base::ready_continuation;
   using detail::traits::unrefcv_t;
   return detail::base::attorney::create_from_raw(
       ready_continuation<unrefcv_t<Args>...>{std::forward<Args>(args)...},
@@ -924,6 +926,33 @@ auto make_cancelling_continuable() {
                 "Requires at least one type for the fake signature!");
 
   return make_continuable<Signature...>([](auto&&) { /* ... */ });
+}
+
+/// Can be used to disable the special meaning for a returned value in
+/// asynchronous handler functions.
+///
+/// Several types have a special meaning when being returned from a callable
+/// passed to asynchronous handler functions like:
+/// - continuable_base::then
+/// - continuable_base::fail
+/// - continuable_base::next
+///
+/// For instance such types are std::tuple, std::pair and cti::result.
+///
+/// Wrapping such an object through a call to make_plain disables the special
+/// meaning for such objects as shown below:
+/// ```cpp
+/// continuable<result<int, int> c = http_request("example.com")
+///   .then([](std::string content) {
+///     return make_plain(make_result(0, 1));
+///   })
+/// ```
+///
+/// \since 4.0.0
+///
+template <typename T>
+auto make_plain(T&& value) {
+  return plain_t<detail::traits::unrefcv_t<T>>(std::forward<T>(value));
 }
 
 /// Can be used to recover to from a failure handler,

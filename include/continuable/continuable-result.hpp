@@ -257,6 +257,11 @@ public:
     return result{init_arg_t{}, std::move(exception)};
   }
 
+  /// Creates an empty result
+  static result empty() {
+    return result{empty_result{}};
+  }
+
 private:
   detail::container::flat_variant<surrogate_t, exception_t> variant_;
 };

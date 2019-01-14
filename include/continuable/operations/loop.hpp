@@ -38,12 +38,26 @@
 namespace cti {
 /// \ingroup Operations
 /// \{
+
+/// Can be used to create an asynchronous loop.
+///
+/// The callable will be called repeatedly until it returns a
+/// cti::continuable_base which then resolves to present cti::result.
+///
+/// \param callable The callable type which must return a cti::continuable_base
+///        which then resolves to a cti::result of arbitrary values.
+///
+/// \since 4.0.0
+///
 template <typename Callable, typename... Args>
 auto loop(Callable&& callable, Args&&... args) {
   return detail::operations::loop(std::forward<Callable>(callable),
                                   std::forward<Args>(args)...);
 }
 
+///
+/// \since 4.0.0
+///
 template <typename Callable, typename Iterator>
 auto range_loop(Callable&& callable, Iterator begin, Iterator end) {
   return detail::operations::loop( //
