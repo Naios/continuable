@@ -39,8 +39,8 @@
 namespace cti {
 namespace detail {
 namespace operations {
-template <typename Callable, typename... Args>
-auto async(Callable&& callable, Args&&... args) {
+template <typename Callable, typename Executor, typename... Args>
+auto async(Callable&& callable, Executor&& executor, Args&&... args) {
   using result_t =
       decltype(util::invoke(std::forward<decltype(callable)>(callable),
                             std::forward<decltype(args)>(args)...));
@@ -49,18 +49,22 @@ auto async(Callable&& callable, Args&&... args) {
       decltype(base::decoration::invoker_of(identity<result_t>{}))::hint();
 
   auto continuation = [callable = std::forward<decltype(callable)>(callable),
+                       executor = std::forward<decltype(executor)>(executor),
                        args = std::make_tuple(std::forward<decltype(args)>(
                            args)...)](auto&& promise) mutable {
-
     auto invoker = base::decoration::invoker_of(identity<result_t>{});
 
     using promise_t = decltype(promise);
 
+    // Invoke the callback
     traits::unpack(
-        [&](auto&&... args) {
+        [&](auto&&... args) mutable {
           // Invoke the promise through the dedicated invoker
-          invoker(std::move(callable), std::forward<promise_t>(promise),
-                  std::forward<decltype(args)>(args)...);
+          // and through the given executor
+          base::on_executor(std::move(executor), std::move(invoker),
+                            std::move(callable),
+                            std::forward<promise_t>(promise),
+                            std::forward<decltype(args)>(args)...);
         },
         std::move(args));
   };

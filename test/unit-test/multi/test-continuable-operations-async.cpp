@@ -44,3 +44,41 @@ TYPED_TEST(single_dimension_tests, operations_async) {
                       }),
                       CANARY, 2, CANARY);
 }
+
+TYPED_TEST(single_dimension_tests, operations_async_on_dropping) {
+  bool invoked = false;
+  auto executor = [&](auto&& work) {
+    EXPECT_FALSE(invoked);
+    invoked = true;
+    (void)work;
+  };
+
+  ASSERT_ASYNC_INCOMPLETION(async_on(
+      [] {
+        FAIL(); //
+      },
+      executor));
+
+  ASSERT_TRUE(invoked);
+}
+
+TYPED_TEST(single_dimension_tests, operations_async_on_executor) {
+  bool invoked = false;
+  auto executor = [&](auto&& work) {
+    // We can move the worker object
+    auto local = std::forward<decltype(work)>(work);
+    EXPECT_FALSE(invoked);
+    // We can invoke the worker object
+    std::move(local)();
+    EXPECT_TRUE(invoked);
+  };
+
+  ASSERT_ASYNC_COMPLETION(async_on(
+      [&invoked] {
+        EXPECT_FALSE(invoked);
+        invoked = true;
+      },
+      executor));
+
+  ASSERT_TRUE(invoked);
+}

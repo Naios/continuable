@@ -32,6 +32,7 @@
 #define CONTINUABLE_OPERATIONS_ASYNC_HPP_INCLUDED
 
 #include <utility>
+#include <continuable/detail/core/types.hpp>
 #include <continuable/detail/operations/async.hpp>
 
 namespace cti {
@@ -40,6 +41,8 @@ namespace cti {
 
 /// Wraps the given callable inside a continuable_base such that it is
 /// invoked when the asynchronous result is requested to return the result.
+///
+/// The async function shall be seen as an equivalent to std::async.
 ///
 /// The behaviour will be equal as when using make_ready_continuable together
 /// with continuable_base::then, but async is implemented in
@@ -53,7 +56,7 @@ namespace cti {
 /// }
 /// ```
 ///
-/// \param callable The callable type which is invoked on request
+/// \param callable The callable type which is invoked on request.
 ///
 /// \param args The arguments which are passed to the callable upon invocation.
 ///
@@ -65,6 +68,46 @@ namespace cti {
 template <typename Callable, typename... Args>
 auto async(Callable&& callable, Args&&... args) {
   return detail::operations::async(std::forward<Callable>(callable),
+                                   detail::types::this_thread_executor_tag{},
+                                   std::forward<Args>(args)...);
+}
+
+/// Wraps the given callable inside a continuable_base such that it is
+/// invoked through the given executor when the asynchronous result
+/// is requested to return the result.
+///
+/// The behaviour will be equal as when using make_ready_continuable together
+/// with continuable_base::then and the given executor but async_on
+/// is implemented in a more efficient way:
+/// ```cpp
+/// auto do_sth() {
+///   auto executor = [](auto&& work) {
+///     // Do something with the work here
+///     std::forward<decltype(work)>(work);
+///   };
+///
+///   return async_on([] {
+///     do_sth_more();
+///     return 0;
+///   }, my_executor);
+/// }
+/// ```
+///
+/// \param callable The callable type which is invoked on request.
+///
+/// \param executor The executor that is used to dispatch the given callable.
+///
+/// \param args The arguments which are passed to the callable upon invocation.
+///
+/// \returns A continuable_base which asynchronous result type will
+///          be computated with the same rules as continuable_base::then .
+///
+/// \since 4.0.0
+///
+template <typename Callable, typename Executor, typename... Args>
+auto async_on(Callable&& callable, Executor&& executor, Args&&... args) {
+  return detail::operations::async(std::forward<Callable>(callable),
+                                   std::forward<Executor>(executor),
                                    std::forward<Args>(args)...);
 }
 /// \}
