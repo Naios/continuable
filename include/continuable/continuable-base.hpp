@@ -866,12 +866,11 @@ constexpr auto make_continuable(Continuation&& continuation) {
 /// \since     3.0.0
 template <typename... Args>
 auto make_ready_continuable(Args&&... args) {
-  using detail::identity;
-  using detail::base::ready_continuation;
-  using detail::traits::unrefcv_t;
   return detail::base::attorney::create_from_raw(
-      ready_continuation<unrefcv_t<Args>...>{std::forward<Args>(args)...},
-      identity<unrefcv_t<Args>...>{}, detail::util::ownership{});
+      detail::base::ready_continuation<detail::traits::unrefcv_t<Args>...>{
+          std::forward<Args>(args)...},
+      detail::identity<detail::traits::unrefcv_t<Args>...>{},
+      detail::util::ownership{});
 }
 
 /// Returns a continuable_base with the parameterized result which instantly

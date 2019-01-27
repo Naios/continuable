@@ -130,8 +130,7 @@ struct result_deducer {
     return deduce_same_hints(deduce(
         traversal::container_category_of_t<
             std::decay_t<decltype(std::get<I>(std::declval<T>()))>>{},
-        identity<
-            std::decay_t<decltype(std::get<I>(std::declval<T>()))>>{})...);
+        identity<std::decay_t<decltype(std::get<I>(std::declval<T>()))>>{})...);
   }
 
   /// Traverse tuple like container

@@ -33,8 +33,8 @@
 
 #include <future>
 #include <continuable/continuable-primitives.hpp>
-#include <continuable/detail/core/base.hpp>
 #include <continuable/detail/core/annotation.hpp>
+#include <continuable/detail/core/base.hpp>
 #include <continuable/detail/core/types.hpp>
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/utility/util.hpp>
@@ -77,8 +77,7 @@ template <typename Hint>
 class promise_callback;
 
 template <typename... Args>
-class promise_callback<identity<Args...>>
-    : public future_trait<Args...> {
+class promise_callback<identity<Args...>> : public future_trait<Args...> {
 
   typename future_trait<Args...>::promise_t promise_;
 

@@ -80,8 +80,7 @@ class continuable_box<continuable_base<Data, identity<>>> {
   continuable_base<Data, identity<>> continuable_;
 
 public:
-  explicit continuable_box(
-      continuable_base<Data, identity<>>&& continuable)
+  explicit continuable_box(continuable_base<Data, identity<>>&& continuable)
       : continuable_(std::move(continuable)) {
   }
 
@@ -137,8 +136,7 @@ class continuable_box<
 
 public:
   explicit continuable_box(
-      continuable_base<Data, identity<First, Second, Rest...>>&&
-          continuable)
+      continuable_base<Data, identity<First, Second, Rest...>>&& continuable)
       : continuable_(std::move(continuable)) {
   }
 
@@ -209,13 +207,12 @@ constexpr auto unbox_continuables(Args&&... args) {
 
 namespace detail {
 template <typename Callback, typename Data>
-constexpr auto finalize_impl(identity<void>, Callback&& callback,
-                             Data&&) {
+constexpr auto finalize_impl(identity<void>, Callback&& callback, Data&&) {
   return std::forward<Callback>(callback)();
 }
 template <typename... Args, typename Callback, typename Data>
-constexpr auto finalize_impl(identity<std::tuple<Args...>>,
-                             Callback&& callback, Data&& data) {
+constexpr auto finalize_impl(identity<std::tuple<Args...>>, Callback&& callback,
+                             Data&& data) {
   // Call the final callback with the cleaned result
   return traits::unpack(std::forward<Callback>(callback),
                         unbox_continuables(std::forward<Data>(data)));
