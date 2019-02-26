@@ -36,6 +36,14 @@ The [documentation](https://naios.github.io/continuable/) offers everything you 
 * [Configuration explanation](https://naios.github.io/continuable/configuration.html)
 * [Changelog](https://naios.github.io/continuable/changelog.html)
 
+
+#### Appearances:
+
+| [MeetingC++ 2018 Talk](https://naios.github.io/talks/2018-11-17-Meeting-C%2B%2B-Berlin/Continuable.pdf) |
+| :---: |
+| [<img alt="Continuable MeetingC++" width="60%" src="https://img.youtube.com/vi/l6-spMA_x6g/0.jpg">](https://www.youtube.com/watch?v=l6-spMA_x6g)] |
+
+
 #### Issues and contributions
 
 Issue reports are accepted through the Github issue tracker as well as Pull requests.
