@@ -1,12 +1,5 @@
 
 /*
-
-                        /~` _  _ _|_. _     _ |_ | _
-                        \_,(_)| | | || ||_|(_||_)|(/_
-
-                    https://github.com/Naios/continuable
-                                   v4.0.0
-
   Copyright(c) 2015 - 2019 Denis Blank <denis.blank at outlook dot com>
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -28,14 +21,28 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_OPERATIONS_HPP_INCLUDED
-#define CONTINUABLE_OPERATIONS_HPP_INCLUDED
+#include <test-continuable.hpp>
 
-/// \defgroup Operations Operations
-/// provides functions to work with asynchronous control flows.
+using namespace cti;
 
-#include <continuable/operations/async.hpp>
-#include <continuable/operations/loop.hpp>
-#include <continuable/operations/split.hpp>
+auto add(promise<>& all) {
+  return make_continuable<void>([&](auto&& promise) {
+    auto res = split(std::move(all), std::forward<decltype(promise)>(promise));
+    EXPECT_TRUE(res);
+    all = std::move(res);
+  });
+}
 
-#endif // CONTINUABLE_OPERATIONS_HPP_INCLUDED
+TYPED_TEST(single_dimension_tests, operations_split) {
+  promise<> all;
+  bool resolved = false;
+
+  when_all(add(all), add(all), add(all)).then([&resolved] {
+    EXPECT_FALSE(resolved);
+    resolved = true;
+  });
+
+  ASSERT_FALSE(resolved);
+  all.set_value();
+  ASSERT_TRUE(resolved);
+}
