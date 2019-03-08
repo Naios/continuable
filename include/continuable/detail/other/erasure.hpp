@@ -177,6 +177,26 @@ public:
   }
 };
 #endif
+
+using work_erasure_t = fu2::unique_function<void()>;
+
+#ifdef CONTINUABLE_HAS_IMMEDIATE_TYPES
+using work = work_erasure_t;
+#else
+class work : public work_erasure_t {
+public:
+  work() = default;
+  ~work() = default;
+  work(work const&) = delete;
+  work(work&&) = default;
+  work& operator=(work const&) = delete;
+  work& operator=(work&&) = default;
+
+  using work_erasure_t::work_erasure_t;
+  using work_erasure_t::operator=;
+  using work_erasure_t::operator();
+};
+#endif // CONTINUABLE_HAS_IMMEDIATE_TYPES
 } // namespace erasure
 } // namespace detail
 } // namespace cti

@@ -69,7 +69,7 @@ TEST(single_erasure_test, is_constructible_from_work) {
   });
 
   ASSERT_FALSE(flag);
-  mywork();
+  std::move(mywork)();
   ASSERT_TRUE(flag);
 }
 
@@ -84,6 +84,6 @@ TEST(single_erasure_test, is_assignable_from_work) {
   };
 
   ASSERT_FALSE(flag);
-  mywork();
+  std::move(mywork)();
   ASSERT_TRUE(flag);
 }

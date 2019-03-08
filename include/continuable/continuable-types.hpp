@@ -89,19 +89,7 @@ using promise = promise_base<detail::erasure::callback<Args...>, //
 ///       callable object which is callable with a `void()` signature.
 ///
 /// \since 4.0.0
-class work : public fu2::unique_function<void()> {
-public:
-  work() = default;
-  ~work() = default;
-  work(work const&) = delete;
-  work(work&&) = default;
-  work& operator=(work const&) = delete;
-  work& operator=(work&&) = default;
-
-  using fu2::unique_function<void()>::unique_function;
-  using fu2::unique_function<void()>::operator=;
-  using fu2::unique_function<void()>::operator();
-};
+using work = detail::erasure::work;
 /// \}
 } // namespace cti
 
