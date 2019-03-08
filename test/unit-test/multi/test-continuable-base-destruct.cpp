@@ -48,6 +48,7 @@ TYPED_TEST(single_dimension_tests, are_called_on_destruct) {
 template <typename T>
 auto create_incomplete(T* me) {
   return me->make(identity<>{}, identity<void>{}, [](auto&& callback) mutable {
+    EXPECT_TRUE(callback);
     // Destruct the callback here
     auto destroy = std::forward<decltype(callback)>(callback);
     (void)destroy;
@@ -57,6 +58,7 @@ auto create_incomplete(T* me) {
 template <typename T>
 auto create_incomplete_cancelling(T* me) {
   return me->make(identity<>{}, identity<void>{}, [](auto&& callback) mutable {
+    EXPECT_TRUE(callback);
     make_cancelling_continuable<void>().next(
         std::forward<decltype(callback)>(callback));
   });
@@ -64,8 +66,10 @@ auto create_incomplete_cancelling(T* me) {
 
 template <typename T>
 auto assert_invocation(T* me) {
-  return me->make(identity<>{}, identity<void>{},
-                  [](auto&& /*callback*/) mutable { FAIL(); });
+  return me->make(identity<>{}, identity<void>{}, [](auto&& callback) mutable {
+    EXPECT_TRUE(callback);
+    FAIL();
+  });
 }
 
 TYPED_TEST(single_dimension_tests, are_incomplete_when_frozen) {

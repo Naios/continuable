@@ -486,8 +486,10 @@ void on_executor(Executor&& executor, Invoker&& invoker, Args&&... args) {
 
   // Create a worker object which when invoked calls the callback with the
   // the returned arguments.
-  auto work = [invoker = std::forward<Invoker>(invoker),
-               args = std::make_tuple(std::forward<Args>(args)...)]() mutable {
+  auto work = [
+    invoker = std::forward<Invoker>(invoker),
+    args = std::make_tuple(std::forward<Args>(args)...)
+  ]() mutable {
     traits::unpack(
         [&](auto&&... captured_args) {
           // Just use the packed dispatch method which dispatches the work on
@@ -633,6 +635,11 @@ struct callback_base<identity<Args...>, HandleResults, HandleErrors, Callback,
   void set_exception(exception_t error) {
     std::move (*this)(exception_arg_t{}, std::move(error));
   }
+
+  /// Returns true because this is a present continuation
+  explicit operator bool() const noexcept {
+    return true;
+  }
 };
 
 template <typename Hint, handle_results HandleResults,
@@ -681,6 +688,10 @@ struct final_callback : util::non_copyable {
   void set_exception(exception_t error) {
     // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
     std::move (*this)(exception_arg_t{}, std::move(error));
+  }
+
+  explicit operator bool() const noexcept {
+    return true;
   }
 };
 } // namespace callbacks

@@ -16,6 +16,7 @@ target_link_libraries(test-continuable-base
     continuable-features-noexcept)
 
 add_executable(test-continuable-single
+  ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-promise.cpp
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-connection-noinst
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-forward-decl.cpp
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-flat-variant.cpp

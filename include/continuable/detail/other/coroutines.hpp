@@ -200,8 +200,7 @@ struct promise_type
   coroutine_handle<> handle_;
   Promise promise_;
 
-  explicit promise_type() : promise_(types::promise_no_init_arg_t{}) {
-  }
+  explicit promise_type() = default;
 
   Continuable get_return_object() {
     return [this](auto&& promise) {

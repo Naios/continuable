@@ -94,6 +94,10 @@ public:
   void operator()(exception_arg_t exception_arg, exception_t exception) && {
     std::move(erasure_)(exception_arg, std::move(exception));
   }
+
+  explicit operator bool() const noexcept {
+    return bool(erasure_);
+  }
 };
 #endif
 

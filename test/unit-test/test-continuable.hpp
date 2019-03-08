@@ -49,6 +49,7 @@ template <typename... Args>
 auto supplier_of(Args&&... args) {
   return [values = std::make_tuple(std::forward<Args>(args)...)](
       auto&& promise) mutable {
+    EXPECT_TRUE(promise);
     cti::detail::traits::unpack(
         [&](auto&&... passed) {
           promise.set_value(std::forward<decltype(passed)>(passed)...);
@@ -71,6 +72,7 @@ public:
   auto invoke(T&& type) {
     return this->make(identity<>{}, identity<void>{},
                       [type = std::forward<T>(type)](auto&& promise) mutable {
+                        EXPECT_TRUE(promise);
                         promise.set_value();
                       });
   }

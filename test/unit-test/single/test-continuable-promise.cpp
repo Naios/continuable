@@ -23,39 +23,25 @@
 
 #include <test-continuable.hpp>
 
-#ifndef NO_ERASURE_TESTS
+using namespace cti;
 
-TYPED_TEST(single_dimension_tests, is_eraseable) {
-
-  {
-    cti::continuable<int> erasure =
-        cti::make_continuable<int>(supplier_of(0xDF));
-
-    EXPECT_ASYNC_RESULT(std::move(erasure), 0xDF);
-  }
-
-  {
-    cti::continuable<int> erasure = supplier_of(0xDF);
-
-    EXPECT_ASYNC_RESULT(std::move(erasure), 0xDF);
-  }
-
-  {
-    cti::continuable<int> erasure = this->supply(0xDF);
-
-    EXPECT_ASYNC_RESULT(std::move(erasure), 0xDF);
-  }
+TEST(promise_tests, are_invalidated) {
+  ASSERT_ASYNC_COMPLETION(make_continuable<void>([](promise<> promise) {
+    EXPECT_TRUE(promise);
+    promise.set_value();
+    EXPECT_FALSE(promise);
+  }));
 }
 
-TYPED_TEST(single_dimension_tests, is_callable) {
+TEST(promise_tests, are_move_assignable) {
+  ASSERT_ASYNC_COMPLETION(make_continuable<void>([](auto&& initial) {
+    promise<> other;
+    EXPECT_FALSE(other);
+    EXPECT_TRUE(initial);
 
-  cti::continuable<int, int> erased = [](cti::promise<int, int>&& callback) {
-    EXPECT_TRUE(callback);
-    std::move(callback)(0xDF, 0xDD);
-    EXPECT_FALSE(callback);
-  };
-
-  EXPECT_ASYNC_RESULT(std::move(erased), 0xDF, 0xDD);
+    other = std::forward<decltype(initial)>(initial);
+    EXPECT_TRUE(other);
+    other.set_value();
+    EXPECT_FALSE(other);
+  }));
 }
-
-#endif // #ifndef NO_ERASURE_TESTS
