@@ -46,3 +46,17 @@ TYPED_TEST(single_dimension_tests, operations_split) {
   all.set_value();
   ASSERT_TRUE(resolved);
 }
+
+TYPED_TEST(single_dimension_tests, operations_split_plain_callback) {
+  promise<> all;
+  bool resolved = false;
+
+  all = split(std::move(all), [&](auto&&...) {
+    EXPECT_FALSE(resolved);
+    resolved = true;
+  });
+
+  ASSERT_FALSE(resolved);
+  all.set_value();
+  ASSERT_TRUE(resolved);
+}

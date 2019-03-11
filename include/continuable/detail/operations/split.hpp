@@ -36,10 +36,27 @@
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-traverse.hpp>
 #include <continuable/continuable-types.hpp>
+#include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
 namespace detail {
 namespace operations {
+template <typename T, bool Else, typename = void>
+struct operator_bool_or {
+  template <typename O>
+  static bool get(O&& /*obj*/) noexcept {
+    return Else;
+  }
+};
+template <typename T, bool Else>
+struct operator_bool_or<T, Else,
+                        traits::void_t<decltype(bool(std::declval<T&>()))>> {
+  template <typename O>
+  static bool get(O&& obj) noexcept {
+    return bool(obj);
+  }
+};
+
 template <typename First, typename... Promises>
 class split_promise {
   First first_;
@@ -51,31 +68,19 @@ public:
   }
 
   template <typename... Args>
-  void operator()(Args... args) && {
+  void operator()(Args&&... args) && {
     traverse_pack(
         [&](auto&& promise) mutable -> void {
-          if (promise) {
+          using accessor =
+              operator_bool_or<traits::unrefcv_t<decltype(promise)>, true>;
+          if (accessor::get(promise)) {
             std::forward<decltype(promise)>(promise)(args...);
           }
         },
         std::move(promises_));
 
-    if (first_) {
+    if (operator_bool_or<First, true>::get(first_)) {
       std::move(first_)(std::forward<Args>(args)...);
-    }
-  }
-
-  void operator()(exception_arg_t tag, exception_t exception) && {
-    traverse_pack(
-        [&](auto&& promise) mutable -> void {
-          if (promise) {
-            std::forward<decltype(promise)>(promise)(tag, exception);
-          }
-        },
-        std::move(promises_));
-
-    if (first_) {
-      std::move(first_)(tag, std::move(exception));
     }
   }
 
@@ -89,10 +94,12 @@ public:
   }
 
   explicit operator bool() const noexcept {
-    bool is_valid = bool(first_);
+    bool is_valid = operator_bool_or<First, true>::get(first_);
     traverse_pack(
         [&](auto&& promise) mutable -> void {
-          if (!is_valid && bool(promise)) {
+          using accessor =
+              operator_bool_or<traits::unrefcv_t<decltype(promise)>, true>;
+          if (!is_valid && accessor::get(promise)) {
             is_valid = true;
           }
         },
