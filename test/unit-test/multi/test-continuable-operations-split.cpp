@@ -51,7 +51,8 @@ TYPED_TEST(single_dimension_tests, operations_split_plain_callback) {
   promise<> all;
   bool resolved = false;
 
-  all = split(std::move(all), [&](auto&&...) {
+  all = split(std::move(all), [&](auto&&... args) {
+    detail::util::unused(args...); // GCC build fix
     EXPECT_FALSE(resolved);
     resolved = true;
   });
