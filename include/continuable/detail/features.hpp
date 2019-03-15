@@ -87,17 +87,23 @@
 #endif
 
 /// Usually this is enabled by the CMake project
-#if !defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE) &&                        \
-    defined(__cpp_coroutines) && (__cpp_coroutines >= 201707)
-  #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
-#endif
-
-/// Define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE when
-/// CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE is defined.
-#if !defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE) &&                        \
-    defined(CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE)
-  #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
-#endif
+#if !defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
+  /// Define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE when
+  /// CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE is defined.
+  #if defined(CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE)
+    #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+  #elif defined(_MSC_VER)
+    #if _MSC_FULL_VER >= 190023506
+      #if defined(_RESUMABLE_FUNCTIONS_SUPPORTED)
+        #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+      #endif // defined(_RESUMABLE_FUNCTIONS_SUPPORTED)
+    #endif // _MSC_FULL_VER >= 190023506
+  #elif defined(__clang__)
+    #if defined(__cpp_coroutines) && (__cpp_coroutines >= 201707)
+      #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+    #endif // defined(__cpp_coroutines) && (__cpp_coroutines >= 201707)
+  #endif // defined(__clang__)
+#endif // !defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
 
 /// Define CONTINUABLE_HAS_EXCEPTIONS when exceptions are used
 #if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \
