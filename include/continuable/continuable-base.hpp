@@ -134,12 +134,12 @@ public:
   ///
   /// This constructor makes it possible to replace the internal data object of
   /// the continuable by any object which is useful for type-erasure.
-  /*template <typename OData,
+  template <typename OData,
             std::enable_if_t<std::is_convertible<
                 detail::traits::unrefcv_t<OData>, Data>::value>* = nullptr>
-continuable_base(continuable_base<OData, Annotation>&& other)
+  /* implicit */ continuable_base(continuable_base<OData, Annotation>&& other)
       : continuable_base(std::move(other).consume()) {
-  }*/
+  }
 
   /// Constructor taking the data of other continuable_base objects
   /// while erasing the hint.
