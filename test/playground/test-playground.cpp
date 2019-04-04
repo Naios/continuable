@@ -20,10 +20,53 @@
   SOFTWARE.
 **/
 
+#include <exception>
+#include <vector>
 #include <continuable/continuable.hpp>
 
 using namespace cti;
 
+continuable<std::string> http_request(std::string /*url*/) {
+  return async([]() -> std::string {
+    throw std::exception{}; //
+  });
+}
+
+struct ResultSet {};
+struct Buffer {};
+
+continuable<ResultSet> mysql_query(std::string /*url*/) {
+  return make_ready_continuable(ResultSet{});
+}
+
+continuable<Buffer> read_file(std::string /*url*/) {
+  return make_ready_continuable(Buffer{});
+}
+
+struct exception_trait {};
+
+struct unhandled_exception_trait {};
+
+struct stacktrace_trait {
+  using stacktrace_type = std::vector<void const*>;
+
+  static stacktrace_type gather(std::size_t offset) noexcept {
+    return {};
+  }
+
+  static exception_t annotate(stacktrace_type stacktrace,
+                              exception_t&& exception) noexcept {
+    return exception;
+  }
+};
+
 int main(int, char**) {
-  // ...
+  when_all(http_request("github.com"), http_request("atom.io"))
+      .then([](std::string /*github*/, std::string /*atom*/) {
+        // ...
+        return mysql_query("select * from `users`");
+      })
+      .then([](ResultSet /*result*/) {
+        // ...
+      });
 }

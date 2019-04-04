@@ -486,10 +486,8 @@ void on_executor(Executor&& executor, Invoker&& invoker, Args&&... args) {
 
   // Create a worker object which when invoked calls the callback with the
   // the returned arguments.
-  auto work = [
-    invoker = std::forward<Invoker>(invoker),
-    args = std::make_tuple(std::forward<Args>(args)...)
-  ]() mutable {
+  auto work = [invoker = std::forward<Invoker>(invoker),
+               args = std::make_tuple(std::forward<Args>(args)...)]() mutable {
     traits::unpack(
         [&](auto&&... captured_args) {
           // Just use the packed dispatch method which dispatches the work on
@@ -557,6 +555,8 @@ template <typename Base>
 struct error_handler_base<handle_errors::no, Base> {
   /// The operator which is called when an error occurred
   void operator()(exception_arg_t tag, exception_t exception) && {
+    // TODO Add control flow info here
+
     // Forward the error to the next callback
     std::move(static_cast<Base*>(this)->next_callback_)(tag,
                                                         std::move(exception));
@@ -606,6 +606,7 @@ struct callback_base<identity<Args...>, HandleResults, HandleErrors, Callback,
   Callback callback_;
   Executor executor_;
   NextCallback next_callback_;
+  int callstack_;
 
   explicit callback_base(Callback callback, Executor executor,
                          NextCallback next_callback)
@@ -751,6 +752,7 @@ struct chained_continuation<identity<Args...>, identity<NextArgs...>,
   Continuation continuation_;
   Callback callback_;
   Executor executor_;
+  int callstack_;
 
   explicit chained_continuation(Continuation continuation, Callback callback,
                                 Executor executor)

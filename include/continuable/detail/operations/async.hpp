@@ -73,7 +73,6 @@ auto async(Callable&& callable, Executor&& executor, Args&&... args) {
                                      hint, util::ownership{});
 }
 } // namespace operations
-
 } // namespace detail
 } // namespace cti
 
