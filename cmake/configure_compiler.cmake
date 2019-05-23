@@ -21,7 +21,7 @@
 
 # Select the compiler specific cmake file
 set(MSVC_ID "MSVC")
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "(Apple)?Clang")
   include(${PROJECT_SOURCE_DIR}/cmake/compiler/clang.cmake)
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
   include(${PROJECT_SOURCE_DIR}/cmake/compiler/gcc.cmake)
