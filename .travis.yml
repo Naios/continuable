@@ -1,7 +1,13 @@
 sudo: true
 dist: trusty
 language: cpp
-cache: apt
+cache:
+  apt: true
+  ccache: true
+  directories:
+    - ${HOME}/install
+    - ${HOME}/deps
+    - dep
 
 git:
   depth: 1
@@ -18,6 +24,7 @@ matrix:
             - g++-6
             - valgrind
             - ninja-build
+            - ccache
       env:
         - COMPILER=g++-6
         - BUILD_CONFIG=Debug
@@ -35,6 +42,7 @@ matrix:
           packages:
             - clang-5.0
             - ninja-build
+            - ccache
       env:
         - COMPILER=clang++-5.0
         - BUILD_CONFIG=Release
@@ -52,6 +60,7 @@ matrix:
           packages:
             - clang-5.0
             - ninja-build
+            - ccache
       env:
         - COMPILER=clang++-5.0
         - BUILD_CONFIG=Debug

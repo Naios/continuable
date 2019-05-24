@@ -4,6 +4,8 @@ DEPS_DIR="${HOME}/deps"
 mkdir -p ${DEPS_DIR}
 cd ${DEPS_DIR}
 
+INSTALL_DIR="${HOME}/install"
+
 # Recent CMake:
 CMAKE_URL="https://cmake.org/files/v3.11/cmake-3.11.4-Linux-x86_64.tar.gz"
 mkdir cmake && wget --no-check-certificate --quiet -O - ${CMAKE_URL} | tar --strip-components=1 -xz -C cmake
@@ -33,14 +35,14 @@ if [[ "${CXX%%+*}" == "clang" ]]; then
     wget -O - ${LLVM_URL} | tar --strip-components=1 -xJ -C llvm
     wget -O - ${LIBCXX_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxx
     wget -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxxabi
-    (cd llvm/build && cmake .. -DCMAKE_INSTALL_PREFIX=${TRAVIS_BUILD_DIR}/llvm/install)
+    (cd llvm/build && cmake .. -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR})
     (cd llvm/build/projects/libcxx && make install -j2)
     (cd llvm/build/projects/libcxxabi && make install -j2)
   fi
 
-  export STD_CXX_FLAGS="-isystem ${TRAVIS_BUILD_DIR}/llvm/install/include/c++/v1 -stdlib=libc++"
-  export STD_LINKER_FLAGS="-L ${TRAVIS_BUILD_DIR}/llvm/install/lib -l c++ -l c++abi"
-  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${TRAVIS_BUILD_DIR}/llvm/install/lib"
+  export STD_CXX_FLAGS="-isystem ${INSTALL_DIR}/include/c++/v1 -stdlib=libc++"
+  export STD_LINKER_FLAGS="-L ${INSTALL_DIR}/lib -l c++ -l c++abi"
+  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${INSTALL_DIR}/lib"
 fi
 
 # Function for creating a new 'build' directory
