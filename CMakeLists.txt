@@ -20,6 +20,9 @@
 # SOFTWARE.
 
 cmake_minimum_required(VERSION 3.11)
+
+
+
 project(continuable VERSION 3.0.0 LANGUAGES C CXX)
 
 if (CTI_CONTINUABLE_IS_FIND_INCLUDED)
