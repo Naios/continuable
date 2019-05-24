@@ -21,12 +21,6 @@
 
 cmake_minimum_required(VERSION 3.11)
 
-find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif(CCACHE_FOUND)
-
 project(continuable VERSION 3.0.0 LANGUAGES C CXX)
 
 if (CTI_CONTINUABLE_IS_FIND_INCLUDED)
