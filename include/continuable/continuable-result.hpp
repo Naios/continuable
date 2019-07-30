@@ -132,8 +132,13 @@ class result {
 
   struct init_arg_t {};
 
-  template <typename... Args, detail::traits::void_t<decltype(trait_t::wrap(
-                                  std::declval<Args>()...))>* = nullptr>
+  template <typename... Args
+#if defined(_MSC_VER) && _MSC_VER != 1922
+            ,
+            detail::traits::void_t<
+                decltype(trait_t::wrap(std::declval<Args>()...))>* = nullptr
+#endif
+            >
   explicit result(init_arg_t, Args&&... values)
       : variant_(trait_t::wrap(std::forward<Args>(values)...)) {
   }
@@ -144,9 +149,13 @@ class result {
 public:
   using value_t = typename trait_t::value_t;
 
-  template <typename FirstArg, typename... Args,
+  template <typename FirstArg, typename... Args
+#if defined(_MSC_VER) && _MSC_VER != 1922
+            ,
             detail::traits::void_t<decltype(trait_t::wrap(
-                std::declval<FirstArg>(), std::declval<Args>()...))>* = nullptr>
+                std::declval<FirstArg>(), std::declval<Args>()...))>* = nullptr
+#endif
+            >
   explicit result(FirstArg&& first, Args&&... values)
       : variant_(trait_t::wrap(std::forward<FirstArg>(first),
                                std::forward<Args>(values)...)) {
