@@ -39,6 +39,35 @@
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/utility/traits.hpp>
 
+/// Hint for the compiler that this point should be unreachable
+#if defined(_MSC_VER)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CTI_DETAIL_UNREACHABLE_INTRINSIC() __assume(false)
+#elif defined(__GNUC__)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CTI_DETAIL_UNREACHABLE_INTRINSIC() __builtin_unreachable()
+#elif defined(__has_builtin) && __has_builtin(__builtin_unreachable)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CTI_DETAIL_UNREACHABLE_INTRINSIC() __builtin_unreachable()
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CTI_DETAIL_UNREACHABLE_INTRINSIC() abort()
+#endif
+
+/// Causes the application to exit abnormally
+#if defined(_MSC_VER)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CTI_DETAIL_TRAP() __debugbreak()
+#elif defined(__GNUC__)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CTI_DETAIL_TRAP() __builtin_trap()
+#elif defined(__has_builtin) && __has_builtin(__builtin_trap)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CTI_DETAIL_TRAP() __builtin_trap()
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CTI_DETAIL_TRAP() *(volatile int*)0x11 = 0
+#endif
 namespace cti {
 namespace detail {
 /// Utility namespace which provides useful meta-programming support
@@ -251,39 +280,22 @@ private:
   bool frozen_ : 1;
 };
 
-/// Hint for the compiler that this point should be unreachable
-[[noreturn]] inline void unreachable() {
-#if defined(_MSC_VER)
-  __assume(false);
-#elif defined(__GNUC__)
-  __builtin_unreachable();
-#elif defined(__has_builtin) && __has_builtin(__builtin_unreachable)
-  __builtin_unreachable();
-#else
+#ifndef NDEBUG
+[[noreturn]] inline void unreachable_debug() {
+  CTI_DETAIL_TRAP();
   std::abort();
-#endif
 }
-
-/// Causes the application to exit abnormally.
-[[noreturn]] inline void trap() {
-#if defined(_MSC_VER)
-  __debugbreak();
-#elif defined(__GNUC__)
-  __builtin_trap();
-#elif defined(__has_builtin) && __has_builtin(__builtin_trap)
-  __builtin_trap();
-#else
-  *(volatile int*)0 = 0;
 #endif
-}
 } // namespace util
 } // namespace detail
 } // namespace cti
 
-#ifdef CONTINUABLE_CONSTEXPR_IF
-#define CONTINUABLE_CONSTEXPR_IF(EXPR, TRUE_BRANCH, FALSE_BRANCH)
+#ifndef NDEBUG
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CTI_DETAIL_UNREACHABLE() ::cti::detail::util::unreachable_debug()
 #else
-#define CONTINUABLE_CONSTEXPR_IF(EXPR, TRUE_BRANCH, FALSE_BRANCH)
-#endif // CONTINUABLE_CONSTEXPR_IF
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CTI_DETAIL_UNREACHABLE() CTI_DETAIL_UNREACHABLE_INTRINSIC()
+#endif
 
 #endif // CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED

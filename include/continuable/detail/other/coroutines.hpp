@@ -119,7 +119,7 @@ public:
     std::rethrow_exception(result_.get_exception());
 #else  // CONTINUABLE_HAS_EXCEPTIONS
     // Returning error types in await isn't supported as of now
-    util::trap();
+    CTI_DETAIL_TRAP();
 #endif // CONTINUABLE_HAS_EXCEPTIONS
   }
 
@@ -222,7 +222,7 @@ struct promise_type
     promise_.set_exception(std::current_exception());
 #else  // CONTINUABLE_HAS_EXCEPTIONS
        // Returning error types from coroutines isn't supported
-    cti::detail::util::trap();
+    CTI_DETAIL_TRAP();
 #endif // CONTINUABLE_HAS_EXCEPTIONS
   }
 };

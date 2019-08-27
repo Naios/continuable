@@ -140,7 +140,7 @@ struct proxy_continuable<identity<Args...>, Continuation> : Continuation {
   }
 
   std::tuple<Args...> operator()(query_arg_t) {
-    util::unreachable();
+    CTI_DETAIL_UNREACHABLE();
   }
 };
 
@@ -671,12 +671,12 @@ struct final_callback : util::non_copyable {
       std::rethrow_exception(error);
     } catch (std::exception const& exception) {
       (void)exception;
-      util::trap();
+      CTI_DETAIL_TRAP();
     } catch (...) {
-      util::trap();
+      CTI_DETAIL_TRAP();
     }
 #else
-    util::trap();
+    CTI_DETAIL_TRAP();
 #endif
 #endif // CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
   }
@@ -800,7 +800,7 @@ struct chained_continuation<identity<Args...>, identity<NextArgs...>,
   }
 
   std::tuple<NextArgs...> operator()(query_arg_t) {
-    util::unreachable();
+    CTI_DETAIL_UNREACHABLE();
   }
 };
 // Specialization to unpack ready continuables directly
@@ -843,7 +843,7 @@ struct chained_continuation<identity<Args...>, identity<NextArgs...>,
   }
 
   std::tuple<NextArgs...> operator()(query_arg_t) {
-    util::unreachable();
+    CTI_DETAIL_UNREACHABLE();
   }
 };
 
