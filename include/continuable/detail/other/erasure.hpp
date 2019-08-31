@@ -178,12 +178,24 @@ public:
 };
 #endif
 
-using work_erasure_t = fu2::unique_function<void()>;
+using work_erasure_t =
+    fu2::function_base<true, false, fu2::capacity_fixed<32UL>, true, false,
+                       void()&&, void(exception_arg_t, exception_t) &&>;
 
 #ifdef CONTINUABLE_HAS_IMMEDIATE_TYPES
 using work = work_erasure_t;
 #else
-class work : public work_erasure_t {
+class work;
+
+template <typename T>
+struct is_work : std::false_type {};
+template <>
+struct is_work<work> : std::true_type {};
+
+class work {
+  using erasure_t = work_erasure_t;
+  erasure_t erasure_;
+
 public:
   work() = default;
   ~work() = default;
@@ -192,11 +204,31 @@ public:
   work& operator=(work const&) = delete;
   work& operator=(work&&) = default;
 
-  using work_erasure_t::work_erasure_t;
-  using work_erasure_t::operator=;
-  using work_erasure_t::operator();
+  template <
+      typename T,
+      std::enable_if_t<std::is_convertible<T, erasure_t>::value>* = nullptr,
+      std::enable_if_t<!is_work<traits::unrefcv_t<T>>::value>* = nullptr>
+  /* implicit */ work(T&& callable) : erasure_(std::forward<T>(callable)) {
+  }
+
+  template <
+      typename T,
+      std::enable_if_t<std::is_assignable<erasure_t, T>::value>* = nullptr,
+      std::enable_if_t<!is_work<traits::unrefcv_t<T>>::value>* = nullptr>
+  work& operator=(T&& callable) {
+    erasure_ = std::forward<T>(callable);
+    return *this;
+  }
+
+  void operator()() && {
+    std::move(erasure_)();
+  }
+
+  void operator()(exception_arg_t, exception_t e) && {
+    std::move(erasure_)(exception_arg_t{}, std::move(e));
+  }
 };
-#endif // CONTINUABLE_HAS_IMMEDIATE_TYPES
+#endif
 } // namespace erasure
 } // namespace detail
 } // namespace cti

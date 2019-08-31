@@ -35,6 +35,7 @@
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-promise-base.hpp>
+#include <continuable/continuable-work-base.hpp>
 #include <continuable/detail/other/erasure.hpp>
 
 namespace cti {
@@ -82,14 +83,16 @@ using promise = promise_base<detail::erasure::callback<Args...>, //
                              signature_arg_t<Args...>>;
 
 /// Defines a non-copyable type erasure which is capable of carrying
-/// callable objects passed to executors.
+/// callable objects passed to executors. Additionally the outstanding work
+/// can be resolved through an exception.
 ///
-/// \note You can always define your own work with a type erasure of
+/// \note You can always define your own cancelable_work with a type erasure of
 ///       choice, the type erasure wrapper just needs to accept a
-///       callable object which is callable with a `void()` signature.
+///       callable object which is callable with a `void()` and
+///       `void(exception_arg_t, exception_t)` signature.
 ///
 /// \since 4.0.0
-using work = detail::erasure::work;
+using work = work_base<detail::erasure::work>;
 /// \}
 } // namespace cti
 

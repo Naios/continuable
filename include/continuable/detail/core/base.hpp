@@ -472,36 +472,76 @@ constexpr auto invoker_of(identity<std::tuple<Args...>>) {
 } // namespace decoration
 
 /// Invoke the callback immediately
-template <typename Invoker, typename... Args>
+template <typename Invoker, typename Callback, typename NextCallback,
+          typename... Args>
 void on_executor(types::this_thread_executor_tag, Invoker&& invoker,
+                 Callback&& callback, NextCallback&& next_callback,
                  Args&&... args) {
 
   // Invoke the callback with the decorated invoker immediately
-  std::forward<Invoker>(invoker)(std::forward<Args>(args)...);
+  std::forward<Invoker>(invoker)(std::forward<Callback>(callback),
+                                 std::forward<NextCallback>(next_callback),
+                                 std::forward<Args>(args)...);
 }
 
-/// Invoke the callback through the given executor
-template <typename Executor, typename Invoker, typename... Args>
-void on_executor(Executor&& executor, Invoker&& invoker, Args&&... args) {
+template <typename Invoker, typename Callback, typename NextCallback,
+          typename... Args>
+class work_proxy {
+public:
+  work_proxy(Invoker&& invoker, Callback&& callback,
+             NextCallback&& next_callback, std::tuple<Args...>&& args)
+      : invoker_(std::move(invoker)), callback_(std::move(callback)),
+        next_callback_(std::move(next_callback)), args_(std::move(args)) {
+  }
+  ~work_proxy() = default;
+  work_proxy(work_proxy&&) = default;
+  work_proxy(work_proxy const&) = delete;
+  work_proxy& operator=(work_proxy&&) = default;
+  work_proxy& operator=(work_proxy const&) = delete;
 
-  // Create a worker object which when invoked calls the callback with the
-  // the returned arguments.
-  auto work = [
-    invoker = std::forward<Invoker>(invoker),
-    args = std::make_tuple(std::forward<Args>(args)...)
-  ]() mutable {
+  void operator()() && {
     traits::unpack(
         [&](auto&&... captured_args) {
-          // Just use the packed dispatch method which dispatches the work on
-          // the current thread.
-          on_executor(types::this_thread_executor_tag{}, std::move(invoker),
-                      std::forward<decltype(captured_args)>(captured_args)...);
+          // Just use the packed dispatch method which dispatches the work_proxy
+          // on the current thread.
+          std::move(invoker_)(
+              std::move(callback_), std::move(next_callback_),
+              std::forward<decltype(captured_args)>(captured_args)...);
         },
-        std::move(args));
-  };
+        std::move(args_));
+  }
 
-  // Pass the work callable object to the executor
-  std::forward<Executor>(executor)(std::move(work));
+  void operator()(exception_arg_t, exception_t exception) && {
+    std::move(next_callback_)(exception_arg_t{}, std::move(exception));
+  }
+
+  void set_exception(exception_t exception) noexcept {
+    std::move(next_callback_)(exception_arg_t{}, std::move(exception));
+  }
+
+private:
+  Invoker invoker_;
+  Callback callback_;
+  NextCallback next_callback_;
+  std::tuple<Args...> args_;
+};
+
+/// Invoke the callback through the given executor
+template <typename Executor, typename Invoker, typename Callback,
+          typename NextCallback, typename... Args>
+void on_executor(Executor&& executor, Invoker&& invoker, Callback&& callback,
+                 NextCallback&& next_callback, Args&&... args) {
+
+  // Create a work_proxy object which when invoked calls the callback with the
+  // the returned arguments and pass the work_proxy callable object to the
+  // executor
+  using work_proxy_t =
+      work_proxy<Invoker, std::decay_t<Callback>, std::decay_t<NextCallback>,
+                 std::decay_t<Args>...>;
+  std::forward<Executor>(executor)(work_proxy_t(
+      std::forward<Invoker>(invoker), std::forward<Callback>(callback),
+      std::forward<NextCallback>(next_callback),
+      std::make_tuple(std::forward<Args>(args)...)));
 }
 
 /// Tells whether we potentially move the chain upwards and handle the result

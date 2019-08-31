@@ -61,7 +61,7 @@ namespace cti {
 /// \param args The arguments which are passed to the callable upon invocation.
 ///
 /// \returns A continuable_base which asynchronous result type will
-///          be computated with the same rules as continuable_base::then .
+///          be computed with the same rules as continuable_base::then .
 ///
 /// \since 4.0.0
 ///
@@ -100,7 +100,7 @@ auto async(Callable&& callable, Args&&... args) {
 /// \param args The arguments which are passed to the callable upon invocation.
 ///
 /// \returns A continuable_base which asynchronous result type will
-///          be computated with the same rules as continuable_base::then .
+///          be computed with the same rules as continuable_base::then .
 ///
 /// \since 4.0.0
 ///
