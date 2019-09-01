@@ -1,4 +1,7 @@
 #!/bin/bash -e
+# Show the revision of all submodules
+git submodule foreach git rev-parse HEAD
+
 # Install some dependencies manually
 DEPS_DIR="${HOME}/deps"
 mkdir -p ${DEPS_DIR}
