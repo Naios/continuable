@@ -208,7 +208,15 @@ struct tag3 {};
 template <typename Provider>
 struct single_dimension_tests : continuation_provider<Provider> {};
 
+// https://github.com/google/googletest/issues/2271
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#endif
 TYPED_TEST_SUITE(single_dimension_tests, single_types);
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 template <typename T, typename First, typename Second>
 struct combine_to_type;
@@ -249,7 +257,16 @@ template <typename Provider, typename Connector>
 struct single_aggregate_tests<identity<Provider, Connector>>
     : continuation_provider<Provider>, Connector {};
 
+
+// https://github.com/google/googletest/issues/2271
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#endif
 TYPED_TEST_SUITE(single_aggregate_tests, aggregate_types);
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 template <typename T>
 auto make_step(T* me, unsigned& current, unsigned step) {
