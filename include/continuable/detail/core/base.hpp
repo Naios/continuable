@@ -523,6 +523,10 @@ public:
     std::move(next_callback_)(exception_arg_t{}, std::move(exception));
   }
 
+  explicit operator bool() const noexcept {
+    return true;
+  }
+
 private:
   Invoker invoker_;
   Callback callback_;
@@ -671,12 +675,12 @@ struct callback_base<identity<Args...>, HandleResults, HandleErrors, Callback,
                     Executor, NextCallback>>::operator();
 
   /// Resolves the continuation with the given values
-  void set_value(Args... args) {
+  void set_value(Args... args) noexcept {
     std::move (*this)(std::move(args)...);
   }
 
   /// Resolves the continuation with the given error variable.
-  void set_exception(exception_t error) {
+  void set_exception(exception_t error) noexcept {
     std::move (*this)(exception_arg_t{}, std::move(error));
   }
 
@@ -725,13 +729,13 @@ struct final_callback : util::non_copyable {
 #endif // CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
   }
 
-  void set_value(Args... args) {
+  void set_value(Args... args) noexcept {
     std::move (*this)(std::forward<Args>(args)...);
   }
 
-  void set_exception(exception_t error) {
+  void set_exception(exception_t exception) noexcept {
     // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
-    std::move (*this)(exception_arg_t{}, std::move(error));
+    std::move (*this)(exception_arg_t{}, std::move(exception));
   }
 
   explicit operator bool() const noexcept {

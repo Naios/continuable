@@ -87,12 +87,69 @@ public:
     return *this;
   }
 
-  void operator()(Args... args) && {
+  void operator()(Args... args) && noexcept {
     std::move(erasure_)(std::move(args)...);
   }
 
-  void operator()(exception_arg_t exception_arg, exception_t exception) && {
+  void operator()(exception_arg_t exception_arg, exception_t exception) &&
+      noexcept {
     std::move(erasure_)(exception_arg, std::move(exception));
+  }
+
+  explicit operator bool() const noexcept {
+    return bool(erasure_);
+  }
+};
+#endif
+
+using work_erasure_t =
+    fu2::function_base<true, false, fu2::capacity_fixed<32UL>, true, false,
+                       void()&&, void(exception_arg_t, exception_t) &&>;
+
+#ifdef CONTINUABLE_HAS_IMMEDIATE_TYPES
+using work = work_erasure_t;
+#else
+class work;
+
+template <typename T>
+struct is_work : std::false_type {};
+template <>
+struct is_work<work> : std::true_type {};
+
+class work {
+  using erasure_t = work_erasure_t;
+  erasure_t erasure_;
+
+public:
+  work() = default;
+  ~work() = default;
+  work(work const&) = delete;
+  work(work&&) = default;
+  work& operator=(work const&) = delete;
+  work& operator=(work&&) = default;
+
+  template <
+      typename T,
+      std::enable_if_t<std::is_convertible<T, erasure_t>::value>* = nullptr,
+      std::enable_if_t<!is_work<traits::unrefcv_t<T>>::value>* = nullptr>
+  /* implicit */ work(T&& callable) : erasure_(std::forward<T>(callable)) {
+  }
+
+  template <
+      typename T,
+      std::enable_if_t<std::is_assignable<erasure_t, T>::value>* = nullptr,
+      std::enable_if_t<!is_work<traits::unrefcv_t<T>>::value>* = nullptr>
+  work& operator=(T&& callable) {
+    erasure_ = std::forward<T>(callable);
+    return *this;
+  }
+
+  void operator()() && noexcept {
+    std::move(erasure_)();
+  }
+
+  void operator()(exception_arg_t, exception_t exception) && noexcept {
+    std::move(erasure_)(exception_arg_t{}, std::move(exception));
   }
 
   explicit operator bool() const noexcept {
@@ -174,58 +231,6 @@ public:
 
   std::tuple<Args...> operator()(query_arg_t query_arg) {
     return erasure_(query_arg);
-  }
-};
-#endif
-
-using work_erasure_t =
-    fu2::function_base<true, false, fu2::capacity_fixed<32UL>, true, false,
-                       void()&&, void(exception_arg_t, exception_t) &&>;
-
-#ifdef CONTINUABLE_HAS_IMMEDIATE_TYPES
-using work = work_erasure_t;
-#else
-class work;
-
-template <typename T>
-struct is_work : std::false_type {};
-template <>
-struct is_work<work> : std::true_type {};
-
-class work {
-  using erasure_t = work_erasure_t;
-  erasure_t erasure_;
-
-public:
-  work() = default;
-  ~work() = default;
-  work(work const&) = delete;
-  work(work&&) = default;
-  work& operator=(work const&) = delete;
-  work& operator=(work&&) = default;
-
-  template <
-      typename T,
-      std::enable_if_t<std::is_convertible<T, erasure_t>::value>* = nullptr,
-      std::enable_if_t<!is_work<traits::unrefcv_t<T>>::value>* = nullptr>
-  /* implicit */ work(T&& callable) : erasure_(std::forward<T>(callable)) {
-  }
-
-  template <
-      typename T,
-      std::enable_if_t<std::is_assignable<erasure_t, T>::value>* = nullptr,
-      std::enable_if_t<!is_work<traits::unrefcv_t<T>>::value>* = nullptr>
-  work& operator=(T&& callable) {
-    erasure_ = std::forward<T>(callable);
-    return *this;
-  }
-
-  void operator()() && {
-    std::move(erasure_)();
-  }
-
-  void operator()(exception_arg_t, exception_t e) && {
-    std::move(erasure_)(exception_arg_t{}, std::move(e));
   }
 };
 #endif

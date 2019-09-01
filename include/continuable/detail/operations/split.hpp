@@ -85,11 +85,11 @@ public:
   }
 
   template <typename... Args>
-  void set_value(Args... args) {
+  void set_value(Args... args) noexcept {
     std::move (*this)(std::move(args)...);
   }
 
-  void set_exception(exception_t error) {
+  void set_exception(exception_t error) noexcept {
     std::move (*this)(exception_arg_t{}, std::move(error));
   }
 

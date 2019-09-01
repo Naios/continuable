@@ -48,8 +48,28 @@ TYPED_TEST(single_dimension_tests, are_executor_dispatchable) {
 }
 
 TYPED_TEST(single_dimension_tests, are_executor_exception_resolveable) {
+  auto executor = [&](auto&& work) {
+    std::forward<decltype(work)>(work).set_exception(supply_test_exception());
+  };
+
+  ASSERT_ASYNC_EXCEPTION_RESULT(async_on(
+                                    [] {
+                                      FAIL(); //
+                                    },
+                                    executor),
+                                get_test_exception_proto());
+
+  ASSERT_ASYNC_EXCEPTION_RESULT(this->supply().then(
+                                    [] {
+                                      FAIL(); //
+                                    },
+                                    executor),
+                                get_test_exception_proto());
+}
+
+TYPED_TEST(single_dimension_tests, are_executor_exception_resolveable_erased) {
   auto executor = [&](work work) {
-    work.set_exception(supply_test_exception()); //
+    std::move(work).set_exception(supply_test_exception()); //
   };
 
   ASSERT_ASYNC_EXCEPTION_RESULT(async_on(

@@ -57,6 +57,5 @@ namespace cti {}
 #include <continuable/continuable-traverse-async.hpp>
 #include <continuable/continuable-traverse.hpp>
 #include <continuable/continuable-types.hpp>
-#include <continuable/continuable-work-base.hpp>
 
 #endif // CONTINUABLE_HPP_INCLUDED
