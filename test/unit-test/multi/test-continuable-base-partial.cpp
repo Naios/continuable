@@ -36,24 +36,3 @@ TYPED_TEST(single_dimension_tests, are_partial_callable) {
     EXPECT_EQ(b, 0xDD);
   }));
 }
-
-TYPED_TEST(single_dimension_tests, are_dispatchable) {
-  bool invoked = false;
-  auto executor = [&](auto&& work) {
-    // We can move the worker object
-    auto local = std::forward<decltype(work)>(work);
-    ASSERT_FALSE(invoked);
-    // We can invoke the worker object
-    std::move(local)();
-    ASSERT_TRUE(invoked);
-  };
-
-  auto chain = this->supply().then(
-      [&] {
-        ASSERT_FALSE(invoked);
-        invoked = true;
-      },
-      executor);
-
-  ASSERT_ASYNC_COMPLETION(std::move(chain));
-}

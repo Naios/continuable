@@ -499,7 +499,7 @@ public:
   work_proxy& operator=(work_proxy&&) = default;
   work_proxy& operator=(work_proxy const&) = delete;
 
-  void operator()() && {
+  void set_value() noexcept {
     traits::unpack(
         [&](auto&&... captured_args) {
           // Just use the packed dispatch method which dispatches the work_proxy
@@ -511,7 +511,11 @@ public:
         std::move(args_));
   }
 
-  void operator()(exception_arg_t, exception_t exception) && {
+  void operator()() && noexcept {
+    std::move(*this).set_value();
+  }
+
+  void operator()(exception_arg_t, exception_t exception) && noexcept {
     std::move(next_callback_)(exception_arg_t{}, std::move(exception));
   }
 

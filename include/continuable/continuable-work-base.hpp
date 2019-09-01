@@ -46,16 +46,10 @@ namespace cti {
 /// \{
 
 /// The work_base makes it possible to resolve an asynchronous
-/// continuable through it's result or through an error type.
+/// work on a different execution context than the current one.
 ///
-/// Use the work type defined in `continuable/continuable_types.hpp`,
-/// in order to use this class.
-///
-/// If we want to resolve the  work_base trough the call operator,
-/// and we want to resolve it through an exception, we must call it with a
-/// exception_arg_t as first and the exception as second argument.
-/// Additionally the work is resolveable only through its call
-/// operator when invoked as an r-value.
+/// A work compatible object is passed to any executor that is passed to
+/// \see continuable_base::then or \see async_on.
 ///
 /// \since 4.0.0
 template <typename Data>
@@ -71,8 +65,6 @@ class work_base
   /// \endcond
 
 public:
-  /// Constructor for constructing an empty work
-  explicit work_base() = default;
   /// Constructor accepting the data object
   explicit work_base(Data data) : data_(std::move(data)) {
   }
@@ -101,52 +93,11 @@ public:
     return *this;
   }
 
-  /// Resolves the continuation with the given values.
+  /// Invokes the underlying work
   ///
   /// \throws This method never throws an exception.
   ///
-  /// \attention This method may only be called once,
-  ///            when the work is valid operator bool() returns true.
-  ///            Calling this method will invalidate the work such that
-  ///            subsequent calls to operator bool() will return false.
-  ///            This behaviour is only consistent in work_base and
-  ///            non type erased promises may behave differently.
-  ///            Invoking an invalid work_base is undefined!
-  ///
-  /// \since  4.0.0
-  void operator()() && noexcept {
-    std::move(data_)();
-    data_ = nullptr;
-  }
-  /// Resolves the continuation with the given exception.
-  ///
-  /// \throws This method never throws an exception.
-  ///
-  /// \attention This method may only be called once,
-  ///            when the work is valid operator bool() returns true.
-  ///            Calling this method will invalidate the work such that
-  ///            subsequent calls to operator bool() will return false.
-  ///            This behaviour is only consistent in work_base and
-  ///            non type erased promises may behave differently.
-  ///            Invoking an invalid work_base is undefined!
-  ///
-  /// \since  4.0.0
-  void operator()(exception_arg_t tag, exception_t exception) && noexcept {
-    std::move(data_)(tag, std::move(exception));
-    data_ = nullptr;
-  }
-
-  /// Resolves the continuation with the given values.
-  ///
-  /// \throws This method never throws an exception.
-  ///
-  /// \attention This method may only be called once,
-  ///            when the work is valid operator bool() returns true.
-  ///            Calling this method will invalidate the work such that
-  ///            subsequent calls to operator bool() will return false.
-  ///            This behaviour is only consistent in work_base and
-  ///            non type erased promises may behave differently.
-  ///            Invoking an invalid work_base is undefined!
+  /// \attention This method may only be called once!
   ///
   /// \since  4.0.0
   void set_value() noexcept {
@@ -154,21 +105,27 @@ public:
     data_ = nullptr;
   }
 
-  /// Resolves the continuation with the given exception.
+  /// Passes an exception to the underlying work
   ///
   /// \throws This method never throws an exception.
   ///
-  /// \attention This method may only be called once,
-  ///            when the work is valid operator bool() returns true.
-  ///            Calling this method will invalidate the work such that
-  ///            subsequent calls to operator bool() will return false.
-  ///            This behaviour is only consistent in work_base and
-  ///            non type erased promises may behave differently.
-  ///            Invoking an invalid work_base is undefined!
+  /// \attention This method may only be called once!
   ///
   /// \since  4.0.0
   void set_exception(exception_t exception) noexcept {
     std::move(data_)(exception_arg_t{}, std::move(exception));
+    data_ = nullptr;
+  }
+
+  /// \copydoc set_value
+  void operator()() && noexcept {
+    std::move(data_)();
+    data_ = nullptr;
+  }
+
+  /// \copydoc set_exception
+  void operator()(exception_arg_t tag, exception_t exception) && noexcept {
+    std::move(data_)(tag, std::move(exception));
     data_ = nullptr;
   }
 };
