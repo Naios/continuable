@@ -62,7 +62,7 @@ using unique_type = result<std::unique_ptr<int>>;
 
 using result_test_types = testing::Types<unique_type, copyable_type>;
 
-TYPED_TEST_CASE(result_all_tests, result_test_types);
+TYPED_TEST_SUITE(result_all_tests, result_test_types);
 
 TYPED_TEST(result_all_tests, is_default_constructible) {
   TypeParam e;

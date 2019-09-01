@@ -208,7 +208,7 @@ struct tag3 {};
 template <typename Provider>
 struct single_dimension_tests : continuation_provider<Provider> {};
 
-TYPED_TEST_CASE(single_dimension_tests, single_types);
+TYPED_TEST_SUITE(single_dimension_tests, single_types);
 
 template <typename T, typename First, typename Second>
 struct combine_to_type;
@@ -249,7 +249,7 @@ template <typename Provider, typename Connector>
 struct single_aggregate_tests<identity<Provider, Connector>>
     : continuation_provider<Provider>, Connector {};
 
-TYPED_TEST_CASE(single_aggregate_tests, aggregate_types);
+TYPED_TEST_SUITE(single_aggregate_tests, aggregate_types);
 
 template <typename T>
 auto make_step(T* me, unsigned& current, unsigned step) {
