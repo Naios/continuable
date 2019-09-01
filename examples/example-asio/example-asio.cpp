@@ -67,7 +67,11 @@ struct functional_io_service {
 
   auto trough_post() noexcept {
     return [&](auto&& work) mutable {
-      asio::post(service_, std::forward<decltype(work)>(work));
+      asio::post(service_,
+                 [work = std::forward<decltype(work)>(work)]() mutable {
+                   std::move(work)();
+                   // .. or: work.set_value();
+                 });
     };
   }
 

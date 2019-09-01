@@ -33,6 +33,7 @@
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable-testing.hpp>
 #include <continuable/continuable.hpp>
+#include <string>
 
 using cti::detail::identity;
 using cti::detail::util::unused;
@@ -48,7 +49,7 @@ auto to_hint(identity<Args...> hint) {
 template <typename... Args>
 auto supplier_of(Args&&... args) {
   return [values = std::make_tuple(std::forward<Args>(args)...)](
-      auto&& promise) mutable {
+             auto&& promise) mutable {
     EXPECT_TRUE(promise);
     cti::detail::traits::unpack(
         [&](auto&&... passed) {
@@ -115,12 +116,12 @@ struct provide_copyable {
 struct provide_unique {
   template <typename... Args, typename... Hint, typename T>
   auto make(identity<Args...>, identity<Hint...>, T&& callback) {
-    return cti::make_continuable<Hint...>([
-      callback = std::forward<T>(callback), guard = std::make_unique<int>(0)
-    ](auto&&... args) mutable {
-      (void)(*guard);
-      return std::move(callback)(std::forward<decltype(args)>(args)...);
-    });
+    return cti::make_continuable<Hint...>(
+        [callback = std::forward<T>(callback),
+         guard = std::make_unique<int>(0)](auto&&... args) mutable {
+          (void)(*guard);
+          return std::move(callback)(std::forward<decltype(args)>(args)...);
+        });
   }
 };
 
@@ -205,18 +206,17 @@ struct tag1 {};
 struct tag2 {};
 struct tag3 {};
 
+struct name_generator {
+  template <typename T>
+  static std::string GetName(int i) {
+    return std::to_string(i);
+  }
+};
+
 template <typename Provider>
 struct single_dimension_tests : continuation_provider<Provider> {};
 
-// https://github.com/google/googletest/issues/2271
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-#endif
-TYPED_TEST_SUITE(single_dimension_tests, single_types);
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+TYPED_TEST_SUITE(single_dimension_tests, single_types, name_generator);
 
 template <typename T, typename First, typename Second>
 struct combine_to_type;
@@ -258,15 +258,7 @@ struct single_aggregate_tests<identity<Provider, Connector>>
     : continuation_provider<Provider>, Connector {};
 
 
-// https://github.com/google/googletest/issues/2271
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-#endif
-TYPED_TEST_SUITE(single_aggregate_tests, aggregate_types);
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+TYPED_TEST_SUITE(single_aggregate_tests, aggregate_types, name_generator);
 
 template <typename T>
 auto make_step(T* me, unsigned& current, unsigned step) {

@@ -62,15 +62,7 @@ using unique_type = result<std::unique_ptr<int>>;
 
 using result_test_types = testing::Types<unique_type, copyable_type>;
 
-// https://github.com/google/googletest/issues/2271
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-#endif
-TYPED_TEST_SUITE(result_all_tests, result_test_types);
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+TYPED_TEST_SUITE(result_all_tests, result_test_types, name_generator);
 
 TYPED_TEST(result_all_tests, is_default_constructible) {
   TypeParam e;
