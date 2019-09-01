@@ -25,22 +25,4 @@
 using namespace cti;
 
 int main(int, char**) {
-  // ...
-  auto e = std::make_exception_ptr(std::exception("huhu"));
-
-  async_on(
-      [] {
-        //
-        int i = 0;
-      },
-      [&](work work) {
-        int i = 0;
-        (void)i;
-        work.set_exception(e); //
-      })
-      .fail([](exception_t e) {
-        //
-        int i = 0;
-        (void)i;
-      });
 }
