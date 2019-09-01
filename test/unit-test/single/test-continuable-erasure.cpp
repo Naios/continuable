@@ -63,9 +63,10 @@ TEST(single_erasure_test, is_assignable_from_continuation) {
 TEST(single_erasure_test, is_constructible_from_work) {
   bool flag = false;
 
-  work mywork([&] {
+  work mywork([&](auto&&... args) {
     EXPECT_FALSE(flag);
     flag = true;
+    unused(std::forward<decltype(args)>(args)...);
   });
 
   ASSERT_FALSE(flag);
@@ -78,9 +79,10 @@ TEST(single_erasure_test, is_assignable_from_work) {
 
   work mywork;
 
-  mywork = [&] {
+  mywork = [&](auto&&... args) {
     EXPECT_FALSE(flag);
     flag = true;
+    unused(std::forward<decltype(args)>(args)...);
   };
 
   ASSERT_FALSE(flag);
