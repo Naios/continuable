@@ -130,23 +130,18 @@ class result {
   using trait_t = detail::result_trait<T...>;
   using surrogate_t = typename trait_t::surrogate_t;
 
-  struct init_arg_t {};
-
-  template <typename... Args, detail::traits::void_t<decltype(trait_t::wrap(
-                                  std::declval<Args>()...))>* = nullptr>
-  explicit result(init_arg_t, Args&&... values)
+  template <typename... Args>
+  explicit result(detail::init_arg_t, Args&&... values)
       : variant_(trait_t::wrap(std::forward<Args>(values)...)) {
   }
-  explicit result(init_arg_t, exception_t exception)
+  explicit result(detail::init_arg_t, exception_t exception)
       : variant_(std::move(exception)) {
   }
 
 public:
   using value_t = typename trait_t::value_t;
 
-  template <typename FirstArg, typename... Args,
-            detail::traits::void_t<decltype(trait_t::wrap(
-                std::declval<FirstArg>(), std::declval<Args>()...))>* = nullptr>
+  template <typename FirstArg, typename... Args>
   explicit result(FirstArg&& first, Args&&... values)
       : variant_(trait_t::wrap(std::forward<FirstArg>(first),
                                std::forward<Args>(values)...)) {
@@ -250,11 +245,11 @@ public:
 
   /// Creates a present result from the given values
   static result from(T... values) {
-    return result{init_arg_t{}, std::move(values)...};
+    return result{detail::init_arg_t{}, std::move(values)...};
   }
   /// Creates a present result from the given exception
   static result from(exception_t exception) {
-    return result{init_arg_t{}, std::move(exception)};
+    return result{detail::init_arg_t{}, std::move(exception)};
   }
 
   /// Creates an empty result

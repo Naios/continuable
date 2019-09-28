@@ -93,6 +93,8 @@ struct result_trait<First, Second, Rest...> {
     return std::get<I>(std::forward<Result>(result).get_value());
   }
 };
+
+struct init_arg_t {};
 } // namespace detail
 } // namespace cti
 

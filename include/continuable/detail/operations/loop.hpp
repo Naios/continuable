@@ -54,16 +54,15 @@ struct loop_trait {
                 "cti::continuable_base which resolves to a cti::result.");
 };
 
-template <typename Continuation, typename... Args>
-struct loop_trait<continuable_base<Continuation, //
-                                   signature_arg_t<result<Args...>>>> {
+template <typename... Args>
+struct loop_trait<identity<result<Args...>>> {
   template <typename Callable>
   static auto make(Callable&& callable) {
     return make_continuable<Args...>(std::forward<Callable>(callable));
   }
 };
-template <typename Continuation>
-struct loop_trait<continuable_base<Continuation, signature_arg_t<result<>>>> {
+template <>
+struct loop_trait<identity<result<>>> {
   template <typename Callable>
   static auto make(Callable&& callable) {
     return make_continuable<void>(std::forward<Callable>(callable));
@@ -143,7 +142,11 @@ template <typename Callable, typename... Args>
 auto loop(Callable&& callable, Args&&... args) {
   using invocation_result_t =
       decltype(util::invoke(callable, args...).finish());
-  using trait_t = loop_trait<invocation_result_t>;
+
+  auto constexpr hint = base::annotation_of(identify<invocation_result_t>{});
+
+  using trait_t = loop_trait<std::remove_const_t<decltype(hint)>>;
+
   return trait_t::make([callable = std::forward<decltype(callable)>(callable),
                         args = std::make_tuple(std::forward<decltype(args)>(
                             args)...)](auto&& promise) mutable {
