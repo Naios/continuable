@@ -1,20 +1,17 @@
 image:
   - Visual Studio 2017
+  - Visual Studio 2019
 
 environment:
   matrix:
-    - CONFIGURATION: Debug
-      WITH_NO_EXCEPTIONS: OFF
-      WITH_CPP_LATEST: OFF
-    - CONFIGURATION: Debug
-      WITH_NO_EXCEPTIONS: ON
-      WITH_CPP_LATEST: OFF
-    - CONFIGURATION: Release
-      WITH_NO_EXCEPTIONS: OFF
-      WITH_CPP_LATEST: ON
-
-configuration:
-  - Debug
+  - WITH_NO_EXCEPTIONS: OFF
+    WITH_CPP_LATEST: OFF
+  - WITH_NO_EXCEPTIONS: ON
+    WITH_CPP_LATEST: OFF
+  - WITH_NO_EXCEPTIONS: OFF
+    WITH_CPP_LATEST: ON
+  - WITH_NO_EXCEPTIONS: ON
+    WITH_CPP_LATEST: ON
 
 platform:
   - x64
@@ -27,18 +24,20 @@ clone_script:
 
 before_build:
   - cmd: >
-         cmake -H. -Bbuild -A%PLATFORM%
-         -DCTI_CONTINUABLE_WITH_NO_EXCEPTIONS=%WITH_NO_EXCEPTIONS%
-         -DCTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE=ON
-         -DCTI_CONTINUABLE_WITH_CPP_LATEST=%WITH_CPP_LATEST%
+     cmake -H. -Bbuild -A%PLATFORM%
+     -DCTI_CONTINUABLE_WITH_NO_EXCEPTIONS=%WITH_NO_EXCEPTIONS%
+     -DCTI_CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE=ON
+     -DCTI_CONTINUABLE_WITH_CPP_LATEST=%WITH_CPP_LATEST%
 
 build_script:
-  - cmd: cmake --build build --config %CONFIGURATION% --target ALL_BUILD -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /verbosity:minimal /maxcpucount:2 /nologo
-  - cmd: cmake --build build --config %CONFIGURATION% --target PACKAGE -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /verbosity:minimal /maxcpucount:2 /nologo
+  - cmd: cmake --build build --config Debug --target ALL_BUILD -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /verbosity:minimal /maxcpucount:2 /nologo
+  - cmd: cmake --build build --config Debug --target ALL_BUILD -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /verbosity:minimal /maxcpucount:2 /nologo
+  - cmd: cmake --build build --config Release --target PACKAGE -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /verbosity:minimal /maxcpucount:2 /nologo
 
 test_script:
   - cmd: cd build
-  - cmd: ctest -C %CONFIGURATION% -V .
+  - cmd: ctest -C Debug -V .
+  - cmd: ctest -C Release -V .
 
 artifacts:
   - path: 'build/*.zip'
