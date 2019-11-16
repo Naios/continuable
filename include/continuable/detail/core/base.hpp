@@ -708,25 +708,34 @@ struct final_callback : util::non_copyable {
   void operator()(Args... /*args*/) && {
   }
 
-  void operator()(exception_arg_t, exception_t error) && {
-    (void)error;
+  void operator()(exception_arg_t, exception_t exception) && {
+    // Only handle the exception when it is present, otherwise handle it as
+    // a cancellation of the control flow.
+    // This behaviour is intentionally correct for
+    // - `std::exception_ptr`
+    // - `std::error_code`
+    // - `std::error_condition`
+    // which allow to be default constructed and then return false
+    // by their corresponding `operator bool()`.
+    if (bool(exception)) {
 #ifndef CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
-    // There were unhandled errors inside the asynchronous call chain!
-    // Define `CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS` in order
-    // to ignore unhandled errors!"
+      // There were unhandled errors inside the asynchronous call chain!
+      // Define `CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS` in order
+      // to ignore unhandled errors!"
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
-    try {
-      std::rethrow_exception(error);
-    } catch (std::exception const& exception) {
-      (void)exception;
-      CTI_DETAIL_TRAP();
-    } catch (...) {
-      CTI_DETAIL_TRAP();
-    }
+      try {
+        std::rethrow_exception(exception);
+      } catch (std::exception const& unhandled) {
+        (void)unhandled;
+        CTI_DETAIL_TRAP();
+      } catch (...) {
+        CTI_DETAIL_TRAP();
+      }
 #else
-    CTI_DETAIL_TRAP();
+      CTI_DETAIL_TRAP();
 #endif
 #endif // CONTINUABLE_WITH_UNHANDLED_EXCEPTIONS
+    }
   }
 
   void set_value(Args... args) noexcept {
