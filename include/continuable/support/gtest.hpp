@@ -28,8 +28,8 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_TESTING_HPP_INCLUDED
-#define CONTINUABLE_TESTING_HPP_INCLUDED
+#ifndef CONTINUABLE_GTEST_HPP_INCLUDED
+#define CONTINUABLE_GTEST_HPP_INCLUDED
 
 #include <continuable/detail/other/testing.hpp>
 #include <continuable/detail/utility/traits.hpp>
@@ -169,4 +169,4 @@
 
 /// \}
 
-#endif // CONTINUABLE_TESTING_HPP_INCLUDED
+#endif // CONTINUABLE_GTEST_HPP_INCLUDED

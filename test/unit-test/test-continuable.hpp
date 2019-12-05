@@ -31,8 +31,8 @@
 #include <functional>
 
 #include <continuable/continuable-base.hpp>
-#include <continuable/continuable-testing.hpp>
 #include <continuable/continuable.hpp>
+#include <continuable/support/gtest.hpp>
 #include <string>
 
 using cti::detail::identity;
