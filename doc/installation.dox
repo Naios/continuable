@@ -49,7 +49,7 @@ Continuable is a header-only library with one required header-only dependency:
     erasure wrapper to convert a \ref continuable_base into a \ref continuable.
 
 Additionally GTest is required as optional dependency for the asynchronous
-unit testing macros defined in `continuable/continuable-testing.hpp`
+unit testing macros defined in `continuable/support/gtest.hpp`
 if those are used:
 
   - [google/googletest](https://github.com/google/googletest) is used as
