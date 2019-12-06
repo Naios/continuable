@@ -35,15 +35,15 @@
 #include <asio/error_code.hpp>
 #include <asio/system_error.hpp>
 
-#define CTI_ASIO_NAMESPACE_BEGIN namespace asio {
-#define CTI_ASIO_NAMESPACE_END }
+#define CTI_DETAIL_ASIO_NAMESPACE_BEGIN namespace asio {
+#define CTI_DETAIL_ASIO_NAMESPACE_END }
 #else
 #include <boost/asio/async_result.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/system/system_error.hpp>
 
-#define CTI_ASIO_NAMESPACE_BEGIN namespace boost { namespace asio {
-#define CTI_ASIO_NAMESPACE_END }}
+#define CTI_DETAIL_ASIO_NAMESPACE_BEGIN namespace boost { namespace asio {
+#define CTI_DETAIL_ASIO_NAMESPACE_END }}
 #endif
 
 #include <utility>

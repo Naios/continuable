@@ -34,7 +34,7 @@
 #include <continuable/detail/support/asio.hpp>
 #include <continuable/detail/utility/traits.hpp>
 
-CTI_ASIO_NAMESPACE_BEGIN
+CTI_DETAIL_ASIO_NAMESPACE_BEGIN
 
 // Class used to specify an asynchronous operation should return a continuable.
 struct use_cti_t {};
@@ -65,6 +65,9 @@ public:
   }
 };
 
-CTI_ASIO_NAMESPACE_END
+CTI_DETAIL_ASIO_NAMESPACE_END
+
+#undef CTI_DETAIL_ASIO_NAMESPACE_BEGIN
+#undef CTI_DETAIL_ASIO_NAMESPACE_END
 
 #endif // CONTINUABLE_SUPPORT_ASIO_HPP_INCLUDED
