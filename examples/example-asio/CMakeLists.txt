@@ -19,3 +19,10 @@ target_link_libraries(example-asio
 target_compile_definitions(example-asio
   PUBLIC
     -DCONTINUABLE_WITH_NO_EXCEPTIONS)
+
+add_executable(example-asio-integration
+    ${CMAKE_CURRENT_LIST_DIR}/example-asio-integration.cpp)
+
+target_link_libraries(example-asio-integration
+  PRIVATE
+    asio-example-deps)
