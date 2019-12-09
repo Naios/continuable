@@ -45,10 +45,20 @@ constexpr use_cti_t use_cti{};
 template <typename Signature>
 class async_result<use_cti_t, Signature> {
 public:
+#if defined(CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION)
+  using return_type = typename cti::detail::asio::initiate_make_continuable<
+      Signature>::erased_return_type;
+#endif
+
   template <typename Initiation, typename... Args>
-  static auto initiate(Initiation initiation, use_cti_t, Args... args) {
-    return cti::make_continuable<
-        cti::detail::asio::continuable_result_t<Signature>>(
+  static
+#if defined(CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION)
+      return_type
+#else
+      auto
+#endif
+      initiate(Initiation initiation, use_cti_t, Args... args) {
+    return cti::detail::asio::initiate_make_continuable<Signature>{}(
         [initiation = std::move(initiation),
          init_args =
              std::make_tuple(std::move(args)...)](auto&& promise) mutable {
@@ -69,5 +79,6 @@ CTI_DETAIL_ASIO_NAMESPACE_END
 
 #undef CTI_DETAIL_ASIO_NAMESPACE_BEGIN
 #undef CTI_DETAIL_ASIO_NAMESPACE_END
+#undef CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION
 
 #endif // CONTINUABLE_SUPPORT_ASIO_HPP_INCLUDED

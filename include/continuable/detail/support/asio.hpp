@@ -33,17 +33,49 @@
 #if defined(ASIO_STANDALONE)
 #include <asio/async_result.hpp>
 #include <asio/error_code.hpp>
+#include <asio/version.hpp>
+
+#if (ASIO_VERSION / 100 % 1000) <= 12
+#define CTI_DETAIL_ASIO_HAS_NO_INTEGRATION
+#elif (ASIO_VERSION / 100 % 1000) <= 14
+#define CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION
+#endif
+
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
 #include <asio/system_error.hpp>
+#endif
 
 #define CTI_DETAIL_ASIO_NAMESPACE_BEGIN namespace asio {
 #define CTI_DETAIL_ASIO_NAMESPACE_END }
 #else
 #include <boost/asio/async_result.hpp>
 #include <boost/system/error_code.hpp>
-#include <boost/system/system_error.hpp>
+#include <boost/version.hpp>
 
-#define CTI_DETAIL_ASIO_NAMESPACE_BEGIN namespace boost { namespace asio {
-#define CTI_DETAIL_ASIO_NAMESPACE_END }}
+#if (BOOST_VERSION / 100 % 1000) <= 69
+#define CTI_DETAIL_ASIO_HAS_NO_INTEGRATION
+#elif (BOOST_VERSION / 100 % 1000) <= 71
+#define CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION
+#endif
+
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#include <boost/system/system_error.hpp>
+#endif
+
+#define CTI_DETAIL_ASIO_NAMESPACE_BEGIN                                        \
+  namespace boost {                                                            \
+  namespace asio {
+#define CTI_DETAIL_ASIO_NAMESPACE_END                                          \
+  }                                                                            \
+  }
+#endif
+
+#if defined(CTI_DETAIL_ASIO_HAS_NO_INTEGRATION)
+#error \
+  "First-class ASIO support for continuable requires the form of "\
+  "`async_result` with an `initiate` static member function, which was added " \
+  "in standalone ASIO 1.13.0 and Boost ASIO 1.70. Older versions can be " \
+  "integrated manually with `cti::promisify`."
 #endif
 
 #include <utility>
@@ -54,10 +86,38 @@ namespace asio {
 
 #if defined(ASIO_STANDALONE)
 using error_code_t = ::asio::error_code;
+using error_cond_t = std::error_condition;
+
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
 using exception_t = ::asio::system_error;
+#endif
 #else
 using error_code_t = ::boost::system::error_code;
+using error_cond_t = ::boost::system::error_condition;
+
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
 using exception_t = ::boost::system::system_error;
+#endif
+#endif
+
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+template <typename Promise>
+void promise_exception_helper(Promise& promise, error_code_t e) noexcept {
+  promise.set_exception(std::make_exception_ptr(exception_t(std::move(e))));
+}
+#else
+template <typename Promise>
+void promise_exception_helper(Promise& promise, error_code_t e) noexcept
+    ->decltype(promise.set_exception(std::move(e))) {
+  return promise.set_exception(std::move(e));
+}
+
+template <typename Promise>
+void promise_exception_helper(Promise& promise, error_code_t e) noexcept
+    ->decltype(promise.set_exception(error_cond_t(e.value(), e.category()))) {
+  promise.set_exception(error_cond_t(e.value(), e.category()));
+}
+
 #endif
 
 // Binds `promise` to the first argument of a continuable resolver, giving it
@@ -65,41 +125,48 @@ using exception_t = ::boost::system::system_error;
 template <typename Promise>
 auto promise_resolver_handler(Promise&& promise) noexcept {
   return [promise = std::forward<Promise>(promise)](
-      error_code_t e, auto&&... args) mutable noexcept {
+             error_code_t e, auto&&... args) mutable noexcept {
     if (e) {
-      promise.set_exception(std::make_exception_ptr(exception_t(std::move(e))));
+      promise_exception_helper(promise, std::move(e));
     } else {
       promise.set_value(std::forward<decltype(args)>(args)...);
     }
   };
 }
 
-// Type deduction helper for `Result` in `cti::make_continuable<Result>`
+// Helper struct wrapping a call to `cti::make_continuable` and, if needed,
+// providing an erased, explicit `return_type` for `async_result`.
 template <typename Signature>
-struct continuable_result;
+struct initiate_make_continuable;
 
-template <>
-struct continuable_result<void(error_code_t)> {
-  using type = void;
+template <typename... Args>
+struct initiate_make_continuable<void(error_code_t, Args...)> {
+  using is_void_cti_t = std::integral_constant<bool, sizeof...(Args) == 0>;
+
+#if defined(CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION)
+  using erased_return_type =
+      std::conditional_t<is_void_cti_t::value, cti::continuable<>,
+                         cti::continuable<Args...>>;
+#endif
+
+  template <typename Continuation, typename IsVoid = is_void_cti_t>
+  auto operator()(Continuation&& continuation,
+                  std::enable_if_t<IsVoid::value>* = 0) {
+    return cti::make_continuable<void>(
+        std::forward<Continuation>(continuation));
+  }
+
+  template <typename Continuation, typename IsVoid = is_void_cti_t>
+  auto operator()(Continuation&& continuation,
+                  std::enable_if_t<!IsVoid::value>* = 0) {
+    return cti::make_continuable<Args...>(
+        std::forward<Continuation>(continuation));
+  }
 };
 
-template <>
-struct continuable_result<void(error_code_t const&)>
-    : continuable_result<void(error_code_t)> {};
-
-template <typename T>
-struct continuable_result<void(error_code_t, T)> {
-  using type = T;
-};
-
-template <typename T>
-struct continuable_result<void(error_code_t const&, T)>
-    : continuable_result<void(error_code_t, T)> {};
-
-template <typename Signature>
-using continuable_result_t = typename continuable_result<Signature>::type;
-
-
+template <typename... Args>
+struct initiate_make_continuable<void(error_code_t const&, Args...)>
+    : initiate_make_continuable<void(error_code_t, Args...)> {};
 
 } // namespace asio
 } // namespace detail
