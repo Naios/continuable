@@ -30,21 +30,21 @@
 #ifndef CONTINUABLE_DETAIL_ASIO_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_ASIO_HPP_INCLUDED
 
-#include <continuable/detail/core/base.hpp>
+#include <continuable/detail/features.hpp>
 
 #if defined(ASIO_STANDALONE)
 #include <asio/async_result.hpp>
 #include <asio/error_code.hpp>
 #include <asio/version.hpp>
 
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#include <asio/system_error.hpp>
+#endif
+
 #if (ASIO_VERSION / 100 % 1000) <= 12
 #define CTI_DETAIL_ASIO_HAS_NO_INTEGRATION
 #elif (ASIO_VERSION / 100 % 1000) <= 14
 #define CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION
-#endif
-
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
-#include <asio/system_error.hpp>
 #endif
 
 #define CTI_DETAIL_ASIO_NAMESPACE_BEGIN namespace asio {
@@ -54,14 +54,14 @@
 #include <boost/system/error_code.hpp>
 #include <boost/version.hpp>
 
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#include <boost/system/system_error.hpp>
+#endif
+
 #if (BOOST_VERSION / 100 % 1000) <= 69
 #define CTI_DETAIL_ASIO_HAS_NO_INTEGRATION
 #elif (BOOST_VERSION / 100 % 1000) <= 71
 #define CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION
-#endif
-
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
-#include <boost/system/system_error.hpp>
 #endif
 
 #define CTI_DETAIL_ASIO_NAMESPACE_BEGIN                                        \
@@ -79,7 +79,13 @@
   "integrated manually with `cti::promisify`."
 #endif
 
+#include <continuable/detail/core/base.hpp>
+
 #include <utility>
+
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#include <exception>
+#endif
 
 namespace cti {
 namespace detail {
@@ -87,38 +93,16 @@ namespace asio {
 
 #if defined(ASIO_STANDALONE)
 using error_code_t = ::asio::error_code;
-using error_cond_t = std::error_condition;
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
-using exception_t = ::asio::system_error;
+using system_error_t = ::asio::system_error;
 #endif
 #else
 using error_code_t = ::boost::system::error_code;
-using error_cond_t = ::boost::system::error_condition;
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
-using exception_t = ::boost::system::system_error;
+using system_error_t = ::boost::system::system_error;
 #endif
-#endif
-
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
-template <typename Promise>
-void promise_exception_helper(Promise& promise, error_code_t e) noexcept {
-  promise.set_exception(std::make_exception_ptr(exception_t(std::move(e))));
-}
-#else
-template <typename Promise>
-void promise_exception_helper(Promise& promise, error_code_t e) noexcept
-    ->decltype(promise.set_exception(std::move(e))) {
-  return promise.set_exception(std::move(e));
-}
-
-template <typename Promise>
-void promise_exception_helper(Promise& promise, error_code_t e) noexcept
-    ->decltype(promise.set_exception(error_cond_t(e.value(), e.category()))) {
-  promise.set_exception(error_cond_t(e.value(), e.category()));
-}
-
 #endif
 
 // Binds `promise` to the first argument of a continuable resolver, giving it
@@ -128,7 +112,12 @@ auto promise_resolver_handler(Promise&& promise) noexcept {
   return [promise = std::forward<Promise>(promise)](
              error_code_t e, auto&&... args) mutable noexcept {
     if (e) {
-      promise_exception_helper(promise, std::move(e));
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+      promise.set_exception(
+          std::make_exception_ptr(system_error_t(std::move(e))));
+#else
+      promise.set_exception(cti::exception_t(e.value(), e.category()));
+#endif
     } else {
       promise.set_value(std::forward<decltype(args)>(args)...);
     }
