@@ -30,6 +30,8 @@
 #ifndef CONTINUABLE_DETAIL_ASIO_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_ASIO_HPP_INCLUDED
 
+#include <continuable/detail/core/base.hpp>
+
 #if defined(ASIO_STANDALONE)
 #include <asio/async_result.hpp>
 #include <asio/error_code.hpp>
@@ -71,8 +73,7 @@
 #endif
 
 #if defined(CTI_DETAIL_ASIO_HAS_NO_INTEGRATION)
-#error \
-  "First-class ASIO support for continuable requires the form of "\
+#error "First-class ASIO support for continuable requires the form of "\
   "`async_result` with an `initiate` static member function, which was added " \
   "in standalone ASIO 1.13.0 and Boost ASIO 1.70. Older versions can be " \
   "integrated manually with `cti::promisify`."
@@ -141,26 +142,15 @@ struct initiate_make_continuable;
 
 template <typename... Args>
 struct initiate_make_continuable<void(error_code_t, Args...)> {
-  using is_void_cti_t = std::integral_constant<bool, sizeof...(Args) == 0>;
-
 #if defined(CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION)
-  using erased_return_type =
-      std::conditional_t<is_void_cti_t::value, cti::continuable<>,
-                         cti::continuable<Args...>>;
+  using erased_return_type = cti::continuable<Args...>;
 #endif
 
-  template <typename Continuation, typename IsVoid = is_void_cti_t>
-  auto operator()(Continuation&& continuation,
-                  std::enable_if_t<IsVoid::value>* = 0) {
-    return cti::make_continuable<void>(
-        std::forward<Continuation>(continuation));
-  }
-
-  template <typename Continuation, typename IsVoid = is_void_cti_t>
-  auto operator()(Continuation&& continuation,
-                  std::enable_if_t<!IsVoid::value>* = 0) {
-    return cti::make_continuable<Args...>(
-        std::forward<Continuation>(continuation));
+  template <typename Continuation>
+  auto operator()(Continuation&& continuation) {
+    return detail::base::attorney::create_from(
+        std::forward<Continuation>(continuation), detail::identity<Args...>{},
+        detail::util::ownership{});
   }
 };
 
