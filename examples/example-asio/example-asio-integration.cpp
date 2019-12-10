@@ -28,12 +28,10 @@
   SOFTWARE.
 **/
 
-#define ASIO_HAS_RETURN_TYPE_DEDUCTION
+#include <asio.hpp>
 
 #include <continuable/continuable.hpp>
 #include <continuable/support/asio.hpp>
-
-#include <asio.hpp>
 
 // Queries the NIST daytime service and prints the current date and time
 void daytime_service();
@@ -41,6 +39,12 @@ void daytime_service();
 // Checks that a cancelled timer async_wait fails with
 // `asio::error::operation_aborted`
 void cancelled_async_wait();
+
+// Indicates fatal error due to an unexpected failure in the continuation chain.
+void unexpected_error(cti::exception_t);
+
+// Check that the failure was an aborted operation, as expected.
+void check_aborted_operation(cti::exception_t);
 
 int main(int, char**) {
   daytime_service();
@@ -57,16 +61,16 @@ void daytime_service() {
   tcp::socket socket(ioc);
   std::string buf;
 
-  resolver.async_resolve("time.nist.gov", "daytime", asio::use_cti)
+  resolver.async_resolve("time.nist.gov", "daytime", cti::asio_token)
       .then([&socket](tcp::resolver::results_type endpoints) {
-        return asio::async_connect(socket, endpoints, asio::use_cti);
+        return asio::async_connect(socket, endpoints, cti::asio_token);
       })
       .then([&socket, &buf] {
         return asio::async_read_until(socket, asio::dynamic_buffer(buf), '\n',
-                                      asio::use_cti);
+                                      cti::asio_token);
       })
       .then([&buf](std::size_t) { puts(buf.data()); })
-      .fail([](cti::exception_t e) { std::rethrow_exception(e); });
+      .fail(&unexpected_error);
 
   ioc.run();
 }
@@ -77,20 +81,49 @@ void cancelled_async_wait() {
 
   t.expires_after(std::chrono::seconds(999));
 
-  t.async_wait(asio::use_cti)
-      .then([] { throw std::logic_error("Unexpected continuation call"); })
-      .fail([](cti::exception_t ep) {
-        try {
-          std::rethrow_exception(ep);
-        } catch (asio::system_error const& ex) {
-          if (ex.code() == asio::error::operation_aborted) {
-            puts("async_wait failed with expected cancellation error");
-          } else {
-            throw;
-          }
-        }
-      });
+  t.async_wait(cti::asio_token)
+      .then([] {
+        puts("This should never be called");
+        std::terminate();
+      })
+      .fail(&check_aborted_operation);
 
   t.cancel_one();
   ioc.run();
+}
+
+void unexpected_error(cti::exception_t e) {
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+  std::rethrow_exception(e);
+#else
+  puts("Continuation failed with unexpected error");
+  puts(e.message().data());
+  std::terminate();
+#endif
+}
+
+void check_aborted_operation(cti::exception_t ex) {
+  auto is_expected_error = [](auto err_val) {
+    if (err_val == asio::error_code(asio::error::operation_aborted)) {
+      puts("Continuation failed due to aborted async operation, as expected.");
+      return true;
+    }
+    return false;
+  };
+
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+  try {
+    std::rethrow_exception(ex);
+  } catch (asio::system_error const& err) {
+    if (is_expected_error(err.code())) {
+      return;
+    }
+  }
+#else
+  if (is_expected_error(ex)) {
+    return;
+  }
+#endif
+
+  unexpected_error(ex);
 }
