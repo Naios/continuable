@@ -51,13 +51,7 @@ public:
 #endif
 
   template <typename Initiation, typename... Args>
-  static
-#if defined(CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION)
-      return_type
-#else
-      auto
-#endif
-      initiate(Initiation initiation, use_cti_t, Args... args) {
+  static auto initiate(Initiation initiation, use_cti_t, Args... args) {
     return cti::detail::asio::initiate_make_continuable<Signature>{}(
         [initiation = std::move(initiation),
          init_args =
