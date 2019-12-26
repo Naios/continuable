@@ -71,7 +71,9 @@ struct is_continuable<continuable_base<Data, Annotation>> : std::true_type {};
 
 template <typename... Args>
 struct ready_continuation {
-  std::tuple<Args...> values_;
+  explicit ready_continuation(result<Args...> result)
+      : result_(std::move(result)) {
+  }
 
   ready_continuation() = delete;
   ~ready_continuation() = default;
@@ -80,43 +82,42 @@ struct ready_continuation {
   ready_continuation& operator=(ready_continuation&&) = default;
   ready_continuation& operator=(ready_continuation const&) = delete;
 
-  explicit ready_continuation(Args... values) : values_(std::move(values)...) {
-  }
-
   template <typename Callback>
   void operator()(Callback&& callback) {
-    traits::unpack(std::forward<Callback>(callback), std::move(values_));
+    if (result_.is_value()) {
+      traits::unpack(std::forward<Callback>(callback), std::move(result_));
+    } else if (result_.is_exception()) {
+      util::invoke(std::forward<Callback>(callback), exception_arg_t{},
+                   result_.get_exception());
+    }
   }
 
   bool operator()(is_ready_arg_t) const noexcept {
     return true;
   }
 
-  std::tuple<Args...> operator()(query_arg_t) {
-    return std::move(values_);
+  result<Args...> operator()(unpack_arg_t) {
+    return std::move(result_);
   }
+
+private:
+  result<Args...> result_;
 };
-template <>
-struct ready_continuation<> {
-  ready_continuation() = default;
-  ~ready_continuation() = default;
-  ready_continuation(ready_continuation&&) = default;
-  ready_continuation(ready_continuation const&) = delete;
-  ready_continuation& operator=(ready_continuation&&) = default;
-  ready_continuation& operator=(ready_continuation const&) = delete;
 
-  template <typename Callback>
-  void operator()(Callback&& callback) {
-    util::invoke(std::forward<Callback>(callback));
-  }
+template <typename T>
+struct ready_continuation_from_hint;
 
-  bool operator()(is_ready_arg_t) const noexcept {
-    return true;
-  }
+template <typename... Args>
+struct ready_continuation_from_hint<identity<Args...>> {
+  using type = ready_continuation<Args...>;
+};
 
-  std::tuple<> operator()(query_arg_t) {
-    return std::make_tuple();
-  }
+template <typename T>
+struct result_from_hint;
+
+template <typename... Args>
+struct result_from_hint<identity<Args...>> {
+  using type = result<Args...>;
 };
 
 template <typename Hint, typename Continuation>
@@ -139,7 +140,7 @@ struct proxy_continuable<identity<Args...>, Continuation> : Continuation {
     return false;
   }
 
-  std::tuple<Args...> operator()(query_arg_t) {
+  result<Args...> operator()(unpack_arg_t) {
     CTI_DETAIL_UNREACHABLE();
   }
 };
@@ -185,10 +186,29 @@ struct attorney {
 
   template <typename Data, typename Annotation>
   static auto query(continuable_base<Data, Annotation>&& continuation) {
-    return std::move(continuation).consume()(query_arg_t{});
+    return std::move(continuation).consume()(unpack_arg_t{});
+  }
+};
+} // namespace base
+
+template <typename Annotation>
+struct annotation_trait;
+
+/// Specialization for a present signature hint
+template <typename... Args>
+struct annotation_trait<identity<Args...>> {
+  template <typename Continuable>
+  static Continuable&& finish(Continuable&& continuable) {
+    return std::forward<Continuable>(continuable);
+  }
+
+  template <typename Continuable>
+  static bool is_ready(Continuable const& continuable) noexcept {
+    return base::attorney::is_ready(continuable);
   }
 };
 
+namespace base {
 /// Returns the signature hint of the given continuable
 template <typename Data, typename... Args>
 constexpr identity<Args...>
@@ -777,6 +797,7 @@ namespace detail {
 template <typename Callable>
 struct exception_stripper_proxy {
   Callable callable_;
+
   template <typename... Args>
   auto operator()(exception_arg_t, Args&&... args)
       -> decltype(util::invoke(std::declval<Callable>(), //
@@ -843,7 +864,14 @@ struct chained_continuation<identity<Args...>, identity<NextArgs...>,
     if (is_ready) {
       // Invoke the proxy callback directly with the result to
       // avoid a potential type erasure.
-      traits::unpack(std::move(proxy), std::move(continuation_)(query_arg_t{}));
+      auto result = std::move(continuation_)(unpack_arg_t{});
+
+      if (result.is_value()) {
+        traits::unpack(std::move(proxy), std::move(result));
+      } else if (result.is_exception()) {
+        util::invoke(std::move(proxy), exception_arg_t{},
+                     std::move(result.get_exception()));
+      }
     } else {
       // Invoke the continuation with a proxy callback.
       // The proxy callback is responsible for passing
@@ -856,7 +884,7 @@ struct chained_continuation<identity<Args...>, identity<NextArgs...>,
     return false;
   }
 
-  std::tuple<NextArgs...> operator()(query_arg_t) {
+  result<NextArgs...> operator()(unpack_arg_t) {
     CTI_DETAIL_UNREACHABLE();
   }
 };
@@ -892,14 +920,20 @@ struct chained_continuation<identity<Args...>, identity<NextArgs...>,
         std::forward<decltype(next_callback)>(next_callback));
 
     // Extract the result out of the ready continuable
-    traits::unpack(std::move(proxy), std::move(continuation_)(query_arg_t{}));
+    auto result = std::move(continuation_)(unpack_arg_t{});
+    if (result.is_value()) {
+      traits::unpack(std::move(proxy), std::move(result));
+    } else if (result.is_exception()) {
+      util::invoke(std::move(proxy), exception_arg_t{},
+                   std::move(result.get_exception()));
+    }
   }
 
   bool operator()(is_ready_arg_t) const noexcept {
     return false;
   }
 
-  std::tuple<NextArgs...> operator()(query_arg_t) {
+  result<NextArgs...> operator()(unpack_arg_t) {
     CTI_DETAIL_UNREACHABLE();
   }
 };

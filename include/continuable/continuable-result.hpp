@@ -248,7 +248,7 @@ public:
     return result{detail::init_arg_t{}, std::move(values)...};
   }
   /// Creates a present result from the given exception
-  static result from(exception_t exception) {
+  static result from(exception_arg_t, exception_t exception) {
     return result{detail::init_arg_t{}, std::move(exception)};
   }
 

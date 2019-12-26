@@ -40,13 +40,13 @@ namespace cti {
 /// and continuations.
 ///
 /// For the callback and the continuation `Args...` represents the
-/// asynchronous results:
+/// asynchronous result:
 /// ```cpp
 /// template<typename... Args>
 /// struct continuation {
 ///   void operator() (callback<Args...>);
 ///   bool operator() (cti::is_ready_arg_t) const;
-///   std::tuple<Args...> operator() (cti::query_arg_t);
+///   result<Args...> operator() (cti::unpack_arg_t);
 /// };
 /// ```
 /// ```cpp
@@ -62,7 +62,6 @@ namespace cti {
 /// of a continuable_base or promise_base.
 ///
 /// \since 4.0.0
-///
 template <typename... Args>
 using signature_arg_t = detail::identity<Args...>;
 
@@ -71,17 +70,24 @@ using signature_arg_t = detail::identity<Args...>;
 /// without having side effects.
 ///
 /// \since 4.0.0
-///
 struct is_ready_arg_t {};
 
-/// Represents the tag type that is used to query the continuation
-/// for its arguments when resolves the callback instantly
-/// without having side effects.
-/// It's required that the query of is_ready_arg_t returns true.
+/// Represents the tag type that is used to unpack the result of a continuation.
+///
+/// \attention It's required that the query of is_ready_arg_t returns true,
+///            otherwise the behaviour when unpacking is unspecified.
 ///
 /// \since 4.0.0
+struct unpack_arg_t {};
+
+/// \copydoc unpack_arg_t
 ///
-struct query_arg_t {};
+/// \deprecated The query_arg_t was deprecated because of
+///             its new naming unpack_arg_t.
+///
+[[deprecated("The dispatch_error_tag was replaced by unpack_arg_t and will "
+             "be removed in a later major version!")]] //
+    typedef unpack_arg_t query_arg_t;
 
 /// Represents the tag type that is used to disambiguate the
 /// callback operator() in order to take the exception asynchronous chain.
@@ -89,7 +95,6 @@ struct query_arg_t {};
 /// \note see continuable::next for details.
 ///
 /// \since 4.0.0
-///
 struct exception_arg_t {};
 
 /// \copydoc exception_arg_t
@@ -100,7 +105,7 @@ struct exception_arg_t {};
 ///
 [[deprecated("The dispatch_error_tag was replaced by exception_arg_t and will "
              "be removed in a later major version!")]] //
-typedef exception_arg_t dispatch_error_tag;
+    typedef exception_arg_t dispatch_error_tag;
 
 /// Represents the type that is used as exception type
 ///
@@ -111,7 +116,6 @@ typedef exception_arg_t dispatch_error_tag;
 /// defining `CONTINUABLE_WITH_CUSTOM_ERROR_TYPE`.
 ///
 /// \since 4.0.0
-///
 using exception_t = detail::types::exception_t;
 
 /// \copydoc exception_t
@@ -122,14 +126,13 @@ using exception_t = detail::types::exception_t;
 ///
 [[deprecated("The error_type was replaced by exception_t and will "
              "be removed in a later major version!")]] //
-typedef exception_t error_type;
+    typedef exception_t error_type;
 
 /// Represents the type that is used to disable the special meaning of types
 /// which are returned by a asynchronous result handler.
 /// See cti::plain for details.
 ///
 /// \since 4.0.0
-///
 template <typename T>
 using plain_t = detail::types::plain_tag<T>;
 /// \}

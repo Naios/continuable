@@ -138,7 +138,7 @@ public:
             std::enable_if_t<std::is_convertible<
                 detail::traits::unrefcv_t<OData>, Data>::value>* = nullptr>
   /* implicit */ continuable_base(continuable_base<OData, Annotation>&& other)
-      : continuable_base(std::move(other).consume()) {
+      : data_(std::move(other).consume()) {
   }
 
   /// Constructor taking the data of other continuable_base objects
@@ -627,6 +627,35 @@ public:
     return annotation_trait::finish(std::move(*this));
   }
 
+  /// Returns true when the continuable can provide its result immediately,
+  /// and its lazy invocation would be side-effect free.
+  ///
+  /// \since 4.0.0
+  bool is_ready() const noexcept {
+    return annotation_trait::is_ready(*this);
+  }
+
+  /// Invalidates the continuable and returns its immediate invocation result.
+  ///
+  /// This method can be used to specialize the asynchronous control flow
+  /// based on whether the continuable ìs_ready at every time,
+  /// which is true for a continuable created through the following functions:
+  ///   - make_ready_continuable
+  ///   - make_exceptional_continuable
+  ///
+  /// \returns   A result<Args...> where Args... represent the current
+  ///            asynchronous parameters or the currently stored exception.
+  ///
+  /// \attention unpack requires that continuable_base::is_ready returned true
+  ///            in a previous check, otherwise its behaviour is unspecified.
+  ///
+  /// \since 4.0.0
+  auto unpack() && {
+    assert(ownership_.is_acquired());
+    assert(is_ready());
+    return detail::base::attorney::query(std::move(*this).finish());
+  }
+
   /// Predicate to check whether the cti::continuable_base is frozen or not.
   ///
   /// \returns Returns true when the continuable_base is frozen.
@@ -860,15 +889,16 @@ constexpr auto make_continuable(Continuation&& continuation) {
 /// \attention Usually using this function isn't needed at all since
 ///            the continuable library is capable of working with
 ///            plain values in most cases.
-///            Try not to use it since it causes unneccessary recursive
+///            Try not to use it since it causes unnecessary recursive
 ///            function calls.
 ///
 /// \since     3.0.0
 template <typename... Args>
 auto make_ready_continuable(Args&&... args) {
   return detail::base::attorney::create_from_raw(
-      detail::base::ready_continuation<detail::traits::unrefcv_t<Args>...>{
-          std::forward<Args>(args)...},
+      detail::base::ready_continuation<detail::traits::unrefcv_t<Args>...>(
+          result<detail::traits::unrefcv_t<Args>...>::from(
+              std::forward<Args>(args)...)),
       detail::identity<detail::traits::unrefcv_t<Args>...>{},
       detail::util::ownership{});
 }
@@ -883,19 +913,22 @@ auto make_ready_continuable(Args&&... args) {
 /// auto ct = cti::make_exceptional_continuable<int>(ptr);
 /// ```
 ///
-/// \tparam Signature The fake signature of the returned continuable.
+/// \tparam Args The fake signature of the returned continuable.
 ///
 /// \since            3.0.0
-template <typename... Signature, typename Exception>
+template <typename... Args, typename Exception>
 constexpr auto make_exceptional_continuable(Exception&& exception) {
-  static_assert(sizeof...(Signature) > 0,
+  static_assert(sizeof...(Args) > 0,
                 "Requires at least one type for the fake signature!");
 
-  return make_continuable<Signature...>( // ...
-      [exception = std::forward<Exception>(exception)](auto&& promise) mutable {
-        std::forward<decltype(promise)>(promise).set_exception(
-            std::move(exception));
-      });
+  using hint_t = typename detail::hints::from_args<Args...>::type;
+  using ready_continuation_t =
+      typename detail::base::ready_continuation_from_hint<hint_t>::type;
+  using result_t = typename detail::base::result_from_hint<hint_t>::type;
+  return detail::base::attorney::create_from_raw(
+      ready_continuation_t(result_t::from(exception_arg_t{},
+                                          std::forward<Exception>(exception))),
+      hint_t{}, detail::util::ownership{});
 }
 
 /// Returns a continuable_base with the parameterized result which never

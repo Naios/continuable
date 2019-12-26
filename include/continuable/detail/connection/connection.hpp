@@ -138,6 +138,11 @@ struct connection_annotation_trait {
     // Return a new continuable which
     return finalizer::finalize(std::move(connection), std::move(ownership));
   }
+
+  template <typename Continuable>
+  static bool is_ready(Continuable const& /*continuable*/) noexcept {
+    return false;
+  }
 };
 
 class prepare_continuables {

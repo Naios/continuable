@@ -157,21 +157,21 @@ struct connection_finalizer<connection_strategy_all_tag> {
   template <typename Connection>
   static auto finalize(Connection&& connection, util::ownership ownership) {
     // Create the target result from the connection
-    auto result =
+    auto res =
         aggregated::box_continuables(std::forward<Connection>(connection));
 
-    auto signature = aggregated::hint_of_data<decltype(result)>();
+    auto signature = aggregated::hint_of_data<decltype(res)>();
 
     return base::attorney::create_from(
-        [result = std::move(result)](auto&& callback) mutable {
+        [res = std::move(res)](auto&& callback) mutable {
           using submitter_t =
               all::result_submitter<std::decay_t<decltype(callback)>,
-                                    std::decay_t<decltype(result)>>;
+                                    std::decay_t<decltype(res)>>;
 
           // Create the shared state which holds the result
           // and the final callback
           auto state = std::make_shared<submitter_t>(
-              std::forward<decltype(callback)>(callback), std::move(result));
+              std::forward<decltype(callback)>(callback), std::move(res));
 
           // Dispatch the continuables and store its partial result
           // in the whole result

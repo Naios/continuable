@@ -173,7 +173,7 @@ template <typename... Args>
 using continuation_erasure_t = fu2::function_base<
     true, false, continuation_capacity<Args...>, true, false,
     void(promise_base<callback<Args...>, signature_arg_t<Args...>>),
-    bool(is_ready_arg_t) const, std::tuple<Args...>(query_arg_t)>;
+    bool(is_ready_arg_t) const, result<Args...>(unpack_arg_t)>;
 
 #ifdef CONTINUABLE_HAS_IMMEDIATE_TYPES
 template <typename... Args>
@@ -229,7 +229,7 @@ public:
     return erasure_(is_ready_arg);
   }
 
-  std::tuple<Args...> operator()(query_arg_t query_arg) {
+  result<Args...> operator()(unpack_arg_t query_arg) {
     return erasure_(query_arg);
   }
 };

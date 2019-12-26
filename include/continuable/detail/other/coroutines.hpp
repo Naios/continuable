@@ -79,18 +79,15 @@ public:
       : continuable_(std::move(continuable)) {
 
     // If the continuable is ready resolve the result from the
-    // continuable immediatly.
+    // continuable immediately.
     if (base::attorney::is_ready(continuable_)) {
-      traits::unpack(
-          [&](auto&&... args) {
-            resolve(std::forward<decltype(args)>(args)...);
-          },
-          base::attorney::query(std::move(continuable_)));
+      assert(result_.is_empty());
+      result_ = base::attorney::query(std::move(continuable_));
     }
   }
 
-  /// Since continuables are evaluated lazily we are not
-  /// capable to say whether the resumption will be instantly.
+  /// Return whether the continuable can provide its result instantly,
+  /// which also means its execution is side-effect free.
   bool await_ready() const noexcept {
     return !result_.is_empty();
   }
@@ -102,7 +99,8 @@ public:
     // Forward every result to the current awaitable
     std::move(continuable_)
         .next([h, this](auto&&... args) mutable {
-          resolve(std::forward<decltype(args)>(args)...);
+          assert(result_.is_empty());
+          result_ = result_t::from(std::forward<decltype(args)>(args)...);
           h.resume();
         })
         .done();
@@ -121,20 +119,6 @@ public:
     // Returning error types in await isn't supported as of now
     CTI_DETAIL_TRAP();
 #endif // CONTINUABLE_HAS_EXCEPTIONS
-  }
-
-private:
-  /// Resolve the continuation through the result
-  template <typename... Args>
-  void resolve(Args&&... args) {
-    assert(result_.is_empty());
-    result_.set_value(std::forward<Args>(args)...);
-  }
-
-  /// Resolve the continuation through an error
-  void resolve(exception_arg_t, exception_t exception) {
-    assert(result_.is_empty());
-    result_.set_exception(std::move(exception));
   }
 };
 

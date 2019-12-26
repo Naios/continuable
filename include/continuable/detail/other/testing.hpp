@@ -100,10 +100,10 @@ template <typename C, typename V>
 void assert_async_validation(C&& continuable, V&& validator) {
   assert_async_completion(
       std::forward<C>(continuable)
-          .then(
-              [validator = std::forward<V>(validator)](auto&&... args) mutable {
-                validator(std::forward<decltype(args)>(args)...);
-              }));
+          .then([validator =
+                     std::forward<V>(validator)](auto&&... args) mutable {
+            validator(std::forward<decltype(args)>(args)...);
+          }));
 }
 
 /// Expects that the continuable is finished with the given arguments
@@ -113,17 +113,17 @@ void assert_async_binary_validation(V&& validator, C&& continuable,
 
   using size = std::integral_constant<std::size_t, sizeof...(expected)>;
 
-  assert_async_validation(
-      std::forward<C>(continuable),
-      [expected_pack = std::make_tuple(std::forward<Args>(expected)...),
-       validator = std::forward<V>(validator)](auto&&... args) mutable {
-        static_assert(size::value == sizeof...(args),
-                      "Async completion handler called with a different count "
-                      "of arguments!");
+  assert_async_validation(std::forward<C>(continuable), [
+    expected_pack = std::make_tuple(std::forward<Args>(expected)...),
+    validator = std::forward<V>(validator)
+  ](auto&&... args) mutable {
+    static_assert(size::value == sizeof...(args),
+                  "Async completion handler called with a different count "
+                  "of arguments!");
 
-        validator(std::make_tuple(std::forward<decltype(args)>(args)...),
-                  expected_pack);
-      });
+    validator(std::make_tuple(std::forward<decltype(args)>(args)...),
+              expected_pack);
+  });
 }
 
 /// Expects that the continuable is finished with the given arguments
@@ -136,19 +136,20 @@ void assert_async_binary_exception_validation(V&& validator, C&& continuable,
         // Workaround for our known GCC bug.
         util::unused(std::forward<decltype(args)>(args)...);
 
-        // ...
+        // The exception was not thrown!
         FAIL();
       })
-      .fail([called, validator = std::forward<decltype(validator)>(validator),
-             expected = std::forward<decltype(expected)>(expected)](
-                exception_t error) {
+      .fail([
+        called, validator = std::forward<decltype(validator)>(validator),
+        expected = std::forward<decltype(expected)>(expected)
+      ](exception_t error) {
         ASSERT_FALSE(*called);
         *called = true;
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
         try {
           std::rethrow_exception(error);
-        } catch (std::decay_t<decltype(expected)>& exception) {
+        } catch (std::decay_t<decltype(expected)> const& exception) {
           validator(exception, expected);
         } catch (...) {
           FAIL();

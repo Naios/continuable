@@ -44,8 +44,8 @@ struct my_continuation {
     return true;
   }
 
-  std::tuple<> operator()(query_arg_t) {
-    return std::make_tuple();
+  result<> operator()(unpack_arg_t) {
+    return make_result();
   }
 };
 

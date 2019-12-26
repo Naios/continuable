@@ -35,6 +35,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <continuable/continuable-result.hpp>
 #include <continuable/continuable-traverse.hpp>
 #include <continuable/detail/core/base.hpp>
 #include <continuable/detail/utility/flat-variant.hpp>

@@ -37,18 +37,6 @@
 
 namespace cti {
 namespace detail {
-template <typename Annotation>
-struct annotation_trait;
-
-/// Specialization for a present signature hint
-template <typename... Args>
-struct annotation_trait<identity<Args...>> {
-  template <typename Continuable>
-  static Continuable&& finish(Continuable&& continuable) {
-    return std::forward<Continuable>(continuable);
-  }
-};
-
 namespace hints {
 /// Extracts the signature we pass to the internal continuable
 /// from an argument pack as specified by make_continuable.
