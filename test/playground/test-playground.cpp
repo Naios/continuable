@@ -20,9 +20,37 @@
   SOFTWARE.
 **/
 
+#include <memory>
+#include <thread>
+#include <continuable/continuable-transforms.hpp>
 #include <continuable/continuable.hpp>
+#include <continuable/external/asio.hpp>
+#include <asio.hpp>
 
 using namespace cti;
+using namespace std::chrono_literals;
 
 int main(int, char**) {
+  asio::io_context ioc(1);
+  asio::steady_timer t(ioc);
+  auto work = std::make_shared<asio::io_context::work>(ioc);
+
+  t.expires_after(1s);
+
+  std::thread th([&] {
+    ioc.run();
+    puts("io_context finished");
+  });
+
+  int res = t.async_wait(cti::use_continuable)
+                .then([] {
+                  return 1;
+                })
+                .apply(transforms::wait());
+
+  puts("async_wait finished");
+  work.reset();
+
+  th.join();
+  return 0;
 }

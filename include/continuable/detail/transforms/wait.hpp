@@ -28,10 +28,14 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_DETAIL_TRANSFORMS_HPP_INCLUDED
-#define CONTINUABLE_DETAIL_TRANSFORMS_HPP_INCLUDED
+#ifndef CONTINUABLE_DETAIL_TRANSFORMS_WAIT_HPP_INCLUDED
+#define CONTINUABLE_DETAIL_TRANSFORMS_WAIT_HPP_INCLUDED
 
-#include <future>
+#include <atomic>
+#include <cassert>
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/detail/core/annotation.hpp>
 #include <continuable/detail/core/base.hpp>
@@ -39,32 +43,35 @@
 #include <continuable/detail/features.hpp>
 #include <continuable/detail/utility/util.hpp>
 
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#  include <exception>
+#endif
+
 namespace cti {
 namespace detail {
-/// Provides helper functions to transform continuations to other types
 namespace transforms {
-/// Provides helper functions and typedefs for converting callback arguments
-/// to their types a promise can accept.
+
+/*
 template <typename... Args>
-struct future_trait {
+struct sync_trait {
   /// The promise type used to create the future
-  using promise_t = std::promise<std::tuple<Args...>>;
+  using promise_t = std::tuple<Args...>;
   /// Boxes the argument pack into a tuple
   static void resolve(promise_t& promise, Args... args) {
     promise.set_value(std::make_tuple(std::move(args)...));
   }
 };
 template <>
-struct future_trait<> {
+struct sync_trait<> {
   /// The promise type used to create the future
-  using promise_t = std::promise<void>;
+  using promise_t = result<Args...>;
   /// Boxes the argument pack into void
   static void resolve(promise_t& promise) {
     promise.set_value();
   }
 };
 template <typename First>
-struct future_trait<First> {
+struct sync_trait<First> {
   /// The promise type used to create the future
   using promise_t = std::promise<First>;
   /// Boxes the argument pack into nothing
@@ -72,67 +79,56 @@ struct future_trait<First> {
     promise.set_value(std::move(first));
   }
 };
+*/
 
 template <typename Hint>
-class promise_callback;
-
+struct sync_trait;
 template <typename... Args>
-class promise_callback<identity<Args...>> : public future_trait<Args...> {
-
-  typename future_trait<Args...>::promise_t promise_;
-
-public:
-  constexpr promise_callback() = default;
-  promise_callback(promise_callback const&) = delete;
-  constexpr promise_callback(promise_callback&&) = default;
-  promise_callback& operator=(promise_callback const&) = delete;
-  promise_callback& operator=(promise_callback&&) = delete;
-
-  /// Resolves the promise
-  void operator()(Args... args) {
-    this->resolve(promise_, std::move(args)...);
-  }
-
-  /// Resolves the promise through the exception
-  void operator()(exception_arg_t, exception_t error) {
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
-    promise_.set_exception(error);
-#else
-    (void)error;
-
-    // Can't forward a std::error_condition or custom error type
-    // to a std::promise. Handle the error first in order
-    // to prevent this trap!
-    CTI_DETAIL_TRAP();
-#endif // CONTINUABLE_HAS_EXCEPTIONS
-  }
-
-  /// Returns the future from the promise
-  auto get_future() {
-    return promise_.get_future();
-  }
+struct sync_trait<identity<Args...>> {
+  using result_t = result<Args...>;
 };
 
-/// Transforms the continuation to a future
+/// Transforms the continuation to sync execution
 template <typename Data, typename Annotation>
-auto as_future(continuable_base<Data, Annotation>&& continuable) {
-  // Create the promise which is able to supply the current arguments
-  constexpr auto const hint =
-      base::annotation_of(identify<decltype(continuable)>{});
-
-  promise_callback<std::decay_t<decltype(hint)>> callback;
+auto wait(continuable_base<Data, Annotation>&& continuable) {
+  constexpr auto hint = base::annotation_of(identify<decltype(continuable)>{});
+  using result_t = typename sync_trait<std::decay_t<decltype(hint)>>::result_t;
   (void)hint;
 
-  // Receive the future
-  auto future = callback.get_future();
+  std::recursive_mutex mutex;
+  std::condition_variable_any cv;
+  std::atomic_bool ready{false};
+  result_t sync_result;
 
-  // Dispatch the continuation with the promise resolving callback
-  std::move(continuable).next(std::move(callback)).done();
+  std::move(continuable)
+      .next([&](auto&&... args) {
+        sync_result = result_t::from(std::forward<decltype(args)>(args)...);
 
-  return future;
+        ready.store(true, std::memory_order_release);
+        cv.notify_all();
+      })
+      .done();
+
+  if (!ready.load(std::memory_order_acquire)) {
+    std::unique_lock<std::recursive_mutex> lock(mutex);
+    cv.wait(lock, [&] {
+      return ready.load(std::memory_order_acquire);
+    });
+  }
+
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+  if (sync_result.is_value()) {
+    return std::move(sync_result).get_value();
+  } else {
+    assert(sync_result.is_exception());
+    std::rethrow_exception(sync_result.get_exception());
+  }
+#else
+  return sync_result;
+#endif // CONTINUABLE_HAS_EXCEPTIONS
 }
 } // namespace transforms
 } // namespace detail
 } // namespace cti
 
-#endif // CONTINUABLE_DETAIL_TRANSFORMS_HPP_INCLUDED
+#endif // CONTINUABLE_DETAIL_TRANSFORMS_WAIT_HPP_INCLUDED

@@ -436,14 +436,15 @@ public:
     return std::move(*this).then(detail::base::convert_to<Args...>{});
   }
 
-  /// A method which allows to apply this continuable to the given callable.
+  /// A method which allows to apply a callable object to this continuable.
   ///
-  /// \param transform A transform which shall accept this continuable
+  /// \param transform A callable objects that transforms a continuable
+  ///                  to a different object.
   ///
   /// \returns Returns the result of the given transform when this
   ///          continuable is passed into it.
   ///
-  /// \since 2.0.0
+  /// \since 4.0.0
   template <typename T>
   auto apply(T&& transform) && {
     return std::forward<T>(transform)(std::move(*this).finish());
@@ -460,22 +461,6 @@ public:
   template <typename T>
   auto operator|(T&& right) && {
     return std::move(*this).then(std::forward<T>(right));
-  }
-
-  /// The pipe operator | is an alias for the continuable::apply method.
-  ///
-  /// \param transform The transformer which is applied.
-  ///
-  /// \returns See the corresponding continuable_base::apply method for the
-  ///          explanation of the return type.
-  ///
-  /// \note    You may create your own transformation through
-  ///          calling make_transformation.
-  ///
-  /// \since 3.0.0
-  template <typename T>
-  auto operator|(detail::types::transform<T> transform) && {
-    return std::move(*this).apply(std::move(transform));
   }
 
   /// Invokes both continuable_base objects parallel and calls the

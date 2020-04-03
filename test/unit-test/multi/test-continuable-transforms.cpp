@@ -21,22 +21,27 @@
   SOFTWARE.
 **/
 
+#include <chrono>
+#include <future>
+#include <thread>
+
 #include <continuable/continuable-transforms.hpp>
 
 #include <test-continuable.hpp>
 
 using namespace cti;
 using namespace cti::detail;
+using namespace std::chrono_literals;
 
 template <typename T>
 bool is_ready(T& future) {
   // Check that the future is ready
-  return future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+  return future.wait_for(0s) == std::future_status::ready;
 }
 
-TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
+TYPED_TEST(single_dimension_tests, to_future_test) {
   {
-    auto future = this->supply().apply(cti::transforms::futurize());
+    auto future = this->supply().apply(cti::transforms::to_future());
     ASSERT_TRUE(is_ready(future));
     future.get();
   }
@@ -47,7 +52,7 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
                         // ...
                         return 0xFD;
                       })
-                      .apply(cti::transforms::futurize());
+                      .apply(cti::transforms::to_future());
 
     ASSERT_TRUE(is_ready(future));
     EXPECT_EQ(future.get(), 0xFD);
@@ -56,19 +61,20 @@ TYPED_TEST(single_dimension_tests, are_convertible_to_futures) {
   {
     auto canary = std::make_tuple(0xFD, 0xF5);
 
-    auto future = this->supply().then([&] {
-      // ...
-      return canary;
-    }) | cti::transforms::futurize();
+    auto future = this->supply()
+                      .then([&] {
+                        // ...
+                        return canary;
+                      })
+                      .apply(cti::transforms::to_future());
 
     ASSERT_TRUE(is_ready(future));
     EXPECT_EQ(future.get(), canary);
   }
 }
 
-TYPED_TEST(single_dimension_tests, are_flattable) {
-  auto continuation = this->supply_exception(supply_test_exception())
-                          .apply(cti::transforms::flatten());
-
-  ASSERT_ASYNC_INCOMPLETION(std::move(continuation));
+TYPED_TEST(single_dimension_tests, to_wait_test) {
+  {
+    this->supply().apply(cti::transforms::wait()); //
+  }
 }

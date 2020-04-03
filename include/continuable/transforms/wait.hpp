@@ -28,25 +28,41 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_TRANSFORMS_HPP_INCLUDED
-#define CONTINUABLE_TRANSFORMS_HPP_INCLUDED
+#ifndef CONTINUABLE_TRANSFORMS_WAIT_HPP_INCLUDED
+#define CONTINUABLE_TRANSFORMS_WAIT_HPP_INCLUDED
 
-#include <continuable/transforms/wait.hpp>
-#include <continuable/transforms/future.hpp>
+#include <utility>
+#include <continuable/detail/transforms/wait.hpp>
 
 namespace cti {
-/// \defgroup Transforms Transforms
-/// provides utilities to convert
-/// \link continuable_base continuable_bases\endlink to other
-/// types such as (`std::future`).
+/// \ingroup Transforms
 /// \{
 
-/// The namespace transforms declares callable objects that transform
-/// any continuable_base to an object or to a continuable_base itself.
+namespace transforms {
+/// Returns a transform that if applied to a continuable,
+/// it will start the continuation chain and returns the result synchronously.
+/// The current thread is blocked until the continuation chain is finished.
 ///
-/// Transforms can be applied to continuables through using
-/// the cti::continuable_base::apply method accordingly.
-namespace transforms {}
+/// \returns Returns a value that is available immediately.
+///          The signature of the future depends on the result type:
+/// |          Continuation type        |             Return type            |
+/// | : ------------------------------- | : -------------------------------- |
+/// | `continuable_base with <>`        | `void`                             |
+/// | `continuable_base with <Arg>`     | `Arg`                              |
+/// | `continuable_base with <Args...>` | `std::tuple<Args...>`              |
+///
+/// \attention If exceptions are used, exceptions that are thrown, are rethrown
+///            synchronously.
+///
+/// \since 4.0.0
+inline auto wait() {
+  return [](auto&& continuable) {
+    return detail::transforms::wait(
+        std::forward<decltype(continuable)>(continuable));
+  };
+}
+} // namespace transforms
+/// \}
 } // namespace cti
 
-#endif // CONTINUABLE_TRANSFORMS_HPP_INCLUDED
+#endif // CONTINUABLE_TRANSFORMS_WAIT_HPP_INCLUDED

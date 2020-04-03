@@ -68,16 +68,6 @@ struct this_thread_executor_tag {};
 
 /// Marks a given callable object as transformation
 template <typename T>
-class transform : T {
-public:
-  explicit transform(T callable) : T(std::move(callable)) {
-  }
-
-  using T::operator();
-};
-
-/// Marks a given callable object as transformation
-template <typename T>
 class plain_tag {
   T value_;
 
