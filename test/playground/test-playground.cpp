@@ -31,28 +31,5 @@ using namespace cti;
 using namespace std::chrono_literals;
 
 int main(int, char**) {
-  asio::io_context context(1);
-  asio::steady_timer timer(context);
-  auto work = std::make_shared<asio::io_context::work>(context);
-
-  timer.expires_after(5s);
-
-  std::thread thread([&] {
-    context.run();
-    puts("io_context finished");
-  });
-
-  result<int> res = timer.async_wait(cti::use_continuable)
-                        .then([] {
-                          return 1;
-                        })
-                        .apply(transforms::wait_for(1s));
-
-  assert(res.is_empty());
-  puts("async_wait finished");
-  work.reset();
-  timer.cancel();
-
-  thread.join();
   return 0;
 }

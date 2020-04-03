@@ -86,16 +86,13 @@ public:
 
   ~async_test_helper() {
     assert(work_);
-  }
-
-  void stop() {
-    assert(work_);
+    timer_.cancel();
     work_.reset();
     thread_.join();
   }
 
   auto wait_for(asio::steady_timer::duration duration) {
-    timer_.expires_after(std::chrono::seconds(1));
+    timer_.expires_after(duration);
     return timer_.async_wait(use_continuable);
   }
 
@@ -106,26 +103,76 @@ private:
   std::thread thread_;
 };
 
-TYPED_TEST(single_dimension_tests, to_wait_test_sync) {
+#ifdef CONTINUABLE_HAS_EXCEPTIONS
+TYPED_TEST(single_dimension_tests, wait_test_sync) {
+  // We test here whether it deadlocks automatically
+  this->supply().apply(cti::transforms::wait());
+
+  ASSERT_EQ(this->supply(36354).apply(cti::transforms::wait()), 36354);
+
+  ASSERT_EQ(this->supply(47463, 3746).apply(cti::transforms::wait()),
+            std::make_tuple(47463, 3746));
+}
+
+TYPED_TEST(single_dimension_tests, wait_test_async) {
   {
-    this->supply().apply(cti::transforms::wait()); //
+    async_test_helper helper;
+    helper.wait_for(50ms).then(this->supply()).apply(cti::transforms::wait());
+  }
+
+  {
+    async_test_helper helper;
+    ASSERT_EQ(helper.wait_for(50ms)
+                  .then(this->supply(36354))
+                  .apply(cti::transforms::wait()),
+              36354);
+  }
+
+  {
+    async_test_helper helper;
+    ASSERT_EQ(helper.wait_for(50ms)
+                  .then(this->supply(47463, 3746))
+                  .apply(cti::transforms::wait()),
+              std::make_tuple(47463, 3746));
   }
 }
 
-TYPED_TEST(single_dimension_tests, to_wait_test_async) {
-  {
-    this->supply().apply(cti::transforms::wait()); //
-  }
+TYPED_TEST(single_dimension_tests, wait_test_ready) {
+  make_ready_continuable().apply(cti::transforms::wait());
+
+  ASSERT_EQ(make_ready_continuable(36354).apply(cti::transforms::wait()),
+            36354);
+
+  ASSERT_EQ(make_ready_continuable(47463, 3746).apply(cti::transforms::wait()),
+            std::make_tuple(47463, 3746));
 }
 
-TYPED_TEST(single_dimension_tests, to_wait_test_ready) {
-  {
-    this->supply().apply(cti::transforms::wait()); //
-  }
+TYPED_TEST(single_dimension_tests, wait_test_exception) {
+  ASSERT_THROW(make_exceptional_continuable<void>(supply_test_exception())
+                   .apply(cti::transforms::wait()),
+               test_exception);
+}
+#endif // CONTINUABLE_HAS_EXCEPTIONS
+
+TYPED_TEST(single_dimension_tests, wait_for_test_sync) {
+  this->supply().apply(cti::transforms::wait_for(50ms));
+
+  ASSERT_EQ(
+      this->supply(36354).apply(cti::transforms::wait_for(50ms)).get_value(),
+      36354);
+
+  ASSERT_EQ(this->supply(47463, 3746)
+                .apply(cti::transforms::wait_for(50ms))
+                .get_value(),
+            std::make_tuple(47463, 3746));
+
+  ASSERT_TRUE(make_continuable<void>([](auto&&) {})
+                  .apply(cti::transforms::wait_for(50ms))
+                  .is_empty());
 }
 
-TYPED_TEST(single_dimension_tests, to_wait_test_exception) {
-  {
-    this->supply().apply(cti::transforms::wait()); //
-  }
+TYPED_TEST(single_dimension_tests, wait_for_test_async) {
+  async_test_helper helper;
+  result<> res = helper.wait_for(500ms).apply(cti::transforms::wait_for(50ms));
+  ASSERT_FALSE(res.is_exception());
 }

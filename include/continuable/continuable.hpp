@@ -53,6 +53,7 @@ namespace cti {}
 #include <continuable/continuable-promise-base.hpp>
 #include <continuable/continuable-promisify.hpp>
 #include <continuable/continuable-result.hpp>
+#include <continuable/continuable-transforms.hpp>
 #include <continuable/continuable-traverse-async.hpp>
 #include <continuable/continuable-traverse.hpp>
 #include <continuable/continuable-types.hpp>
