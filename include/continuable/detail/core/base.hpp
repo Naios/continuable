@@ -746,7 +746,8 @@ struct final_callback : util::non_copyable {
       try {
         std::rethrow_exception(exception);
       } catch (std::exception const& unhandled) {
-        (void)unhandled;
+        char const* const what = unhandled.what();
+        (void)what;
         CTI_DETAIL_TRAP();
       } catch (...) {
         CTI_DETAIL_TRAP();
