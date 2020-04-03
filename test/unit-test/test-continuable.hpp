@@ -32,7 +32,7 @@
 
 #include <continuable/continuable-base.hpp>
 #include <continuable/continuable.hpp>
-#include <continuable/support/gtest.hpp>
+#include <continuable/external/gtest.hpp>
 #include <string>
 
 using cti::detail::identity;
