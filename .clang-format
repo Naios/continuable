@@ -1,15 +1,28 @@
 BasedOnStyle: LLVM
 
+AlignAfterOpenBracket: Align
+AllowAllArgumentsOnNextLine: 'true'
+AllowAllConstructorInitializersOnNextLine: 'true'
+AllowAllParametersOfDeclarationOnNextLine: 'true'
+AllowShortCaseLabelsOnASingleLine: 'false'
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: Empty
+AlwaysBreakTemplateDeclarations: 'Yes'
+BinPackArguments: 'true'
+BinPackParameters: 'true'
+BreakConstructorInitializers: BeforeComma
+BreakConstructorInitializersBeforeComma: 'true'
+ConstructorInitializerIndentWidth: 2
+FixNamespaceComments: 'true'
+IndentCaseLabels: 'true'
+IndentPPDirectives: AfterHash
+PenaltyBreakAssignment: 1000
+PenaltyBreakBeforeFirstCallParameter: 100
 PointerAlignment: Left
-IndentCaseLabels: true
-AllowShortFunctionsOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: false
-AlwaysBreakTemplateDeclarations: true
-BinPackArguments: true
-FixNamespaceComments: true
-# IndentPPDirectives: AfterHash
+
 MacroBlockBegin: "^CONTINUABLE_BLOCK_.*_BEGIN$"
 MacroBlockEnd: "^CONTINUABLE_BLOCK_.*_END$"
+
 IncludeCategories:
   - Regex:           '^<+[a-z_]+>'
     Priority:        1
