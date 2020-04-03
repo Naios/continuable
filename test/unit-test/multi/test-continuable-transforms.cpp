@@ -23,14 +23,15 @@
 
 #include <chrono>
 #include <future>
+#include <memory>
 #include <thread>
-
 #include <continuable/continuable-transforms.hpp>
-
+#include <continuable/continuable.hpp>
+#include <continuable/external/asio.hpp>
+#include <asio.hpp>
 #include <test-continuable.hpp>
 
 using namespace cti;
-using namespace cti::detail;
 using namespace std::chrono_literals;
 
 template <typename T>
@@ -73,7 +74,57 @@ TYPED_TEST(single_dimension_tests, to_future_test) {
   }
 }
 
-TYPED_TEST(single_dimension_tests, to_wait_test) {
+class async_test_helper {
+public:
+  async_test_helper()
+    : context_(1)
+    , timer_(context_)
+    , work_(std::make_shared<asio::io_context::work>(context_))
+    , thread_([&] {
+      context_.run();
+    }) {}
+
+  ~async_test_helper() {
+    assert(work_);
+  }
+
+  void stop() {
+    assert(work_);
+    work_.reset();
+    thread_.join();
+  }
+
+  auto wait_for(asio::steady_timer::duration duration) {
+    timer_.expires_after(std::chrono::seconds(1));
+    return timer_.async_wait(use_continuable);
+  }
+
+private:
+  asio::io_context context_;
+  asio::steady_timer timer_;
+  std::shared_ptr<asio::io_context::work> work_;
+  std::thread thread_;
+};
+
+TYPED_TEST(single_dimension_tests, to_wait_test_sync) {
+  {
+    this->supply().apply(cti::transforms::wait()); //
+  }
+}
+
+TYPED_TEST(single_dimension_tests, to_wait_test_async) {
+  {
+    this->supply().apply(cti::transforms::wait()); //
+  }
+}
+
+TYPED_TEST(single_dimension_tests, to_wait_test_ready) {
+  {
+    this->supply().apply(cti::transforms::wait()); //
+  }
+}
+
+TYPED_TEST(single_dimension_tests, to_wait_test_exception) {
   {
     this->supply().apply(cti::transforms::wait()); //
   }

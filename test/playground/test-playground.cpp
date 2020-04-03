@@ -31,26 +31,28 @@ using namespace cti;
 using namespace std::chrono_literals;
 
 int main(int, char**) {
-  asio::io_context ioc(1);
-  asio::steady_timer t(ioc);
-  auto work = std::make_shared<asio::io_context::work>(ioc);
+  asio::io_context context(1);
+  asio::steady_timer timer(context);
+  auto work = std::make_shared<asio::io_context::work>(context);
 
-  t.expires_after(1s);
+  timer.expires_after(5s);
 
-  std::thread th([&] {
-    ioc.run();
+  std::thread thread([&] {
+    context.run();
     puts("io_context finished");
   });
 
-  int res = t.async_wait(cti::use_continuable)
-                .then([] {
-                  return 1;
-                })
-                .apply(transforms::wait());
+  result<int> res = timer.async_wait(cti::use_continuable)
+                        .then([] {
+                          return 1;
+                        })
+                        .apply(transforms::wait_for(1s));
 
+  assert(res.is_empty());
   puts("async_wait finished");
   work.reset();
+  timer.cancel();
 
-  th.join();
+  thread.join();
   return 0;
 }

@@ -31,6 +31,8 @@
 #ifndef CONTINUABLE_TRANSFORMS_WAIT_HPP_INCLUDED
 #define CONTINUABLE_TRANSFORMS_WAIT_HPP_INCLUDED
 
+#include <chrono>
+#include <condition_variable>
 #include <utility>
 #include <continuable/detail/transforms/wait.hpp>
 
@@ -57,8 +59,50 @@ namespace transforms {
 /// \since 4.0.0
 inline auto wait() {
   return [](auto&& continuable) {
-    return detail::transforms::wait(
+    return detail::transforms::wait_and_unpack(
         std::forward<decltype(continuable)>(continuable));
+  };
+}
+
+/// \copybrief wait
+///
+/// \returns Returns a result that is available immediately.
+///          The signature of the future depends on the result type:
+/// |          Continuation type        |             Return type            |
+/// | : ------------------------------- | : -------------------------------- |
+/// | `continuable_base with <>`        | `result<>`                         |
+/// | `continuable_base with <Arg>`     | `result<Arg>`                      |
+/// | `continuable_base with <Args...>` | `result<Args...>`                  |
+///
+/// \attention Thrown exceptions returned through the result, also
+///            make sure to check for a valid result value in case the
+///            underlying time constraint timed out.
+///
+/// \since 4.0.0
+template <typename Rep, typename Period>
+auto wait_for(std::chrono::duration<Rep, Period> duration) {
+  return [duration](auto&& continuable) {
+    return detail::transforms::wait_unsafe(
+        std::forward<decltype(continuable)>(continuable),
+        [duration](detail::transforms::condition_variable_t& cv,
+                   detail::transforms::lock_t& lock, auto&& predicate) {
+          cv.wait_for(lock, duration,
+                      std::forward<decltype(predicate)>(predicate));
+        });
+  };
+}
+
+/// \copydoc wait_for
+template <typename Clock, typename Duration>
+auto wait_until(std::chrono::time_point<Clock, Duration> time_point) {
+  return [time_point](auto&& continuable) {
+    return detail::transforms::wait_unsafe(
+        std::forward<decltype(continuable)>(continuable),
+        [time_point](detail::transforms::condition_variable_t& cv,
+                     detail::transforms::lock_t& lock, auto&& predicate) {
+          cv.wait_until(lock, time_point,
+                        std::forward<decltype(predicate)>(predicate));
+        });
   };
 }
 } // namespace transforms

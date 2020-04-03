@@ -10,6 +10,7 @@ target_link_libraries(test-continuable-base
   PUBLIC
     gtest
     gtest-main
+    asio
     continuable
     continuable-features-flags
     continuable-features-warnings
