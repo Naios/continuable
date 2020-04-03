@@ -932,7 +932,8 @@ constexpr auto make_exceptional_continuable(Exception&& exception) {
 }
 
 /// Returns a continuable_base with the parameterized result which never
-/// resolves its promise and thus cancels the asynchronous continuation chain.
+/// resolves its promise and thus cancels the asynchronous continuation chain
+/// through throwing a default constructed exception_t.
 ///
 /// This can be used to cancel an asynchronous continuation chain when
 /// returning a continuable_base from a handler where other paths could
@@ -948,6 +949,10 @@ constexpr auto make_exceptional_continuable(Exception&& exception) {
 ///   }
 /// });
 /// ```
+/// The default unhandled exception handler ignores exception types
+/// that don't evaluate to true when being converted to a bool.
+/// This saves expensive construction of std::exception_ptr or similar types,
+/// where only one exception type is used for signaling the cancellation.
 ///
 /// \tparam Signature The fake signature of the returned continuable.
 ///
@@ -957,7 +962,7 @@ auto make_cancelling_continuable() {
   static_assert(sizeof...(Signature) > 0,
                 "Requires at least one type for the fake signature!");
 
-  return make_continuable<Signature...>([](auto&&) { /* ... */ });
+  return make_exceptional_continuable<Signature...>(exception_t{});
 }
 
 /// Can be used to disable the special meaning for a returned value in
