@@ -31,7 +31,9 @@ TYPED_TEST(single_dimension_tests, are_called_on_destruct) {
     auto allowed = false;
 
     // Are not supplyd until destruction
-    auto continuable = this->supply().then([&] { ASSERT_TRUE(allowed); });
+    auto continuable = this->supply().then([&] {
+      ASSERT_TRUE(allowed);
+    });
     ASSERT_FALSE(allowed);
 
     allowed = true;
@@ -56,7 +58,7 @@ auto create_incomplete(T* me) {
 }
 
 template <typename T>
-auto create_incomplete_cancelling(T* me) {
+auto create_cancellation(T* me) {
   return me->make(identity<>{}, identity<void>{}, [](auto&& callback) mutable {
     EXPECT_TRUE(callback);
     make_cancelling_continuable<void>().next(
@@ -106,19 +108,21 @@ TYPED_TEST(single_dimension_tests, are_not_finished_when_not_continued) {
 
 TYPED_TEST(single_dimension_tests, are_not_finished_when_cancelling) {
   {
-    auto chain = create_incomplete_cancelling(this);
-    ASSERT_ASYNC_INCOMPLETION(std::move(chain));
+    auto chain = create_cancellation(this);
+    ASSERT_ASYNC_CANCELLATION(std::move(chain));
   }
 
   {
-    auto chain = create_incomplete_cancelling(this);
-    ASSERT_ASYNC_INCOMPLETION(std::move(chain).then(this->supply()));
+    auto chain = create_cancellation(this);
+    ASSERT_ASYNC_CANCELLATION(std::move(chain).then(this->supply()));
   }
 }
 
 TYPED_TEST(single_dimension_tests, freeze_is_kept_across_the_chain) {
   {
-    auto chain = this->supply().freeze().then([=] { return this->supply(); });
+    auto chain = this->supply().freeze().then([=] {
+      return this->supply();
+    });
     ASSERT_TRUE(chain.is_frozen());
   }
 

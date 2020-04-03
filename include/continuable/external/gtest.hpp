@@ -53,6 +53,14 @@
 #define ASSERT_ASYNC_EXCEPTION_COMPLETION(CONTINUABLE)                         \
   cti::detail::testing::assert_async_exception_completion(CONTINUABLE);
 
+/// Asserts that the final callback of the given continuable is called
+/// with a cancelled result which is represented by a default constructed
+/// exception_t.
+///
+/// \since 4.0.0
+#define ASSERT_ASYNC_CANCELLATION(CONTINUABLE)                                 \
+  cti::detail::testing::assert_async_cancellation(CONTINUABLE);
+
 /// Asserts that the final callback of the given continuable is never called
 /// with any result.
 ///
