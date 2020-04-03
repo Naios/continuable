@@ -36,8 +36,12 @@
 // Queries the NIST daytime service and prints the current date and time
 void daytime_service();
 
+// Checks that a timer async_wait returns successfully
+void successful_async_wait();
+
 // Checks that a cancelled timer async_wait fails with
-// `asio::error::operation_aborted`
+// `asio::error::operation_aborted` and is converted to a default constructed
+// cti::exception_t.
 void cancelled_async_wait();
 
 // Indicates fatal error due to an unexpected failure in the continuation chain.
@@ -48,6 +52,8 @@ void check_aborted_operation(cti::exception_t);
 
 int main(int, char**) {
   daytime_service();
+
+  successful_async_wait();
   cancelled_async_wait();
 
   return 0;
@@ -69,7 +75,25 @@ void daytime_service() {
         return asio::async_read_until(socket, asio::dynamic_buffer(buf), '\n',
                                       cti::use_continuable);
       })
-      .then([&buf](std::size_t) { puts(buf.data()); })
+      .then([&buf](std::size_t) {
+        puts("Continuation successfully got a daytime response:");
+        puts(buf.c_str());
+      })
+      .fail(&unexpected_error);
+
+  ioc.run();
+}
+
+void successful_async_wait() {
+  asio::io_context ioc(1);
+  asio::steady_timer t(ioc);
+
+  t.expires_after(std::chrono::seconds(1));
+
+  t.async_wait(cti::use_continuable)
+      .then([] {
+        puts("Continuation succeeded after 1s as expected!");
+      })
       .fail(&unexpected_error);
 
   ioc.run();
@@ -93,37 +117,32 @@ void cancelled_async_wait() {
 }
 
 void unexpected_error(cti::exception_t e) {
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
-  std::rethrow_exception(e);
-#else
-  puts("Continuation failed with unexpected error");
-  puts(e.message().data());
-  std::terminate();
-#endif
-}
-
-void check_aborted_operation(cti::exception_t ex) {
-  auto is_expected_error = [](auto err_val) {
-    if (err_val == asio::error_code(asio::error::operation_aborted)) {
-      puts("Continuation failed due to aborted async operation, as expected.");
-      return true;
-    }
-    return false;
-  };
+  if (!bool(e)) {
+    puts("Continuation failed with unexpected cancellation!");
+    std::terminate();
+  }
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
   try {
-    std::rethrow_exception(ex);
-  } catch (asio::system_error const& err) {
-    if (is_expected_error(err.code())) {
-      return;
-    }
+    std::rethrow_exception(e);
+  } catch (std::exception const& ex) {
+    puts("Continuation failed with unexpected exception");
+    puts(ex.what());
+  } catch (...) {
+    // Rethrow the exception to the asynchronous unhandled exception handler
+    std::rethrow_exception(std::current_exception());
   }
 #else
-  if (is_expected_error(ex)) {
-    return;
-  }
+  puts("Continuation failed with unexpected error");
+  puts(e.message().data());
 #endif
+  std::terminate();
+}
 
-  unexpected_error(ex);
+void check_aborted_operation(cti::exception_t ex) {
+  if (bool(ex)) {
+    unexpected_error(ex);
+  } else {
+    puts("Continuation failed due to aborted async operation, as expected.");
+  }
 }

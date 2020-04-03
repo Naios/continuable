@@ -30,10 +30,14 @@
 #ifndef CONTINUABLE_DETAIL_ASIO_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_ASIO_HPP_INCLUDED
 
+#include <utility>
+#include <continuable/continuable-base.hpp>
+#include <continuable/detail/core/base.hpp>
 #include <continuable/detail/features.hpp>
 
 #if defined(ASIO_STANDALONE)
 #include <asio/async_result.hpp>
+#include <asio/error.hpp>
 #include <asio/error_code.hpp>
 #include <asio/version.hpp>
 
@@ -51,6 +55,7 @@
 #define CTI_DETAIL_ASIO_NAMESPACE_END }
 #else
 #include <boost/asio/async_result.hpp>
+#include <boost/asio/error.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/version.hpp>
 
@@ -79,10 +84,6 @@
   "integrated manually with `cti::promisify`."
 #endif
 
-#include <continuable/detail/core/base.hpp>
-
-#include <utility>
-
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
 #include <exception>
 #endif
@@ -93,12 +94,14 @@ namespace asio {
 
 #if defined(ASIO_STANDALONE)
 using error_code_t = ::asio::error_code;
+using basic_errors_t = ::asio::error::basic_errors;
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
 using system_error_t = ::asio::system_error;
 #endif
 #else
 using error_code_t = ::boost::system::error_code;
+using basic_errors_t = ::boost::asio::error::basic_errors;
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
 using system_error_t = ::boost::system::system_error;
@@ -112,12 +115,18 @@ auto promise_resolver_handler(Promise&& promise) noexcept {
   return [promise = std::forward<Promise>(promise)](
              error_code_t e, auto&&... args) mutable noexcept {
     if (e) {
+      if (e != basic_errors_t::operation_aborted) {
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
-      promise.set_exception(
-          std::make_exception_ptr(system_error_t(std::move(e))));
+        promise.set_exception(
+            std::make_exception_ptr(system_error_t(std::move(e))));
 #else
-      promise.set_exception(cti::exception_t(e.value(), e.category()));
+        promise.set_exception(exception_t(e.value(), e.category()));
 #endif
+      } else {
+        // Continuable uses a default constructed exception type to signal
+        // cancellation to the followed asynchronous control flow.
+        promise.set_exception(exception_t{});
+      }
     } else {
       promise.set_value(std::forward<decltype(args)>(args)...);
     }
