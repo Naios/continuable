@@ -15,6 +15,7 @@ group_sources(${CMAKE_CURRENT_LIST_DIR}
 target_link_libraries(test-playground
   PRIVATE
     gtest
+    asio
     continuable
     continuable-features-flags
     continuable-features-warnings

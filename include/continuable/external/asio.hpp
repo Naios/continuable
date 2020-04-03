@@ -27,28 +27,26 @@
   SOFTWARE.
 **/
 
-#ifndef CONTINUABLE_SUPPORT_ASIO_HPP_INCLUDED
-#define CONTINUABLE_SUPPORT_ASIO_HPP_INCLUDED
+#ifndef CONTINUABLE_EXTERNAL_ASIO_HPP_INCLUDED
+#define CONTINUABLE_EXTERNAL_ASIO_HPP_INCLUDED
 
 #include <continuable/continuable-base.hpp>
-#include <continuable/detail/support/asio.hpp>
+#include <continuable/detail/external/asio.hpp>
 #include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
+/// Type used as an ASIO completion token to specify an asynchronous operation
+/// should return a continuable.
+struct use_continuable_t {};
 
-// Type used as an ASIO completion token to specify an asynchronous operation
-// should return a continuable.
-struct asio_token_t {};
-
-// Special value for instance of `asio_token_t`.
-constexpr asio_token_t asio_token{};
-
+/// Special value for instance of `asio_token_t`.
+constexpr use_continuable_t use_continuable{};
 } // namespace cti
 
 CTI_DETAIL_ASIO_NAMESPACE_BEGIN
 
 template <typename Signature>
-class async_result<cti::asio_token_t, Signature> {
+class async_result<cti::use_continuable_t, Signature> {
 public:
 #if defined(CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION)
   using return_type = typename cti::detail::asio::initiate_make_continuable<
@@ -56,7 +54,8 @@ public:
 #endif
 
   template <typename Initiation, typename... Args>
-  static auto initiate(Initiation initiation, cti::asio_token_t, Args... args) {
+  static auto initiate(Initiation initiation, cti::use_continuable_t,
+                       Args... args) {
     return cti::detail::asio::initiate_make_continuable<Signature>{}(
         [initiation = std::move(initiation),
          init_args =
@@ -80,4 +79,4 @@ CTI_DETAIL_ASIO_NAMESPACE_END
 #undef CTI_DETAIL_ASIO_NAMESPACE_END
 #undef CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION
 
-#endif // CONTINUABLE_SUPPORT_ASIO_HPP_INCLUDED
+#endif // CONTINUABLE_EXTERNAL_ASIO_HPP_INCLUDED

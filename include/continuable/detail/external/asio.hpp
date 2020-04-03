@@ -132,14 +132,13 @@ struct initiate_make_continuable;
 template <typename... Args>
 struct initiate_make_continuable<void(error_code_t, Args...)> {
 #if defined(CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION)
-  using erased_return_type = cti::continuable<Args...>;
+  using erased_return_type = continuable<Args...>;
 #endif
 
   template <typename Continuation>
   auto operator()(Continuation&& continuation) {
-    return detail::base::attorney::create_from(
-        std::forward<Continuation>(continuation), detail::identity<Args...>{},
-        detail::util::ownership{});
+    return base::attorney::create_from(std::forward<Continuation>(continuation),
+                                       identity<Args...>{}, util::ownership{});
   }
 };
 

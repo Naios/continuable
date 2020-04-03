@@ -31,7 +31,7 @@
 #include <asio.hpp>
 
 #include <continuable/continuable.hpp>
-#include <continuable/support/asio.hpp>
+#include <continuable/external/asio.hpp>
 
 // Queries the NIST daytime service and prints the current date and time
 void daytime_service();
@@ -61,13 +61,13 @@ void daytime_service() {
   tcp::socket socket(ioc);
   std::string buf;
 
-  resolver.async_resolve("time.nist.gov", "daytime", cti::asio_token)
+  resolver.async_resolve("time.nist.gov", "daytime", cti::use_continuable)
       .then([&socket](tcp::resolver::results_type endpoints) {
-        return asio::async_connect(socket, endpoints, cti::asio_token);
+        return asio::async_connect(socket, endpoints, cti::use_continuable);
       })
       .then([&socket, &buf] {
         return asio::async_read_until(socket, asio::dynamic_buffer(buf), '\n',
-                                      cti::asio_token);
+                                      cti::use_continuable);
       })
       .then([&buf](std::size_t) { puts(buf.data()); })
       .fail(&unexpected_error);
@@ -81,7 +81,7 @@ void cancelled_async_wait() {
 
   t.expires_after(std::chrono::seconds(999));
 
-  t.async_wait(cti::asio_token)
+  t.async_wait(cti::use_continuable)
       .then([] {
         puts("This should never be called");
         std::terminate();
