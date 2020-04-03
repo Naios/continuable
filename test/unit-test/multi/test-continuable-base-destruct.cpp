@@ -104,6 +104,12 @@ TYPED_TEST(single_dimension_tests, are_not_finished_when_not_continued) {
     auto chain = create_incomplete(this);
     ASSERT_ASYNC_INCOMPLETION(std::move(chain).then(this->supply()));
   }
+
+  {
+    ASSERT_ASYNC_INCOMPLETION(this->supply().then([] {
+      return empty_result();
+    }));
+  }
 }
 
 TYPED_TEST(single_dimension_tests, are_not_finished_when_cancelling) {
@@ -115,6 +121,46 @@ TYPED_TEST(single_dimension_tests, are_not_finished_when_cancelling) {
   {
     auto chain = create_cancellation(this);
     ASSERT_ASYNC_CANCELLATION(std::move(chain).then(this->supply()));
+  }
+}
+
+TYPED_TEST(single_dimension_tests, are_not_finished_when_cancelling_hook) {
+  {
+    ASSERT_ASYNC_CANCELLATION(
+        this->make(identity<>{}, identity<void>{}, [](auto&& callback) mutable {
+          std::forward<decltype(callback)>(callback).set_canceled();
+        }));
+  }
+
+  {
+    ASSERT_ASYNC_CANCELLATION(
+        this->make(identity<>{}, identity<void>{}, [](auto&& callback) mutable {
+          std::forward<decltype(callback)>(callback).set_exception({});
+        }));
+  }
+
+  {
+    ASSERT_ASYNC_CANCELLATION(this->supply().then([] {
+      return exceptional_result(exception_t{});
+    }));
+  }
+
+  {
+    ASSERT_ASYNC_CANCELLATION(this->supply().then([]() -> result<> {
+      return exceptional_result(exception_t{});
+    }));
+  }
+
+  {
+    ASSERT_ASYNC_CANCELLATION(this->supply().then([] {
+      return cancellation_result();
+    }));
+  }
+
+  {
+    ASSERT_ASYNC_CANCELLATION(this->supply().then([]() -> result<> {
+      return cancellation_result();
+    }));
   }
 }
 

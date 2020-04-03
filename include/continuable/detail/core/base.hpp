@@ -381,7 +381,7 @@ inline auto invoker_of(identity<void>) {
       identity<>{});
 }
 
-/// - empty_result -> <cancel>
+/// - empty_result -> <abort>
 inline auto invoker_of(identity<empty_result>) {
   return make_invoker(
       [](auto&& callback, auto&& next_callback, auto&&... args) {
@@ -392,7 +392,27 @@ inline auto invoker_of(identity<empty_result>) {
                               std::forward<decltype(args)>(args)...);
 
           // Don't invoke anything here since returning an empty result
-          // cancels the asynchronous chain effectively.
+          // aborts the asynchronous chain effectively.
+          (void)result;
+        CONTINUABLE_BLOCK_TRY_END
+      },
+      identity<>{});
+}
+
+/// - cancellation_result -> <cancel>
+inline auto invoker_of(identity<cancellation_result>) {
+  return make_invoker(
+      [](auto&& callback, auto&& next_callback, auto&&... args) {
+        (void)next_callback;
+        CONTINUABLE_BLOCK_TRY_BEGIN
+          cancellation_result result = invoke_callback(
+              std::forward<decltype(callback)>(callback),
+              std::forward<decltype(args)>(args)...);
+
+          // Forward the cancellation to the next available exception handler
+          invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
+                           exception_arg_t{}, exception_t{});
+
           (void)result;
         CONTINUABLE_BLOCK_TRY_END
       },
@@ -409,7 +429,7 @@ inline auto invoker_of(identity<exceptional_result>) {
               invoke_callback(std::forward<decltype(callback)>(callback),
                               std::forward<decltype(args)>(args)...);
 
-          // Forward the exception to the next available handler
+          // Forward the exception to the next available exception handler
           invoke_no_except(std::forward<decltype(next_callback)>(next_callback),
                            exception_arg_t{},
                            std::move(result).get_exception());
@@ -441,9 +461,13 @@ auto invoker_of(identity<result<Args...>>) {
 
           } else if (result.is_exception()) {
             // Forward the exception to the next available handler
-            invoke_no_except(
-                std::forward<decltype(next_callback)>(next_callback),
-                exception_arg_t{}, std::move(result).get_exception());
+            invoke_no_except(std::forward<decltype(next_callback)>(
+                                 next_callback),
+                             exception_arg_t{},
+                             std::move(result).get_exception());
+          } else {
+            // Aborts the continuation of the chain
+            assert(result.is_empty());
           }
 
         // Otherwise the result is empty and we are cancelling our
@@ -541,6 +565,10 @@ public:
 
   void set_exception(exception_t exception) noexcept {
     std::move(next_callback_)(exception_arg_t{}, std::move(exception));
+  }
+
+  void set_canceled() noexcept {
+    std::move(next_callback_)(exception_arg_t{}, exception_t{});
   }
 
   explicit operator bool() const noexcept {
@@ -699,9 +727,13 @@ struct callback_base<identity<Args...>, HandleResults, HandleErrors, Callback,
     std::move (*this)(std::move(args)...);
   }
 
-  /// Resolves the continuation with the given error variable.
-  void set_exception(exception_t error) noexcept {
-    std::move (*this)(exception_arg_t{}, std::move(error));
+  /// Resolves the continuation with the given exception.
+  void set_exception(exception_t exception) noexcept {
+    std::move (*this)(exception_arg_t{}, std::move(exception));
+  }
+
+  void set_canceled() noexcept {
+    std::move (*this)(exception_arg_t{}, exception_t{});
   }
 
   /// Returns true because this is a present continuation
@@ -766,6 +798,10 @@ struct final_callback : util::non_copyable {
   void set_exception(exception_t exception) noexcept {
     // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
     std::move (*this)(exception_arg_t{}, std::move(exception));
+  }
+
+  void set_canceled() noexcept {
+    std::move (*this)(exception_arg_t{}, exception_t{});
   }
 
   explicit operator bool() const noexcept {
@@ -872,6 +908,8 @@ struct chained_continuation<identity<Args...>, identity<NextArgs...>,
       } else if (result.is_exception()) {
         util::invoke(std::move(proxy), exception_arg_t{},
                      std::move(result.get_exception()));
+      } else {
+        assert(result.is_empty());
       }
     } else {
       // Invoke the continuation with a proxy callback.
@@ -927,6 +965,8 @@ struct chained_continuation<identity<Args...>, identity<NextArgs...>,
     } else if (result.is_exception()) {
       util::invoke(std::move(proxy), exception_arg_t{},
                    std::move(result.get_exception()));
+    } else {
+      assert(result.is_empty());
     }
   }
 

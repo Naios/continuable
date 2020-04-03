@@ -93,6 +93,10 @@ public:
     std::move (*this)(exception_arg_t{}, std::move(error));
   }
 
+  void set_canceled() noexcept {
+    std::move (*this)(exception_arg_t{}, exception_t{});
+  }
+
   explicit operator bool() const noexcept {
     bool is_valid = operator_bool_or<First, true>::get(first_);
     traverse_pack(

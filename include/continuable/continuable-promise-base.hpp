@@ -180,6 +180,26 @@ public:
     data_ = nullptr;
   }
 
+  /// Resolves the continuation with the cancellation token which is represented
+  /// by a default constructed exception_t.
+  ///
+  /// \throws This method never throws an exception.
+  ///
+  /// \attention This method may only be called once,
+  ///            when the promise is valid operator bool() returns true.
+  ///            Calling this method will invalidate the promise such that
+  ///            subsequent calls to operator bool() will return false.
+  ///            This behaviour is only consistent in promise_base and
+  ///            non type erased promises may behave differently.
+  ///            Invoking an invalid promise_base is undefined!
+  ///
+  /// \since  4.0.0
+  void set_canceled() noexcept {
+    assert(data_);
+    std::move(data_)(exception_arg_t{}, exception_t{});
+    data_ = nullptr;
+  }
+
   /// Returns true if the continuation is valid (non empty).
   ///
   /// \throws This method never throws an exception.

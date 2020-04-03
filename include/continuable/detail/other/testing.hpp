@@ -111,7 +111,7 @@ void assert_async_never_completed(C&& continuable) {
 
         FAIL();
       })
-      .fail([](cti::exception_t error) {
+      .fail([](cti::exception_t) {
         // ...
         FAIL();
       });

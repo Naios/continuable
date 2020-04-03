@@ -56,7 +56,7 @@ TEST(promisify_tests, promisify_with) {
   auto c = cti::promisify<int>::with(
       [](auto&& promise, auto&& /*e*/, int const& value) {
         EXPECT_EQ(value, 36354);
-        promise.set_exception(cti::exception_t{});
+        promise.set_exception(supply_test_exception());
       },
       [&](auto&&... args) {
         async_supply(std::forward<decltype(args)>(args)...);

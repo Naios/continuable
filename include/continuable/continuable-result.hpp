@@ -46,16 +46,25 @@ namespace cti {
 /// - *no result*: If the operation didn't finish
 /// - *a value*: If the operation finished successfully
 /// - *an exception*: If the operation finished with an exception
+///                   or was cancelled.
 /// \{
 
-/// A class which is convertible to any \ref result and that definitly holds no
+/// A class which is convertible to any \ref result and that definitely holds no
 /// value so the real result gets invalidated when this object is passed to it.
 ///
 /// \since 4.0.0
 ///
 struct empty_result {};
 
-/// A class which is convertible to any result and that definitly holds
+/// A class which is convertible to any \ref result and that definitely holds
+/// a default constructed exception which signals the cancellation of the
+/// asynchronous control flow.
+///
+/// \since 4.0.0
+///
+struct cancellation_result {};
+
+/// A class which is convertible to any result and that holds
 /// an exception which is then passed to the converted result object.
 ///
 /// \since 4.0.0
@@ -72,9 +81,8 @@ public:
   ~exceptional_result() = default;
 
   explicit exceptional_result(exception_t exception)
-      // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
-      : exception_(std::move(exception)) {
-  }
+    // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
+    : exception_(std::move(exception)) {}
 
   exceptional_result& operator=(exception_t exception) {
     // NOLINTNEXTLINE(hicpp-move-const-arg, performance-move-const-arg)
@@ -110,6 +118,7 @@ public:
 /// - *no result*: If the operation didn't finish
 /// - *a value*: If the operation finished successfully
 /// - *an exception*: If the operation finished with an exception
+///                   or was cancelled.
 ///
 /// The interface of the result object is similar to the one proposed in
 /// the `std::expected` proposal:
@@ -132,20 +141,17 @@ class result {
 
   template <typename... Args>
   explicit result(detail::init_arg_t, Args&&... values)
-      : variant_(trait_t::wrap(std::forward<Args>(values)...)) {
-  }
+    : variant_(trait_t::wrap(std::forward<Args>(values)...)) {}
   explicit result(detail::init_arg_t, exception_t exception)
-      : variant_(std::move(exception)) {
-  }
+    : variant_(std::move(exception)) {}
 
 public:
   using value_t = typename trait_t::value_t;
 
   template <typename FirstArg, typename... Args>
   explicit result(FirstArg&& first, Args&&... values)
-      : variant_(trait_t::wrap(std::forward<FirstArg>(first),
-                               std::forward<Args>(values)...)) {
-  }
+    : variant_(trait_t::wrap(std::forward<FirstArg>(first),
+                             std::forward<Args>(values)...)) {}
 
   result() = default;
   result(result const&) = default;
@@ -154,13 +160,13 @@ public:
   result& operator=(result&&) = default;
   ~result() = default;
 
-  explicit result(exception_t exception) : variant_(std::move(exception)) {
-  }
-  result(empty_result) {
-  }
-  result(exceptional_result exceptional_result)
-      : variant_(std::move(exceptional_result.get_exception())) {
-  }
+  explicit result(exception_t exception)
+    : variant_(std::move(exception)) {}
+  /* implicit */ result(empty_result) {}
+  /* implicit */ result(exceptional_result exceptional_result)
+    : variant_(std::move(exceptional_result.get_exception())) {}
+  /* implicit */ result(cancellation_result)
+    : variant_(exception_t{}) {}
 
   result& operator=(empty_result) {
     set_empty();
@@ -183,6 +189,10 @@ public:
   void set_exception(exception_t exception) {
     variant_ = std::move(exception);
   }
+  /// Set the result into a state which holds the cancellation token
+  void set_canceled() {
+    variant_ = exception_t{};
+  }
 
   /// Returns true if the state of the result is empty
   bool is_empty() const noexcept {
@@ -192,7 +202,7 @@ public:
   bool is_value() const noexcept {
     return variant_.template is<surrogate_t>();
   }
-  /// Returns true if the state of the result holds an exception
+  /// Returns true if the state of the result holds a present exception
   bool is_exception() const noexcept {
     return variant_.template is<exception_t>();
   }
@@ -313,18 +323,18 @@ namespace std {
 // The GCC standard library defines tuple_size as class and struct which
 // triggers a warning here.
 #if defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmismatched-tags"
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wmismatched-tags"
 #endif
 template <typename... Args>
 struct tuple_size<cti::result<Args...>>
-    : std::integral_constant<size_t, sizeof...(Args)> {};
+  : std::integral_constant<size_t, sizeof...(Args)> {};
 
 template <std::size_t I, typename... Args>
 struct tuple_element<I, cti::result<Args...>>
-    : tuple_element<I, tuple<Args...>> {};
+  : tuple_element<I, tuple<Args...>> {};
 #if defined(__clang__)
-#pragma GCC diagnostic pop
+#  pragma GCC diagnostic pop
 #endif
 } // namespace std
 
