@@ -68,10 +68,26 @@
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CTI_DETAIL_TRAP() *(volatile int*)0x11 = 0
 #endif
+
+#ifndef NDEBUG
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CTI_DETAIL_UNREACHABLE() ::cti::detail::util::unreachable_debug()
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CTI_DETAIL_UNREACHABLE() CTI_DETAIL_UNREACHABLE_INTRINSIC()
+#endif
+
 namespace cti {
 namespace detail {
 /// Utility namespace which provides useful meta-programming support
 namespace util {
+#ifndef NDEBUG
+  [[noreturn]] inline void unreachable_debug() {
+    CTI_DETAIL_TRAP();
+    std::abort();
+  }
+#endif
+
 /// Helper to trick compilers about that a parameter pack is used
 template <typename... T>
 constexpr void unused(T&&...) noexcept {
@@ -85,11 +101,32 @@ auto forward_except_last_impl(T&& tuple,
   return std::forward_as_tuple(std::get<I>(std::forward<T>(tuple))...);
 }
 
+template <std::size_t Size>
+constexpr auto make_decreased_index_sequence(
+    std::integral_constant<std::size_t, Size>) noexcept {
+  return std::make_index_sequence<Size - 1>();
+}
+inline void make_decreased_index_sequence(
+    std::integral_constant<std::size_t, 0U>) noexcept {
+  // This function is only instantiated on a compiler error and
+  // should not be included in valid code.
+  // See https://github.com/Naios/continuable/issues/21 for details.
+  CTI_DETAIL_UNREACHABLE();
+}
+
 /// Forwards every element in the tuple except the last one
 template <typename T>
 auto forward_except_last(T&& sequenceable) {
-  constexpr auto const size = std::tuple_size<std::decay_t<T>>::value - 1U;
-  constexpr auto const sequence = std::make_index_sequence<size>();
+  static_assert(
+      std::tuple_size<std::decay_t<T>>::value > 0U,
+      "Attempt to remove a parameter from an empty tuple like type! If you see "
+      "this your compiler could run into possible infinite recursion! Open a "
+      "ticket at https://github.com/Naios/continuable/issues with a small "
+      "reproducible example if your compiler doesn't stop!");
+
+  constexpr auto size = std::tuple_size<std::decay_t<T>>::value;
+  constexpr auto sequence = make_decreased_index_sequence(
+      std::integral_constant<std::size_t, size>{});
 
   return forward_except_last_impl(std::forward<T>(sequenceable), sequence);
 }
@@ -124,10 +161,13 @@ struct invocation_env {
     auto next = forward_except_last(std::move(args));
 
     // Test whether we are able to call the function with the given tuple
-    traits::is_invocable_from_tuple<decltype(callable), decltype(next)>
-        is_invocable;
+    constexpr std::integral_constant<
+        bool, traits::is_invocable_from_tuple<decltype(callable),
+                                              decltype(next)>::value ||
+                  (sizeof...(Args) <= Keep)>
+        is_callable;
 
-    return partial_invoke_impl(is_invocable, std::forward<T>(callable),
+    return partial_invoke_impl(is_callable, std::forward<T>(callable),
                                std::move(next));
   }
 
@@ -279,23 +319,8 @@ private:
   /// Is true when the automatic invocation on destruction is disabled
   bool frozen_ : 1;
 };
-
-#ifndef NDEBUG
-[[noreturn]] inline void unreachable_debug() {
-  CTI_DETAIL_TRAP();
-  std::abort();
-}
-#endif
 } // namespace util
 } // namespace detail
 } // namespace cti
-
-#ifndef NDEBUG
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define CTI_DETAIL_UNREACHABLE() ::cti::detail::util::unreachable_debug()
-#else
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define CTI_DETAIL_UNREACHABLE() CTI_DETAIL_UNREACHABLE_INTRINSIC()
-#endif
 
 #endif // CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED
