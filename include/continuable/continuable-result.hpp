@@ -34,8 +34,8 @@
 #include <type_traits>
 #include <utility>
 #include <continuable/continuable-primitives.hpp>
-#include <continuable/detail/utility/flat-variant.hpp>
 #include <continuable/detail/utility/result-trait.hpp>
+#include <continuable/detail/utility/result-variant.hpp>
 #include <continuable/detail/utility/traits.hpp>
 #include <continuable/detail/utility/util.hpp>
 
@@ -48,6 +48,11 @@ namespace cti {
 /// - *an exception*: If the operation finished with an exception
 ///                   or was cancelled.
 /// \{
+
+/// A tag which represents present void values in result.
+///
+/// \since 4.0.0
+using void_arg_t = detail::void_arg_t;
 
 /// A class which is convertible to any \ref result and that definitely holds no
 /// value so the real result gets invalidated when this object is passed to it.
@@ -137,43 +142,53 @@ public:
 template <typename... T>
 class result {
   using trait_t = detail::result_trait<T...>;
-  using surrogate_t = typename trait_t::surrogate_t;
 
   template <typename... Args>
-  explicit result(detail::init_arg_t, Args&&... values)
-    : variant_(trait_t::wrap(std::forward<Args>(values)...)) {}
-  explicit result(detail::init_arg_t, exception_t exception)
-    : variant_(std::move(exception)) {}
+  explicit result(detail::init_result_arg_t arg, Args&&... values)
+    : variant_(arg, trait_t::wrap(std::forward<Args>(values)...)) {}
+  explicit result(detail::init_exception_arg_t arg, exception_t exception)
+    : variant_(arg, std::move(exception)) {}
 
 public:
   using value_t = typename trait_t::value_t;
+  using value_placeholder_t = typename trait_t::surrogate_t;
 
   template <typename FirstArg, typename... Args>
   explicit result(FirstArg&& first, Args&&... values)
-    : variant_(trait_t::wrap(std::forward<FirstArg>(first),
+    : variant_(detail::init_result_arg_t{},
+               trait_t::wrap(std::forward<FirstArg>(first),
                              std::forward<Args>(values)...)) {}
 
   result() = default;
-  result(result const&) = default;
+  result(result const&) = delete;
   result(result&&) = default;
-  result& operator=(result const&) = default;
+  result& operator=(result const&) = delete;
   result& operator=(result&&) = default;
   ~result() = default;
 
   explicit result(exception_t exception)
-    : variant_(std::move(exception)) {}
+    : variant_(detail::init_exception_arg_t{}, std::move(exception)) {}
   /* implicit */ result(empty_result) {}
   /* implicit */ result(exceptional_result exceptional_result)
-    : variant_(std::move(exceptional_result.get_exception())) {}
+    : variant_(detail::init_exception_arg_t{},
+               std::move(exceptional_result.get_exception())) {}
   /* implicit */ result(cancellation_result)
-    : variant_(exception_t{}) {}
+    : variant_(detail::init_exception_arg_t{}, exception_t{}) {}
 
   result& operator=(empty_result) {
-    set_empty();
+    variant_.set_empty();
     return *this;
   }
-  result& operator=(exceptional_result exceptional_result) {
-    set_exception(std::move(exceptional_result.get_exception()));
+  result& operator=(value_placeholder_t value) {
+    variant_.set_value(std::move(value));
+    return *this;
+  }
+  result& operator=(exceptional_result exception) {
+    variant_.set_exception(std::move(exception.get_exception()));
+    return *this;
+  }
+  result& operator=(cancellation_result) {
+    variant_.set_exception({});
     return *this;
   }
 
@@ -183,15 +198,15 @@ public:
   }
   /// Set the result to a the state which holds the corresponding value
   void set_value(T... values) {
-    variant_ = trait_t::wrap(std::move(values)...);
+    variant_.set_value(trait_t::wrap(std::move(values)...));
   }
   /// Set the result into a state which holds the corresponding exception
   void set_exception(exception_t exception) {
-    variant_ = std::move(exception);
+    variant_.set_exception(std::move(exception));
   }
   /// Set the result into a state which holds the cancellation token
   void set_canceled() {
-    variant_ = exception_t{};
+    variant_.set_exception(exception_t{});
   }
 
   /// Returns true if the state of the result is empty
@@ -200,11 +215,11 @@ public:
   }
   /// Returns true if the state of the result holds the result
   bool is_value() const noexcept {
-    return variant_.template is<surrogate_t>();
+    return variant_.is_value();
   }
   /// Returns true if the state of the result holds a present exception
   bool is_exception() const noexcept {
-    return variant_.template is<exception_t>();
+    return variant_.is_exception();
   }
 
   /// \copydoc is_value
@@ -215,15 +230,15 @@ public:
   /// Returns the values of the result, if the result doesn't hold the value
   /// the behaviour is undefined but will assert in debug mode.
   decltype(auto) get_value() & noexcept {
-    return trait_t::unwrap(variant_.template cast<surrogate_t>());
+    return trait_t::unwrap(variant_.get_value());
   }
   ///\copydoc get_value
   decltype(auto) get_value() const& noexcept {
-    return trait_t::unwrap(variant_.template cast<surrogate_t>());
+    return trait_t::unwrap(variant_.get_value());
   }
   ///\copydoc get_value
   decltype(auto) get_value() && noexcept {
-    return trait_t::unwrap(std::move(variant_).template cast<surrogate_t>());
+    return trait_t::unwrap(std::move(variant_.get_value()));
   }
 
   ///\copydoc get_value
@@ -236,30 +251,30 @@ public:
   }
   ///\copydoc get_value
   decltype(auto) operator*() && noexcept {
-    return std::move(*this).get_value();
+    return std::move(variant_.get_value());
   }
 
   /// Returns the exception of the result, if the result doesn't hold an
   /// exception the behaviour is undefined but will assert in debug mode.
   exception_t& get_exception() & noexcept {
-    return variant_.template cast<exception_t>();
+    return variant_.get_exception();
   }
   /// \copydoc get_exception
   exception_t const& get_exception() const& noexcept {
-    return variant_.template cast<exception_t>();
+    return variant_.get_exception();
   }
   /// \copydoc get_exception
   exception_t&& get_exception() && noexcept {
-    return std::move(variant_).template cast<exception_t>();
+    return std::move(variant_.get_exception());
   }
 
   /// Creates a present result from the given values
   static result from(T... values) {
-    return result{detail::init_arg_t{}, std::move(values)...};
+    return result{detail::init_result_arg_t{}, std::move(values)...};
   }
   /// Creates a present result from the given exception
   static result from(exception_arg_t, exception_t exception) {
-    return result{detail::init_arg_t{}, std::move(exception)};
+    return result{detail::init_exception_arg_t{}, std::move(exception)};
   }
 
   /// Creates an empty result
@@ -268,7 +283,7 @@ public:
   }
 
 private:
-  detail::container::flat_variant<surrogate_t, exception_t> variant_;
+  detail::result_variant<value_placeholder_t> variant_;
 };
 
 /// Returns the value at position I of the given result

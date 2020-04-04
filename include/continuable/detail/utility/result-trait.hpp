@@ -40,12 +40,14 @@
 
 namespace cti {
 namespace detail {
+struct void_arg_t { };
+
 template <typename... T>
 struct result_trait;
 template <>
 struct result_trait<> {
   using value_t = void;
-  struct surrogate_t {};
+  using surrogate_t = void_arg_t;
 
   static constexpr surrogate_t wrap() noexcept {
     return {};
@@ -93,8 +95,6 @@ struct result_trait<First, Second, Rest...> {
     return std::get<I>(std::forward<Result>(result).get_value());
   }
 };
-
-struct init_arg_t {};
 } // namespace detail
 } // namespace cti
 

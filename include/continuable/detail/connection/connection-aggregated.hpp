@@ -38,7 +38,6 @@
 #include <continuable/continuable-result.hpp>
 #include <continuable/continuable-traverse.hpp>
 #include <continuable/detail/core/base.hpp>
-#include <continuable/detail/utility/flat-variant.hpp>
 #include <continuable/detail/utility/traits.hpp>
 
 namespace cti {
@@ -55,22 +54,25 @@ namespace connection {
 ///   - single async value -> single value
 ///   - multiple async value -> tuple of async values.
 namespace aggregated {
+
 /// Guards a type to be default constructible,
 /// and wraps it into an optional type if it isn't default constructible.
 template <typename T>
 using lazy_value_t = std::conditional_t<std::is_default_constructible<T>::value,
-                                        T, container::flat_variant<T>>;
+                                        T, result<T>>;
 
 template <typename T>
-decltype(auto) unpack_lazy(T&& value) {
+decltype(auto) unpack_lazy(std::true_type /*is_default_constructible*/,
+                           T&& value) {
   return std::forward<T>(value);
 }
 template <typename T>
-T&& unpack_lazy(container::flat_variant<T>&& value) {
-  assert(value.template is<T>() &&
+T&& unpack_lazy(std::false_type /*is_default_constructible*/,
+                result<T>&& value) {
+  assert(value.is_value() &&
          "The connection was finalized before all values were present!");
 
-  return std::move(value.template cast<T>());
+  return std::move(value).get_value();
 }
 
 template <typename Continuable>
@@ -82,8 +84,7 @@ class continuable_box<continuable_base<Data, identity<>>> {
 
 public:
   explicit continuable_box(continuable_base<Data, identity<>>&& continuable)
-      : continuable_(std::move(continuable)) {
-  }
+    : continuable_(std::move(continuable)) {}
 
   auto const& peek() const {
     return continuable_;
@@ -93,13 +94,13 @@ public:
     return std::move(continuable_);
   }
 
-  void assign() {
-  }
+  void assign() {}
 
   auto unbox() && {
     return spread_this();
   }
 };
+
 template <typename Data, typename First>
 class continuable_box<continuable_base<Data, identity<First>>> {
 
@@ -109,8 +110,7 @@ class continuable_box<continuable_base<Data, identity<First>>> {
 public:
   explicit continuable_box(
       continuable_base<Data, identity<First>>&& continuable)
-      : continuable_(std::move(continuable)) {
-  }
+    : continuable_(std::move(continuable)) {}
 
   auto const& peek() const {
     return continuable_;
@@ -125,7 +125,8 @@ public:
   }
 
   auto unbox() && {
-    return unpack_lazy(std::move(first_));
+    return unpack_lazy(std::is_default_constructible<First>{},
+                       std::move(first_));
   }
 };
 template <typename Data, typename First, typename Second, typename... Rest>
@@ -138,8 +139,7 @@ class continuable_box<
 public:
   explicit continuable_box(
       continuable_base<Data, identity<First, Second, Rest...>>&& continuable)
-      : continuable_(std::move(continuable)) {
-  }
+    : continuable_(std::move(continuable)) {}
 
   auto const& peek() const {
     return continuable_;
@@ -159,7 +159,9 @@ public:
         [](auto&&... args) {
           return spread_this(std::forward<decltype(args)>(args)...);
         },
-        unpack_lazy(std::move(args_)));
+        unpack_lazy(
+            std::is_default_constructible<std::tuple<First, Second, Rest...>>{},
+            std::move(args_)));
   }
 };
 

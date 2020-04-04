@@ -18,7 +18,6 @@ add_executable(test-continuable-single
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-promise.cpp
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-connection-noinst
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-forward-decl.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-flat-variant.cpp
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-result.cpp
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-ready.cpp
   ${CMAKE_CURRENT_LIST_DIR}/single/test-continuable-promisify.cpp

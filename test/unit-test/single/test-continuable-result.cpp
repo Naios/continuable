@@ -144,50 +144,6 @@ TYPED_TEST(result_all_tests, is_error_move_assignable) {
   EXPECT_TRUE(e.is_exception());
 }
 
-TEST(result_copyable_tests, is_copy_constructible) {
-  {
-    copyable_type const e_old(CANARY);
-    copyable_type e(e_old);
-
-    EXPECT_TRUE(bool(e));
-    EXPECT_EQ(*e, CANARY);
-    EXPECT_TRUE(e.is_value());
-    EXPECT_FALSE(e.is_exception());
-  }
-
-  {
-    copyable_type const e_old(supply_test_exception());
-    copyable_type e(e_old);
-
-    EXPECT_FALSE(bool(e));
-    EXPECT_FALSE(e.is_value());
-    EXPECT_TRUE(e.is_exception());
-  }
-}
-
-TEST(result_copyable_tests, is_copy_assignable) {
-  {
-    copyable_type const e_old(CANARY);
-    copyable_type e;
-    e = e_old;
-
-    EXPECT_TRUE(bool(e));
-    EXPECT_EQ(*e, CANARY);
-    EXPECT_TRUE(e.is_value());
-    EXPECT_FALSE(e.is_exception());
-  }
-
-  {
-    copyable_type const e_old(supply_test_exception());
-    copyable_type e;
-    e = e_old;
-
-    EXPECT_FALSE(bool(e));
-    EXPECT_FALSE(e.is_value());
-    EXPECT_TRUE(e.is_exception());
-  }
-}
-
 TYPED_TEST(result_all_tests, is_constructible_from_error_helper) {
   cti::exceptional_result e1(supply_test_exception());
   {
