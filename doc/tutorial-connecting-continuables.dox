@@ -202,7 +202,7 @@ for (int i = 2; i < 5; ++i) {
   container.emplace_back(cti::make_ready_continuable(i));
 }
 
-cti::when_all(v)
+cti::when_all(std::move(v))
   .then([](std::vector<int> resolved) {
     // ...
   });
