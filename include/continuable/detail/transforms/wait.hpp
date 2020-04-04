@@ -60,26 +60,24 @@ struct sync_trait<identity<Args...>> {
 using lock_t = std::unique_lock<std::mutex>;
 using condition_variable_t = std::condition_variable;
 
-template <typename Data, typename Annotation>
-auto wait_relaxed(continuable_base<Data, Annotation>&& continuable) {
+template <typename Data, typename Annotation,
+          typename Result = typename sync_trait<Annotation>::result_t>
+Result wait_relaxed(continuable_base<Data, Annotation>&& continuable) {
 
   // Do an immediate unpack if the continuable is ready
   if (continuable.is_ready()) {
     return std::move(continuable).unpack();
   }
 
-  constexpr auto hint = base::annotation_of(identify<decltype(continuable)>{});
-  using result_t = typename sync_trait<std::decay_t<decltype(hint)>>::result_t;
-  (void)hint;
-
   std::mutex cv_mutex;
   condition_variable_t cv;
   std::atomic_bool ready{false};
-  result_t sync_result;
+  Result sync_result;
 
   std::move(continuable)
       .next([&](auto&&... args) {
-        sync_result = result_t::from(std::forward<decltype(args)>(args)...);
+        sync_result = typename Result::from(
+            std::forward<decltype(args)>(args)...);
 
         ready.store(true, std::memory_order_release);
         cv.notify_all();
@@ -124,19 +122,17 @@ struct wait_frame {
   Result sync_result;
 };
 
-template <typename Data, typename Annotation, typename Waiter>
-auto wait_unsafe(continuable_base<Data, Annotation>&& continuable,
-                 Waiter&& waiter) {
+template <typename Data, typename Annotation, typename Waiter,
+          typename Result = typename sync_trait<Annotation>::result_t>
+Result wait_unsafe(continuable_base<Data, Annotation>&& continuable,
+                   Waiter&& waiter) {
 
   // Do an immediate unpack if the continuable is ready
   if (continuable.is_ready()) {
     return std::move(continuable).unpack();
   }
 
-  constexpr auto hint = base::annotation_of(identify<decltype(continuable)>{});
-  using result_t = typename sync_trait<std::decay_t<decltype(hint)>>::result_t;
-  (void)hint;
-  using frame_t = wait_frame<result_t>;
+  using frame_t = wait_frame<Result>;
 
   auto frame = std::make_shared<frame_t>();
 
@@ -145,7 +141,7 @@ auto wait_unsafe(continuable_base<Data, Annotation>&& continuable,
         if (auto locked = frame.lock()) {
           {
             std::lock_guard<std::mutex> rw_lock(locked->rw_mutex);
-            locked->sync_result = result_t::from(
+            locked->sync_result = typename Result::from(
                 std::forward<decltype(args)>(args)...);
           }
 
@@ -164,7 +160,7 @@ auto wait_unsafe(continuable_base<Data, Annotation>&& continuable,
 
   return ([&] {
     std::lock_guard<std::mutex> rw_lock(frame->rw_mutex);
-    result_t cached = std::move(frame->sync_result);
+    Result cached = std::move(frame->sync_result);
     return cached;
   })();
 }
