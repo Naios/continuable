@@ -36,10 +36,36 @@
 
 namespace cti {
 /// Type used as an ASIO completion token to specify an asynchronous operation
-/// should return a continuable.
+/// that should return a continuable_base.
+///
+/// - Boost 1.70 or asio 1.13.0 is required for the async initiation
+/// - Until boost 1.72 or asio 1.16.0 overhead through an additional type
+///   erasure is added. It is recommended to update to those versions.
+///
+/// The special static variable use_continuable can be appended to any
+/// (boost) asio function that accepts a callback to make it return a
+/// continuable_base.
+///
+/// ```cpp
+/// #include <continuable/continuable.hpp>
+/// #include <continuable/external/asio.hpp>
+/// #include <asio.hpp>
+///
+/// // ...
+///
+/// asio::tcp::resolver resolver(...);
+/// resolver.async_resolve("127.0.0.1", "daytime", cti::use_continuable)
+///   .then([](asio::udp::resolver::iterator iterator) {
+///     // ...
+///   });
+/// ```
+///
+/// \since 4.0.0
 struct use_continuable_t {};
 
-/// Special value for instance of `asio_token_t`.
+/// Special value for instance of `asio_token_t`
+///
+/// \copydetails use_continuable_t
 constexpr use_continuable_t use_continuable{};
 } // namespace cti
 
@@ -58,8 +84,8 @@ public:
                        Args... args) {
     return cti::detail::asio::initiate_make_continuable<Signature>{}(
         [initiation = std::move(initiation),
-         init_args =
-             std::make_tuple(std::move(args)...)](auto&& promise) mutable {
+         init_args = std::make_tuple(std::move(args)...)](
+            auto&& promise) mutable {
           cti::detail::traits::unpack(
               [initiation = std::move(initiation),
                handler = cti::detail::asio::promise_resolver_handler(

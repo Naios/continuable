@@ -75,9 +75,9 @@ async_resolve("127.0.0.1", "daytime")
 
 Since version 4.0.0 continuable also supports asio async initiation tokens.
 
-- Boost 1.70 and asio 1.13.0 is required for the async initiation
-- Until boost 1.72 and asio 1.16.0 overhead through an additional type
-  erasure is added. It is recommeded to update to those versions.
+- Boost 1.70 or asio 1.13.0 is required for the async initiation
+- Until boost 1.72 or asio 1.16.0 overhead through an additional type
+  erasure is added. It is recommended to update to those versions.
 
 The special static variable \ref cti::use_continuable can be appended to any
 (boost) asio function that accepts a callback to make it return a \ref continuable_base.

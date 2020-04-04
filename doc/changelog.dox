@@ -28,6 +28,123 @@ namespace cti {
 
 Following versions were released:
 
+\subsection changelog-versions-4-0-0 4.0.0
+
+Following methods and functions have been added:
+
+<B>Various improvements to continuable_base:</B>
+
+- \ref continuable_base::as for casting to a continuable_base with different arguments
+- \ref continuable_base::finish for 'materializing' an intermediate chained continuable_base
+
+<B>An asychronous initiation function comparable to std::async:</B>
+
+The asynchronous facilities make it possible now to start with a handler
+instead of a continuation:
+
+\code{.cpp}
+async([] {
+  // ...
+}).then(...);
+\endcode
+
+- \ref async
+- \ref async_on allows to specify an additional executor parameter
+
+<B>The result class and modifying the asynchronous control flow</B>
+
+Every continuation handler used in \ref continuable_base::then, \ref continuable_base::next
+and \ref continuable_base::fail allows now to return a \ref result which represents
+the asynchronous result.
+
+This allows recovering from failures or throwing of exception types from
+handlers when exceptions are disabled.
+
+Result handling and
+- \ref result
+- \ref rethrow
+- \ref cancel
+- \ref terminate
+- \ref make_result
+
+Special result types
+- \ref empty_result
+- \ref cancellation_result
+- \ref exceptional_result
+
+<B>Optimize 'ready' continuables:</B>
+
+Continuables which are 'ready' and side effect free can now be unpacked
+synchronously. Mainly such continuables are created through \ref make_ready_continuable,
+\ref make_exceptional_continuable and \ref make_cancelling_continuable.
+
+- \ref continuable_base::is_ready
+- \ref continuable_base::unpack
+- \ref make_cancelling_continuable
+
+Including various helper tags for the underlying changed continuation object structure:
+
+- \ref signature_arg_t
+- \ref is_ready_arg_t
+- \ref unpack_arg_t
+- \ref exception_arg_t
+- \ref exception_t
+
+<B>asio asynchronous initiate token:</B>
+
+The \ref use_continuable_t special tag can be used to make (boost) asio
+return a \ref continuable_base.
+
+- \ref use_continuable
+
+\code{.cpp}
+#include <continuable/continuable.hpp>
+#include <continuable/external/asio.hpp>
+#include <asio.hpp>
+
+// ...
+
+asio::tcp::resolver resolver(...);
+resolver.async_resolve("127.0.0.1", "daytime", cti::use_continuable)
+  .then([](asio::udp::resolver::iterator iterator) {
+    // ...
+  });
+\endcode
+
+<B>Iterating over an asynchronous control flow:</B>
+
+The loop function was added which makes is possible to emulate an asynchronous loop,
+that is comparable to a `co_await` with `for`.
+
+- \ref loop
+- \ref loop_result
+- \ref loop_break
+- \ref loop_continue
+- \ref range_loop
+- \ref range_loop
+- \ref plain_t
+- \ref make_plain
+
+<B>Synchronous wait transforms:</B>
+
+The wait transforms allows to block the current thread until a \ref continuable_base
+was resolved.
+
+- \ref transforms::wait
+- \ref transforms::wait_for
+- \ref transforms::wait_until
+
+<B>Various changes:</B>
+
+Many more unlisted changes including:
+
+- \ref work
+- \ref continuation_capacity
+- \ref promisify::with
+- \ref void_arg_t
+
+Additional various bugfixes have been made.
+
 \subsection changelog-versions-3-0-0 3.0.0
 
 <B>New helper functions</B>
