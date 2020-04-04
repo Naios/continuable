@@ -45,9 +45,9 @@
 #include <asio/system_error.hpp>
 #endif
 
-#if (ASIO_VERSION / 100 % 1000) <= 12
+#if (ASIO_VERSION < 101300) // 1.13.0
 #define CTI_DETAIL_ASIO_HAS_NO_INTEGRATION
-#elif (ASIO_VERSION / 100 % 1000) <= 14
+#elif (ASIO_VERSION < 101600) // 1.16.0 (boost 1.72 baseline)
 #define CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION
 #endif
 
@@ -63,9 +63,9 @@
 #include <boost/system/system_error.hpp>
 #endif
 
-#if (BOOST_VERSION / 100 % 1000) <= 69
+#if (BOOST_VERSION < 107000) // 1.70
 #define CTI_DETAIL_ASIO_HAS_NO_INTEGRATION
-#elif (BOOST_VERSION / 100 % 1000) <= 71
+#elif (BOOST_VERSION < 107200) // 1.72
 #define CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION
 #endif
 

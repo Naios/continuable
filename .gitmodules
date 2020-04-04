@@ -1,15 +1,16 @@
 [submodule "dep/googletest/googletest"]
-	path = dep/googletest/googletest
-	url = https://github.com/google/googletest.git
+  path = dep/googletest/googletest
+  url = https://github.com/google/googletest.git
+  branch = master
 [submodule "dep/function2/function2"]
-	path = dep/function2/function2
-	url = https://github.com/Naios/function2.git
-[submodule "dep/cxx_function/cxx_function"]
-	path = dep/cxx_function/cxx_function
-	url = https://github.com/potswa/cxx_function.git
+  path = dep/function2/function2
+  url = https://github.com/Naios/function2.git
+  branch = master
 [submodule "dep/asio/asio"]
-	path = dep/asio/asio
-	url = https://github.com/chriskohlhoff/asio.git
+  path = dep/asio/asio
+  url = https://github.com/chriskohlhoff/asio.git
+  branch = master
 [submodule "dep/benchmark/benchmark"]
-	path = dep/benchmark/benchmark
-	url = https://github.com/google/benchmark.git
+  path = dep/benchmark/benchmark
+  url = https://github.com/google/benchmark.git
+  branch = master
