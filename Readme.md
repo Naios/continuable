@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://naios.github.io/continuable/changelog.html#changelog-versions-3-0-0"><img alt="Current version" src="https://img.shields.io/badge/Version-3.0.0-0091EA.svg"></a>
+  <a href="https://naios.github.io/continuable/changelog.html#changelog-versions-4-0-0"><img alt="Current version" src="https://img.shields.io/badge/Version-4.0.0-0091EA.svg"></a>
   <a href="https://travis-ci.org/Naios/continuable"><img alt="Travic-CI build status" src="https://travis-ci.org/Naios/continuable.svg?branch=master"></a>
   <a href="https://ci.appveyor.com/project/Naios/continuable/branch/master"><img alt="AppVeyor CI status" src="https://ci.appveyor.com/api/projects/status/328ta3r5x92f3byv/branch/master?svg=true"></a>
   <img alt="MIT Licensed" src="https://img.shields.io/badge/License-MIT-00838F.svg">
