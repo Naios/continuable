@@ -63,14 +63,26 @@ TYPED_TEST(single_dimension_tests, multipath_result_is_throwable) {
 }
 
 TYPED_TEST(single_dimension_tests, multipath_result_is_cancelable) {
-  ASSERT_ASYNC_INCOMPLETION(this->supply().then([]() -> empty_result {
+  ASSERT_ASYNC_CANCELLATION(this->supply().then([]() -> cancellation_result {
     //
     return cancel();
   }));
 
-  ASSERT_ASYNC_INCOMPLETION(this->supply().then([]() -> result<> {
+  ASSERT_ASYNC_CANCELLATION(this->supply().then([]() -> result<> {
     //
     return cancel();
+  }));
+}
+
+TYPED_TEST(single_dimension_tests, multipath_result_is_stoppable) {
+  ASSERT_ASYNC_INCOMPLETION(this->supply().then([]() -> empty_result {
+    //
+    return stop();
+  }));
+
+  ASSERT_ASYNC_INCOMPLETION(this->supply().then([]() -> result<> {
+    //
+    return stop();
   }));
 }
 
@@ -115,19 +127,19 @@ TYPED_TEST(single_dimension_tests, multipath_exception_is_forwardable) {
           }));
 }
 
-TYPED_TEST(single_dimension_tests, multipath_exception_is_cancelable) {
+TYPED_TEST(single_dimension_tests, multipath_exception_is_stoppable) {
   ASSERT_ASYNC_INCOMPLETION(
       this->supply_exception(supply_test_exception(), identity<int>{})
           .fail([](exception_t) -> empty_result {
             //
-            return cancel();
+            return stop();
           }));
 
   ASSERT_ASYNC_INCOMPLETION(
       this->supply_exception(supply_test_exception(), identity<int>{})
           .fail([](exception_t) -> result<int> {
             //
-            return cancel();
+            return stop();
           }));
 }
 

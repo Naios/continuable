@@ -127,7 +127,7 @@ TYPED_TEST(single_dimension_tests, are_exceptions_partial_applyable) {
                                 .fail([&]() -> empty_result {
                                   EXPECT_FALSE(handled);
                                   handled = true;
-                                  return cancel();
+                                  return stop();
                                 }));
   ASSERT_TRUE(handled);
 
@@ -138,7 +138,7 @@ TYPED_TEST(single_dimension_tests, are_exceptions_partial_applyable) {
           .fail([&]() -> result<int, int> {
             EXPECT_FALSE(handled);
             handled = true;
-            return cancel();
+            return stop();
           }));
 
   ASSERT_TRUE(handled);

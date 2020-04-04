@@ -64,7 +64,7 @@ Result handling and
 - \ref result
 - \ref rethrow
 - \ref cancel
-- \ref terminate
+- \ref stop
 - \ref make_result
 
 Special result types

@@ -110,6 +110,12 @@ TYPED_TEST(single_dimension_tests, are_not_finished_when_not_continued) {
       return empty_result();
     }));
   }
+
+  {
+    ASSERT_ASYNC_INCOMPLETION(this->supply().then([] {
+      return stop();
+    }));
+  }
 }
 
 TYPED_TEST(single_dimension_tests, are_not_finished_when_cancelling) {

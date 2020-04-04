@@ -1058,9 +1058,10 @@ inline exceptional_result rethrow(exception_t exception) {
 }
 
 /// Can be used to cancel an asynchronous continuation chain,
-/// no handler which comes after cancel was received won't be called.
+/// the next failure handler which comes after cancel will be called
+/// with a default constructed exception_t object.
 ///
-/// The \ref empty_result returned by this function can be returned from
+/// The \ref cancellation_result returned by this function can be returned from
 /// any result or failure handler in order to cancel the chain.
 /// ```cpp
 /// http_request("example.com")
@@ -1091,7 +1092,16 @@ inline exceptional_result rethrow(exception_t exception) {
 ///
 /// \since 4.0.0
 ///
-inline empty_result cancel() {
+inline cancellation_result cancel() {
+  return {};
+}
+
+/// Can be used to stop an asynchronous continuation chain,
+/// no handler which comes after stop was received won't be called.
+///
+/// \since 4.0.0
+///
+inline empty_result stop() {
   return {};
 }
 
