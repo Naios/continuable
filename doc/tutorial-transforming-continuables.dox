@@ -30,28 +30,37 @@ namespace cti {
 
 Sometimes it's required to change a \ref continuable_base object by its whole.
 Thus the library offers the ability to apply a transformation to any
-\ref continuable_base through using \link continuable_base::apply apply \endlink
-or \link continuable_base::operator | its operator | \endlink.
+\ref continuable_base through using \link continuable_base::apply apply \endlink.
 
-A transformation accepts a \ref continuable_base and returns
-an arbitrary object.
-
-To create a transformation use the \ref make_transform function:
-
-\code{.cpp}
-auto transform = cti::make_transform([] (auto&& continuable) {
-  // Change the continuable
-  return std::forward<decltype(continuable)>(continuable);
-});
-\endcode
+A transformation is a callable object that accepts a \ref continuable_base
+and returns an arbitrary object
 
 The library provides several transforms already as part of the
 \ref cti::transforms namespace.
 
+\section tutorial-transforming-continuables-wait Synchronous wait
+
+The library is capable of converting every asynchronous control flow
+into a synchronous one through \ref transforms::wait, \ref transforms::wait_for
+and \ref transforms::wait_until.
+
+\code{.cpp}
+std::string response = http_request("github.com")
+  .apply(cti::transforms::wait());
+
+std::string response = http_request("github.com")
+  .apply(cti::transforms::wait_for(std::chrono::seconds(5)));
+
+std::string response = http_request("github.com")
+  .apply(cti::transforms::wait_until(...));
+\endcode
+
+The current thread will be blocked until the result has arrived
+
 \section tutorial-transforming-continuables-future Conversion into std::future
 
 The library is capable of converting (*futurizing*) every continuable into a
-fitting `std::future` through the \ref transforms::futurize transform:
+fitting `std::future` through the \ref transforms::to_future transform:
 
 \code{.cpp}
 std::future<std::string> future = http_request("github.com")
@@ -59,17 +68,17 @@ std::future<std::string> future = http_request("github.com")
     // Do sth...
     return http_request("travis-ci.org") || http_request("atom.io");
   })
-  .apply(cti::transforms::futurize());
+  .apply(cti::transforms::to_future());
 // ^^^^^^^^
 \endcode
 
 Multiple arguments which can't be handled by `std::future` itself are
-converted into `std::tuple`, see \ref transforms::futurize for details.
+converted into `std::tuple`, see \ref transforms::to_future for details.
 
 \code{.cpp}
 std::future<std::tuple<std::string, std::string>> future =
   (http_request("travis-ci.org") && http_request("atom.io"))
-    .apply(cti::transforms::futurize());
+    .apply(cti::transforms::to_future());
 \endcode
 */
 }

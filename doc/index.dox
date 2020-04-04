@@ -1,5 +1,5 @@
 /*
-  Copyright(c) 2015 - 2019 Denis Blank <denis.blank at outlook dot com>
+  Copyright(c) 2015 - 2020 Denis Blank <denis.blank at outlook dot com>
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files(the "Software"), to deal
@@ -70,13 +70,13 @@ your personal experience in using the library to improve it.
 \note If you are using the library in your open-source or commercial project
       I would highly appreciate if you could give me a short notice so I can
       add you to a list of projects and companies using this library.
-           
+
 \section mainpage-license License
 
 Continuable is licensed under the MIT license:
 
 >
->   Copyright(c) 2015 - 2019 Denis Blank <denis.blank at outlook dot com>
+>   Copyright(c) 2015 - 2020 Denis Blank <denis.blank at outlook dot com>
 >
 >   Permission is hereby granted, free of charge, to any person obtaining a copy
 >   of this software and associated documentation files(the "Software"), to deal

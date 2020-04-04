@@ -623,7 +623,7 @@ public:
   /// Invalidates the continuable and returns its immediate invocation result.
   ///
   /// This method can be used to specialize the asynchronous control flow
-  /// based on whether the continuable ìs_ready at every time,
+  /// based on whether the continuable_base is_ready at every time,
   /// which is true for a continuable created through the following functions:
   ///   - make_ready_continuable
   ///   - make_exceptional_continuable
