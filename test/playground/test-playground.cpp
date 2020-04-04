@@ -20,15 +20,7 @@
   SOFTWARE.
 **/
 
-#include <memory>
-#include <thread>
-#include <continuable/continuable-transforms.hpp>
 #include <continuable/continuable.hpp>
-#include <continuable/external/asio.hpp>
-#include <asio.hpp>
-
-using namespace cti;
-using namespace std::chrono_literals;
 
 int main(int, char**) {
   return 0;

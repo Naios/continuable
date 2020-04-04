@@ -10,10 +10,8 @@ target_link_libraries(test-continuable-base
   PUBLIC
     gtest
     gtest-main
-    asio
     continuable
     continuable-features-flags
-    continuable-features-warnings
     continuable-features-noexcept)
 
 add_executable(test-continuable-single
@@ -30,6 +28,7 @@ add_executable(test-continuable-single
 
 target_link_libraries(test-continuable-single
   PUBLIC
+    continuable-features-warnings
     test-continuable-base)
 
 target_include_directories(test-continuable-single
@@ -39,6 +38,22 @@ target_include_directories(test-continuable-single
 add_test(
   NAME continuable-unit-tests-single
   COMMAND test-continuable-single)
+
+add_executable(test-continuable-async
+  ${CMAKE_CURRENT_LIST_DIR}/async/test-continuable-async.cpp)
+
+target_link_libraries(test-continuable-async
+  PUBLIC
+    test-continuable-base
+    asio)
+
+target_include_directories(test-continuable-async
+  PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}/async)
+
+add_test(
+  NAME continuable-unit-tests-async
+  COMMAND test-continuable-async)
 
 if (CTI_CONTINUABLE_WITH_LIGHT_TESTS)
   set(STEP_RANGE 0)
@@ -75,6 +90,7 @@ foreach(STEP RANGE ${STEP_RANGE})
 
   target_link_libraries(${PROJECT_NAME}
     PUBLIC
+      continuable-features-warnings
       test-continuable-base)
 
   target_include_directories(${PROJECT_NAME}
@@ -99,6 +115,7 @@ add_executable(${PROJECT_NAME} ${TEST_SOURCES})
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
+    continuable-features-warnings
     test-continuable-base)
 
 target_include_directories(${PROJECT_NAME}

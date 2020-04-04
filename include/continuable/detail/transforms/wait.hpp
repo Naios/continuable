@@ -76,8 +76,7 @@ Result wait_relaxed(continuable_base<Data, Annotation>&& continuable) {
 
   std::move(continuable)
       .next([&](auto&&... args) {
-        sync_result = typename Result::from(
-            std::forward<decltype(args)>(args)...);
+        sync_result = Result::from(std::forward<decltype(args)>(args)...);
 
         ready.store(true, std::memory_order_release);
         cv.notify_all();
@@ -141,7 +140,7 @@ Result wait_unsafe(continuable_base<Data, Annotation>&& continuable,
         if (auto locked = frame.lock()) {
           {
             std::lock_guard<std::mutex> rw_lock(locked->rw_mutex);
-            locked->sync_result = typename Result::from(
+            locked->sync_result = Result::from(
                 std::forward<decltype(args)>(args)...);
           }
 
