@@ -30,6 +30,15 @@ Following versions were released:
 
 \subsection changelog-versions-4-0-0 4.0.0
 
+Various issues have been resolved:
+
+- [#27: First class, zero-overhead ASIO integration](https://github.com/Naios/continuable/issues/27)
+- [#23: VS 16.2: parameter pack must be expanded in this context](https://github.com/Naios/continuable/issues/23)
+- [#21: Infinite recursion during compilation](https://github.com/Naios/continuable/issues/21)
+- [#16: Add AppleClang compiler to cmake](https://github.com/Naios/continuable/issues/16)
+- [#13: unit-test/test-continuable-single fails on gcc 8.2](https://github.com/Naios/continuable/issues/13)
+- [#11: Forward declarations are no longer allowed in type-erased continuables](https://github.com/Naios/continuable/issues/11)
+
 Following methods and functions have been added:
 
 <B>Various improvements to continuable_base:</B>
@@ -48,7 +57,7 @@ async([] {
 }).then(...);
 \endcode
 
-- \ref async
+- \ref async Makes it possible to start with a handler instead of a continuation, comparable to `std::async`
 - \ref async_on allows to specify an additional executor parameter
 
 <B>The result class and modifying the asynchronous control flow</B>
@@ -62,15 +71,15 @@ handlers when exceptions are disabled.
 
 Result handling and
 - \ref result
-- \ref rethrow
-- \ref cancel
-- \ref stop
-- \ref make_result
+- \ref rethrow Throws an exception or error code from a result or failure handler
+- \ref cancel Throws a default constructed exception type or error code from a result or failure handler to signal cancellation.
+- \ref stop \copybrief stop
+- \ref make_result \copybrief make_result
 
 Special result types
-- \ref empty_result
-- \ref cancellation_result
-- \ref exceptional_result
+- \ref empty_result \copybrief empty_result
+- \ref cancellation_result \copybrief cancellation_result
+- \ref exceptional_result \copybrief exceptional_result
 
 <B>Optimize 'ready' continuables:</B>
 
@@ -78,9 +87,9 @@ Continuables which are 'ready' and side effect free can now be unpacked
 synchronously. Mainly such continuables are created through \ref make_ready_continuable,
 \ref make_exceptional_continuable and \ref make_cancelling_continuable.
 
-- \ref continuable_base::is_ready
-- \ref continuable_base::unpack
-- \ref make_cancelling_continuable
+- \ref continuable_base::is_ready \copybrief continuable_base::is_ready
+- \ref continuable_base::unpack \copybrief continuable_base::unpack
+- \ref make_cancelling_continuable \copybrief make_cancelling_continuable
 
 Including various helper tags for the underlying changed continuation object structure:
 
@@ -95,7 +104,7 @@ Including various helper tags for the underlying changed continuation object str
 The \ref use_continuable_t special tag can be used to make (boost) asio
 return a \ref continuable_base.
 
-- \ref use_continuable
+- \ref use_continuable \copybrief use_continuable_t
 
 \code{.cpp}
 #include <continuable/continuable.hpp>
@@ -116,31 +125,31 @@ resolver.async_resolve("127.0.0.1", "daytime", cti::use_continuable)
 The loop function was added which makes is possible to emulate an asynchronous loop,
 that is comparable to a `co_await` with `for`.
 
-- \ref loop
-- \ref loop_result
-- \ref loop_break
-- \ref loop_continue
-- \ref range_loop
-- \ref range_loop
-- \ref plain_t
-- \ref make_plain
+- \ref loop \copybrief loop
+- \ref loop_result \copybrief loop_result
+- \ref loop_break \copybrief loop_break
+- \ref loop_continue \copybrief loop_continue
+- \ref range_loop \copybrief range_loop
+- \ref range_loop \copybrief range_loop
+- \ref plain_t \copybrief plain_t
+- \ref make_plain \copybrief make_plain
 
 <B>Synchronous wait transforms:</B>
 
 The wait transforms allows to block the current thread until a \ref continuable_base
 was resolved.
 
-- \ref transforms::wait
-- \ref transforms::wait_for
-- \ref transforms::wait_until
+- \ref transforms::wait \copybrief transforms::wait
+- \ref transforms::wait_for Same as \ref transforms::wait wich waits for a given duration
+- \ref transforms::wait_until Same as \ref transforms::wait wich waits until a given timepoint
 
 <B>Various changes:</B>
 
 Many more unlisted changes including:
 
-- \ref work
+- \ref work \copybrief work
 - \ref continuation_capacity
-- \ref promisify::with
+- \ref promisify::with \copybrief promisify::with
 - \ref void_arg_t
 
 Additional various bugfixes have been made.
@@ -151,8 +160,8 @@ Additional various bugfixes have been made.
 
 New helper functions were added to create ready continuables:
 
-- \ref make_ready_continuable
-- \ref make_exceptional_continuable
+- \ref make_ready_continuable \copybrief make_ready_continuable
+- \ref make_exceptional_continuable \copybrief make_exceptional_continuable
 
 <B>Improvements to connections</B>
 
