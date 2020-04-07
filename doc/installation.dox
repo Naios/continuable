@@ -125,6 +125,7 @@ and might be installed from there.
 For major versions there is an amalgamation header provided which can be
 included without any dependency:
 
+- [4.0.0](https://gist.githubusercontent.com/Naios/25d731aa4707d35a9bcec507f3cb9038/raw/051d2ea07b6704893c7fc9844e8d1c105c6821e0/continuable.hpp)
 - [3.0.0](https://gist.githubusercontent.com/Naios/b128ab5028a7eb33e4285c0293573d9f/raw/79fe332964a786b21a8661ef65d07a5669260a3c/continuable.hpp)
 
 \subsection installation-installation-copy By copying the headers
