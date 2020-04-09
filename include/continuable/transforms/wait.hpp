@@ -34,6 +34,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <utility>
+#include <continuable/detail/features.hpp>
 #include <continuable/detail/transforms/wait.hpp>
 
 namespace cti {
@@ -41,6 +42,15 @@ namespace cti {
 /// \{
 
 namespace transforms {
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+/// Is thrown from wait if the awaited continuable_base was cancelled,
+/// which was signaled through resolving with a default
+/// constructed exception type.
+///
+/// \since 4.1.0
+using wait_transform_canceled_exception = detail::transforms::wait_transform_canceled_exception;
+#endif // CONTINUABLE_HAS_EXCEPTIONS
+
 /// Returns a transform that if applied to a continuable,
 /// it will start the continuation chain and returns the result synchronously.
 /// The current thread is blocked until the continuation chain is finished.
@@ -52,6 +62,10 @@ namespace transforms {
 /// | `continuable_base with <>`        | `void`                             |
 /// | `continuable_base with <Arg>`     | `Arg`                              |
 /// | `continuable_base with <Args...>` | `std::tuple<Args...>`              |
+///
+/// \throws wait_transform_canceled_exception if the awaited continuable_base
+///         is cancelled, and thus was resolved with a default
+///         constructed exception type.
 ///
 /// \attention If exceptions are used, exceptions that are thrown, are rethrown
 ///            synchronously.

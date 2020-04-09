@@ -50,6 +50,18 @@
 namespace cti {
 namespace detail {
 namespace transforms {
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+class wait_transform_canceled_exception : public std::exception {
+public:
+  wait_transform_canceled_exception() noexcept = default;
+
+  char const* what() const noexcept override {
+    return "cti::transforms::wait canceled due to cancellation of the "
+           "continuation";
+  }
+};
+#endif // CONTINUABLE_HAS_EXCEPTIONS
+
 template <typename Hint>
 struct sync_trait;
 template <typename... Args>
@@ -105,7 +117,11 @@ auto wait_and_unpack(continuable_base<Data, Annotation>&& continuable) {
     return std::move(sync_result).get_value();
   } else {
     assert(sync_result.is_exception());
-    std::rethrow_exception(sync_result.get_exception());
+    if (exception_t e = sync_result.get_exception()) {
+      std::rethrow_exception(e);
+    } else {
+      throw wait_transform_canceled_exception();
+    }
   }
 #else
   return sync_result;

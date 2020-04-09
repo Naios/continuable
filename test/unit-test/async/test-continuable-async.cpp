@@ -111,6 +111,12 @@ TYPED_TEST(single_dimension_tests, wait_test_exception) {
                    .apply(cti::transforms::wait()),
                test_exception);
 }
+
+TYPED_TEST(single_dimension_tests, wait_test_cancellation) {
+  ASSERT_THROW(make_cancelling_continuable<void>().apply(
+                   cti::transforms::wait()),
+               transforms::wait_transform_canceled_exception);
+}
 #endif // CONTINUABLE_HAS_EXCEPTIONS
 
 TYPED_TEST(single_dimension_tests, wait_for_test_sync) {
