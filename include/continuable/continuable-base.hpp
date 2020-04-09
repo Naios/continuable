@@ -48,8 +48,8 @@
 #include <continuable/detail/utility/util.hpp>
 
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
-#include <experimental/coroutine>
-#include <continuable/detail/other/coroutines.hpp>
+#  include <experimental/coroutine>
+#  include <continuable/detail/other/coroutines.hpp>
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 
 namespace cti {
@@ -109,13 +109,13 @@ class continuable_base {
 
   /// Constructor accepting the data object while erasing the annotation
   explicit continuable_base(Data data, ownership ownership)
-      : data_(std::move(data)), ownership_(std::move(ownership)) {
-  }
+    : data_(std::move(data))
+    , ownership_(std::move(ownership)) {}
 
 public:
   /// Constructor accepting the data object while erasing the annotation
-  explicit continuable_base(Data data) : data_(std::move(data)) {
-  }
+  explicit continuable_base(Data data)
+    : data_(std::move(data)) {}
 
   /// Constructor accepting any object convertible to the data object,
   /// while erasing the annotation
@@ -124,10 +124,10 @@ public:
                 Data, Annotation,
                 detail::traits::unrefcv_t<OtherData>>::value>* = nullptr>
   /* implicit */ continuable_base(OtherData&& data)
-      : data_(detail::base::proxy_continuable<
-              Annotation, detail::traits::unrefcv_t<OtherData>>(
-            std::forward<OtherData>(data))) {
-  }
+    : data_(
+          detail::base::proxy_continuable<Annotation,
+                                          detail::traits::unrefcv_t<OtherData>>(
+              std::forward<OtherData>(data))) {}
 
   /// Constructor taking the data of other continuable_base objects
   /// while erasing the hint.
@@ -138,8 +138,7 @@ public:
             std::enable_if_t<std::is_convertible<
                 detail::traits::unrefcv_t<OData>, Data>::value>* = nullptr>
   /* implicit */ continuable_base(continuable_base<OData, Annotation>&& other)
-      : data_(std::move(other).consume()) {
-  }
+    : data_(std::move(other).consume()) {}
 
   /// Constructor taking the data of other continuable_base objects
   /// while erasing the hint.
@@ -148,8 +147,7 @@ public:
   /// the continuable by any object which is useful for type-erasure.
   template <typename OData, typename OAnnotation>
   /* implicit */ continuable_base(continuable_base<OData, OAnnotation>&& other)
-      : continuable_base(std::move(other).finish().consume()) {
-  }
+    : continuable_base(std::move(other).finish().consume()) {}
 
   /// \cond false
   continuable_base(continuable_base&&) = default;
@@ -320,12 +318,18 @@ public:
   /// ```cpp
   /// http_request("github.com")
   ///   .then([](std::string github) { })
-  ///   .fail([](std::exception_ptr ptr) {
-  ///     // Handle the error here
-  ///     try {
-  ///       std::rethrow_exception(ptr);
-  ///     } catch (std::exception& e) {
-  ///       e.what(); // Handle the exception
+  ///   .fail([](std::exception_ptr ep) {
+  ///     // Check whether the exception_ptr is valid (not default constructed)
+  ///     // if bool(ep) == false this means that the operation was cancelled
+  ///     // by the user or application (promise.set_canceled() or
+  ///     // make_cancelling_continuable()).
+  ///     if (ep) {
+  ///       // Handle the error here
+  ///       try {
+  ///         std::rethrow_exception(ep);
+  ///       } catch (std::exception& e) {
+  ///         e.what(); // Handle the exception
+  ///       }
   ///     }
   ///   });
   /// ```
@@ -344,6 +348,18 @@ public:
   ///
   /// \returns Returns a continuable_base with an asynchronous return type
   ///          depending on the previous result type.
+  ///
+  /// \attention The given exception type exception_t can be passed to the
+  ///            handler in a default constructed state <br>`bool(e) == false`.
+  ///            This always means that the operation was cancelled by the user,
+  ///            possibly through:
+  ///              - \ref promise_base::set_canceled
+  ///              - \ref make_cancelling_continuable
+  ///              - \ref result::set_canceled
+  ///              - \ref cancel<br>
+  ///            In that case the exception can be ignored safely (but it is
+  ///            recommended not to proceed, although it is possible to
+  ///            recover from the cancellation).
   ///
   /// \since 2.0.0
   template <typename T, typename E = detail::types::this_thread_executor_tag>
@@ -907,8 +923,8 @@ constexpr auto make_exceptional_continuable(Exception&& exception) {
                 "Requires at least one type for the fake signature!");
 
   using hint_t = typename detail::hints::from_args<Args...>::type;
-  using ready_continuation_t =
-      typename detail::base::ready_continuation_from_hint<hint_t>::type;
+  using ready_continuation_t = typename detail::base::
+      ready_continuation_from_hint<hint_t>::type;
   using result_t = typename detail::base::result_from_hint<hint_t>::type;
   return detail::base::attorney::create_from_raw(
       ready_continuation_t(result_t::from(exception_arg_t{},

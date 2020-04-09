@@ -45,10 +45,12 @@ using asio_error_code_t = detail::asio::error_code_t;
 /// \since 4.1.0
 using asio_basic_errors_t = detail::asio::basic_errors_t;
 
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
 /// The system error type used by your asio distribution
 ///
 /// \since 4.1.0
 using asio_system_error_t = detail::asio::system_error_t;
+#endif // CONTINUABLE_HAS_EXCEPTIONS
 
 /// Type used as an ASIO completion token to specify an asynchronous operation
 /// that should return a continuable_base.
