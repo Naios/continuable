@@ -45,7 +45,7 @@
 #include <continuable/detail/utility/util.hpp>
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
-#include <exception>
+#  include <exception>
 #endif // CONTINUABLE_HAS_EXCEPTIONS
 
 namespace cti {
@@ -53,6 +53,17 @@ namespace detail {
 namespace awaiting {
 /// We import the coroutine handle in our namespace
 using std::experimental::coroutine_handle;
+
+#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+class await_canceled_exception : public std::exception {
+public:
+  await_canceled_exception() noexcept = default;
+
+  char const* what() const noexcept override {
+    return "co_await canceled due to cancellation of the continuation";
+  }
+};
+#endif // CONTINUABLE_HAS_EXCEPTIONS
 
 template <typename T>
 struct result_from_identity;
@@ -76,7 +87,7 @@ class awaitable {
 
 public:
   explicit constexpr awaitable(Continuable&& continuable)
-      : continuable_(std::move(continuable)) {
+    : continuable_(std::move(continuable)) {
 
     // If the continuable is ready resolve the result from the
     // continuable immediately.
@@ -108,15 +119,21 @@ public:
 
   /// Resume the coroutine represented by the handle
   typename result_t::value_t await_resume() noexcept(false) {
-    if (result_) {
+    if (result_.is_value()) {
       // When the result was resolved return it
       return std::move(result_).get_value();
     }
 
+    assert(result_.is_exception());
+
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
-    std::rethrow_exception(result_.get_exception());
+    if (exception_t e = result_.get_exception()) {
+      std::rethrow_exception(std::move(e));
+    } else {
+      throw await_canceled_exception();
+    }
 #else  // CONTINUABLE_HAS_EXCEPTIONS
-    // Returning error types in await isn't supported as of now
+    // Returning error types from co_await isn't supported!
     CTI_DETAIL_TRAP();
 #endif // CONTINUABLE_HAS_EXCEPTIONS
   }
@@ -141,8 +158,7 @@ struct handle_takeover {
     handle_ = handle;
   }
 
-  void await_resume() noexcept {
-  }
+  void await_resume() noexcept {}
 };
 
 /// The type which is passed to the compiler that describes the properties
@@ -179,7 +195,7 @@ struct promise_resolver_base<promise_type<Continuable, Promise, Args...>> {
 
 template <typename Continuable, typename Promise, typename... Args>
 struct promise_type
-    : promise_resolver_base<promise_type<Continuable, Promise, Args...>> {
+  : promise_resolver_base<promise_type<Continuable, Promise, Args...>> {
 
   coroutine_handle<> handle_;
   Promise promise_;
@@ -203,9 +219,15 @@ struct promise_type
 
   void unhandled_exception() noexcept {
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
-    promise_.set_exception(std::current_exception());
+    try {
+      std::rethrow_exception(std::current_exception());
+    } catch (await_canceled_exception const&) {
+      promise_.set_canceled();
+    } catch (...) {
+      promise_.set_exception(std::current_exception());
+    }
 #else  // CONTINUABLE_HAS_EXCEPTIONS
-       // Returning error types from coroutines isn't supported
+    // Returning exception types from a coroutine isn't supported
     CTI_DETAIL_TRAP();
 #endif // CONTINUABLE_HAS_EXCEPTIONS
   }

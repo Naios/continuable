@@ -36,15 +36,45 @@
 #include <continuable/detail/features.hpp>
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
-#include <exception>
+#  include <exception>
 #endif // CONTINUABLE_HAS_EXCEPTIONS
 
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
-#include <continuable/detail/other/coroutines.hpp>
+#  include <continuable/detail/other/coroutines.hpp>
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 
+#if defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
+namespace cti {
+#  if defined(CONTINUABLE_HAS_EXCEPTIONS)
+/// Is thrown from co_await expressions if the awaited continuable is canceled
+///
+/// Default constructed exception types that are returned by a cancelled
+/// continuable are converted automatically to await_canceled_exception when
+/// being returned by a co_await expression.
+///
+/// The await_canceled_exception gets converted again to a default constructed
+/// exception type if it becomes unhandled inside a coroutine which
+/// returns a continuable_base.
+/// ```cpp
+/// continuable<> cancelled_coroutine() {
+///   co_await make_cancelling_continuable<void>();
+///
+///   co_return;
+/// }
+///
+/// // ...
+///
+/// cancelled_coroutine().fail([](exception_t e) {
+///   assert(bool(e) == false);
+/// });
+/// ```
+///
+/// \since 4.1.0
+using await_canceled_exception = detail::awaiting::await_canceled_exception;
+#  endif // CONTINUABLE_HAS_EXCEPTIONS
+} // namespace cti
+
 /// \cond false
-#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 // As far as I know there is no other way to implement this specialization...
 // NOLINTNEXTLINE(cert-dcl58-cpp)
 namespace std {
@@ -54,13 +84,12 @@ struct coroutine_traits<
     cti::continuable_base<Data, cti::detail::identity<Args...>>,
     FunctionArgs...> {
 
-  using promise_type =
-      cti::detail::awaiting::promise_type<cti::continuable<Args...>,
-                                          cti::promise<Args...>, Args...>;
+  using promise_type = cti::detail::awaiting::promise_type<
+      cti::continuable<Args...>, cti::promise<Args...>, Args...>;
 };
 } // namespace experimental
 } // namespace std
+  /// \endcond
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
-/// \endcond
 
 #endif // CONTINUABLE_COROUTINE_HPP_INCLUDED

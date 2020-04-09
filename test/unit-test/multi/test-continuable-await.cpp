@@ -26,11 +26,11 @@
 #include <continuable/detail/features.hpp>
 #ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 
-#ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
-#include <exception>
-#endif // CONTINUABLE_WITH_NO_EXCEPTIONS
+#  ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
+#    include <exception>
+#  endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 
-#include <tuple>
+#  include <tuple>
 
 /// Resolves the given promise asynchonously
 template <typename S>
@@ -76,7 +76,7 @@ TYPED_TEST(single_dimension_tests, are_awaitable) {
   EXPECT_ASYNC_RESULT(resolve_async_multiple(supply), 0, 1, 2, 3);
 }
 
-#ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
+#  ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
 
 struct await_exception : std::exception {
   char const* what() const noexcept override {
@@ -105,7 +105,9 @@ cti::continuable<> resolve_async_exceptional(S&& supplier) {
   // GTest ASSERT_THROW isn't co_await friendly yet:
   // clang: 'return statement not allowed in coroutine; did you mean
   //        'co_return'?'
-  EXPECT_THROW(co_await supplier().then([] { throw await_exception{}; }),
+  EXPECT_THROW(co_await supplier().then([] {
+    throw await_exception{};
+  }),
                await_exception);
 
   co_return;
@@ -141,6 +143,31 @@ TYPED_TEST(single_dimension_tests, are_awaitable_with_exceptions_from_coro) {
                                 await_exception{})
 }
 
-#endif // CONTINUABLE_WITH_NO_EXCEPTIONS
+template <typename S>
+cti::continuable<> resolve_coro_canceled(S&& supplier) {
+  // Pseudo wait
+  co_await supplier();
+
+  try {
+    co_await cti::make_cancelling_continuable<void>();
+  } catch (cti::await_canceled_exception const& e) {
+    std::rethrow_exception(std::make_exception_ptr(e));
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  co_return;
+}
+
+TYPED_TEST(single_dimension_tests, are_awaitable_with_cancellation_from_coro) {
+  auto const& supply = [&](auto&&... args) {
+    // Supplies the current tested continuable
+    return this->supply(std::forward<decltype(args)>(args)...);
+  };
+
+  ASSERT_ASYNC_CANCELLATION(resolve_coro_canceled(supply))
+}
+
+#  endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
