@@ -44,15 +44,18 @@ public:
     }) {}
 
   ~async_test_helper() {
-    assert(work_);
-    timer_.cancel();
-    work_.reset();
+    cancel();
     thread_.join();
   }
 
   auto wait_for(asio::steady_timer::duration duration) {
     timer_.expires_after(duration);
     return timer_.async_wait(use_continuable);
+  }
+
+  void cancel() {
+    timer_.cancel();
+    work_.reset();
   }
 
 private:
@@ -140,4 +143,54 @@ TYPED_TEST(single_dimension_tests, wait_for_test_async) {
   async_test_helper helper;
   result<> res = helper.wait_for(500ms).apply(cti::transforms::wait_for(50ms));
   ASSERT_FALSE(res.is_exception());
+}
+
+TYPED_TEST(single_dimension_tests, token_remap_canceled) {
+  asio::io_context io(1);
+  asio::steady_timer timer(io, 50ms);
+
+  result<> value;
+  timer.async_wait(use_continuable).next([&](auto&&... args) {
+    value = result<>::from(std::forward<decltype(args)>(args)...);
+  });
+
+  timer.cancel();
+  io.run();
+
+  ASSERT_TRUE(value.is_exception());
+  ASSERT_FALSE(bool(value.get_exception()));
+}
+
+TYPED_TEST(single_dimension_tests, token_remap_none_raw) {
+  asio::io_context io(1);
+  asio::steady_timer timer(io, 50ms);
+
+  result<> value;
+  timer.async_wait(use_continuable_raw).next([&](auto&&... args) {
+    value = result<>::from(std::forward<decltype(args)>(args)...);
+  });
+
+  timer.cancel();
+  io.run();
+
+  ASSERT_TRUE(value.is_exception());
+  ASSERT_TRUE(bool(value.get_exception()));
+}
+
+TYPED_TEST(single_dimension_tests, token_remap_ignore) {
+  asio::io_context io(1);
+  asio::steady_timer timer(io, 50ms);
+
+  result<> value;
+  timer
+      .async_wait(
+          use_continuable_ignoring(asio_basic_errors_t::operation_aborted))
+      .next([&](auto&&... args) {
+        value = result<>::from(std::forward<decltype(args)>(args)...);
+      });
+
+  timer.cancel();
+  io.run();
+
+  ASSERT_TRUE(value.is_value());
 }

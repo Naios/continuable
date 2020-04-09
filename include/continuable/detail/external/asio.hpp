@@ -30,62 +30,63 @@
 #ifndef CONTINUABLE_DETAIL_ASIO_HPP_INCLUDED
 #define CONTINUABLE_DETAIL_ASIO_HPP_INCLUDED
 
+#include <array>
 #include <utility>
 #include <continuable/continuable-base.hpp>
 #include <continuable/detail/core/base.hpp>
 #include <continuable/detail/features.hpp>
 
 #if defined(ASIO_STANDALONE)
-#include <asio/async_result.hpp>
-#include <asio/error.hpp>
-#include <asio/error_code.hpp>
-#include <asio/version.hpp>
+#  include <asio/async_result.hpp>
+#  include <asio/error.hpp>
+#  include <asio/error_code.hpp>
+#  include <asio/version.hpp>
 
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
-#include <asio/system_error.hpp>
-#endif
+#  if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#    include <asio/system_error.hpp>
+#  endif
 
-#if (ASIO_VERSION < 101300) // 1.13.0
-#define CTI_DETAIL_ASIO_HAS_NO_INTEGRATION
-#elif (ASIO_VERSION < 101600) // 1.16.0 (boost 1.72 baseline)
-#define CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION
-#endif
+#  if (ASIO_VERSION < 101300) // 1.13.0
+#    define CTI_DETAIL_ASIO_HAS_NO_INTEGRATION
+#  elif (ASIO_VERSION < 101600) // 1.16.0 (boost 1.72 baseline)
+#    define CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION
+#  endif
 
-#define CTI_DETAIL_ASIO_NAMESPACE_BEGIN namespace asio {
-#define CTI_DETAIL_ASIO_NAMESPACE_END }
+#  define CTI_DETAIL_ASIO_NAMESPACE_BEGIN namespace asio {
+#  define CTI_DETAIL_ASIO_NAMESPACE_END }
 #else
-#include <boost/asio/async_result.hpp>
-#include <boost/asio/error.hpp>
-#include <boost/system/error_code.hpp>
-#include <boost/version.hpp>
+#  include <boost/asio/async_result.hpp>
+#  include <boost/asio/error.hpp>
+#  include <boost/system/error_code.hpp>
+#  include <boost/version.hpp>
 
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
-#include <boost/system/system_error.hpp>
-#endif
+#  if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#    include <boost/system/system_error.hpp>
+#  endif
 
-#if (BOOST_VERSION < 107000) // 1.70
-#define CTI_DETAIL_ASIO_HAS_NO_INTEGRATION
-#elif (BOOST_VERSION < 107200) // 1.72
-#define CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION
-#endif
+#  if (BOOST_VERSION < 107000) // 1.70
+#    define CTI_DETAIL_ASIO_HAS_NO_INTEGRATION
+#  elif (BOOST_VERSION < 107200) // 1.72
+#    define CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION
+#  endif
 
-#define CTI_DETAIL_ASIO_NAMESPACE_BEGIN                                        \
-  namespace boost {                                                            \
-  namespace asio {
-#define CTI_DETAIL_ASIO_NAMESPACE_END                                          \
-  }                                                                            \
-  }
+#  define CTI_DETAIL_ASIO_NAMESPACE_BEGIN                                      \
+    namespace boost {                                                          \
+    namespace asio {
+#  define CTI_DETAIL_ASIO_NAMESPACE_END                                        \
+    }                                                                          \
+    }
 #endif
 
 #if defined(CTI_DETAIL_ASIO_HAS_NO_INTEGRATION)
-#error "First-class ASIO support for continuable requires the form of "\
+#  error "First-class ASIO support for continuable requires the form of "\
   "`async_result` with an `initiate` static member function, which was added " \
   "in standalone ASIO 1.13.0 and Boost ASIO 1.70. Older versions can be " \
   "integrated manually with `cti::promisify`."
 #endif
 
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
-#include <exception>
+#  include <exception>
 #endif
 
 namespace cti {
@@ -96,40 +97,42 @@ namespace asio {
 using error_code_t = ::asio::error_code;
 using basic_errors_t = ::asio::error::basic_errors;
 
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#  if defined(CONTINUABLE_HAS_EXCEPTIONS)
 using system_error_t = ::asio::system_error;
-#endif
+#  endif
 #else
 using error_code_t = ::boost::system::error_code;
 using basic_errors_t = ::boost::asio::error::basic_errors;
 
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#  if defined(CONTINUABLE_HAS_EXCEPTIONS)
 using system_error_t = ::boost::system::system_error;
-#endif
+#  endif
 #endif
 
 // Binds `promise` to the first argument of a continuable resolver, giving it
 // the signature of an ASIO handler.
-template <typename Promise>
-auto promise_resolver_handler(Promise&& promise) noexcept {
-  return [promise = std::forward<Promise>(promise)](
-             error_code_t e, auto&&... args) mutable noexcept {
+template <typename Promise, typename Token>
+auto promise_resolver_handler(Promise&& promise, Token&& token) noexcept {
+  return [promise = std::forward<Promise>(promise),
+          token = std::forward<Token>(token)](error_code_t e,
+                                              auto&&... args) mutable noexcept {
     if (e) {
-      if (e != basic_errors_t::operation_aborted) {
+      if (!token.is_ignored(e)) {
+        if (token.is_cancellation(e)) {
+          promise.set_canceled();
+          return;
+        } else {
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
-        promise.set_exception(
-            std::make_exception_ptr(system_error_t(std::move(e))));
+          promise.set_exception(
+              std::make_exception_ptr(system_error_t(std::move(e))));
 #else
-        promise.set_exception(exception_t(e.value(), e.category()));
+          promise.set_exception(exception_t(e.value(), e.category()));
 #endif
-      } else {
-        // Continuable uses a default constructed exception type to signal
-        // cancellation to the followed asynchronous control flow.
-        promise.set_exception(exception_t{});
+          return;
+        }
       }
-    } else {
-      promise.set_value(std::forward<decltype(args)>(args)...);
     }
+    promise.set_value(std::forward<decltype(args)>(args)...);
   };
 }
 
@@ -153,8 +156,53 @@ struct initiate_make_continuable<void(error_code_t, Args...)> {
 
 template <typename... Args>
 struct initiate_make_continuable<void(error_code_t const&, Args...)>
-    : initiate_make_continuable<void(error_code_t, Args...)> {};
+  : initiate_make_continuable<void(error_code_t, Args...)> {};
 
+struct map_default {
+  constexpr map_default() noexcept {}
+
+  bool is_cancellation(error_code_t const& ec) const noexcept {
+    // Continuable uses a default constructed exception type to signal
+    // cancellation to the followed asynchronous control flow.
+    return ec == basic_errors_t::operation_aborted;
+  }
+  bool is_ignored(error_code_t const& /*ec*/) const noexcept {
+    return false;
+  }
+};
+
+struct map_none {
+  constexpr map_none() noexcept {}
+
+  bool is_cancellation(error_code_t const& /*ec*/) const noexcept {
+    return false;
+  }
+  bool is_ignored(error_code_t const& /*ec*/) const noexcept {
+    return false;
+  }
+};
+
+template <std::size_t Size>
+class map_ignore {
+public:
+  map_ignore(std::array<basic_errors_t, Size> ignored) noexcept
+    : ignored_(ignored) {}
+
+  bool is_cancellation(error_code_t const& ec) const noexcept {
+    return ec == basic_errors_t::operation_aborted;
+  }
+  bool is_ignored(error_code_t const& ec) const noexcept {
+    for (basic_errors_t ignored : ignored_) {
+      if (ec == ignored) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+private:
+  std::array<basic_errors_t, Size> ignored_;
+};
 } // namespace asio
 } // namespace detail
 } // namespace cti
