@@ -383,3 +383,16 @@ TEST(async_complete_invalidation, check_whether_frame_released) {
 
   EXPECT_EQ(value.use_count(), 1L);
 }
+
+// #34 when_seq gives error on VS2019
+TEST(regression_tests, msvc_14_2_vs2019_build_fix) {
+  ASSERT_ASYNC_COMPLETION(
+      cti::when_seq(0, 1, cti::make_ready_continuable(2, 3), 4, 5)
+          .then([](int r0, int r1, int r2, int r3, int r4) {
+            ASSERT_EQ(r0, 0);
+            ASSERT_EQ(r1, 1);
+            ASSERT_EQ(r2, 2);
+            ASSERT_EQ(r3, 3);
+            ASSERT_EQ(r4, 4);
+          }));
+}
