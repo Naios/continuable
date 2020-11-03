@@ -81,24 +81,26 @@ Result wait_relaxed(continuable_base<Data, Annotation>&& continuable) {
     return std::move(continuable).unpack();
   }
 
-  std::mutex cv_mutex;
   condition_variable_t cv;
-  std::atomic_bool ready{false};
+  std::mutex cv_mutex;
+
+  bool ready{false};
   Result sync_result;
 
   std::move(continuable)
       .next([&](auto&&... args) {
         sync_result = Result::from(std::forward<decltype(args)>(args)...);
 
-        ready.store(true, std::memory_order_release);
+        lock_t lock(cv_mutex);
+        ready = true;
         cv.notify_all();
       })
       .done();
 
-  if (!ready.load(std::memory_order_acquire)) {
-    lock_t lock(cv_mutex);
+  lock_t lock(cv_mutex);
+  if (!ready) {
     cv.wait(lock, [&] {
-      return ready.load(std::memory_order_acquire);
+      return ready;
     });
   }
 
