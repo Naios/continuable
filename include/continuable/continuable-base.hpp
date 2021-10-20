@@ -434,6 +434,21 @@ public:
                                               std::forward<E>(executor));
   }
 
+  /// Returns a continuable_base which continues its invocation through the
+  /// given executor.
+  ///
+  /// \returns Returns a continuable_base of the same type.
+  ///
+  /// \since 4.2.0
+  template <typename E>
+  auto via(E&& executor) && {
+    return std::move(*this).next(
+        [](auto&&... args) {
+          return make_result(std::forward<decltype(args)>(args)...);
+        },
+        std::forward<E>(executor));
+  }
+
   /// Returns a continuable_base which will have its signature converted
   /// to the given Args.
   ///

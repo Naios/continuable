@@ -47,6 +47,26 @@ TYPED_TEST(single_dimension_tests, are_executor_dispatchable) {
   ASSERT_ASYNC_COMPLETION(std::move(chain));
 }
 
+TYPED_TEST(single_dimension_tests, are_executor_dispatchable_via) {
+  bool invoked = false;
+  auto executor = [&](auto&& work) {
+    // We can move the worker object
+    auto local = std::forward<decltype(work)>(work);
+    ASSERT_FALSE(invoked);
+    // We can invoke the worker object
+    std::move(local)();
+  };
+
+  auto chain = this->supply().via(executor).then([&] {
+    ASSERT_FALSE(invoked);
+    invoked = true;
+  });
+
+  ASSERT_ASYNC_COMPLETION(std::move(chain));
+
+  ASSERT_TRUE(invoked);
+}
+
 TYPED_TEST(single_dimension_tests, are_executor_exception_resolveable) {
   auto executor = [&](auto&& work) {
     std::forward<decltype(work)>(work).set_exception(supply_test_exception());
