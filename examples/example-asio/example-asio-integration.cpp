@@ -168,7 +168,7 @@ void using_strand() {
 
   cti::async_on(
       []() mutable {
-        puts("Dispatched through executor token");
+        puts("Dispatched through executor");
       },
       through_post(strand));
 
