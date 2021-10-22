@@ -109,37 +109,69 @@ using system_error_t = ::boost::system::system_error;
 #  endif
 #endif
 
-// Binds `promise` to the first argument of a continuable resolver, giving it
-// the signature of an ASIO handler.
 template <typename Promise, typename Token>
-auto promise_resolver_handler(Promise&& promise, Token&& token) noexcept {
-  return [promise = std::forward<Promise>(promise),
-          token = std::forward<Token>(token)](error_code_t e,
-                                              auto&&... args) mutable noexcept {
+class promise_resolver {
+public:
+  explicit promise_resolver(Promise promise, Token token)
+    : promise_(std::move(promise))
+    , token_(std::move(token)) {}
+
+  template <typename... T>
+  void operator()(T&&... args) noexcept {
+    promise_.set_value(std::forward<T>(args)...);
+  }
+
+  template <typename... T>
+  void operator()(error_code_t e, T&&... args) noexcept {
     if (e) {
-      if (!token.is_ignored(e)) {
-        if (token.is_cancellation(e)) {
-          promise.set_canceled();
+      if (!token_.is_ignored(e)) {
+        if (token_.is_cancellation(e)) {
+          promise_.set_canceled();
           return;
         } else {
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
-          promise.set_exception(
+          promise_.set_exception(
               std::make_exception_ptr(system_error_t(std::move(e))));
 #else
-          promise.set_exception(exception_t(e.value(), e.category()));
+          promise_.set_exception(exception_t(e.value(), e.category()));
 #endif
           return;
         }
       }
     }
-    promise.set_value(std::forward<decltype(args)>(args)...);
-  };
+    promise_.set_value(std::forward<T>(args)...);
+  }
+
+private:
+  Promise promise_;
+  Token token_;
+};
+
+// Binds `promise` to the first argument of a continuable resolver, giving it
+// the signature of an ASIO handler.
+template <typename Promise, typename Token>
+auto promise_resolver_handler(Promise&& promise, Token&& token) noexcept {
+  return promise_resolver<std::decay_t<Promise>, std::decay_t<Token>>(
+      std::forward<Promise>(promise), std::forward<Token>(token));
 }
 
 // Helper struct wrapping a call to `cti::make_continuable` and, if needed,
 // providing an erased, explicit `return_type` for `async_result`.
 template <typename Signature>
 struct initiate_make_continuable;
+
+template <typename... Args>
+struct initiate_make_continuable<void(Args...)> {
+#if defined(CTI_DETAIL_ASIO_HAS_EXPLICIT_RET_TYPE_INTEGRATION)
+  using erased_return_type = continuable<Args...>;
+#endif
+
+  template <typename Continuation>
+  auto operator()(Continuation&& continuation) {
+    return base::attorney::create_from(std::forward<Continuation>(continuation),
+                                       identity<Args...>{}, util::ownership{});
+  }
+};
 
 template <typename... Args>
 struct initiate_make_continuable<void(error_code_t, Args...)> {

@@ -50,18 +50,22 @@ void unexpected_error(cti::exception_t);
 // Check that the failure was an aborted operation, as expected.
 void check_aborted_operation(cti::exception_t);
 
+// Use a strand as executor
+void using_strand();
+
 int main(int, char**) {
   daytime_service();
 
   successful_async_wait();
   cancelled_async_wait();
 
+  using_strand();
+
   return 0;
 }
 
 void daytime_service() {
   using asio::ip::tcp;
-
   asio::io_context ioc(1);
   tcp::resolver resolver(ioc);
   tcp::socket socket(ioc);
@@ -145,4 +149,28 @@ void check_aborted_operation(cti::exception_t ex) {
   } else {
     puts("Continuation failed due to aborted async operation, as expected.");
   }
+}
+
+template <typename T>
+auto through_post(T& postable) {
+  return [&postable](auto&& work) mutable {
+    asio::post(postable, std::forward<decltype(work)>(work));
+  };
+}
+
+void using_strand() {
+  asio::io_context ioc(1);
+  asio::io_context::strand strand(ioc);
+
+  asio::post(strand, cti::use_continuable).then([]() {
+    puts("Dispatched through initiation token");
+  });
+
+  cti::async_on(
+      []() mutable {
+        puts("Dispatched through executor token");
+      },
+      through_post(strand));
+
+  ioc.run();
 }
