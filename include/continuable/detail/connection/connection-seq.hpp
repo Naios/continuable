@@ -147,24 +147,24 @@ struct connection_finalizer<connection_strategy_seq_tag> {
   template <typename Connection>
   static auto finalize(Connection&& connection, util::ownership ownership) {
 
-    auto result =
+    auto res =
         aggregated::box_continuables(std::forward<Connection>(connection));
 
-    auto signature = aggregated::hint_of_data<decltype(result)>();
+    auto signature = aggregated::hint_of_data<decltype(res)>();
 
     return base::attorney::create_from(
-        [result = std::move(result)](auto&& callback) mutable {
+        [res = std::move(res)](auto&& callback) mutable {
           // The data from which the visitor is constructed in-place
           using data_t =
               seq::sequential_dispatch_data<std::decay_t<decltype(callback)>,
-                                            std::decay_t<decltype(result)>>;
+                                            std::decay_t<decltype(res)>>;
 
           // The visitor type
           using visitor_t = seq::sequential_dispatch_visitor<data_t>;
 
           traverse_pack_async(async_traverse_in_place_tag<visitor_t>{},
                               data_t{std::forward<decltype(callback)>(callback),
-                                     std::move(result)});
+                                     std::move(res)});
         },
         signature, std::move(ownership));
   }
