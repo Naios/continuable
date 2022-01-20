@@ -33,19 +33,19 @@
 
 // Defines CONTINUABLE_WITH_NO_EXCEPTIONS when exception support is disabled
 #ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
-#if defined(_MSC_VER)
-#if !defined(_HAS_EXCEPTIONS) || (_HAS_EXCEPTIONS == 0)
-#define CONTINUABLE_WITH_NO_EXCEPTIONS
-#endif
-#elif defined(__clang__)
-#if !(__EXCEPTIONS && __has_feature(cxx_exceptions))
-#define CONTINUABLE_WITH_NO_EXCEPTIONS
-#endif
-#elif defined(__GNUC__)
-#if !__EXCEPTIONS
-#define CONTINUABLE_WITH_NO_EXCEPTIONS
-#endif
-#endif
+#  if defined(_MSC_VER)
+#    if !defined(_HAS_EXCEPTIONS) || (_HAS_EXCEPTIONS == 0)
+#      define CONTINUABLE_WITH_NO_EXCEPTIONS
+#    endif
+#  elif defined(__clang__)
+#    if !(__EXCEPTIONS && __has_feature(cxx_exceptions))
+#      define CONTINUABLE_WITH_NO_EXCEPTIONS
+#    endif
+#  elif defined(__GNUC__)
+#    if !__EXCEPTIONS
+#      define CONTINUABLE_WITH_NO_EXCEPTIONS
+#    endif
+#  endif
 #endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 
 // clang-format off
@@ -86,24 +86,40 @@
   #endif
 #endif
 
-/// Usually this is enabled by the CMake project
-#if !defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
+// Automatically detects support for coroutines.
+// Parts of this detection mechanism were adapted from boost::asio,
+// with support added for experimental coroutines.
+#if !defined(CONTINUABLE_HAS_DISABLED_COROUTINE) \
+ && !defined(CONTINUABLE_HAS_COROUTINE)
   /// Define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE when
   /// CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE is defined.
   #if defined(CONTINUABLE_WITH_EXPERIMENTAL_COROUTINE)
-    #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
-  #elif defined(_MSC_VER)
-    #if _MSC_FULL_VER >= 190023506
+    #define CONTINUABLE_HAS_COROUTINE 1
+  #elif defined(CONTINUABLE_WITH_COROUTINE)
+    #define CONTINUABLE_HAS_COROUTINE 1
+    #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE 1
+  #elif defined(_MSC_VER) // Visual Studio
+    #if (_MSC_VER >= 1928) && (_MSVC_LANG >= 201705)
+      #define CONTINUABLE_HAS_COROUTINE 1
+    #elif _MSC_FULL_VER >= 190023506
       #if defined(_RESUMABLE_FUNCTIONS_SUPPORTED)
-        #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+        #define CONTINUABLE_HAS_COROUTINE 1
+        #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE 1
       #endif // defined(_RESUMABLE_FUNCTIONS_SUPPORTED)
     #endif // _MSC_FULL_VER >= 190023506
-  #elif defined(__clang__)
+  #elif defined(__clang__) // Clang
     #if defined(__cpp_coroutines) && (__cpp_coroutines >= 201707)
-      #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+      #define CONTINUABLE_HAS_COROUTINE 1
+      #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE 1
     #endif // defined(__cpp_coroutines) && (__cpp_coroutines >= 201707)
-  #endif // defined(__clang__)
-#endif // !defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
+  #elif defined(__GNUC__) // GCC
+    #if (__cplusplus >= 201709) && (__cpp_impl_coroutine >= 201902)
+      #if __has_include(<coroutine>)
+        #define CONTINUABLE_HAS_COROUTINE 1
+      #endif // __has_include(<coroutine>)
+    #endif // (__cplusplus >= 201709) && (__cpp_impl_coroutine >= 201902)
+  #endif
+#endif
 
 /// Define CONTINUABLE_HAS_EXCEPTIONS when exceptions are used
 #if !defined(CONTINUABLE_WITH_CUSTOM_ERROR_TYPE) &&                            \

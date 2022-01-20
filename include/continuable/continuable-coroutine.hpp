@@ -39,11 +39,9 @@
 #  include <exception>
 #endif // CONTINUABLE_HAS_EXCEPTIONS
 
-#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+#if defined(CONTINUABLE_HAS_COROUTINE)
 #  include <continuable/detail/other/coroutines.hpp>
-#endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
 
-#if defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
 namespace cti {
 #  if defined(CONTINUABLE_HAS_EXCEPTIONS)
 /// Is thrown from co_await expressions if the awaited continuable is canceled
@@ -78,7 +76,9 @@ using await_canceled_exception = detail::awaiting::await_canceled_exception;
 // As far as I know there is no other way to implement this specialization...
 // NOLINTNEXTLINE(cert-dcl58-cpp)
 namespace std {
+#  if defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
 namespace experimental {
+#  endif // defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
 template <typename Data, typename... Args, typename... FunctionArgs>
 struct coroutine_traits<
     cti::continuable_base<Data, cti::detail::identity<Args...>>,
@@ -87,9 +87,11 @@ struct coroutine_traits<
   using promise_type = cti::detail::awaiting::promise_type<
       cti::continuable<Args...>, cti::promise<Args...>, Args...>;
 };
+#  if defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
 } // namespace experimental
+#  endif // defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
 } // namespace std
   /// \endcond
-#endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+#endif // defined(CONTINUABLE_HAS_COROUTINE)
 
 #endif // CONTINUABLE_COROUTINE_HPP_INCLUDED

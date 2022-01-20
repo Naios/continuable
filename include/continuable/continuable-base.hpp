@@ -47,10 +47,9 @@
 #include <continuable/detail/utility/traits.hpp>
 #include <continuable/detail/utility/util.hpp>
 
-#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
-#  include <experimental/coroutine>
+#if defined(CONTINUABLE_HAS_COROUTINE)
 #  include <continuable/detail/other/coroutines.hpp>
-#endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+#endif // defined(CONTINUABLE_HAS_COROUTINE)
 
 namespace cti {
 /// \defgroup Base Base
@@ -715,7 +714,7 @@ public:
   }
 
   /// \cond false
-#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+#if defined(CONTINUABLE_HAS_COROUTINE)
   /// \endcond
   /// Implements the operator for awaiting on continuables using `co_await`.
   ///
@@ -781,7 +780,7 @@ public:
     return detail::awaiting::create_awaiter(std::move(*this).finish());
   }
   /// \cond false
-#endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+#endif // defined(CONTINUABLE_HAS_COROUTINE)
   /// \endcond
 
 private:

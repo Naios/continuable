@@ -34,7 +34,6 @@
 
 #include <cassert>
 #include <type_traits>
-#include <experimental/coroutine>
 #include <continuable/continuable-primitives.hpp>
 #include <continuable/continuable-result.hpp>
 #include <continuable/detail/core/annotation.hpp>
@@ -48,13 +47,26 @@
 #  include <exception>
 #endif // CONTINUABLE_HAS_EXCEPTIONS
 
+#if defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
+#  include <experimental/coroutine>
+#elif defined(CONTINUABLE_HAS_COROUTINE)
+#  include <coroutine>
+#endif
+
+#if defined(CONTINUABLE_HAS_COROUTINE)
 namespace cti {
 namespace detail {
 namespace awaiting {
 /// We import the coroutine handle in our namespace
+#  if defined(CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE)
 using std::experimental::coroutine_handle;
+using std::experimental::suspend_never;
+#  else
+using std::coroutine_handle;
+using std::suspend_never;
+#  endif
 
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#  if defined(CONTINUABLE_HAS_EXCEPTIONS)
 class await_canceled_exception : public std::exception {
 public:
   await_canceled_exception() noexcept = default;
@@ -63,7 +75,7 @@ public:
     return "co_await canceled due to cancellation of the continuation";
   }
 };
-#endif // CONTINUABLE_HAS_EXCEPTIONS
+#  endif // CONTINUABLE_HAS_EXCEPTIONS
 
 template <typename T>
 struct result_from_identity;
@@ -126,16 +138,16 @@ public:
 
     assert(result_.is_exception());
 
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#  if defined(CONTINUABLE_HAS_EXCEPTIONS)
     if (exception_t e = result_.get_exception()) {
       std::rethrow_exception(std::move(e));
     } else {
       throw await_canceled_exception();
     }
-#else  // CONTINUABLE_HAS_EXCEPTIONS
+#  else  // CONTINUABLE_HAS_EXCEPTIONS
     // Returning error types from co_await isn't supported!
     CTI_DETAIL_TRAP();
-#endif // CONTINUABLE_HAS_EXCEPTIONS
+#  endif // CONTINUABLE_HAS_EXCEPTIONS
   }
 };
 
@@ -213,12 +225,12 @@ struct promise_type
     return {handle_};
   }
 
-  std::experimental::suspend_never final_suspend() {
+  suspend_never final_suspend() noexcept {
     return {};
   }
 
   void unhandled_exception() noexcept {
-#if defined(CONTINUABLE_HAS_EXCEPTIONS)
+#  if defined(CONTINUABLE_HAS_EXCEPTIONS)
     try {
       std::rethrow_exception(std::current_exception());
     } catch (await_canceled_exception const&) {
@@ -226,14 +238,15 @@ struct promise_type
     } catch (...) {
       promise_.set_exception(std::current_exception());
     }
-#else  // CONTINUABLE_HAS_EXCEPTIONS
+#  else  // CONTINUABLE_HAS_EXCEPTIONS
     // Returning exception types from a coroutine isn't supported
     CTI_DETAIL_TRAP();
-#endif // CONTINUABLE_HAS_EXCEPTIONS
+#  endif // CONTINUABLE_HAS_EXCEPTIONS
   }
 };
 } // namespace awaiting
 } // namespace detail
 } // namespace cti
+#endif // defined(CONTINUABLE_HAS_COROUTINE)
 
 #endif // CONTINUABLE_DETAIL_UTIL_HPP_INCLUDED

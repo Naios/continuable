@@ -24,7 +24,8 @@
 #include <test-continuable.hpp>
 
 #include <continuable/detail/features.hpp>
-#ifdef CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE
+
+#ifdef CONTINUABLE_HAS_COROUTINE
 
 #  ifndef CONTINUABLE_WITH_NO_EXCEPTIONS
 #    include <exception>
