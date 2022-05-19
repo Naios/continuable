@@ -170,10 +170,12 @@ TYPED_TEST(single_dimension_tests, multipath_exception_is_continuable) {
 
 TYPED_TEST(single_dimension_tests, multipath_exception_is_autocanceled) {
   bool caught = false;
-  ASSERT_ASYNC_INCOMPLETION(
+  ASSERT_ASYNC_COMPLETION(
       this->supply_exception(supply_test_exception()).fail([&](exception_t) {
         EXPECT_FALSE(caught);
         caught = true;
+      }).fail([](exception_t){
+        FAIL();
       }));
   ASSERT_TRUE(caught);
 }

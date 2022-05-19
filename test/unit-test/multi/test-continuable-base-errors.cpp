@@ -39,7 +39,7 @@ TYPED_TEST(single_dimension_tests, are_yielding_error_result) {
                                 get_test_exception_proto());
 }
 
-TYPED_TEST(single_dimension_tests, are_never_completed_after_error_handled) {
+TYPED_TEST(single_dimension_tests, are_completed_after_error_handled) {
   auto handled = std::make_shared<bool>(false);
   auto continuation = this->supply_exception(supply_test_exception())
                           .fail([handled](cti::exception_t) {
@@ -47,8 +47,21 @@ TYPED_TEST(single_dimension_tests, are_never_completed_after_error_handled) {
                             *handled = true;
                           });
 
-  ASSERT_ASYNC_INCOMPLETION(std::move(continuation));
+  ASSERT_ASYNC_COMPLETION(std::move(continuation));
   ASSERT_TRUE(*handled);
+}
+
+TYPED_TEST(single_dimension_tests, are_recoverable_after_error_handled) {
+  auto recovered = std::make_shared<bool>(false);
+  auto continuation = this->supply_exception(supply_test_exception())
+                          .fail([](cti::exception_t){})
+                          .then([recovered]{
+                            ASSERT_FALSE(*recovered);
+                            *recovered = true;
+                          });
+
+  ASSERT_ASYNC_COMPLETION(std::move(continuation));
+  ASSERT_TRUE(*recovered);
 }
 
 TYPED_TEST(single_dimension_tests, fail_is_accepting_plain_continuables) {
@@ -61,7 +74,7 @@ TYPED_TEST(single_dimension_tests, fail_is_accepting_plain_continuables) {
   auto continuation =
       this->supply_exception(supply_test_exception()).fail(std::move(handler));
 
-  ASSERT_ASYNC_INCOMPLETION(std::move(continuation));
+  ASSERT_ASYNC_COMPLETION(std::move(continuation));
   ASSERT_TRUE(*handled);
 }
 
@@ -109,13 +122,13 @@ TYPED_TEST(single_dimension_tests, are_flow_error_accepting) {
                 *handled = true;
               }));
 
-  ASSERT_ASYNC_INCOMPLETION(std::move(continuation));
+  ASSERT_ASYNC_COMPLETION(std::move(continuation));
   ASSERT_TRUE(*handled);
 }
 
 TYPED_TEST(single_dimension_tests, are_exceptions_partial_applyable) {
   bool handled = false;
-  ASSERT_ASYNC_INCOMPLETION(
+  ASSERT_ASYNC_COMPLETION(
       this->supply_exception(supply_test_exception()).fail([&]() -> void {
         EXPECT_FALSE(handled);
         handled = true;

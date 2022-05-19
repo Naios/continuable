@@ -293,16 +293,6 @@ constexpr void invoke_no_except(T&& callable, Args&&... args) noexcept {
   std::forward<T>(callable)(std::forward<Args>(args)...);
 }
 
-template <typename... Args, typename T>
-void invoke_void_no_except(identity<exception_arg_t, Args...>,
-                           T&& /*callable*/) noexcept {
-  // Don't invoke the next failure handler when being in an exception handler
-}
-template <typename... Args, typename T>
-void invoke_void_no_except(identity<Args...>, T&& callable) noexcept {
-  std::forward<T>(callable)();
-}
-
 template <typename T, typename... Args>
 constexpr auto make_invoker(T&& invoke, identity<Args...>) {
   return invoker<std::decay_t<T>, identity<Args...>>(std::forward<T>(invoke));
@@ -373,9 +363,8 @@ inline auto invoker_of(identity<void>) {
         CONTINUABLE_BLOCK_TRY_BEGIN
           invoke_callback(std::forward<decltype(callback)>(callback),
                           std::forward<decltype(args)>(args)...);
-          invoke_void_no_except(
-              identity<traits::unrefcv_t<decltype(args)>...>{},
-              std::forward<decltype(next_callback)>(next_callback));
+                          
+          invoke_no_except(std::forward<decltype(next_callback)>(next_callback));
         CONTINUABLE_BLOCK_TRY_END
       },
       identity<>{});

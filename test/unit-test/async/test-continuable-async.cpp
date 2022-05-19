@@ -194,3 +194,15 @@ TYPED_TEST(single_dimension_tests, token_remap_ignore) {
 
   ASSERT_TRUE(value.is_value());
 }
+
+TYPED_TEST(single_dimension_tests, wait_test_issue_46) {
+  bool handled = false;
+  make_exceptional_continuable<void>(supply_test_exception())
+                   .fail([&]{
+                       EXPECT_FALSE(handled);
+                       handled = true;
+                   })
+                   .apply(cti::transforms::wait());
+                   
+  ASSERT_TRUE(handled);
+}
