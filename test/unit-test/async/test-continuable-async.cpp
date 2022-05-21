@@ -206,3 +206,73 @@ TYPED_TEST(single_dimension_tests, wait_test_issue_46) {
                    
   ASSERT_TRUE(handled);
 }
+
+TYPED_TEST(single_dimension_tests, then_after_nonvoid_fail_handler_invoked) {
+   bool invoked = false;
+   make_exceptional_continuable<int>(supply_test_exception())
+                    .fail([]{
+                      return 1;
+                    })
+                    .then([&]{
+                      EXPECT_FALSE(invoked);
+                      invoked = true;
+                    });
+                    
+   ASSERT_TRUE(invoked);
+ }
+ 
+ TYPED_TEST(single_dimension_tests, then_after_void_fail_handler_invoked) {
+   bool invoked = false;
+   make_exceptional_continuable<void>(supply_test_exception())
+                    .fail([]{
+                      return;
+                    })
+                    .then([&]{
+                      EXPECT_FALSE(invoked);
+                      invoked = true;
+                    });
+                    
+   ASSERT_TRUE(invoked);
+ }
+ 
+ TYPED_TEST(single_dimension_tests, scoped_fail_handler_not_invoked) {
+   bool invoked1 = false;
+   bool invoked2 = false;
+   make_exceptional_continuable<void>(supply_test_exception())
+                    .fail([&]{
+                      EXPECT_FALSE(invoked1);
+                      invoked1 = true;
+                      return;
+                    })
+                    .then([]{
+                      return;
+                    })
+                    .fail([&]{
+                      EXPECT_FALSE(invoked2);
+                      invoked2 = true;
+                    });
+                    
+   ASSERT_TRUE(invoked1);
+   ASSERT_FALSE(invoked2);
+ }
+ 
+ TYPED_TEST(single_dimension_tests, scoped_fail_handler_invoked) {
+   bool invoked1 = false;
+   bool invoked2 = false;
+   make_exceptional_continuable<void>(supply_test_exception())
+                    .fail([&]{
+                      EXPECT_FALSE(invoked1);
+                      invoked1 = true;
+                      return;
+                    })
+                    .then([]{
+                      std::rethrow_exception(supply_test_exception());
+                    })
+                    .fail([&]{
+                      EXPECT_FALSE(invoked2);
+                      invoked2 = true;
+                    });
+                    
+   ASSERT_TRUE(invoked1);
+   ASSERT_TRUE(invoked2);
+ }
