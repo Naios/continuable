@@ -72,6 +72,45 @@ struct sync_trait<identity<Args...>> {
 using lock_t = std::unique_lock<std::mutex>;
 using condition_variable_t = std::condition_variable;
 
+template <typename Result>
+struct unsafe_unlocker {
+  unsafe_unlocker(unsafe_unlocker const&) = delete;
+  unsafe_unlocker(unsafe_unlocker&&) = default;
+  unsafe_unlocker& operator=(unsafe_unlocker const&) = delete;
+  unsafe_unlocker& operator=(unsafe_unlocker&&) = default;
+
+  ~unsafe_unlocker() {
+    unlock(Result::empty());
+  }
+
+  template <typename... Args>
+  void operator()(Args&&... args) {
+    unlock(Result::from(std::forward<Args>(args)...));
+  }
+
+  void unlock(Result&& result) {
+    if (!ownership_.is_acquired()) {
+      return;
+    }
+    ownership_.release();
+
+    lock_t lock(*mutex_);
+
+    *result_ = std::move(result);
+
+    assert(!ready_->load(std::memory_order_acquire));
+    ready_->store(true, std::memory_order_release);
+
+    cv_->notify_all();
+  }
+
+  std::atomic_bool* ready_;
+  condition_variable_t* cv_;
+  std::mutex* mutex_;
+  Result* result_;
+  util::ownership ownership_;
+};
+
 template <typename Data, typename Annotation,
           typename Result = typename sync_trait<Annotation>::result_t>
 Result wait_relaxed(continuable_base<Data, Annotation>&& continuable) {
@@ -84,23 +123,22 @@ Result wait_relaxed(continuable_base<Data, Annotation>&& continuable) {
   condition_variable_t cv;
   std::mutex cv_mutex;
 
-  bool ready{false};
+  std::atomic_bool ready{false};
   Result sync_result;
 
   std::move(continuable)
-      .next([&](auto&&... args) {
-        sync_result = Result::from(std::forward<decltype(args)>(args)...);
-
-        lock_t lock(cv_mutex);
-        ready = true;
-        cv.notify_all();
+      .next(unsafe_unlocker<Result>{
+          &ready,
+          &cv,
+          &cv_mutex,
+          &sync_result,
       })
       .done();
 
   lock_t lock(cv_mutex);
-  if (!ready) {
+  if (!ready.load(std::memory_order_acquire)) {
     cv.wait(lock, [&] {
-      return ready;
+      return ready.load(std::memory_order_acquire);
     });
   }
 
@@ -117,14 +155,15 @@ auto wait_and_unpack(continuable_base<Data, Annotation>&& continuable) {
 #if defined(CONTINUABLE_HAS_EXCEPTIONS)
   if (sync_result.is_value()) {
     return std::move(sync_result).get_value();
-  } else {
-    assert(sync_result.is_exception());
-    if (exception_t e = sync_result.get_exception()) {
-      std::rethrow_exception(e);
-    } else {
-      throw wait_transform_canceled_exception();
+  } else if (sync_result.is_exception()) {
+    if (sync_result.is_exception()) {
+      if (exception_t e = sync_result.get_exception()) {
+        std::rethrow_exception(e);
+      }
     }
   }
+
+  throw wait_transform_canceled_exception();
 #else
   return sync_result;
 #endif // CONTINUABLE_HAS_EXCEPTIONS
@@ -137,6 +176,44 @@ struct wait_frame {
   condition_variable_t cv;
   std::atomic_bool ready{false};
   Result sync_result;
+};
+
+template <typename Result>
+struct unlocker {
+  unlocker(unlocker const&) = delete;
+  unlocker(unlocker&&) = default;
+  unlocker& operator=(unlocker const&) = delete;
+  unlocker& operator=(unlocker&&) = default;
+
+  ~unlocker() {
+    unlock(Result::empty());
+  }
+
+  template <typename... Args>
+  void operator()(Args&&... args) {
+    unlock(Result::from(std::forward<decltype(args)>(args)...));
+  }
+
+  void unlock(Result&& result) {
+    if (!ownership_.is_acquired()) {
+      return;
+    }
+    ownership_.release();
+
+    if (auto locked = frame_.lock()) {
+      {
+        std::lock_guard<std::mutex> rw_lock(locked->rw_mutex);
+        assert(!locked->ready.load(std::memory_order_acquire));
+        locked->sync_result = std::move(result);
+      }
+
+      locked->ready.store(true, std::memory_order_release);
+      locked->cv.notify_all();
+    }
+  }
+
+  std::weak_ptr<wait_frame<Result>> frame_;
+  util::ownership ownership_;
 };
 
 template <typename Data, typename Annotation, typename Waiter,
@@ -154,18 +231,7 @@ Result wait_unsafe(continuable_base<Data, Annotation>&& continuable,
   auto frame = std::make_shared<frame_t>();
 
   std::move(continuable)
-      .next([frame = std::weak_ptr<frame_t>(frame)](auto&&... args) {
-        if (auto locked = frame.lock()) {
-          {
-            std::lock_guard<std::mutex> rw_lock(locked->rw_mutex);
-            locked->sync_result = Result::from(
-                std::forward<decltype(args)>(args)...);
-          }
-
-          locked->ready.store(true, std::memory_order_release);
-          locked->cv.notify_all();
-        }
-      })
+      .next(unlocker<Result>{std::weak_ptr<frame_t>(frame)})
       .done();
 
   if (!frame->ready.load(std::memory_order_acquire)) {

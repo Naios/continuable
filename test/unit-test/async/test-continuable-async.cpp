@@ -115,10 +115,49 @@ TYPED_TEST(single_dimension_tests, wait_test_exception) {
                test_exception);
 }
 
+TYPED_TEST(single_dimension_tests, wait_test_unlocked) {
+  make_continuable<void>([&](promise<> p) {
+    p.set_value();
+  }).apply(transforms::wait());
+
+  ASSERT_TRUE(true);
+}
+
 TYPED_TEST(single_dimension_tests, wait_test_cancellation) {
   ASSERT_THROW(make_cancelling_continuable<void>().apply(
                    cti::transforms::wait()),
                transforms::wait_transform_canceled_exception);
+}
+
+TYPED_TEST(single_dimension_tests,
+           wait_test_exception_unlocked_void_failure_handle) {
+  ASSERT_THROW(make_exceptional_continuable<void>(supply_test_exception())
+                   .fail([](exception_t) {})
+                   .apply(transforms::wait()),
+               transforms::wait_transform_canceled_exception);
+}
+
+TYPED_TEST(single_dimension_tests, wait_test_unlocked_empty_result) {
+  ASSERT_THROW(async([]() -> result<> {
+                 return empty_result();
+               }).apply(transforms::wait()),
+               transforms::wait_transform_canceled_exception);
+}
+
+TYPED_TEST(single_dimension_tests,
+           wait_for_test_exception_unlocked_void_failure_handle) {
+  ASSERT_TRUE(make_exceptional_continuable<void>(supply_test_exception())
+                  .fail([](exception_t) {})
+                  .apply(transforms::wait_for(24h))
+                  .is_empty());
+}
+
+TYPED_TEST(single_dimension_tests, wait_for_test_unlocked_empty_result) {
+  ASSERT_TRUE(async([]() -> result<> {
+                return empty_result();
+              })
+                  .apply(transforms::wait_for(24h))
+                  .is_empty());
 }
 #endif // CONTINUABLE_HAS_EXCEPTIONS
 
