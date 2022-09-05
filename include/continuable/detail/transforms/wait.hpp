@@ -74,6 +74,13 @@ using condition_variable_t = std::condition_variable;
 
 template <typename Result>
 struct unsafe_unlocker {
+  explicit unsafe_unlocker(std::atomic_bool* ready, condition_variable_t* cv,
+                           std::mutex* mutex, Result* result)
+    : ready_(ready)
+    , cv_(cv)
+    , mutex_(mutex)
+    , result_(result) {}
+
   unsafe_unlocker(unsafe_unlocker const&) = delete;
   unsafe_unlocker(unsafe_unlocker&&) = default;
   unsafe_unlocker& operator=(unsafe_unlocker const&) = delete;
