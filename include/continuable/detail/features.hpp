@@ -108,10 +108,12 @@
       #endif // defined(_RESUMABLE_FUNCTIONS_SUPPORTED)
     #endif // _MSC_FULL_VER >= 190023506
   #elif defined(__clang__) // Clang
-    #if defined(__cpp_coroutines) && (__cpp_coroutines >= 201707)
+    #if defined(__cpp_coroutines) && (__cpp_coroutines >= 201703L)
       #define CONTINUABLE_HAS_COROUTINE 1
-      #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE 1
-    #endif // defined(__cpp_coroutines) && (__cpp_coroutines >= 201707)
+      #if defined(_LIBCPP_EXPERIMENTAL_COROUTINE)
+        #define CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE 1
+      #endif
+    #endif // defined(__cpp_coroutines) && (__cpp_coroutines >= 201703L)
   #elif defined(__GNUC__) // GCC
     #if (__cplusplus >= 201709) && (__cpp_impl_coroutine >= 201902)
       #if __has_include(<coroutine>)
