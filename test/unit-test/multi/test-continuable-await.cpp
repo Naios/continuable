@@ -169,6 +169,78 @@ TYPED_TEST(single_dimension_tests, are_awaitable_with_cancellation_from_coro) {
   ASSERT_ASYNC_CANCELLATION(resolve_coro_canceled(supply))
 }
 
+template <typename S>
+cti::continuable<> test_symmetric_transfer(S&& supplier) {
+  // If symmetric transfer is not working properly, large
+  // loops will quickly cause stack overflows.
+  for (size_t index = 0; index < 10000; index++) {
+    co_await supplier();
+  }
+  co_return;
+}
+
+TYPED_TEST(single_dimension_tests, are_symmetric_transferable) {
+  auto const& supply = [&]() {
+    return cti::make_continuable<int>([](auto&& promise) {
+      promise.set_value(0);
+    });
+  };
+
+  ASSERT_ASYNC_COMPLETION(test_symmetric_transfer(supply));
+}
+
+TYPED_TEST(single_dimension_tests, are_symmetric_transferable_type_erased) {
+  auto const& supply = [&]() -> cti::continuable<int> {
+    return cti::make_continuable<int>([](auto&& promise) {
+      promise.set_value(0);
+    });
+  };
+
+  ASSERT_ASYNC_COMPLETION(test_symmetric_transfer(supply));
+}
+
+TYPED_TEST(single_dimension_tests,
+           are_symmetric_transferable_using_make_ready) {
+  auto const& supply = [&]() {
+    return cti::make_ready_continuable<int>(0);
+  };
+
+  ASSERT_ASYNC_COMPLETION(test_symmetric_transfer(supply));
+}
+
+TYPED_TEST(single_dimension_tests,
+           are_symmetric_transferable_using_type_erased_make_ready) {
+  auto const& supply = [&]() -> cti::continuable<int> {
+    return cti::make_ready_continuable<int>(0);
+  };
+
+  ASSERT_ASYNC_COMPLETION(test_symmetric_transfer(supply));
+}
+
+TYPED_TEST(single_dimension_tests, are_symmetric_transferable_using_type_erased_from_thread) {
+  auto const& supply = [&]() -> cti::continuable<int> {
+    return cti::make_continuable<int>([](auto&& promise) {
+      std::async(std::launch::async, std::forward<decltype(promise)>(promise), 0);
+    });
+  };
+
+  ASSERT_ASYNC_COMPLETION(test_symmetric_transfer(supply));
+}
+
+TYPED_TEST(single_dimension_tests, are_symmetric_transferable_except) {
+  size_t count = 0;
+  auto const& supply = [&]() -> cti::continuable<int> {
+    // NOTE: The symmetric transfer loop does 10000 iterations.
+    if(++count == 5000) {
+      return cti::make_exceptional_continuable<int>(
+          std::make_exception_ptr(std::runtime_error("Failed")));
+    }
+    return cti::make_ready_continuable<int>(0);
+  };
+
+  ASSERT_ASYNC_EXCEPTION_COMPLETION(test_symmetric_transfer(supply));
+}
+
 #  endif // CONTINUABLE_WITH_NO_EXCEPTIONS
 
 #endif // CONTINUABLE_HAS_EXPERIMENTAL_COROUTINE

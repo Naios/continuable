@@ -96,6 +96,16 @@ class awaitable {
   /// A cache which is used to pass the result of the continuation
   /// to the coroutine.
   result_t result_;
+  /// Enumeration that represents the suspension state of the awaitable.
+  enum class state : std::uint8_t {
+    suspended,
+    pending,
+    resolved,
+  };
+  /// An atomic that specifies whether the awaitable has suspended or not.
+  /// Allows to perform symmetric transfer on continuables that are
+  /// immediately resolved.
+  std::atomic<state> state_{state::pending};
 
 public:
   explicit constexpr awaitable(Continuable&& continuable)
@@ -117,16 +127,27 @@ public:
 
   /// Suspend the current context
   // TODO Convert this to an r-value function once possible
-  void await_suspend(coroutine_handle<> h) {
+  bool await_suspend(coroutine_handle<> h) {
     assert(result_.is_empty());
     // Forward every result to the current awaitable
     std::move(continuable_)
         .next([h, this](auto&&... args) mutable {
           assert(result_.is_empty());
           result_ = result_t::from(std::forward<decltype(args)>(args)...);
-          h.resume();
+
+          // If true, it means that the promise was suspended (i.e., the
+          // awaitable await_suspend method has already returned). That
+          // means we must call the resume coroutine from the continuation
+          // chain.
+          if (state_.exchange(state::resolved, std::memory_order_acq_rel) ==
+              state::suspended) {
+            return h.resume();
+          }
         })
         .done();
+
+    return state_.exchange(state::suspended, std::memory_order_acq_rel) !=
+           state::resolved;
   }
 
   /// Resume the coroutine represented by the handle
