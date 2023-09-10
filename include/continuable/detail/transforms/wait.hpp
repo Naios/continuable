@@ -192,6 +192,9 @@ struct unlocker {
   unlocker& operator=(unlocker const&) = delete;
   unlocker& operator=(unlocker&&) = default;
 
+  explicit unlocker(std::weak_ptr<wait_frame<Result>> frame)
+    : frame_(std::move(frame)) {}
+
   ~unlocker() {
     unlock(Result::empty());
   }
